@@ -230,6 +230,7 @@ class AgentTaskManager:
 
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
+                stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=workspace_dir,
@@ -367,6 +368,12 @@ class AgentTaskManager:
             self.active_proc = None
             self.active_task = None
             self.start_time = None
+
+    
+    async def send_input(self, text: str):
+        if self.active_proc and self.active_proc.stdin:
+            self.active_proc.stdin.write((text + "\n").encode('utf-8'))
+            await self.active_proc.stdin.drain()
 
     async def cancel_task(self):
         if self.is_running():
