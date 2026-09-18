@@ -31,7 +31,7 @@ threading.Thread(target=run_ai_loop, daemon=True).start()
 
 @ai_bp.route('/')
 def ai_home():
-    return render_template('index.html')
+    return render_template('ai_index.html')
 
 @ai_bp.route('/api/chat', methods=['POST'])
 def start_chat():
