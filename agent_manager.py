@@ -215,7 +215,7 @@ class AgentTaskManager:
                 ) + prompt
 
             cmd = [
-                "/home/michael/.local/bin/agy",
+                __import__("shutil").which("agy") or "agy",
                 perm_flag,
                 "--model", model,
                 "--output-format", "stream-json"
