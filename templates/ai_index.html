@@ -262,7 +262,7 @@
             if (overrideCb) adminOverride = overrideCb.checked;
 
             
-            fetch('/api/chat', {
+            fetch('/ai_agent/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({prompt: prompt, model: model, conversation_id: currentConversationId, admin_override: adminOverride, token: authToken})
@@ -538,7 +538,7 @@
             
             // Poll for stream updates
             setInterval(function() {
-                fetch('/api/stream').then(res => res.json()).then(data => {
+                fetch('/ai_agent/api/stream').then(res => res.json()).then(data => {
                     if (data.messages && data.messages.length > 0) {
                         data.messages.forEach(msg => {
                             if (msg.type === 'agent_chunk') {
@@ -579,7 +579,7 @@
             // Auto-boot if empty
             var messageCount = chatFeed.querySelectorAll('.message-card').length;
             if (messageCount === 0) {
-                fetch('/api/chat', {
+                fetch('/ai_agent/api/chat', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({prompt: "boot"})
@@ -1006,7 +1006,7 @@
             if (overrideCb) adminOverride = overrideCb.checked;
 
             
-            fetch('/api/chat', {
+            fetch('/ai_agent/api/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({prompt: prompt, model: model, conversation_id: currentConversationId, admin_override: adminOverride, token: authToken})
@@ -1027,7 +1027,7 @@
 
         function cancelTask() {
             
-            fetch('/api/kill', {method: 'POST'});
+            fetch('/ai_agent/api/kill', {method: 'POST'});
             isTaskRunning = false;
             sendBtn.disabled = false;
             sendBtnText.innerText = "Send";
