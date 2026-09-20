@@ -198,6 +198,12 @@ class AgentTaskManager:
                 k: v for k, v in os.environ.items()
                 if k in ("PATH", "HOME", "USER", "LANG", "TERM", "SHELL", "GEMINI_API_KEY", "GOOGLE_API_KEY") or k.startswith("AGY_")
             }
+            # Ensure ~/.local/bin is in PATH so PythonAnywhere WSGI can find the agy binary
+            local_bin = os.path.expanduser("~/.local/bin")
+            if "PATH" in safe_env and local_bin not in safe_env["PATH"]:
+                safe_env["PATH"] = f"{local_bin}:{safe_env['PATH']}"
+            elif "PATH" not in safe_env:
+                safe_env["PATH"] = local_bin
 
             # Enforce sandbox for non-admin roles unless explicitly bypassed via UI override
             is_admin = (user and user.get("role") == "admin") or admin_override
@@ -214,8 +220,16 @@ class AgentTaskManager:
                     "</SYSTEM_MESSAGE>\n\n"
                 ) + prompt
 
+            # Resolve the binary safely
+            import shutil
+            agy_binary = shutil.which("agy")
+            if not agy_binary:
+                # Fallback to local pythonanywhere path
+                fallback = os.path.expanduser("~/.local/bin/agy")
+                agy_binary = fallback if os.path.exists(fallback) else "agy"
+                
             cmd = [
-                __import__("shutil").which("agy") or "agy",
+                agy_binary,
                 perm_flag,
                 "--model", model,
                 "--output-format", "stream-json"
