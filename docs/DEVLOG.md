@@ -603,3 +603,17 @@ We then engineered a new Antigravity Skill (`media_player/SKILL.md`). When a use
 4. It renders the media to the user via a Markdown iframe in the chat, leaving the backend Reaper Daemon to shred the file later.
 
 This proves that *any* web-based application or widget can be safely generated and served by the Agent using the Sandbox + Iframe pattern.
+
+## Chapter 42: The Accessible Overlay Pattern (Media Controls)
+
+During the implementation of the Media Player Plugin, a critical accessibility (A11Y) flaw was discovered: Native third-party embeds (like the default YouTube iframe) are extremely hostile to screen readers like NVDA. They trap focus, output overlapping `aria-live` spam, and collapse unexpectedly upon video completion.
+
+### The Headless API Solution
+To resolve this, we pioneered the **Accessible Overlay Pattern**. 
+Instead of embedding a raw iframe, the `video_application.html` template utilizes the headless **YouTube Iframe API**. 
+1. **Suppression:** Native YouTube controls are explicitly disabled (`controls: 0`).
+2. **Reconstruction:** We constructed a custom, 100% ARIA-compliant HTML control deck (Buttons, Dropdowns, Range inputs).
+3. **Binding:** JavaScript binds the accessible HTML inputs directly to the headless YouTube API methods (`player.playVideo()`, `player.seekTo()`).
+4. **Teleportation:** We bound a global `Alt+N` shortcut in the parent UI that teleports NVDA focus directly into the isolated sandbox's Title element.
+
+This proves that Autonomous Agents can do more than just embed content—they can actively re-wrap hostile third-party media into mathematically perfect, accessible sandboxes.
