@@ -31,7 +31,7 @@ threading.Thread(target=run_ai_loop, daemon=True).start()
 
 @ai_bp.route('/')
 def ai_home():
-    return render_template('index.html')
+    return render_template('ai_index.html')
 
 @ai_bp.route('/api/chat', methods=['POST'])
 def start_chat():
@@ -43,7 +43,12 @@ def start_chat():
     user = {"role": "admin" if is_admin else "modder", "username": session.get('username', 'guest')}
     
     if agent_mgr.is_running():
-        return jsonify({"success": False, "error": "Agent is currently busy."})
+        # Instead of rejecting, send it as stdin input to the running agent setup
+        asyncio.run_coroutine_threadsafe(
+            agent_mgr.send_input(prompt), 
+            ai_loop
+        )
+        return jsonify({"success": True, "message": "Input sent to agent"})
 
     # Dispatch to the background asyncio loop
     asyncio.run_coroutine_threadsafe(

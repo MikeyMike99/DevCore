@@ -198,6 +198,12 @@ class AgentTaskManager:
                 k: v for k, v in os.environ.items()
                 if k in ("PATH", "HOME", "USER", "LANG", "TERM", "SHELL", "GEMINI_API_KEY", "GOOGLE_API_KEY") or k.startswith("AGY_")
             }
+            # Ensure ~/.local/bin is in PATH so PythonAnywhere WSGI can find the agy binary
+            local_bin = os.path.expanduser("~/.local/bin")
+            if "PATH" in safe_env and local_bin not in safe_env["PATH"]:
+                safe_env["PATH"] = f"{local_bin}:{safe_env['PATH']}"
+            elif "PATH" not in safe_env:
+                safe_env["PATH"] = local_bin
 
             # Enforce sandbox for non-admin roles unless explicitly bypassed via UI override
             is_admin = (user and user.get("role") == "admin") or admin_override
@@ -214,8 +220,16 @@ class AgentTaskManager:
                     "</SYSTEM_MESSAGE>\n\n"
                 ) + prompt
 
+            # Resolve the binary safely
+            import shutil
+            agy_binary = shutil.which("agy")
+            if not agy_binary:
+                # Fallback to local pythonanywhere path
+                fallback = os.path.expanduser("~/.local/bin/agy")
+                agy_binary = fallback if os.path.exists(fallback) else "agy"
+                
             cmd = [
-                "/home/michael/.local/bin/agy",
+                agy_binary,
                 perm_flag,
                 "--model", model,
                 "--output-format", "stream-json"
@@ -230,6 +244,7 @@ class AgentTaskManager:
 
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
+                stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=workspace_dir,
@@ -367,6 +382,12 @@ class AgentTaskManager:
             self.active_proc = None
             self.active_task = None
             self.start_time = None
+
+    
+    async def send_input(self, text: str):
+        if self.active_proc and self.active_proc.stdin:
+            self.active_proc.stdin.write((text + "\n").encode('utf-8'))
+            await self.active_proc.stdin.drain()
 
     async def cancel_task(self):
         if self.is_running():

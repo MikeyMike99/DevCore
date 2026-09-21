@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Dev Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        .markdown-body { font-size: 0.95rem; line-height: 1.6; }
+        .markdown-body p { margin-bottom: 0.75rem; }
+        .markdown-body p:last-child { margin-bottom: 0; }
+        .markdown-subheading { font-weight: 600; margin-top: 1rem; margin-bottom: 0.4rem; color: #f1f5f9; }
+        .markdown-body ul, .markdown-body ol { margin-left: 1.5rem; margin-bottom: 0.75rem; list-style-type: disc; }
+        .markdown-body ol { list-style-type: decimal; }
+        .markdown-body li { margin-bottom: 0.25rem; }
+        .markdown-body pre { background: #0b1120; padding: 0.85rem; border-radius: 0.5rem; overflow-x: auto; margin-bottom: 0.75rem; border: 1px solid #1e293b; font-size: 0.85rem; }
+        .markdown-body code { background: #1e293b; padding: 0.15rem 0.35rem; border-radius: 0.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.875em; }
+        .markdown-body pre code { background: transparent; padding: 0; }
+        .markdown-body blockquote { border-left: 4px solid #0d9488; padding-left: 1rem; margin-bottom: 0.75rem; color: #94a3b8; font-style: italic; }
+        .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; font-size: 0.875rem; }
+        .markdown-body th, .markdown-body td { border: 1px solid #334155; padding: 0.45rem; text-align: left; }
+        .markdown-body th { background: #1e293b; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        .skip-link:focus { position: static; width: auto; height: auto; padding: 0.5rem 1rem; clip: auto; white-space: normal; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden select-text">
+
+    <!-- Screen Reader Live Region for Announcements -->
+    <div id="sr-announcer" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
+    <div id="sr-alerts" role="alert" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
+    <!-- Skip Links for Keyboard / Screen Reader Navigation -->
+    <a href="#prompt" class="sr-only skip-link bg-teal-600 text-white font-medium z-50 rounded m-2 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-teal-400">Skip to prompt input</a>
+    <a href="#chat-feed" class="sr-only skip-link bg-teal-600 text-white font-medium z-50 rounded m-2 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-teal-400">Skip to conversation messages</a>
+
+    <!-- Header Landmark -->
+    <header role="banner" class="bg-slate-900/95 backdrop-blur border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0 shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-teal-500 to-cyan-400 flex items-center justify-center font-black text-slate-950 text-sm shadow-md shadow-teal-500/20" aria-hidden="true">
+                AG
+            </div>
+            <div>
+                <h1 class="text-base font-bold text-white leading-tight flex items-center gap-2">
+                    Antigravity Dev Portal
+                    <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-teal-950 border border-teal-800/80 text-teal-400">Background Resilient</span>
+                </h1>
+                <p class="text-xs text-slate-400 font-mono">Workspace: antigravity_test</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- User Status & Role Badge -->
+            <div id="user-pill" class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs">
+                <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300">ADMIN</span>
+                <label class="flex items-center gap-1 cursor-pointer text-amber-400 hover:text-amber-300 mx-1" title="Bypass Sandbox restrictions">
+                    <input type="checkbox" id="admin-override-checkbox" class="w-3 h-3 rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500/30">
+                    <span class="text-[10px] font-bold uppercase tracking-wide">Bypass</span>
+                </label>
+                <span id="user-display-name" class="font-medium text-slate-200 border-l border-slate-700 pl-2">Michael</span>
+                <button onclick="toggleLoginModal()" id="login-toggle-btn" class="ml-1 text-xs text-teal-400 hover:text-teal-200 underline font-mono">Switch</button>
+            </div>
+
+            <!-- Project Selector -->
+            <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1">
+                <label for="project-selector" class="text-xs font-semibold text-teal-400 shrink-0">Project:</label>
+                <select id="project-selector" onchange="switchProject()" aria-label="Select Project Workspace" class="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1 w-28 truncate">
+                    <option value="">(Root)</option>
+                </select>
+                <button onclick="newProject()" title="New Project" aria-label="Create New Project" class="text-teal-400 hover:text-teal-200 text-xs font-bold px-1">+</button>
+                <button onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="text-rose-400 hover:text-rose-200 text-xs font-bold px-1 ml-2 border-l border-slate-700 pl-2">
+                    🗑️ Clear
+                </button>
+            </div>
+
+            <!-- Conversation Selector -->
+            <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1">
+                <label for="conversation-selector" class="text-xs font-semibold text-teal-400 shrink-0">Session:</label>
+                <select id="conversation-selector" onchange="switchConversation()" aria-label="Select Conversation" class="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1 w-32 truncate">
+                </select>
+                <button onclick="renameConversation()" title="Rename Session" aria-label="Rename current session" class="text-teal-400 hover:text-teal-200 text-xs font-bold px-1 border-l border-slate-700 pl-1">
+                    ✏️
+                </button>
+            </div>
+
+            <!-- Model Selection Dropdown -->
+            <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1">
+                <label for="model-selector" class="text-xs font-semibold text-teal-400 shrink-0">Model:</label>
+                <select id="model-selector" onchange="onModelChange()" aria-label="Select AI Model" class="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1">
+                    <option value="gemini-3.8-flash-high" selected>Gemini 3.8 Flash (Fast &amp; Responsive)</option>
+                    <option value="gemini-3.1-pro-high">Gemini 3.1 Pro (Deep Reasoning &amp; Planning)</option>
+                    <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (Thinking)</option>
+                    <option value="claude-opus-4-6-thinking">Claude Opus 4.6 (Complex Coding)</option>
+                    <option value="gpt-oss-120b-medium">GPT-OSS 120B (Medium)</option>
+                </select>
+            </div>
+
+            <!-- Connection Status -->
+            <div id="connection-badge" role="status" aria-label="Connection Status" class="flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-slate-800 border border-slate-700 text-yellow-400">
+                <span class="w-2 h-2 rounded-full bg-yellow-400" aria-hidden="true"></span>
+                <span id="connection-text">Connecting...</span>
+            </div>
+
+            <!-- New Conversation Button -->
+            <button onclick="newConversation()" aria-label="Start a new conversation" class="text-xs px-2.5 py-1 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded border border-teal-700/60 transition-colors font-medium">
+                New Session
+            </button>
+            
+            <!-- Clear Chat Button -->
+            <button onclick="clearHistory()" aria-label="Clear chat history display" class="text-xs px-2.5 py-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded border border-slate-700/60 transition-colors">
+                Clear View
+            </button>
+
+            <!-- In-Memory Hot Reload Button -->
+            <button onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="text-xs px-2.5 py-1 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded border border-teal-800/60 transition-colors font-medium" title="Reload Python modules in-memory without dropping port 5000">
+                ↻ Reload
+            </button>
+            
+            <!-- Simulate Hot Patch Button -->
+            <button onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="text-xs px-2.5 py-1 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded border border-amber-700/60 transition-colors font-medium" title="Simulate a background auto-patch event">
+                🛡️ Auto-Patch
+            </button>
+        </div>
+    </header>
+
+    <!-- Active Task Progress Bar (Shown during execution) -->
+    <div id="task-banner" role="region" aria-label="Current Task Status" class="hidden bg-slate-900 border-b border-teal-800/60 px-6 py-2.5 flex items-center justify-between shadow-inner shrink-0">
+        <div class="flex items-center gap-3 text-sm">
+            <span class="relative flex h-3 w-3" aria-hidden="true">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
+            </span>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="font-semibold text-teal-300">Task Running</span>
+                    <span class="text-slate-500" aria-hidden="true">•</span>
+                    <span id="timer-display" class="font-mono text-teal-400 font-medium">00:00</span>
+                    <span class="text-xs text-slate-400 font-mono" id="task-model-badge">Gemini 3.8 Flash</span>
+                </div>
+                <div class="text-xs text-slate-400 flex items-center gap-2">
+                    <span class="truncate max-w-md text-slate-300 font-medium" id="current-task-prompt">Executing...</span>
+                    <span class="text-slate-600" aria-hidden="true">|</span>
+                    <span class="text-emerald-400/90 text-xs">Background process resilient to reloads</span>
+                </div>
+            </div>
+        </div>
+
+        <button onclick="cancelTask()" id="cancel-btn" aria-label="Cancel active task" class="text-xs font-medium px-3 py-1.5 rounded-md bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800 transition-colors flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            Cancel Task
+        </button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main id="main-content" class="flex-1 flex flex-col overflow-hidden max-w-5xl mx-auto w-full border-x border-slate-800/80 bg-slate-950/50">
+        <!-- Messages Feed Landmark -->
+        <section id="chat-feed" role="feed" aria-label="Conversation Feed" class="flex-1 overflow-y-auto p-6 space-y-5 scroll-smooth">
+            <!-- Initial Welcome Card -->
+            <article class="p-4 rounded-xl bg-slate-900/90 text-slate-300 border border-slate-800 shadow-sm flex gap-3 message-welcome" aria-labelledby="welcome-heading">
+                <div class="w-7 h-7 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center shrink-0 text-xs font-bold mt-0.5" aria-hidden="true">
+                    AG
+                </div>
+                <div class="text-sm">
+                    <h2 id="welcome-heading" class="font-bold text-teal-400 text-sm mb-1">Antigravity Dev Portal Ready</h2>
+                    <p class="mb-2">Accessible interface with live screen reader announcements, clean heading navigation (press <strong>H</strong> or <strong>2</strong> to navigate messages), collapsed action logs, and model selection.</p>
+                    <p class="text-xs text-slate-400">Tasks run as resilient background processes. Page reloads or disconnections will not cancel active tasks.</p>
+                </div>
+            </article>
+        </section>
+
+        <!-- Chat Input Bar -->
+        <div class="p-4 bg-slate-900 border-t border-slate-800/80 shrink-0">
+            <form id="chat-form" role="form" aria-label="Send prompt" class="flex gap-2.5 items-end" onsubmit="sendPrompt(event)">
+                <div class="flex-1 relative">
+                    <label for="prompt" class="sr-only">Enter instructions for Antigravity</label>
+                    <textarea 
+                        id="prompt" 
+                        rows="2"
+                        class="w-full bg-slate-950 text-slate-100 rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none text-sm placeholder-slate-500" 
+                        placeholder="Enter instructions (e.g. modify file, test feature, refactor code)... Press Enter to execute."
+                        onkeydown="handleKeyDown(event)"></textarea>
+                    <div class="text-[11px] text-slate-500 absolute bottom-2 right-3 pointer-events-none" aria-hidden="true">
+                        Enter to run • Shift+Enter for newline
+                    </div>
+                </div>
+                <button 
+                    type="submit" 
+                    id="send-btn" 
+                    aria-label="Execute prompt"
+                    class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg px-6 py-2.5 transition-colors h-[58px] flex items-center justify-center gap-2 shadow-sm shrink-0">
+                    <span id="send-btn-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
+                    <span id="send-btn-text">Execute</span>
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        // Custom Marked renderer to avoid markdown headings polluting screen reader H/2 navigation
+        var renderer = new marked.Renderer();
+        renderer.heading = function(arg1, arg2) {
+            var text = '';
+            var depth = 3;
+            if (typeof arg1 === 'object' && arg1 !== null) {
+                depth = arg1.depth || 3;
+                text = arg1.text || (this.parser && this.parser.parseInline ? this.parser.parseInline(arg1.tokens) : '');
+            } else {
+                text = arg1 || '';
+                depth = arg2 || 3;
+            }
+            var safeLevel = Math.min(depth + 2, 6); // Renders as h3 - h6
+            return '<h' + safeLevel + ' class="markdown-subheading text-sm text-teal-200 mt-3 mb-1.5 font-bold">' + text + '</h' + safeLevel + '>';
+        };
+        
+        renderer.link = function(arg1, arg2, arg3) {
+            var href, title, text;
+            if (typeof arg1 === 'object' && arg1 !== null) {
+                href = arg1.href;
+                title = arg1.title;
+                text = arg1.text || arg1.raw || arg1.href;
+            } else {
+                href = arg1;
+                title = arg2;
+                text = arg3 || arg1;
+            }
+            
+            if (href && (href.includes('Implementation Plan') || href.includes('artifact') || (href.includes('/brain/') && href.endsWith('.md')))) {
+                var artifactName = text || "Implementation Plan";
+                return `
+                <div class="my-4 border border-teal-500/40 rounded-xl p-5 bg-teal-900/20 flex flex-col gap-3 shadow-sm">
+                    <div class="flex items-center gap-2 text-teal-300 font-bold text-lg">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        ${escapeHtml(artifactName)}
+                    </div>
+                    <div class="text-sm text-slate-400 break-all">
+                        <a href="${escapeHtml(href)}" target="_blank" class="text-teal-400 hover:underline flex items-center gap-1 inline-flex">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                            View Source File
+                        </a>
+                    </div>
+                    <div class="flex mt-3 border-t border-teal-500/30 pt-4">
+                        <button onclick="proceedArtifact()" class="bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400 focus:outline-none text-white font-medium py-2 px-5 rounded shadow transition-colors artifact-proceed-btn flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            Proceed (Alt+P)
+                        </button>
+                    </div>
+                </div>`;
+            }
+            return `<a href="${escapeHtml(href||'')}" title="${escapeHtml(title||'')}" target="_blank" class="text-teal-400 hover:underline font-medium">${escapeHtml(text||href)}</a>`;
+        };
+        marked.use({ renderer: renderer, breaks: true, gfm: true });
+
+        function proceedArtifact() {
+            var prompt = "Proceed";
+            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
+            if (typeof appendUserMessage === 'function') {
+                appendUserMessage(prompt);
+            }
+            var adminOverride = false;
+            var overrideCb = document.getElementById('admin-override-checkbox');
+            if (overrideCb) adminOverride = overrideCb.checked;
+
+            
+            fetch('/ai_agent/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({prompt: prompt, model: model, conversation_id: currentConversationId, admin_override: adminOverride, token: authToken})
+            });
+            isTaskRunning = true;
+            sendBtn.disabled = true;
+            sendBtnText.innerText = "Processing...";
+            sendBtnSpinner.classList.remove('hidden');
+
+                }
+            }
+        });
+
+        var ws = null;
+        var chatFeed = document.getElementById('chat-feed');
+        var connBadge = document.getElementById('connection-badge');
+        var connText = document.getElementById('connection-text');
+        var sendBtn = document.getElementById('send-btn');
+        var sendBtnText = document.getElementById('send-btn-text');
+        var sendBtnSpinner = document.getElementById('send-btn-spinner');
+        var inputEl = document.getElementById('prompt');
+        var taskBanner = document.getElementById('task-banner');
+        var timerDisplay = document.getElementById('timer-display');
+        var currentTaskPromptEl = document.getElementById('current-task-prompt');
+        var taskModelBadge = document.getElementById('task-model-badge');
+        var modelSelector = document.getElementById('model-selector');
+        var srAnnouncer = document.getElementById('sr-announcer');
+        var srAlerts = document.getElementById('sr-alerts');
+
+        var isTaskRunning = false;
+        var taskStartTime = null;
+        var timerInterval = null;
+        var currentAgentArticle = null;
+        var currentAgentId = null;
+        var reconnectAttempts = 0;
+        var messageCounter = 0;
+        var currentConversationId = localStorage.getItem('agy_conversation_id') || null;
+        var conversations = JSON.parse(localStorage.getItem('agy_conversations')) || [];
+        var convSelector = document.getElementById('conversation-selector');
+
+        async function initConversations() {
+            var found = false;
+            for (var i=0; i<conversations.length; i++) {
+                if (conversations[i].id === currentConversationId) found = true;
+            }
+            if (!found && currentConversationId) {
+                conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(5, 9)});
+                localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+            }
+            function renderSelect() {
+                if (convSelector) {
+                    convSelector.innerHTML = '';
+                    conversations.forEach(function(c) {
+                        var opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.title || c.name || ('Session ' + c.id.substring(0, 8));
+                        if (c.id === currentConversationId) opt.selected = true;
+                        convSelector.appendChild(opt);
+                    });
+                }
+            }
+            renderSelect();
+            try {
+                var response = await fetch('/api/conversations');
+                var data = await response.json();
+                if (data.conversations) {
+                    var localMap = {};
+                    var localConvs = JSON.parse(localStorage.getItem('agy_conversations')) || [];
+                    localConvs.forEach(function(c) {
+                        if (c.name && !c.name.startsWith('Session ') && c.name.trim() !== '') localMap[c.id] = c.name;
+                        else if (c.title && !c.title.startsWith('Session ') && c.title.trim() !== '') localMap[c.id] = c.title;
+                    });
+
+                    conversations = data.conversations.map(function(c) {
+                        if (localMap[c.id]) {
+                            c.name = localMap[c.id];
+                            c.title = localMap[c.id];
+                        }
+                        return c;
+                    });
+                    var sfound = false;
+                    for (var i=0; i<conversations.length; i++) {
+                        if (conversations[i].id === currentConversationId) sfound = true;
+                    }
+                    if (!sfound && currentConversationId) {
+                        conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(5, 9)});
+                    }
+                    localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+                    renderSelect();
+                }
+            } catch(e) {}
+        }
+        initConversations();
+
+        function switchConversation() {
+            if (convSelector) {
+                var selected = convSelector.value;
+                if (selected !== currentConversationId) {
+                    localStorage.setItem('agy_conversation_id', selected);
+                    location.reload();
+                }
+            }
+        }
+
+        function renameConversation() {
+            var selected = convSelector.value;
+            if (!selected) return;
+            var currentName = '';
+            var currentIndex = -1;
+            for (var i = 0; i < conversations.length; i++) {
+                if (conversations[i].id === selected) {
+                    currentName = conversations[i].name || conversations[i].title || '';
+                    currentIndex = i;
+                    break;
+                }
+            }
+            var newName = prompt("Enter friendly name for this session:", currentName);
+            if (newName !== null && newName.trim() !== '') {
+                if (currentIndex > -1) {
+                    conversations[currentIndex].name = newName;
+                    conversations[currentIndex].title = newName;
+                }
+                localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+                initConversations();
+            }
+        }
+
+        var projSelector = document.getElementById('project-selector');
+
+        async function initProjects() {
+            try {
+                var res = await fetch('/api/projects');
+                var data = await res.json();
+                if (projSelector && data.projects) {
+                    projSelector.innerHTML = '<option value="">(Root)</option>';
+                    data.projects.forEach(function(p) {
+                        var opt = document.createElement('option');
+                        opt.value = p;
+                        opt.textContent = p;
+                        if (p === data.active) opt.selected = true;
+                        projSelector.appendChild(opt);
+                    });
+                }
+            } catch(e) {}
+        }
+        initProjects();
+
+        async function switchProject() {
+            if (!projSelector) return;
+            var val = projSelector.value;
+            try {
+                var res = await fetch('/api/projects/active', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name: val})
+                });
+                var data = await res.json();
+                if (data.success) {
+                    announce('Active project set to ' + (val || 'Root'));
+                }
+            } catch(e) {}
+        }
+
+        async function newProject() {
+            var name = prompt("Enter new project directory name:");
+            if (!name) return;
+            try {
+                var res = await fetch('/api/projects', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({name: name})
+                });
+                var data = await res.json();
+                if (data.success) {
+                    await initProjects();
+                    if (projSelector) projSelector.value = name;
+                    await switchProject();
+                } else {
+                    alert("Error creating project: " + (data.error || "Unknown"));
+                }
+            } catch(e) {
+                alert("Request failed: " + e);
+            }
+        }
+
+        async function reloadBackend() {
+            try {
+                var res = await fetch('/api/reload', {method: 'POST'});
+                var data = await res.json();
+                if (data.success) {
+                    announce('Backend modules reloaded successfully.');
+                    alert("✓ " + data.message);
+                } else {
+                    alert("Reload error: " + data.error);
+                }
+            } catch(e) {
+                alert("Failed to trigger reload: " + e);
+            }
+        }
+
+        async function simulateHotPatch() {
+            try {
+                var res = await fetch('/api/simulate-patch', {method: 'POST'});
+                var data = await res.json();
+                if (data.success) {
+                    announce('Auto-patch sequence initiated.');
+                } else {
+                    alert("Patch error: " + data.error);
+                }
+            } catch(e) {
+                alert("Failed to trigger patch: " + e);
+            }
+        }
+
+        // Restore model preference
+        var savedModel = localStorage.getItem('agy_selected_model');
+        if (savedModel && modelSelector) {
+            modelSelector.value = savedModel;
+        }
+
+        var overrideCb = document.getElementById('admin-override-checkbox');
+        if (overrideCb) {
+            overrideCb.checked = localStorage.getItem('agy_admin_override') === 'true';
+            overrideCb.addEventListener('change', function() {
+                localStorage.setItem('agy_admin_override', this.checked);
+            });
+        }
+
+        // Load saved chat from localStorage on startup
+        loadChatHistory();
+
+        function announce(text, isAlert) {
+            var target = isAlert ? srAlerts : srAnnouncer;
+            if (!target) return;
+            target.textContent = '';
+            setTimeout(function() {
+                target.textContent = text;
+            }, 50);
+        }
+
+        function onModelChange() {
+            var selected = modelSelector.value;
+            localStorage.setItem('agy_selected_model', selected);
+            var modelLabel = modelSelector.options[modelSelector.selectedIndex].text;
+            announce('Model switched to ' + modelLabel);
+        }
+
+        function setConnectionStatus(state) {
+            if (state === 'connected') {
+                connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/80 border border-emerald-800 text-emerald-400";
+                connBadge.children[0].className = "w-2 h-2 rounded-full bg-emerald-400";
+                connText.innerText = "Connected";
+                announce("Connected to Antigravity server.");
+            } else if (state === 'reconnecting') {
+                connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-amber-950/80 border border-amber-800 text-amber-400";
+                connBadge.children[0].className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
+                connText.innerText = "Reconnecting...";
+            } else {
+                connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-rose-950/80 border border-rose-800 text-rose-400";
+                connBadge.children[0].className = "w-2 h-2 rounded-full bg-rose-400";
+                connText.innerText = "Disconnected";
+                announce("Disconnected from server. Retrying connection...", true);
+            }
+        }
+
+        var pingInterval = null;
+        var lastReceivedSeq = 0;
+
+        
+        function connectWebSocket() {
+            setConnectionStatus('connected');
+            if (!isTaskRunning) sendBtn.disabled = false;
+            
+            // Poll for stream updates
+            setInterval(function() {
+                fetch('/ai_agent/api/stream').then(res => res.json()).then(data => {
+                    if (data.messages && data.messages.length > 0) {
+                        data.messages.forEach(msg => {
+                            if (msg.type === 'agent_chunk') {
+                                if (currentAgentId) {
+                                    var article = document.getElementById(currentAgentId).closest('article');
+                                    var textDiv = article.querySelector('.agent-text');
+                                    article.dataset.rawMarkdown += msg.chunk;
+                                    textDiv.innerHTML = marked.parse(article.dataset.rawMarkdown);
+                                    chatFeed.scrollTop = chatFeed.scrollHeight;
+                                } else {
+                                    appendAgentMessageContainer();
+                                    var article = document.getElementById(currentAgentId).closest('article');
+                                    var textDiv = article.querySelector('.agent-text');
+                                    article.dataset.rawMarkdown += msg.chunk;
+                                    textDiv.innerHTML = marked.parse(article.dataset.rawMarkdown);
+                                    chatFeed.scrollTop = chatFeed.scrollHeight;
+                                }
+                            } else if (msg.type === 'agent_done') {
+                                if (currentAgentId) {
+                                    var article = document.getElementById(currentAgentId).closest('article');
+                                    var badge = article.querySelector('.status-badge');
+                                    if (badge) {
+                                        badge.className = 'status-badge text-[11px] text-teal-400 font-mono flex items-center gap-1.5';
+                                        badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span> Finished';
+                                    }
+                                }
+                                isTaskRunning = false;
+                                currentAgentId = null;
+                                sendBtn.disabled = false;
+                                sendBtnText.innerText = "Send";
+                                sendBtnSpinner.classList.add('hidden');
+                            }
+                        });
+                    }
+                }).catch(err => console.error(err));
+            }, 1500);
+            
+            // Auto-boot if empty
+            var messageCount = chatFeed.querySelectorAll('.message-card').length;
+            if (messageCount === 0) {
+                fetch('/ai_agent/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({prompt: "boot"})
+                });
+            }
+        }
+
+        function handleServerMessage(data) {
+            if (data.type === 'pong' || data.type === 'gateway_ping') {
+                return; // Silent keep-alive response
+            }
+            else if (data.type === 'heartbeat') {
+                if (isTaskRunning && timerDisplay) {
+                    taskBanner.classList.remove('hidden');
+                }
+                return;
+            }
+            else if (data.type === 'task_last_result') {
+                var task = data.task;
+                if (!task || !task.output) return;
+                if (currentAgentArticle) {
+                    currentAgentArticle.dataset.rawMarkdown = task.output;
+                    currentAgentArticle.querySelector('.agent-text').innerHTML = marked.parse(task.output);
+                    finishTaskUI(false, task.elapsed, task.status);
+                } else {
+                    var lastArticle = chatFeed.lastElementChild;
+                    if (!lastArticle || lastArticle.dataset.sender === 'user') {
+                        var art = appendAgentMessageContainer(task.model);
+                        art.dataset.rawMarkdown = task.output;
+                        art.querySelector('.agent-text').innerHTML = marked.parse(task.output);
+                        var pulse = art.querySelector('.typing-indicator');
+                        if (pulse) pulse.remove();
+                        var badge = art.querySelector('.status-badge');
+                        if (badge) {
+                            badge.className = "text-[11px] text-emerald-400 font-mono flex items-center gap-1";
+                            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Delivered';
+                        }
+                        saveChatHistory();
+                    }
+                }
+                return;
+            }
+            else if (data.type === 'init') {
+                // Handshake confirmed
+            }
+            else if (data.type === 'init_conv_id') {
+                if (data.conversation_id && currentConversationId !== data.conversation_id) {
+                    var oldId = currentConversationId;
+                    currentConversationId = data.conversation_id;
+                    localStorage.setItem('agy_conversation_id', currentConversationId);
+                    
+                    // Update array
+                    var found = false;
+                    for (var i=0; i<conversations.length; i++) {
+                        if (conversations[i].id === oldId) {
+                            conversations[i].id = currentConversationId;
+                            conversations[i].name = 'Session ' + currentConversationId.substring(0, 8);
+                            found = true;
+                        }
+                    }
+                    if (!found) {
+                        conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(0, 8)});
+                    }
+                    localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+                    
+                    // Re-render dropdown
+                    if (typeof initConversations === 'function') {
+                        initConversations();
+                    }
+                }
+            }
+            else if (data.type === 'system') {
+                appendSystemMessage(data.message, data.level || 'info');
+                announce(data.message, data.level === 'warning');
+            }
+            else if (data.type === 'task_started') {
+                startTaskUI(data.prompt, data.model, data.start_time);
+            }
+            else if (data.type === 'task_active') {
+                startTaskUI(data.prompt, data.model, data.start_time);
+                if (!currentAgentArticle) {
+                    currentAgentArticle = appendAgentMessageContainer(data.model);
+                }
+                // Render any actions already completed
+                if (data.actions && Array.isArray(data.actions)) {
+                    data.actions.forEach(function(act) {
+                        appendOrUpdateAction(act);
+                    });
+                }
+                if (data.buffered_output) {
+                    currentAgentArticle.dataset.rawMarkdown = data.buffered_output;
+                    currentAgentArticle.querySelector('.agent-text').innerHTML = marked.parse(data.buffered_output);
+                }
+                chatFeed.scrollTop = chatFeed.scrollHeight;
+            }
+            else if (data.type === 'agent_start') {
+                if (!currentAgentArticle) {
+                    currentAgentArticle = appendAgentMessageContainer(data.model);
+                }
+            }
+            else if (data.type === 'action_start') {
+                if (!currentAgentArticle) {
+                    currentAgentArticle = appendAgentMessageContainer();
+                }
+                appendOrUpdateAction(data.action);
+                announce("Action running: " + formatToolName(data.action.tool));
+            }
+            else if (data.type === 'action_done') {
+                if (!currentAgentArticle) {
+                    currentAgentArticle = appendAgentMessageContainer();
+                }
+                appendOrUpdateAction(data.action);
+                announce("Action complete: " + formatToolName(data.action.tool));
+            }
+            else if (data.type === 'agent_chunk') {
+                if (!currentAgentArticle) {
+                    currentAgentArticle = appendAgentMessageContainer();
+                }
+                var prev = currentAgentArticle.dataset.rawMarkdown || '';
+                var updated = prev + data.chunk;
+                currentAgentArticle.dataset.rawMarkdown = updated;
+                currentAgentArticle.querySelector('.agent-text').innerHTML = marked.parse(updated);
+                chatFeed.scrollTop = chatFeed.scrollHeight;
+            }
+            else if (data.type === 'agent_done') {
+                finishTaskUI(data.cancelled, data.elapsed, data.status);
+            }
+        }
+
+        function formatToolName(tool) {
+            if (!tool) return 'Operation';
+            return tool.replace(/_/g, ' ');
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function startTaskUI(prompt, model, startTime) {
+            isTaskRunning = true;
+            taskStartTime = startTime || Date.now() / 1000;
+            currentTaskPromptEl.innerText = prompt || 'Executing instruction...';
+            if (taskModelBadge) {
+                taskModelBadge.innerText = model || (modelSelector ? modelSelector.value : 'Gemini');
+            }
+            taskBanner.classList.remove('hidden');
+
+            sendBtn.disabled = true;
+            sendBtnSpinner.classList.remove('hidden');
+            sendBtnText.innerText = "Running...";
+
+            updateTimer();
+            clearInterval(timerInterval);
+            timerInterval = setInterval(updateTimer, 500);
+
+            announce("Task started: " + prompt + ". Running in background.");
+
+            window.onbeforeunload = function() {
+                return "Task is running in the background. It will continue safely.";
+            };
+        }
+
+        function finishTaskUI(cancelled, elapsed, status) {
+            isTaskRunning = false;
+            taskBanner.classList.add('hidden');
+            clearInterval(timerInterval);
+            window.onbeforeunload = null;
+
+            sendBtn.disabled = false;
+            sendBtnSpinner.classList.add('hidden');
+            sendBtnText.innerText = "Execute";
+
+            if (currentAgentArticle) {
+                // Remove typing pulse
+                var pulse = currentAgentArticle.querySelector('.typing-indicator');
+                if (pulse) pulse.remove();
+
+                var statusBadge = currentAgentArticle.querySelector('.status-badge');
+                if (cancelled) {
+                    if (statusBadge) {
+                        statusBadge.className = "text-[11px] text-rose-400 font-mono flex items-center gap-1";
+                        statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Cancelled';
+                    }
+                    var cancelNotice = document.createElement('div');
+                    cancelNotice.className = "text-xs font-semibold text-rose-400 mt-2 italic";
+                    cancelNotice.innerText = "[Task cancelled by user]";
+                    currentAgentArticle.querySelector('.agent-text').appendChild(cancelNotice);
+                    announce("Task was cancelled.", true);
+                } else {
+                    var elapStr = elapsed ? elapsed + 's' : '';
+                    if (statusBadge) {
+                        statusBadge.className = "text-[11px] text-emerald-400 font-mono flex items-center gap-1";
+                        statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Completed ' + elapStr;
+                    }
+                    var responseText = currentAgentArticle.dataset.rawMarkdown || "No response provided.";
+                    var cleanText = responseText.replace(/[#*`_]/g, '');
+                    announce("Task completed successfully in " + elapStr + ". Response: " + cleanText);
+                }
+
+                // Focus response heading for seamless screen reader accessibility
+                var respHeading = currentAgentArticle.querySelector('h2');
+                if (respHeading) {
+                    respHeading.focus();
+                }
+
+                currentAgentArticle = null;
+                currentAgentId = null;
+            }
+
+            saveChatHistory();
+        }
+
+        function updateTimer() {
+            if (!taskStartTime) return;
+            var elapsedSec = Math.floor((Date.now() / 1000) - taskStartTime);
+            if (elapsedSec < 0) elapsedSec = 0;
+            var mins = Math.floor(elapsedSec / 60);
+            var secs = elapsedSec % 60;
+            timerDisplay.innerText = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+        }
+
+        function appendUserMessage(text) {
+            messageCounter++;
+            var msgId = 'msg-user-' + messageCounter;
+
+            var article = document.createElement('article');
+            article.className = 'message-card user-message mb-4';
+            article.setAttribute('aria-labelledby', msgId);
+            article.dataset.sender = 'user';
+            article.dataset.text = text;
+
+            var timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            article.innerHTML = `
+                <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-teal-400" aria-hidden="true"></span>
+                        <h2 id="${msgId}" class="text-xs font-bold uppercase tracking-wider text-teal-300">You asked:</h2>
+                    </div>
+                    <time class="text-[11px] text-slate-500 font-mono">${timeStr}</time>
+                </div>
+                <div class="bg-teal-950/60 border border-teal-800/60 rounded-xl p-3.5 text-slate-100 text-sm shadow-sm whitespace-pre-wrap">${escapeHtml(text)}</div>
+            `;
+
+            chatFeed.appendChild(article);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+            saveChatHistory();
+        }
+
+        function appendAgentMessageContainer(modelName) {
+            messageCounter++;
+            var msgId = 'msg-agent-' + messageCounter;
+            currentAgentId = msgId;
+
+            var article = document.createElement('article');
+            article.className = 'message-card agent-message mb-4';
+            article.setAttribute('aria-labelledby', msgId);
+            article.dataset.sender = 'agent';
+            article.dataset.rawMarkdown = '';
+
+            var modelDisplay = modelName || (modelSelector ? modelSelector.value : 'Gemini');
+
+            article.innerHTML = `
+                <div class="flex items-center justify-between mb-1.5">
+                    <div class="flex items-center gap-2">
+                        <div class="w-5 h-5 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">AG</div>
+                        <h2 id="${msgId}" tabindex="-1" class="text-xs font-bold uppercase tracking-wider text-cyan-300 focus:outline-none focus:ring-1 focus:ring-teal-400 rounded px-1">
+                            Antigravity response:
+                        </h2>
+                        <span class="text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800">${escapeHtml(modelDisplay)}</span>
+                    </div>
+                    <div class="status-badge text-[11px] text-teal-400 font-mono flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" aria-hidden="true"></span> Processing...
+                    </div>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm">
+                    <!-- Actions container (collapsed logs, not polluting main text) -->
+                    <div class="actions-list space-y-1.5 mb-2.5"></div>
+                    
+                    <!-- Response markdown text -->
+                    <div class="agent-text markdown-body text-slate-200 text-sm"></div>
+
+                    <!-- Streaming typing indicator -->
+                    <div class="typing-indicator flex items-center gap-2 text-xs text-teal-400 mt-2 font-medium" aria-hidden="true">
+                        <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> Thinking &amp; streaming...
+                    </div>
+                </div>
+            `;
+
+            chatFeed.appendChild(article);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+            return article;
+        }
+
+        function appendOrUpdateAction(action) {
+            if (!currentAgentArticle || !action) return;
+            var actionsList = currentAgentArticle.querySelector('.actions-list');
+            if (!actionsList) return;
+
+            var actionId = 'act-' + (action.id || action.tool || 'op');
+            var existing = document.getElementById(actionId);
+
+            var toolLabel = formatToolName(action.tool);
+            var isDone = action.status === 'done';
+            var statusColor = isDone ? 'text-emerald-400' : 'text-cyan-400';
+            var dotColor = isDone ? 'bg-emerald-400' : 'bg-cyan-400 animate-pulse';
+            var durationText = action.duration ? (action.duration + 's') : (isDone ? 'done' : 'running...');
+
+            var paramsFormatted = '';
+            if (action.params && Object.keys(action.params).length > 0) {
+                paramsFormatted = typeof action.params === 'string' ? action.params : JSON.stringify(action.params, null, 2);
+            }
+            var outputFormatted = action.output || '';
+
+            var detailsHtml = `
+                <summary class="px-3 py-1.5 cursor-pointer text-slate-300 font-mono text-xs flex items-center justify-between hover:bg-slate-800/80 select-none">
+                    <span class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full ${dotColor}" aria-hidden="true"></span>
+                        <span class="font-semibold ${statusColor}">Action: ${escapeHtml(toolLabel)}</span>
+                    </span>
+                    <span class="text-[11px] text-slate-400 font-sans">${durationText} • Click for logs</span>
+                </summary>
+                <div class="p-3 bg-slate-950 border-t border-slate-800 font-mono text-[12px] text-slate-400 space-y-2 max-h-48 overflow-y-auto">
+                    ${paramsFormatted ? '<div><div class="text-teal-400 font-semibold text-[11px] mb-0.5">Parameters:</div><pre class="bg-slate-900/80 p-2 rounded border border-slate-800/60 overflow-x-auto whitespace-pre-wrap">' + escapeHtml(paramsFormatted) + '</pre></div>' : ''}
+                    ${outputFormatted ? '<div><div class="text-slate-400 font-semibold text-[11px] mb-0.5">Execution Log:</div><pre class="bg-slate-900/80 p-2 rounded border border-slate-800/60 overflow-x-auto whitespace-pre-wrap">' + escapeHtml(outputFormatted) + '</pre></div>' : ''}
+                </div>
+            `;
+
+            if (existing) {
+                existing.innerHTML = detailsHtml;
+            } else {
+                var details = document.createElement('details');
+                details.id = actionId;
+                details.className = 'tool-action border border-slate-800/90 rounded-lg bg-slate-950/60 overflow-hidden';
+                details.innerHTML = detailsHtml;
+                actionsList.appendChild(details);
+            }
+        }
+
+        function appendSystemMessage(msg, level) {
+            var div = document.createElement('div');
+            div.className = 'flex justify-center my-2';
+            var pill = document.createElement('div');
+            pill.className = `text-xs px-3.5 py-1 rounded-full border ${level === 'warning' ? 'bg-amber-950/80 text-amber-300 border-amber-800' : 'bg-slate-900 text-slate-400 border-slate-800'}`;
+            pill.innerText = msg;
+            div.appendChild(pill);
+            chatFeed.appendChild(div);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+
+        function sendPrompt(e) {
+            if (e) e.preventDefault();
+            var prompt = inputEl.value.trim();
+            if (!prompt || isTaskRunning) return;
+
+            // Prevent Quota Exhaustion: Check if conversation is getting too massive (e.g. >30 messages)
+            var messageCount = chatFeed.querySelectorAll('.message-card').length;
+            if (messageCount >= 30) {
+                if (confirm("WARNING: This conversation is very long and will likely exhaust your Gemini Tokens-Per-Minute quota.\n\nWould you like to auto-start a fresh session right now? (Your current prompt will be preserved and recent context will be automatically carried over)")) {
+                    
+                    // Automatically extract recent context so the AI doesn't get amnesia
+                    var recentContext = "";
+                    var cards = chatFeed.querySelectorAll('.message-card');
+                    var startIdx = Math.max(0, cards.length - 6); // Grab the last 6 messages
+                    for (var i = startIdx; i < cards.length; i++) {
+                        var role = cards[i].dataset.sender;
+                        var txt = role === 'user' ? cards[i].dataset.text : cards[i].dataset.rawMarkdown;
+                        if (txt) {
+                            // Do not include backend permission errors or "jetski" engine errors in the context recap!
+                            if (txt.includes('jetski:') || txt.includes('Encountered error in step execution') || txt.includes('permission check failed')) {
+                                continue;
+                            }
+                            // Truncate AI responses to keep the new prompt lightweight
+                            if (role === 'agent' && txt.length > 400) txt = txt.substring(0, 400) + '... [truncated]';
+                            recentContext += role.toUpperCase() + ": " + txt + "\n\n";
+                        }
+                    }
+
+                    var contextPreservingPrompt = "<SYSTEM_MESSAGE>\nNOTE: The massive conversation history was just automatically reset to save API tokens. To maintain context, here is a brief recap of the last few messages right before the reset:\n---\n" + recentContext + "---\n</SYSTEM_MESSAGE>\n\n" + prompt;
+
+                    localStorage.removeItem('agy_conversation_id');
+                    localStorage.setItem('saved_prompt_temp', contextPreservingPrompt);
+                    location.reload();
+                    return;
+                }
+            }
+
+            var model = modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
+
+            if (!currentConversationId) {
+                currentConversationId = 'conv-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('agy_conversation_id', currentConversationId);
+                
+                // Add to dropdown immediately
+                var name = 'Session ' + currentConversationId.substring(5, 9);
+                conversations.unshift({id: currentConversationId, name: name});
+                localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+                
+                if (convSelector) {
+                    var opt = document.createElement('option');
+                    opt.value = currentConversationId;
+                    opt.textContent = name;
+                    opt.selected = true;
+                    // insert at top
+                    if (convSelector.firstChild) {
+                        convSelector.insertBefore(opt, convSelector.firstChild);
+                    } else {
+                        convSelector.appendChild(opt);
+                    }
+                }
+            }
+
+            appendUserMessage(prompt);
+            inputEl.value = '';
+
+            var adminOverride = false;
+            var overrideCb = document.getElementById('admin-override-checkbox');
+            if (overrideCb) adminOverride = overrideCb.checked;
+
+            
+            fetch('/ai_agent/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({prompt: prompt, model: model, conversation_id: currentConversationId, admin_override: adminOverride, token: authToken})
+            });
+            isTaskRunning = true;
+            sendBtn.disabled = true;
+            sendBtnText.innerText = "Processing...";
+            sendBtnSpinner.classList.remove('hidden');
+
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPrompt();
+            }
+        }
+
+        function cancelTask() {
+            
+            fetch('/ai_agent/api/kill', {method: 'POST'});
+            isTaskRunning = false;
+            sendBtn.disabled = false;
+            sendBtnText.innerText = "Send";
+            sendBtnSpinner.classList.add('hidden');
+));
+            }
+        }
+
+        function saveChatHistory() {
+            var items = [];
+            var messageEls = chatFeed.querySelectorAll('.message-card');
+            messageEls.forEach(function(el) {
+                if (el.dataset.sender === 'user') {
+                    items.push({ sender: 'user', text: el.dataset.text });
+                } else if (el.dataset.sender === 'agent') {
+                    items.push({ sender: 'agent', markdown: el.dataset.rawMarkdown || '' });
+                }
+            });
+            try {
+                if (currentConversationId) {
+                    localStorage.setItem('agy_chat_items_v2_' + currentConversationId, JSON.stringify(items.slice(-50)));
+                }
+            } catch(e) {}
+        }
+
+        async function loadChatHistory() {
+            try {
+                var items = null;
+                if (currentConversationId) {
+                    var stored = localStorage.getItem('agy_chat_items_v2_' + currentConversationId);
+                    if (stored) {
+                        items = JSON.parse(stored);
+                    } else {
+                        var response = await fetch('/api/conversations/' + currentConversationId);
+                        var data = await response.json();
+                        if (data.items && data.items.length > 0) {
+                            items = data.items;
+                            localStorage.setItem('agy_chat_items_v2_' + currentConversationId, JSON.stringify(items));
+                        }
+                    }
+                } else {
+                    var stored = localStorage.getItem('agy_chat_items_v2') || localStorage.getItem('agy_chat_items');
+                    if (stored) items = JSON.parse(stored);
+                }
+                if (!items) return;
+                
+                chatFeed.innerHTML = '';
+                items.forEach(function(item) {
+                    if (item.sender === 'user') {
+                        appendUserMessage(item.text);
+                    } else if (item.sender === 'agent' && item.markdown) {
+                        var art = appendAgentMessageContainer();
+                        art.dataset.rawMarkdown = item.markdown;
+                        art.querySelector('.agent-text').innerHTML = marked.parse(item.markdown);
+                        var pulse = art.querySelector('.typing-indicator');
+                        if (pulse) pulse.remove();
+                        var badge = art.querySelector('.status-badge');
+                        if (badge) {
+                            badge.className = "text-[11px] text-slate-400 font-mono flex items-center gap-1";
+                            badge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Stored';
+                        }
+                    }
+                });
+                scrollToBottom();
+            } catch(e) {}
+        }
+
+        function clearHistory() {
+            if (confirm("Clear local chat display? Active background tasks will continue running.")) {
+                try {
+                    if (currentConversationId) {
+                        localStorage.removeItem('agy_chat_items_v2_' + currentConversationId);
+                    }
+                    localStorage.removeItem('agy_chat_items_v2');
+                } catch(e) {}
+                location.reload();
+            }
+        }
+
+        function newConversation() {
+            if (confirm("Start a new session? This will clear the current view and generate a fresh conversation ID.")) {
+                try {
+                    localStorage.removeItem('agy_conversation_id');
+                } catch(e) {}
+                location.reload();
+            }
+        }
+
+        // Auth & Role Management
+        var currentUser = JSON.parse(localStorage.getItem('agy_user')) || { username: 'admin', role: 'admin', name: 'Michael (Admin)' };
+        var authToken = localStorage.getItem('agy_auth_token') || '';
+
+        function updateUserUI() {
+            var roleBadge = document.getElementById('user-role-badge');
+            var displayName = document.getElementById('user-display-name');
+            if (roleBadge) {
+                roleBadge.innerText = (currentUser.role || 'GUEST').toUpperCase();
+                if (currentUser.role === 'admin') {
+                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300";
+                } else if (currentUser.role === 'gamedev') {
+                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-900 text-cyan-300";
+                } else {
+                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-900 text-purple-300";
+                }
+            }
+            if (displayName) {
+                displayName.innerText = currentUser.name || currentUser.username;
+            }
+        }
+        updateUserUI();
+
+        function toggleLoginModal() {
+            var modal = document.getElementById('login-modal');
+            if (modal) modal.classList.toggle('hidden');
+        }
+
+        async function quickLogin(u, p) {
+            try {
+                var res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: u, password: p })
+                });
+                var data = await res.json();
+                if (data.token) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('agy_auth_token', authToken);
+                    localStorage.setItem('agy_user', JSON.stringify(currentUser));
+                    updateUserUI();
+                    toggleLoginModal();
+                    announce('Logged in as ' + currentUser.name);
+                    location.reload();
+                } else {
+                    alert('Login failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Login request failed: ' + e);
+            }
+        }
+
+        async function handleCustomLogin(e) {
+            e.preventDefault();
+            var u = document.getElementById('login-username').value;
+            var p = document.getElementById('login-password').value;
+            await quickLogin(u, p);
+        }
+
+        // Start WebSocket
+        connectWebSocket();
+
+        // Restore prompt if we just auto-reset the session
+        var savedTempPrompt = localStorage.getItem('saved_prompt_temp');
+        if (savedTempPrompt && inputEl) {
+            inputEl.value = savedTempPrompt;
+            localStorage.removeItem('saved_prompt_temp');
+        }
+
+        async function clearProjectSessions() {
+            if (!confirm("Are you sure you want to permanently delete all session histories for this project?")) return;
+            try {
+                await fetch('/api/projects/active/conversations', {
+                    method: 'DELETE',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                localStorage.removeItem('agy_conversation_id');
+                location.reload();
+            } catch (e) {
+                console.error("Failed to clear sessions", e);
+            }
+        }
+    </script>
+
+    <!-- Accessible Login & Role Switcher Modal -->
+    <div id="login-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h2 id="modal-title" class="text-base font-bold text-white">Login / Switch Role</h2>
+                <button onclick="toggleLoginModal()" aria-label="Close dialog" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+            <p class="text-xs text-slate-400">Quick-switch test accounts for red teaming:</p>
+            <div class="grid grid-cols-3 gap-2">
+                <button onclick="quickLogin('admin','admin')" class="bg-slate-800 hover:bg-teal-950 hover:border-teal-600 border border-slate-700 p-2.5 rounded text-center transition">
+                    <div class="text-xs font-bold text-teal-400">Admin</div>
+                    <div class="text-[10px] text-slate-400 font-mono">admin / admin</div>
+                </button>
+                <button onclick="quickLogin('dev','dev')" class="bg-slate-800 hover:bg-cyan-950 hover:border-cyan-600 border border-slate-700 p-2.5 rounded text-center transition">
+                    <div class="text-xs font-bold text-cyan-400">GameDev</div>
+                    <div class="text-[10px] text-slate-400 font-mono">dev / dev</div>
+                </button>
+                <button onclick="quickLogin('mod','mod')" class="bg-slate-800 hover:bg-purple-950 hover:border-purple-600 border border-slate-700 p-2.5 rounded text-center transition">
+                    <div class="text-xs font-bold text-purple-400">Modder</div>
+                    <div class="text-[10px] text-slate-400 font-mono">mod / mod</div>
+                </button>
+            </div>
+            <div class="border-t border-slate-800 pt-3">
+                <form onsubmit="handleCustomLogin(event)" class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-300 font-medium block mb-1">Username</label>
+                        <input id="login-username" type="text" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-300 font-medium block mb-1">Password</label>
+                        <input id="login-password" type="password" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500">
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="toggleLoginModal()" class="px-3 py-1.5 rounded text-xs border border-slate-700 text-slate-400 hover:bg-slate-800">Cancel</button>
+                        <button type="submit" class="px-3 py-1.5 rounded text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold">Sign In</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
