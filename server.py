@@ -412,12 +412,15 @@ async def ws_endpoint():
                 admin_override = False
 
             if prompt:
-                # [SECURITY] 1. SEMANTIC FIREWALL INTERCEPTION
-                try:
-                    from local_security import LocalSecurity
-                    ls = LocalSecurity()
-                    security_status = ls.analyze_intent(prompt)
-                    if security_status == "ATTACK":
+                # [SECURITY] 1. SEMANTIC FIREWALL INTERCEPTION (RBAC AWARE)
+                # Tier 5 Admins require full unrestricted execution for system administration.
+                is_admin = user and user.get("role") == "Tier5_SysAdmin"
+                if not is_admin:
+                    try:
+                        from local_security import LocalSecurity
+                        ls = LocalSecurity()
+                        security_status = ls.analyze_intent(prompt)
+                        if security_status == "ATTACK":
                         print("[Semantic Firewall] Dropping malicious prompt.")
                         await ws.send(json.dumps({
                             "type": "agent_article",
