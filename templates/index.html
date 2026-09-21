@@ -6,9 +6,45 @@
     <title>Antigravity Dev Portal</title>
     <script src="https://cdn.tailwindcss.com">
 
+    document.addEventListener("keydown", function(e) {
+        if (e.altKey && (e.key === "n" || e.key === "N")) {
+            e.preventDefault();
+            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            if (iframes.length > 0) {
+                var latestIframe = iframes[iframes.length - 1];
+                latestIframe.focus();
+                try {
+                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
+                    var videoTitle = innerDoc.getElementById("videoTitle");
+                    if (videoTitle) videoTitle.focus();
+                } catch(err) {}
+            } else {
+                var announcer = document.getElementById("exam-announcer");
+                if (announcer) announcer.innerText = "No active video player found.";
+            }
+        }
+    });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
 
+    document.addEventListener("keydown", function(e) {
+        if (e.altKey && (e.key === "n" || e.key === "N")) {
+            e.preventDefault();
+            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            if (iframes.length > 0) {
+                var latestIframe = iframes[iframes.length - 1];
+                latestIframe.focus();
+                try {
+                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
+                    var videoTitle = innerDoc.getElementById("videoTitle");
+                    if (videoTitle) videoTitle.focus();
+                } catch(err) {}
+            } else {
+                var announcer = document.getElementById("exam-announcer");
+                if (announcer) announcer.innerText = "No active video player found.";
+            }
+        }
+    });
     </script>
     <style>
         .markdown-body { font-size: 0.95rem; line-height: 1.6; }
@@ -1602,6 +1638,24 @@
                 }
             });
         }
+    document.addEventListener("keydown", function(e) {
+        if (e.altKey && (e.key === "n" || e.key === "N")) {
+            e.preventDefault();
+            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            if (iframes.length > 0) {
+                var latestIframe = iframes[iframes.length - 1];
+                latestIframe.focus();
+                try {
+                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
+                    var videoTitle = innerDoc.getElementById("videoTitle");
+                    if (videoTitle) videoTitle.focus();
+                } catch(err) {}
+            } else {
+                var announcer = document.getElementById("exam-announcer");
+                if (announcer) announcer.innerText = "No active video player found.";
+            }
+        }
+    });
     </script>
 
     <!-- Accessible Login & Role Switcher Modal -->
@@ -1679,6 +1733,24 @@
                 } else if (typeof announceScreenReader === 'function') {
                     announceScreenReader("No active exam frame found.");
                 }
+            }
+        }
+    });
+    document.addEventListener("keydown", function(e) {
+        if (e.altKey && (e.key === "n" || e.key === "N")) {
+            e.preventDefault();
+            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            if (iframes.length > 0) {
+                var latestIframe = iframes[iframes.length - 1];
+                latestIframe.focus();
+                try {
+                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
+                    var videoTitle = innerDoc.getElementById("videoTitle");
+                    if (videoTitle) videoTitle.focus();
+                } catch(err) {}
+            } else {
+                var announcer = document.getElementById("exam-announcer");
+                if (announcer) announcer.innerText = "No active video player found.";
             }
         }
     });
