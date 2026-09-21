@@ -169,12 +169,190 @@ async def index():
         content = f.read()
     return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
+GLOBAL_AUTH_PROC = None
+
+@app.route('/api/prompt/massive', methods=['POST'])
+async def handle_massive_prompt():
+    auth_hdr = request.headers.get('Authorization', '')
+    token = auth_hdr.replace('Bearer ', '').strip()
+    user = security_mgr.get_user_from_token(token)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    data = await request.get_json()
+    raw_prompt = data.get("prompt", "")
+    conv_id = data.get("conv_id", "")
+    
+    if not raw_prompt or not conv_id:
+        return jsonify({"error": "Missing prompt or conv_id"}), 400
+        
+    try:
+        import os
+        # Enforce Zero-Knowledge Data Masking (PII Scrubbing) if Presidio is installed
+        try:
+            from local_security import LocalSecurity
+            local_sec = LocalSecurity()
+            scrubbed_prompt = local_sec.scrub_text(raw_prompt)
+        except ImportError:
+            # Fallback if Presidio is not installed on the system
+            print("Warning: presidio-analyzer missing. Skipping PII scrubbing.")
+            scrubbed_prompt = raw_prompt
+        
+        # Save to disk instead of spawning hardcoded background agents
+        upload_dir = os.path.join(os.getcwd(), ".agents", "massive_prompts")
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, f"{conv_id}.txt")
+        
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(scrubbed_prompt)
+            
+        return jsonify({"success": True, "file_path": file_path})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/auth_check')
+async def auth_check():
+    """Proactively tests if the CLI needs authentication by running a dummy command."""
+    import sys
+    import subprocess
+    cmd = ['script', '-q', '-c', '/home/michael/.local/bin/agy --print ping', '/dev/null']
+    if sys.platform == 'win32':
+        cmd = ['wsl.exe'] + cmd
+        
+    def run_check():
+        global GLOBAL_AUTH_PROC
+        import subprocess
+        import os
+        import re
+        
+        # Kill any existing dangling process
+        if GLOBAL_AUTH_PROC:
+            try: GLOBAL_AUTH_PROC.kill()
+            except: pass
+            
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        env["WSLENV"] = "PYTHONUNBUFFERED/u"
+        try:
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
+            
+            # Read line by line synchronously
+            for _ in range(5): # Don't read forever
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                
+                if "Authentication required" in line or "oauth2" in line or "Waiting for authentication" in line or "https://accounts.google.com" in line:
+                    match = re.search(r'(https://accounts\.google\.com/[^\s]+)', line)
+                    if match:
+                        GLOBAL_AUTH_PROC = proc
+                        return {"authenticated": False, "url": match.group(1)}
+                        
+                if "pong" in line.lower():
+                    try: proc.kill()
+                    except: pass
+                    GLOBAL_AUTH_PROC = None
+                    return {"authenticated": True}
+                    
+            try: proc.kill()
+            except: pass
+            GLOBAL_AUTH_PROC = None
+            # If we get here, no URL or pong found
+            return {"authenticated": False, "url": "#"}
+        except Exception as e:
+            print(f"Auth check error in thread: {e}")
+            return {"authenticated": False, "url": "#"}
+                
+    try:
+        result = await asyncio.to_thread(run_check)
+        return jsonify(result)
+    except Exception as e:
+        print(f"Auth check error: {e}")
+        return jsonify({"authenticated": False, "url": "#"})
+
+@app.route('/login')
+async def login_page():
+    login_file = os.path.join(BASE_DIR, "templates", "login.html")
+    if not os.path.exists(login_file):
+        return "Login template not found", 404
+    with open(login_file, 'r', encoding='utf-8') as f:
+        return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/api/auth_submit', methods=['POST'])
+async def auth_submit():
+    print("[auth_submit] Starting request...")
+    data = await request.get_json() or {}
+    token = data.get('token', '').strip()
+    if not token:
+        print("[auth_submit] No token provided")
+        return jsonify({"success": False, "error": "No token provided"})
+        
+    def run_submit():
+        global GLOBAL_AUTH_PROC
+        if not GLOBAL_AUTH_PROC:
+            return {"success": False, "error": "No auth check process running"}
+            
+        proc = GLOBAL_AUTH_PROC
+        try:
+            proc.stdin.write(token + "\n")
+            proc.stdin.flush()
+            
+            for _ in range(15): # Max 15 lines
+                line = proc.stdout.readline()
+                if not line:
+                    break
+                    
+                out = line.lower()
+                if "authentication failed" in out or "invalid code" in out or "error" in out or "timed out" in out or "invalid_grant" in out or "malformed" in out:
+                    try: proc.kill()
+                    except: pass
+                    GLOBAL_AUTH_PROC = None
+                    return {"success": False}
+                    
+                if "authentication successful" in out or "select " in out or "project" in out or "workspace" in out or "pong" in out:
+                    try: proc.kill()
+                    except: pass
+                    GLOBAL_AUTH_PROC = None
+                    return {"success": True}
+                    
+            try: proc.kill()
+            except: pass
+            GLOBAL_AUTH_PROC = None
+            return {"success": True}
+        except Exception as e:
+            GLOBAL_AUTH_PROC = None
+            return {"success": False, "error": str(e)}
+            
+    try:
+        result = await asyncio.to_thread(run_submit)
+        return jsonify(result)
+    except Exception as e:
+        print(f"[auth_submit] Exception: {e}")
+        return jsonify({"success": False, "error": str(e)})
+
 @app.websocket('/ws')
-async def ws():
-    await agent_mgr.register_client(websocket)
+async def ws_endpoint():
+    ws = websocket._get_current_object()
+    client_queue = asyncio.Queue()
+    await agent_mgr.register_client(client_queue)
+    
+    async def sender():
+        try:
+            while True:
+                msg = await client_queue.get()
+                if msg is None:
+                    break
+                await ws.send(msg)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            print(f"WebSocket Sender Error: {e}")
+
+    sender_task = asyncio.create_task(sender())
+
     try:
         while True:
-            raw_msg = await websocket.receive()
+            raw_msg = await ws.receive()
             if not raw_msg:
                 continue
 
@@ -189,10 +367,21 @@ async def ws():
                     continue
                 elif msg_type == "sync":
                     last_seq = data.get("last_seq", 0)
-                    await agent_mgr.sync_client(websocket, last_seq)
+                    await agent_mgr.sync_client(client_queue, last_seq)
                     continue
                 elif msg_type == "cancel":
                     await agent_mgr.cancel_task()
+                    continue
+                elif msg_type == "auth_token":
+                    token = data.get("token", "")
+                    await agent_mgr.submit_auth_token(token)
+                    continue
+                elif msg_type == "exam_ready":
+                    await agent_mgr.broadcast(data)
+                    continue
+                elif msg_type == "cli_input":
+                    cli_in = data.get("input", "")
+                    await agent_mgr.submit_cli_input(cli_in)
                     continue
                 elif msg_type == "ack":
                     seq = data.get("seq")
@@ -235,14 +424,16 @@ async def ws():
         except: pass
         print(f"WebSocket Error: {e}")
     finally:
-        await agent_mgr.unregister_client(websocket)
+        sender_task.cancel()
+        await agent_mgr.unregister_client(client_queue)
 
 # Project API endpoints
 @app.route('/api/projects', methods=['GET'])
 async def list_projects():
     projects = project_mgr.list_projects()
     active = project_mgr.active_project
-    return jsonify({"projects": projects, "active": active})
+    root_name = "Workspaces"
+    return jsonify({"projects": projects, "active": active, "root_name": root_name})
 
 @app.route('/api/projects', methods=['POST'])
 async def create_project():
@@ -267,15 +458,30 @@ async def set_active_project():
 # Conversation API endpoints
 @app.route('/api/conversations', methods=['GET'])
 async def list_conversations():
+    limit = request.args.get('limit', default=10, type=int)
     # Threaded to prevent connection blocking
-    convos = await asyncio.to_thread(session_mgr.list_conversations, project_mgr.active_project, get_current_user())
-    return jsonify({"conversations": convos})
+    convos, has_more = await asyncio.to_thread(session_mgr.list_conversations, project_mgr.active_project, get_current_user(), limit)
+    return jsonify({"conversations": convos, "has_more": has_more})
 
 @app.route('/api/conversations/<conv_id>', methods=['GET'])
 async def get_conversation(conv_id):
     # Threaded to prevent connection blocking
     items = await asyncio.to_thread(session_mgr.get_conversation_transcript, conv_id)
     return jsonify({"items": items})
+
+@app.route('/api/conversations/<conv_id>', methods=['DELETE'])
+async def delete_conversation(conv_id):
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+    try:
+        success = await asyncio.to_thread(session_mgr.delete_session, conv_id, user)
+        if success:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": "Failed to delete"}), 403
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/projects/active/conversations', methods=['DELETE'])
 async def clear_project_sessions():

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exam: AZ-900 Module 1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-300 font-sans p-2 m-0 h-full flex justify-center items-start overflow-hidden">
+
+<div class="w-full bg-slate-900 rounded-lg p-4">
+    <h1 class="text-2xl font-bold text-cyan-400 mb-6" tabindex="-1" id="main-heading">AZ-900 Module 1: Cloud Concepts</h1>
+    
+    <div id="exam-container">
+        <button type="button" id="start-btn" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-6 rounded focus:outline-none focus:ring-4 focus:ring-teal-400">Start Exam</button>
+    </div>
+
+    <div id="question-container" class="hidden mt-4">
+        <h2 id="question-heading" class="text-xl text-cyan-400 font-bold mb-2" tabindex="-1"></h2>
+        <p id="question-text" class="text-lg text-slate-100 font-semibold mb-6"></p>
+        
+        <div id="options-form" role="radiogroup" aria-label="Answers" class="flex flex-col space-y-3 mb-6"></div>
+        
+        <div id="feedback-container" class="hidden p-4 rounded mb-6 border" tabindex="-1"></div>
+        
+        <div class="flex justify-between items-center">
+            <span id="progress-text" class="text-sm text-slate-400 font-mono"></span>
+            <button id="submit-next-btn" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-6 rounded focus:outline-none focus:ring-4 focus:ring-blue-400" title="Shortcut: Alt+N">Submit (Alt+N)</button>
+        </div>
+    </div>
+    
+    <div id="score-container" class="hidden mt-4 text-center">
+        <h2 class="text-2xl font-bold text-teal-400 mb-4" tabindex="-1" id="score-heading">Exam Complete!</h2>
+        <p id="final-score" class="text-lg text-slate-200"></p>
+    </div>
+</div>
+
+<div id="announcer" class="sr-only" aria-live="assertive"></div>
+
+<script>
+    const questions = [
+        {
+            text: "What is the key characteristic that distinguishes a public cloud from a private cloud?",
+            options: [
+                "A public cloud is accessed over the internet and a private cloud is not.",
+                "A public cloud is available to anyone who purchases the service; a private cloud is used by a single organisation.",
+                "A public cloud is hosted off site and a private cloud is hosted on site.",
+                "A public cloud is always cheaper than a private cloud."
+            ],
+            correct_index: 1,
+            explanation: "General availability to anyone who buys the service is what defines a public cloud. A private cloud is defined by being used by a single organisation, regardless of whether it is hosted on-site or off-site."
+        },
+        {
+            text: "In the shared responsibility model, which of the following areas remains with the customer across on-premises, IaaS, PaaS, and SaaS?",
+            options: [
+                "Operating system",
+                "Physical hosts",
+                "Identities and users",
+                "Network controls"
+            ],
+            correct_index: 2,
+            explanation: "Identities and users, customer data, and configurations/settings are the three areas that never transfer to the provider. They remain the customer's responsibility in every cloud model."
+        },
+        {
+            text: "An organisation moves a workload from its own datacentre to Azure Virtual Machines (IaaS). Which responsibility transfers to Microsoft?",
+            options: [
+                "Patching the operating system on the virtual machine",
+                "Classifying and protecting the data stored on the virtual machine",
+                "Managing which users have access to the virtual machine",
+                "Physical security of the datacentre housing the hardware"
+            ],
+            correct_index: 3,
+            explanation: "In Infrastructure as a Service (IaaS), the provider (Microsoft) takes over the physical layer: physical hosts, physical network, and physical datacentre. The customer retains the OS, data, and access controls."
+        },
+        {
+            text: "An organisation uses its own datacentre for patient records and Azure for its public website, with the two environments interconnected. Which cloud model is this?",
+            options: [
+                "Public cloud",
+                "Private cloud",
+                "Hybrid cloud",
+                "Multicloud"
+            ],
+            correct_index: 2,
+            explanation: "A hybrid cloud is an interconnected computing environment that uses both public (Azure) and private (own datacentre) clouds together."
+        }
+    ];
+
+    let currentIndex = 0;
+    let isReviewing = false;
+    let score = 0;
+
+    const startBtn = document.getElementById('start-btn');
+    const examContainer = document.getElementById('exam-container');
+    const questionContainer = document.getElementById('question-container');
+    const questionText = document.getElementById('question-text');
+    const optionsForm = document.getElementById('options-form');
+    const feedbackContainer = document.getElementById('feedback-container');
+    const submitNextBtn = document.getElementById('submit-next-btn');
+    const progressText = document.getElementById('progress-text');
+    const scoreContainer = document.getElementById('score-container');
+    const finalScore = document.getElementById('final-score');
+    const scoreHeading = document.getElementById('score-heading');
+    const announcer = document.getElementById('announcer');
+
+    function escapeHtml(unsafe) {
+        return unsafe.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function announce(text) {
+        announcer.innerText = text;
+    }
+
+    function renderQuestion() {
+        if (currentIndex >= questions.length) {
+            questionContainer.classList.add('hidden');
+            scoreContainer.classList.remove('hidden');
+            finalScore.innerText = `You scored ${score} out of ${questions.length}.`;
+            scoreContainer.setAttribute('tabindex', '-1');
+            scoreContainer.focus();
+            return;
+        }
+
+        isReviewing = false;
+        const q = questions[currentIndex];
+        document.getElementById('question-heading').innerText = `Question ${currentIndex + 1}`;
+        document.getElementById('question-text').innerText = q.text;
+        
+        optionsForm.innerHTML = '';
+        q.options.forEach((opt, idx) => {
+            const radioBtn = document.createElement('div');
+            radioBtn.setAttribute('role', 'radio');
+            radioBtn.setAttribute('aria-checked', 'false');
+            radioBtn.setAttribute('tabindex', '0');
+            radioBtn.setAttribute('data-value', idx);
+            radioBtn.className = "custom-radio flex items-center space-x-3 p-4 rounded bg-slate-800/50 hover:bg-slate-800 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer transition-colors";
+            
+            radioBtn.innerHTML = `
+                <div class="visual-box w-5 h-5 rounded-full border-2 border-slate-500 flex items-center justify-center bg-slate-900 transition-colors" aria-hidden="true">
+                    <div class="inner-dot w-2.5 h-2.5 rounded-full bg-teal-400 opacity-0 transition-opacity" aria-hidden="true"></div>
+                </div>
+                <span class="text-slate-200 w-full text-base font-medium leading-relaxed" aria-hidden="true">${escapeHtml(opt)}</span>
+            `;
+            
+            // Set aria-label so screen reader only reads this unified string
+            radioBtn.setAttribute('aria-label', opt);
+            
+            // Handle Keyboard (Enter/Space) and Click to select
+            function selectThis() {
+                if (isReviewing) return; // Locked if already submitted
+                // Uncheck all
+                document.querySelectorAll('.custom-radio').forEach(r => {
+                    r.setAttribute('aria-checked', 'false');
+                    r.querySelector('.visual-box').classList.remove('border-teal-500');
+                    r.querySelector('.inner-dot').classList.remove('opacity-100');
+                    r.querySelector('.inner-dot').classList.add('opacity-0');
+                });
+                // Check this
+                radioBtn.setAttribute('aria-checked', 'true');
+                radioBtn.querySelector('.visual-box').classList.add('border-teal-500');
+                radioBtn.querySelector('.inner-dot').classList.remove('opacity-0');
+                radioBtn.querySelector('.inner-dot').classList.add('opacity-100');
+            }
+            
+            radioBtn.addEventListener('click', selectThis);
+            radioBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectThis();
+                }
+                // Native radio button arrow key behavior
+                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    let next = radioBtn.nextElementSibling;
+                    if (!next) next = optionsForm.firstElementChild;
+                    if (next) { next.focus(); next.click(); }
+                }
+                if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    let prev = radioBtn.previousElementSibling;
+                    if (!prev) prev = optionsForm.lastElementChild;
+                    if (prev) { prev.focus(); prev.click(); }
+                }
+            });
+            
+            optionsForm.appendChild(radioBtn);
+        });
+
+        feedbackContainer.classList.add('hidden');
+        submitNextBtn.innerText = "Submit (Alt+N)";
+        progressText.innerText = `Question ${currentIndex + 1} of ${questions.length}`;
+        
+        document.getElementById('question-heading').focus();
+        
+    }
+
+    function handleSubmitOrNext() {
+        if (isReviewing) {
+            currentIndex++;
+            renderQuestion();
+        } else {
+            const selected = document.querySelector('.custom-radio[aria-checked="true"]');
+            if (!selected) {
+                announce("Please select an option first.");
+                return;
+            }
+
+            const selectedIdx = parseInt(selected.getAttribute('data-value'), 10);
+            const q = questions[currentIndex];
+            const isCorrect = (selectedIdx === q.correct_index);
+            
+            if (isCorrect) score++;
+
+            const radios = document.querySelectorAll('.custom-radio');
+            radios.forEach((radio, idx) => {
+                radio.removeAttribute('tabindex'); // Lock them out of tab order
+                const textSpan = radio.querySelector('span');
+                if (idx === q.correct_index) {
+                    textSpan.classList.add('text-green-400', 'font-bold');
+                } else if (idx === selectedIdx && !isCorrect) {
+                    textSpan.classList.add('text-red-400', 'line-through');
+                }
+            });
+
+            feedbackContainer.classList.remove('hidden', 'bg-green-900/50', 'border-green-700', 'bg-red-900/50', 'border-red-700');
+            if (isCorrect) {
+                feedbackContainer.classList.add('bg-green-900/50', 'border-green-700');
+                feedbackContainer.innerHTML = `<h3 class="text-green-300 font-bold mb-2">Correct!</h3><p class="text-slate-300">${escapeHtml(q.explanation)}</p>`;
+            } else {
+                feedbackContainer.classList.add('bg-red-900/50', 'border-red-700');
+                feedbackContainer.innerHTML = `<h3 class="text-red-300 font-bold mb-2">Incorrect.</h3><p class="text-slate-300">${escapeHtml(q.explanation)}</p>`;
+            }
+
+            submitNextBtn.innerText = "Next Question (Alt+N)";
+            
+            // Focus the feedback container so the screen reader reads it naturally without double-announcing
+            feedbackContainer.focus();
+            isReviewing = true;
+        }
+    }
+
+    startBtn.addEventListener('click', () => {
+        examContainer.classList.add('hidden');
+        questionContainer.classList.remove('hidden');
+        renderQuestion();
+    });
+
+    submitNextBtn.addEventListener('click', handleSubmitOrNext);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+            e.preventDefault();
+            if (!questionContainer.classList.contains('hidden')) {
+                handleSubmitOrNext();
+            }
+        }
+    });
+
+    document.getElementById('main-heading').focus();
+</script>
+</body>
+</html>

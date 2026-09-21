@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Antigravity Dev Portal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.tailwindcss.com">
+
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
+
+    </script>
     <style>
         .markdown-body { font-size: 0.95rem; line-height: 1.6; }
         .markdown-body p { margin-bottom: 0.75rem; }
@@ -21,11 +25,26 @@
         .markdown-body table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; font-size: 0.875rem; }
         .markdown-body th, .markdown-body td { border: 1px solid #334155; padding: 0.45rem; text-align: left; }
         .markdown-body th { background: #1e293b; }
-        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border-width: 0; }
         .skip-link:focus { position: static; width: auto; height: auto; padding: 0.5rem 1rem; clip: auto; white-space: normal; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden select-text">
+<body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden">
+
+    <!-- Custom UI Components -->
+    <div id="custom-toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none"></div>
+
+    <dialog id="custom-confirm-modal" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm">
+        <div class="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4">
+            <h3 class="text-lg font-bold text-white mb-3" id="confirm-modal-title">Confirmation Required</h3>
+            <p class="text-sm text-slate-300 mb-6" id="confirm-modal-message"></p>
+            <div class="flex justify-end gap-3">
+                <button id="confirm-modal-no" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">Cancel</button>
+                <button id="confirm-modal-yes" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">Confirm</button>
+            </div>
+        </div>
+    </dialog>
+
 
     <!-- Screen Reader Live Region for Announcements -->
     <div id="sr-announcer" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
@@ -51,41 +70,8 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <!-- User Status & Role Badge -->
-            <div id="user-pill" class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs">
-                <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300">ADMIN</span>
-                <label class="flex items-center gap-1 cursor-pointer text-amber-400 hover:text-amber-300 mx-1" title="Bypass Sandbox restrictions">
-                    <input type="checkbox" id="admin-override-checkbox" class="w-3 h-3 rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500/30">
-                    <span class="text-[10px] font-bold uppercase tracking-wide">Bypass</span>
-                </label>
-                <span id="user-display-name" class="font-medium text-slate-200 border-l border-slate-700 pl-2">Michael</span>
-                <button onclick="toggleLoginModal()" id="login-toggle-btn" class="ml-1 text-xs text-teal-400 hover:text-teal-200 underline font-mono">Switch</button>
-            </div>
-
-            <!-- Project Selector -->
-            <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1">
-                <label for="project-selector" class="text-xs font-semibold text-teal-400 shrink-0">Project:</label>
-                <select id="project-selector" onchange="switchProject()" aria-label="Select Project Workspace" class="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1 w-28 truncate">
-                    <option value="">(Root)</option>
-                </select>
-                <button onclick="newProject()" title="New Project" aria-label="Create New Project" class="text-teal-400 hover:text-teal-200 text-xs font-bold px-1">+</button>
-                <button onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="text-rose-400 hover:text-rose-200 text-xs font-bold px-1 ml-2 border-l border-slate-700 pl-2">
-                    🗑️ Clear
-                </button>
-            </div>
-
-            <!-- Conversation Selector -->
-            <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1">
-                <label for="conversation-selector" class="text-xs font-semibold text-teal-400 shrink-0">Session:</label>
-                <select id="conversation-selector" onchange="switchConversation()" aria-label="Select Conversation" class="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1 w-32 truncate">
-                </select>
-                <button onclick="renameConversation()" title="Rename Session" aria-label="Rename current session" class="text-teal-400 hover:text-teal-200 text-xs font-bold px-1 border-l border-slate-700 pl-1">
-                    ✏️
-                </button>
-            </div>
-
             <!-- Model Selection Dropdown -->
-            <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1">
+            <div class="flex items-center gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs">
                 <label for="model-selector" class="text-xs font-semibold text-teal-400 shrink-0">Model:</label>
                 <select id="model-selector" onchange="onModelChange()" aria-label="Select AI Model" class="bg-transparent text-slate-200 text-xs font-medium focus:outline-none cursor-pointer pr-1">
                     <option value="gemini-3.8-flash-high" selected>Gemini 3.8 Flash (Fast &amp; Responsive)</option>
@@ -101,30 +87,14 @@
                 <span class="w-2 h-2 rounded-full bg-yellow-400" aria-hidden="true"></span>
                 <span id="connection-text">Connecting...</span>
             </div>
-
-            <!-- New Conversation Button -->
-            <button onclick="newConversation()" aria-label="Start a new conversation" class="text-xs px-2.5 py-1 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded border border-teal-700/60 transition-colors font-medium">
-                New Session
-            </button>
-            
-            <!-- Clear Chat Button -->
-            <button onclick="clearHistory()" aria-label="Clear chat history display" class="text-xs px-2.5 py-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded border border-slate-700/60 transition-colors">
-                Clear View
-            </button>
-
-            <!-- In-Memory Hot Reload Button -->
-            <button onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="text-xs px-2.5 py-1 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded border border-teal-800/60 transition-colors font-medium" title="Reload Python modules in-memory without dropping port 5000">
-                ↻ Reload
-            </button>
-            
-            <!-- Simulate Hot Patch Button -->
-            <button onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="text-xs px-2.5 py-1 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded border border-amber-700/60 transition-colors font-medium" title="Simulate a background auto-patch event">
-                🛡️ Auto-Patch
+            <button onclick="clearHistory()" aria-label="Clear chat history display" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">Clear View</button>
+            <button type="button" aria-controls="settings-panel" aria-expanded="false" onclick="document.getElementById('settings-panel').showModal()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
+                Settings &amp; Sessions
             </button>
         </div>
     </header>
 
-    <!-- Active Task Progress Bar (Shown during execution) -->
+        <!-- Active Task Progress Bar (Shown during execution) -->
     <div id="task-banner" role="region" aria-label="Current Task Status" class="hidden bg-slate-900 border-b border-teal-800/60 px-6 py-2.5 flex items-center justify-between shadow-inner shrink-0">
         <div class="flex items-center gap-3 text-sm">
             <span class="relative flex h-3 w-3" aria-hidden="true">
@@ -153,30 +123,64 @@
     </div>
 
     <!-- Main Content Area -->
-    <main id="main-content" class="flex-1 flex flex-col overflow-hidden max-w-5xl mx-auto w-full border-x border-slate-800/80 bg-slate-950/50">
+    <main id="main-content" class="flex-1 flex flex-col overflow-hidden min-h-0 max-w-5xl mx-auto w-full border-x border-slate-800/80 bg-slate-950/50">
         <!-- Messages Feed Landmark -->
-        <section id="chat-feed" role="feed" aria-label="Conversation Feed" class="flex-1 overflow-y-auto p-6 space-y-5 scroll-smooth">
-            <!-- Initial Welcome Card -->
-            <article class="p-4 rounded-xl bg-slate-900/90 text-slate-300 border border-slate-800 shadow-sm flex gap-3 message-welcome" aria-labelledby="welcome-heading">
-                <div class="w-7 h-7 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center shrink-0 text-xs font-bold mt-0.5" aria-hidden="true">
-                    AG
-                </div>
-                <div class="text-sm">
-                    <h2 id="welcome-heading" class="font-bold text-teal-400 text-sm mb-1">Antigravity Dev Portal Ready</h2>
-                    <p class="mb-2">Accessible interface with live screen reader announcements, clean heading navigation (press <strong>H</strong> or <strong>2</strong> to navigate messages), collapsed action logs, and model selection.</p>
-                    <p class="text-xs text-slate-400">Tasks run as resilient background processes. Page reloads or disconnections will not cancel active tasks.</p>
+        <section id="chat-feed" role="feed" aria-label="Conversation Feed" class="flex-1 overflow-y-auto min-h-0 p-6 space-y-5 scroll-smooth">
+            <!-- Initial Welcome Card (A11y Optimized) -->
+            <article class="p-5 rounded-xl bg-slate-900/90 text-slate-300 border border-slate-800 shadow-sm flex flex-col gap-4 message-welcome" aria-labelledby="welcome-heading">
+                <header class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center shrink-0 text-sm font-bold" aria-hidden="true">AG</div>
+                    <h2 id="welcome-heading" class="font-bold text-teal-400 text-lg m-0" aria-live="polite">Antigravity Dev Portal Ready</h2>
+                </header>
+
+                    <div class="text-sm space-y-5">
+                    <section aria-labelledby="status-heading">
+                        <h3 id="status-heading" class="sr-only">System Status</h3>
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm bg-slate-950 p-4 rounded-lg border border-slate-800">
+                            <dt class="font-semibold text-slate-400">Connection Status:</dt>
+                            <dd class="text-teal-300">Secure & Resilient</dd>
+                            <dt class="font-semibold text-slate-400">Background Tasks:</dt>
+                            <dd class="text-slate-200">0 Running</dd>
+                            <dt class="font-semibold text-slate-400">Navigation:</dt>
+                            <dd class="text-slate-200">Press <kbd class="bg-slate-800 px-1 rounded sr-only">H</kbd><span aria-hidden="true" class="bg-slate-800 px-1 rounded font-mono text-xs">H</span> or <kbd class="bg-slate-800 px-1 rounded sr-only">2</kbd><span aria-hidden="true" class="bg-slate-800 px-1 rounded font-mono text-xs">2</span> for messages</dd>
+                        </dl>
+                    </section>
+
+                    <nav aria-label="Quick Actions">
+                        <ul class="space-y-3">
+                            <li>
+                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').value = 'Create a new Sandbox Environment'; document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+S">
+                                    <span class="text-base">Create Sandbox Environment</span>
+                                    <span class="text-xs text-slate-400 sr-only">Shortcut: Alt plus S. Injects prompt into chat input.</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').value = 'Analyze system logs for the last 24 hours'; document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+L">
+                                    <span class="text-base">Analyze System Logs</span>
+                                    <span class="text-xs text-slate-400 sr-only">Shortcut: Alt plus L. Injects prompt into chat input.</span>
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+C">
+                                    <span class="text-base">Jump to Chat Input</span>
+                                    <span class="text-xs text-slate-400 sr-only">Shortcut: Alt plus C. Moves focus to text area.</span>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             </article>
         </section>
 
         <!-- Chat Input Bar -->
         <div class="p-4 bg-slate-900 border-t border-slate-800/80 shrink-0">
-            <form id="chat-form" role="form" aria-label="Send prompt" class="flex gap-2.5 items-end" onsubmit="sendPrompt(event)">
+            <form id="chat-form" class="flex gap-2.5 items-end" onsubmit="sendPrompt(event)">
                 <div class="flex-1 relative">
                     <label for="prompt" class="sr-only">Enter instructions for Antigravity</label>
                     <textarea 
                         id="prompt" 
                         rows="2"
+                        style="white-space: pre-wrap !important; word-break: break-word !important;"
                         class="w-full bg-slate-950 text-slate-100 rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none text-sm placeholder-slate-500" 
                         placeholder="Enter instructions (e.g. modify file, test feature, refactor code)... Press Enter to execute."
                         onkeydown="handleKeyDown(event)"></textarea>
@@ -196,7 +200,123 @@
         </div>
     </main>
 
+            <!-- Settings & Sessions Side Panel (A11y Dialog) -->
+    <dialog id="settings-panel" class="bg-slate-950 text-slate-300 border-l border-slate-700 shadow-2xl h-full m-0 ml-auto w-80 backdrop:bg-slate-950/50 p-5 rounded-l-2xl open:flex flex-col gap-6" aria-label="Settings and Sessions">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h2 class="text-lg font-bold text-teal-400">Settings &amp; Sessions</h2>
+            <button type="button" onclick="document.getElementById('settings-panel').close()" aria-label="Close Settings" class="text-slate-400 hover:text-white px-3 py-1 text-2xl font-bold rounded focus:ring-2 focus:ring-teal-500 focus:outline-none">&times;</button>
+        </div>
+        
+        <div class="flex flex-col gap-4 overflow-y-auto">
+            <!-- User Status & Role Badge (Without Bypass Checkbox) -->
+            <div id="user-pill" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg px-2.5 py-2 text-sm">
+                <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-xs font-bold bg-teal-900 text-teal-300 w-fit">SUPER_ADMIN</span>
+                <span id="user-display-name" class="font-medium text-slate-200">Guest</span>
+                <div class="flex gap-2 mt-1">
+                    <button onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-xs text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-teal-800/50">Login</button>
+                    <button onclick="logout()" id="logout-btn" class="hidden flex-1 text-xs text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-rose-800/50">Logout</button>
+                </div>
+            </div>
+
+            <!-- Project Selector -->
+            <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
+                <label for="project-selector" class="text-xs font-semibold text-teal-400 shrink-0">Project Workspace:</label>
+                <select id="project-selector" onchange="switchProject()" aria-label="Select Project Workspace" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none cursor-pointer p-1 w-full truncate">
+                    <option value="">(Loading...)</option>
+                </select>
+                <div class="flex gap-2 mt-1">
+                    <button onclick="newProject()" title="New Project" aria-label="Create New Project" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">+ New</button>
+                    <button onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="flex-1 text-rose-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">🗑️ Clear</button>
+                </div>
+            </div>
+
+            <!-- Conversation Selector -->
+            <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
+                <label for="conversation-selector" class="text-xs font-semibold text-teal-400 shrink-0">Current Session:</label>
+                <select id="conversation-selector" onchange="switchConversation()" aria-label="Select Conversation" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none cursor-pointer p-1 w-full truncate">
+                </select>
+                <div class="flex gap-2 mt-1">
+                    <button onclick="renameConversation()" title="Rename Session" aria-label="Rename current session" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">✏️ Rename</button>
+                    <button onclick="deleteSingleSession()" title="Delete Selected Session" aria-label="Delete selected session" class="flex-1 text-amber-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">🗑️ Delete</button>
+                    <button onclick="sanitizeSessions()" title="Sanitize/Clear All Sessions" aria-label="Sanitize all sessions" class="flex-1 text-rose-500 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">🧹 Clear All</button>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-800">
+                <div class="flex items-center gap-2 mt-2 mb-2">
+                    <input type="checkbox" id="admin-override-checkbox" class="w-4 h-4 bg-slate-900 border-slate-700 rounded text-teal-500 focus:ring-teal-500 focus:ring-2">
+                    <label for="admin-override-checkbox" class="text-sm font-medium text-slate-300">Enable Admin Override</label>
+                </div>
+                <button onclick="newConversation()" aria-label="Start a new chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium">✨ New Session</button>
+                <button onclick="renameConversation()" aria-label="Rename the current chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium">✏️ Rename Session</button>
+                <button onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium">↻ Reload Scripts</button>
+                <button onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="w-full text-sm px-3 py-2 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded-lg border border-amber-700/60 transition-colors font-medium">🛡️ Auto-Patch Event</button>
+            </div>
+        </div>
+    </dialog>
     <script>
+
+        // Custom UI Overrides
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('custom-toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'error' ? 'bg-rose-900/90 border-rose-700' : 'bg-slate-800/90 border-slate-700';
+            toast.className = `flex items-center p-4 rounded-lg border shadow-lg text-sm text-white pointer-events-auto transform translate-x-full transition-transform duration-300 ${bgColor}`;
+            toast.innerHTML = `
+                <div class="mr-3">
+                    ${type === 'error' ? '<svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '<svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'}
+                </div>
+                <div>${message}</div>
+                <button class="ml-4 text-slate-400 hover:text-white focus:outline-none" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            `;
+            container.appendChild(toast);
+            
+            // Trigger animation
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-full');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
+        }
+
+        window.alert = function(msg) {
+            const type = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail') ? 'error' : 'info';
+            showToast(msg, type);
+        };
+
+        window.confirm = function(msg) {
+            return new Promise(resolve => {
+                const modal = document.getElementById('custom-confirm-modal');
+                const msgEl = document.getElementById('confirm-modal-message');
+                const btnYes = document.getElementById('confirm-modal-yes');
+                const btnNo = document.getElementById('confirm-modal-no');
+                
+                msgEl.innerText = msg;
+                
+                const cleanup = () => {
+                    modal.close();
+                    btnYes.removeEventListener('click', onYes);
+                    btnNo.removeEventListener('click', onNo);
+                    modal.removeEventListener('cancel', onCancel);
+                };
+                
+                const onYes = () => { cleanup(); resolve(true); };
+                const onNo = () => { cleanup(); resolve(false); };
+                const onCancel = (e) => { e.preventDefault(); cleanup(); resolve(false); };
+                
+                btnYes.addEventListener('click', onYes);
+                btnNo.addEventListener('click', onNo);
+                modal.addEventListener('cancel', onCancel);
+                
+                modal.showModal();
+            });
+        };
+
         // Custom Marked renderer to avoid markdown headings polluting screen reader H/2 navigation
         var renderer = new marked.Renderer();
         renderer.heading = function(arg1, arg2) {
@@ -276,6 +396,18 @@
             }
         }
 
+        document.addEventListener('DOMContentLoaded', function() {
+            var savedSidebar = localStorage.getItem('sidebarOpen');
+            if (savedSidebar === 'false') {
+                toggleSidebar();
+            }
+            fetch('/api/auth_check').then(r => r.json()).then(data => {
+                if (data.authenticated === false) {
+                    window.location.href = '/login';
+                }
+            }).catch(e => console.error("Auth check failed", e));
+        });
+
         document.addEventListener('keydown', function(e) {
             // Shortcut for Proceed (Alt+P)
             if (e.altKey && e.key.toLowerCase() === 'p') {
@@ -315,37 +447,52 @@
         var reconnectAttempts = 0;
         var messageCounter = 0;
         var currentConversationId = localStorage.getItem('agy_conversation_id') || null;
-        var conversations = JSON.parse(localStorage.getItem('agy_conversations')) || [];
+        var conversations = [];
+        try { conversations = JSON.parse(localStorage.getItem('agy_conversations')) || []; } catch(e) {}
         var convSelector = document.getElementById('conversation-selector');
 
-        async function initConversations() {
+        var hasMoreConversations = false;
+        async function initConversations(limit) {
+            if (limit === undefined) limit = 10;
             var found = false;
             for (var i=0; i<conversations.length; i++) {
                 if (conversations[i].id === currentConversationId) found = true;
             }
             if (!found && currentConversationId) {
-                conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(5, 9)});
+                conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(0, 8)});
                 localStorage.setItem('agy_conversations', JSON.stringify(conversations));
             }
             function renderSelect() {
-                if (convSelector) {
-                    convSelector.innerHTML = '';
-                    conversations.forEach(function(c) {
-                        var opt = document.createElement('option');
-                        opt.value = c.id;
-                        opt.textContent = c.title || c.name || ('Session ' + c.id.substring(0, 8));
-                        if (c.id === currentConversationId) opt.selected = true;
-                        convSelector.appendChild(opt);
-                    });
+                var convSelector = document.getElementById('conversation-selector');
+                if (!convSelector) return;
+
+                convSelector.innerHTML = '';
+                conversations.forEach(function(c) {
+                    var opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = c.title || c.name || ('Session ' + c.id.substring(0, 8));
+                    if (c.id === currentConversationId) opt.selected = true;
+                    convSelector.appendChild(opt);
+                });
+
+                if (hasMoreConversations) {
+                    var optM = document.createElement('option');
+                    optM.value = 'load_more';
+                    optM.textContent = 'Load More...';
+                    convSelector.appendChild(optM);
                 }
             }
             renderSelect();
             try {
-                var response = await fetch('/api/conversations');
+                var response = await fetch('/api/conversations?limit=' + limit, {
+                    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                });
                 var data = await response.json();
                 if (data.conversations) {
+                    hasMoreConversations = data.has_more;
                     var localMap = {};
-                    var localConvs = JSON.parse(localStorage.getItem('agy_conversations')) || [];
+                    var localConvs = [];
+                    try { localConvs = JSON.parse(localStorage.getItem('agy_conversations')) || []; } catch(e) {}
                     localConvs.forEach(function(c) {
                         if (c.name && !c.name.startsWith('Session ') && c.name.trim() !== '') localMap[c.id] = c.name;
                         else if (c.title && !c.title.startsWith('Session ') && c.title.trim() !== '') localMap[c.id] = c.title;
@@ -363,7 +510,7 @@
                         if (conversations[i].id === currentConversationId) sfound = true;
                     }
                     if (!sfound && currentConversationId) {
-                        conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(5, 9)});
+                        conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(0, 8)});
                     }
                     localStorage.setItem('agy_conversations', JSON.stringify(conversations));
                     renderSelect();
@@ -373,8 +520,18 @@
         initConversations();
 
         function switchConversation() {
+            var convSelector = document.getElementById('conversation-selector');
             if (convSelector) {
                 var selected = convSelector.value;
+                if (selected === 'load_more') {
+                    var loadOpt = convSelector.querySelector('option[value="load_more"]');
+                    if (loadOpt) loadOpt.textContent = "Loading...";
+                    convSelector.value = currentConversationId;
+                    initConversations(0).then(() => {
+                        alert("All older sessions have successfully loaded! Please click the dropdown again to view them.");
+                    });
+                    return;
+                }
                 if (selected !== currentConversationId) {
                     localStorage.setItem('agy_conversation_id', selected);
                     location.reload();
@@ -382,8 +539,48 @@
             }
         }
 
+        async function deleteSingleSession() {
+            if (!currentConversationId) return;
+            if (await confirm('Are you sure you want to delete (sanitize) the current session?')) {
+                try {
+                    await fetch('/api/conversations/' + currentConversationId, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                    });
+                    localStorage.removeItem('agy_conversation_id');
+                    location.reload();
+                } catch(err) {}
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var convSel = document.getElementById('conversation-selector');
+            if (convSel) {
+                convSel.addEventListener('keydown', function(e) {
+                    if (e.key === 'F2') {
+                        e.preventDefault();
+                        var selectedId = convSel.value;
+                        var conv = conversations.find(c => c.id === selectedId);
+                        if (conv) {
+                            alert("Summary for " + (conv.title || conv.name) + ":\n\n" + (conv.summary || "No summary available."));
+                        }
+                    }
+                });
+            }
+        });
+
+        async function sanitizeSessions() {
+            if (await confirm("Are you sure you want to sanitize (archive) ALL sessions for this project?")) {
+                try {
+                    await fetch('/api/projects/active/conversations', { method: 'DELETE' });
+                    localStorage.removeItem('agy_conversation_id');
+                    location.reload();
+                } catch(e) {}
+            }
+        }
+
         function renameConversation() {
-            var selected = convSelector.value;
+            var selected = currentConversationId;
             if (!selected) return;
             var currentName = '';
             var currentIndex = -1;
@@ -412,7 +609,8 @@
                 var res = await fetch('/api/projects');
                 var data = await res.json();
                 if (projSelector && data.projects) {
-                    projSelector.innerHTML = '<option value="">(Root)</option>';
+                    var rootName = data.root_name || 'Root';
+                    projSelector.innerHTML = '<option value="">(' + rootName + ')</option>';
                     data.projects.forEach(function(p) {
                         var opt = document.createElement('option');
                         opt.value = p;
@@ -436,7 +634,10 @@
                 });
                 var data = await res.json();
                 if (data.success) {
-                    announce('Active project set to ' + (val || 'Root'));
+                    var displayVal = projSelector.options[projSelector.selectedIndex].text;
+                    announce('Active project set to ' + displayVal);
+                    localStorage.removeItem('agy_conversation_id');
+                    setTimeout(() => location.reload(), 300);
                 }
             } catch(e) {}
         }
@@ -617,7 +818,45 @@
             };
         }
 
+        function sendCliInput(text) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'cli_input', input: text + "\n" }));
+                appendSystemMessage("Selected: " + text, "info");
+                // Remove the setup options from UI to keep it clean
+                var options = document.querySelectorAll('.cli-option-btn');
+                options.forEach(function(btn) { btn.remove(); });
+            }
+        }
+
+        function renderCliOptionButton(number, label) {
+            var container = currentAgentArticle;
+            if (!container) {
+                container = appendAgentMessageContainer("Setup Wizard");
+            }
+            var contentDiv = container.querySelector('.agent-text');
+            var btn = document.createElement('button');
+            btn.className = "cli-option-btn mt-2 mr-2 py-1.5 px-4 bg-slate-800 hover:bg-slate-700 text-teal-400 text-sm font-medium rounded-lg border border-slate-600 transition-colors shadow-sm";
+            btn.textContent = "[" + number + "] " + label;
+            btn.onclick = function() {
+                sendCliInput(number);
+            };
+            contentDiv.appendChild(btn);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+
+        function submitAuthToken() {
+            // Deprecated: Decoupled to /login route
+        }
+
         function handleServerMessage(data) {
+            if (data.type === 'auth_required') {
+                window.location.href = '/login';
+                return;
+            }
+            if (data.type === 'cli_option') {
+                renderCliOptionButton(data.number, data.label);
+                return;
+            }
             if (data.type === 'pong' || data.type === 'gateway_ping') {
                 return; // Silent keep-alive response
             }
@@ -653,7 +892,9 @@
                 return;
             }
             else if (data.type === 'init') {
-                // Handshake confirmed
+                if (data.is_running === false && typeof finishTaskUI === 'function') {
+                    finishTaskUI(false, 0, "Server restarted");
+                }
             }
             else if (data.type === 'init_conv_id') {
                 if (data.conversation_id && currentConversationId !== data.conversation_id) {
@@ -757,7 +998,13 @@
         function startTaskUI(prompt, model, startTime) {
             isTaskRunning = true;
             taskStartTime = startTime || Date.now() / 1000;
-            currentTaskPromptEl.innerText = prompt || 'Executing instruction...';
+            
+            let displayPrompt = prompt || 'Executing instruction...';
+            if (displayPrompt.startsWith('<SYSTEM_MESSAGE>')) {
+                displayPrompt = 'Processing background system instruction...';
+            }
+            
+            currentTaskPromptEl.innerText = displayPrompt;
             if (taskModelBadge) {
                 taskModelBadge.innerText = model || (modelSelector ? modelSelector.value : 'Gemini');
             }
@@ -837,12 +1084,49 @@
             timerDisplay.innerText = String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
         }
 
+        function copyToClipboard(btn) {
+            var article = btn.closest('.message-card');
+            if (!article) return;
+            var textToCopy = article.dataset.text || article.dataset.rawMarkdown || article.dataset.content || "";
+            if (!textToCopy) return;
+
+            function showSuccess() {
+                var originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied';
+                btn.classList.add('text-green-400');
+                setTimeout(function() {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('text-green-400');
+                }, 2000);
+            }
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textToCopy).then(showSuccess).catch(function(err) {
+                    console.error("Copy failed: ", err);
+                });
+            } else {
+                var textArea = document.createElement("textarea");
+                textArea.value = textToCopy;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    if (document.execCommand('copy')) showSuccess();
+                } catch (err) {
+                    console.error('Fallback copy error', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
         function appendUserMessage(text) {
             messageCounter++;
             var msgId = 'msg-user-' + messageCounter;
 
             var article = document.createElement('article');
-            article.className = 'message-card user-message mb-4';
+            article.className = 'message-card user-message mb-4 relative';
             article.setAttribute('aria-labelledby', msgId);
             article.dataset.sender = 'user';
             article.dataset.text = text;
@@ -855,7 +1139,12 @@
                         <span class="w-2 h-2 rounded-full bg-teal-400" aria-hidden="true"></span>
                         <h2 id="${msgId}" class="text-xs font-bold uppercase tracking-wider text-teal-300">You asked:</h2>
                     </div>
-                    <time class="text-[11px] text-slate-500 font-mono">${timeStr}</time>
+                    <div class="flex items-center gap-2">
+                        <button onclick="copyToClipboard(this)" class="text-[10px] text-teal-500 hover:text-teal-300 transition-colors bg-teal-950/40 hover:bg-teal-900/60 px-2 py-0.5 rounded cursor-pointer border border-teal-800/30" title="Copy your prompt">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <time class="text-[11px] text-slate-500 font-mono">${timeStr}</time>
+                    </div>
                 </div>
                 <div class="bg-teal-950/60 border border-teal-800/60 rounded-xl p-3.5 text-slate-100 text-sm shadow-sm whitespace-pre-wrap">${escapeHtml(text)}</div>
             `;
@@ -887,8 +1176,13 @@
                         </h2>
                         <span class="text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800">${escapeHtml(modelDisplay)}</span>
                     </div>
-                    <div class="status-badge text-[11px] text-teal-400 font-mono flex items-center gap-1.5">
-                        <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" aria-hidden="true"></span> Processing...
+                    <div class="flex items-center gap-3">
+                        <button onclick="copyToClipboard(this)" class="text-[10px] text-teal-500 hover:text-teal-300 transition-colors bg-teal-950/40 hover:bg-teal-900/60 px-2 py-0.5 rounded cursor-pointer border border-teal-800/30" title="Copy raw markdown response">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <div class="status-badge text-[11px] text-teal-400 font-mono flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" aria-hidden="true"></span> Processing...
+                        </div>
                     </div>
                 </div>
                 <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm">
@@ -966,42 +1260,10 @@
             chatFeed.scrollTop = chatFeed.scrollHeight;
         }
 
-        function sendPrompt(e) {
+        async function sendPrompt(e) {
             if (e) e.preventDefault();
             var prompt = inputEl.value.trim();
             if (!prompt || isTaskRunning) return;
-
-            // Prevent Quota Exhaustion: Check if conversation is getting too massive (e.g. >30 messages)
-            var messageCount = chatFeed.querySelectorAll('.message-card').length;
-            if (messageCount >= 30) {
-                if (confirm("WARNING: This conversation is very long and will likely exhaust your Gemini Tokens-Per-Minute quota.\n\nWould you like to auto-start a fresh session right now? (Your current prompt will be preserved and recent context will be automatically carried over)")) {
-                    
-                    // Automatically extract recent context so the AI doesn't get amnesia
-                    var recentContext = "";
-                    var cards = chatFeed.querySelectorAll('.message-card');
-                    var startIdx = Math.max(0, cards.length - 6); // Grab the last 6 messages
-                    for (var i = startIdx; i < cards.length; i++) {
-                        var role = cards[i].dataset.sender;
-                        var txt = role === 'user' ? cards[i].dataset.text : cards[i].dataset.rawMarkdown;
-                        if (txt) {
-                            // Do not include backend permission errors or "jetski" engine errors in the context recap!
-                            if (txt.includes('jetski:') || txt.includes('Encountered error in step execution') || txt.includes('permission check failed')) {
-                                continue;
-                            }
-                            // Truncate AI responses to keep the new prompt lightweight
-                            if (role === 'agent' && txt.length > 400) txt = txt.substring(0, 400) + '... [truncated]';
-                            recentContext += role.toUpperCase() + ": " + txt + "\n\n";
-                        }
-                    }
-
-                    var contextPreservingPrompt = "<SYSTEM_MESSAGE>\nNOTE: The massive conversation history was just automatically reset to save API tokens. To maintain context, here is a brief recap of the last few messages right before the reset:\n---\n" + recentContext + "---\n</SYSTEM_MESSAGE>\n\n" + prompt;
-
-                    localStorage.removeItem('agy_conversation_id');
-                    localStorage.setItem('saved_prompt_temp', contextPreservingPrompt);
-                    location.reload();
-                    return;
-                }
-            }
 
             var model = modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
 
@@ -1010,30 +1272,63 @@
                 localStorage.setItem('agy_conversation_id', currentConversationId);
                 
                 // Add to dropdown immediately
-                var name = 'Session ' + currentConversationId.substring(5, 9);
+                var name = 'Session ' + currentConversationId.substring(0, 8);
                 conversations.unshift({id: currentConversationId, name: name});
                 localStorage.setItem('agy_conversations', JSON.stringify(conversations));
                 
-                if (convSelector) {
-                    var opt = document.createElement('option');
-                    opt.value = currentConversationId;
-                    opt.textContent = name;
-                    opt.selected = true;
-                    // insert at top
-                    if (convSelector.firstChild) {
-                        convSelector.insertBefore(opt, convSelector.firstChild);
-                    } else {
-                        convSelector.appendChild(opt);
-                    }
-                }
+                // Redraw UI
+                initConversations();
             }
 
             appendUserMessage(prompt);
             inputEl.value = '';
+            
+            // Clear the local draft JSON only upon intentional send
+            localStorage.removeItem('agy_draft_prompt');
+            // Reset the rolling window size
+            inputEl.style.height = 'auto';
 
             var adminOverride = false;
             var overrideCb = document.getElementById('admin-override-checkbox');
             if (overrideCb) adminOverride = overrideCb.checked;
+
+            if (prompt.length > 10000) {
+                appendSystemMessage("Massive prompt detected (" + prompt.length + " chars). Bypassing WebSockets and delegating to Sub-Agent Ingestion Swarm...", "warning");
+                try {
+                    var res = await fetch('/api/prompt/massive', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken
+                        },
+                        body: JSON.stringify({
+                            prompt: prompt,
+                            conv_id: currentConversationId,
+                            model: model
+                        })
+                    });
+                    var data = await res.json();
+                    if (!data.success) {
+                        appendSystemMessage("Failed to upload massive prompt: " + data.error, "error");
+                    } else {
+                        appendSystemMessage("Massive prompt saved to disk. Routing instruction to Main Agent...", "success");
+                        var instruction = "<SYSTEM_MESSAGE>The user attempted to paste a massive block of text (" + prompt.length + " characters). To protect WebSocket limits, the text was intercepted, scrubbed for PII, and saved to disk at: " + data.file_path + ". Please use your tools to read this file and then continue assisting the user.</SYSTEM_MESSAGE>";
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({
+                                type: 'prompt',
+                                prompt: instruction,
+                                model: model,
+                                conversation_id: currentConversationId,
+                                admin_override: adminOverride,
+                                token: authToken
+                            }));
+                        }
+                    }
+                } catch (e) {
+                    appendSystemMessage("HTTP upload failed: " + e, "error");
+                }
+                return;
+            }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
@@ -1063,6 +1358,15 @@
         }
 
         function saveChatHistory() {
+            // Enforce DOM rolling window (Deque) to prevent browser lag
+            var MAX_DOM_CHILDREN = 50;
+            if (chatFeed.children.length > MAX_DOM_CHILDREN) {
+                var diff = chatFeed.children.length - MAX_DOM_CHILDREN;
+                for (var i = 0; i < diff; i++) {
+                    chatFeed.removeChild(chatFeed.firstElementChild);
+                }
+            }
+
             var items = [];
             var messageEls = chatFeed.querySelectorAll('.message-card');
             messageEls.forEach(function(el) {
@@ -1087,7 +1391,9 @@
                     if (stored) {
                         items = JSON.parse(stored);
                     } else {
-                        var response = await fetch('/api/conversations/' + currentConversationId);
+                        var response = await fetch('/api/conversations/' + currentConversationId, {
+                            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                        });
                         var data = await response.json();
                         if (data.items && data.items.length > 0) {
                             items = data.items;
@@ -1121,8 +1427,8 @@
             } catch(e) {}
         }
 
-        function clearHistory() {
-            if (confirm("Clear local chat display? Active background tasks will continue running.")) {
+        async function clearHistory() {
+            if (await confirm("Clear local chat display? Active background tasks will continue running.")) {
                 try {
                     if (currentConversationId) {
                         localStorage.removeItem('agy_chat_items_v2_' + currentConversationId);
@@ -1133,8 +1439,8 @@
             }
         }
 
-        function newConversation() {
-            if (confirm("Start a new session? This will clear the current view and generate a fresh conversation ID.")) {
+        async function newConversation() {
+            if (await confirm("Start a new session? This will clear the current view and generate a fresh conversation ID.")) {
                 try {
                     localStorage.removeItem('agy_conversation_id');
                 } catch(e) {}
@@ -1143,15 +1449,28 @@
         }
 
         // Auth & Role Management
-        var currentUser = JSON.parse(localStorage.getItem('agy_user')) || { username: 'admin', role: 'admin', name: 'Michael (Admin)' };
+        var currentUser = { username: 'guest', role: 'guest', name: 'Guest' };
+        try {
+            var storedUser = localStorage.getItem('agy_user');
+            if (storedUser && storedUser !== "undefined") {
+                currentUser = JSON.parse(storedUser) || currentUser;
+            }
+        } catch (e) {}
         var authToken = localStorage.getItem('agy_auth_token') || '';
 
         function updateUserUI() {
             var roleBadge = document.getElementById('user-role-badge');
             var displayName = document.getElementById('user-display-name');
+            var welcomeHeading = document.getElementById('welcome-heading');
+            
+            if (welcomeHeading && currentUser && currentUser.role) {
+                let roleName = currentUser.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                welcomeHeading.innerText = roleName + " Dashboard Ready";
+            }
+            
             if (roleBadge) {
                 roleBadge.innerText = (currentUser.role || 'GUEST').toUpperCase();
-                if (currentUser.role === 'admin') {
+                if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300";
                 } else if (currentUser.role === 'gamedev') {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-900 text-cyan-300";
@@ -1160,7 +1479,18 @@
                 }
             }
             if (displayName) {
-                displayName.innerText = currentUser.name || currentUser.username;
+                displayName.innerText = currentUser.name || currentUser.username || 'Guest';
+            }
+            var loginBtn = document.getElementById('login-btn');
+            var logoutBtn = document.getElementById('logout-btn');
+            if (loginBtn && logoutBtn) {
+                if (authToken) {
+                    loginBtn.classList.add('hidden');
+                    logoutBtn.classList.remove('hidden');
+                } else {
+                    loginBtn.classList.remove('hidden');
+                    logoutBtn.classList.add('hidden');
+                }
             }
         }
         updateUserUI();
@@ -1168,6 +1498,23 @@
         function toggleLoginModal() {
             var modal = document.getElementById('login-modal');
             if (modal) modal.classList.toggle('hidden');
+        }
+
+        async function logout() {
+            try {
+                if (authToken) {
+                    await fetch('/api/auth/logout', {
+                        method: 'POST',
+                        headers: { 'Authorization': 'Bearer ' + authToken }
+                    });
+                }
+            } catch(e) {}
+            authToken = '';
+            currentUser = { username: 'guest', role: 'guest', name: 'Guest' };
+            localStorage.removeItem('agy_auth_token');
+            localStorage.setItem('agy_user', JSON.stringify(currentUser));
+            updateUserUI();
+            location.reload();
         }
 
         async function quickLogin(u, p) {
@@ -1186,6 +1533,7 @@
                     updateUserUI();
                     toggleLoginModal();
                     announce('Logged in as ' + currentUser.name);
+                    initConversations(10);
                     location.reload();
                 } else {
                     alert('Login failed: ' + (data.error || 'Unknown error'));
@@ -1213,7 +1561,7 @@
         }
 
         async function clearProjectSessions() {
-            if (!confirm("Are you sure you want to permanently delete all session histories for this project?")) return;
+            if (!await confirm("Are you sure you want to permanently delete all session histories for this project?")) return;
             try {
                 await fetch('/api/projects/active/conversations', {
                     method: 'DELETE',
@@ -1224,6 +1572,35 @@
             } catch (e) {
                 console.error("Failed to clear sessions", e);
             }
+        }
+
+        // ==========================================
+        // AUTO-SAVE DRAFT & SCROLLING WINDOW (DEQUE)
+        // ==========================================
+        if (inputEl) {
+            // Restore draft on load
+            var draft = localStorage.getItem('agy_draft_prompt');
+            if (draft) {
+                inputEl.value = draft;
+                // Force initial resize
+                setTimeout(() => inputEl.dispatchEvent(new Event('input')), 50);
+            }
+
+            inputEl.addEventListener('input', function() {
+                // Auto-save to local JSON/Storage
+                localStorage.setItem('agy_draft_prompt', this.value);
+                
+                // Auto-resize up to a maximum height, then scroll
+                this.style.height = 'auto';
+                var newHeight = Math.min(this.scrollHeight, 250); // Max 250px tall
+                this.style.height = newHeight + 'px';
+                
+                if (this.scrollHeight > 250) {
+                    this.style.overflowY = 'auto';
+                } else {
+                    this.style.overflowY = 'hidden';
+                }
+            });
         }
     </script>
 
@@ -1267,5 +1644,45 @@
             </div>
         </div>
     </div>
+
+
+
+
+    
+    <script>
+    // Global shortcut to jump to the latest embedded Iframe Exam (Alt+T)
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && (e.key === 't' || e.key === 'T')) {
+            e.preventDefault();
+            var iframes = document.querySelectorAll('iframe[src*="exam_application"]');
+            if (iframes.length > 0) {
+                var latestIframe = iframes[iframes.length - 1];
+                latestIframe.focus();
+                
+                // If the iframe is same-origin, we can also focus an element inside it
+                try {
+                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
+                    var startBtn = innerDoc.getElementById('start-btn');
+                    var activeHeading = innerDoc.querySelector('h1, h2, h3, h4');
+                    if (startBtn && !startBtn.parentElement.classList.contains('hidden')) {
+                        startBtn.focus();
+                    } else if (activeHeading) {
+                        activeHeading.focus();
+                    }
+                } catch(err) {
+                    console.log("Could not focus inner element due to cross-origin or loading state", err);
+                }
+            } else {
+                var announcer = document.getElementById('exam-announcer');
+                if (announcer) {
+                    announcer.innerText = "No active exam frame found.";
+                } else if (typeof announceScreenReader === 'function') {
+                    announceScreenReader("No active exam frame found.");
+                }
+            }
+        }
+    });
+    </script>
+<div id="exam-announcer" class="sr-only" aria-live="assertive"></div>
 </body>
 </html>
