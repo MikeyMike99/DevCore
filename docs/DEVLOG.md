@@ -554,3 +554,10 @@ If the AI hallucinates, or if it successfully falls for a prompt injection, it c
 To bridge this gap, the pipeline must implement an **LLM Firewall**:
 1. **Input Guardrails:** Before the user's prompt reaches the Main Agent, it must pass through a semantic firewall (like NVIDIA NeMo Guardrails or Lakera Guard). This firewall uses specialized, lightweight classifiers to explicitly hunt for adversarial intent, blocking the request if a jailbreak is detected.
 2. **Output Evaluators (Constitutional AI):** Before the Agent's response is sent to the UI, it must be piped through a secondary, strict "Evaluator Model" (or a rigid Regex/Presidio egress filter) that verifies the output does not contain API keys, executable exploits, or policy violations.
+
+### Implementation: The Evaluator LLM Interceptor
+To realize the Semantic Firewall without destabilizing the core Agent logic, we implemented the **Evaluator LLM Pattern** via WebSocket Interception:
+1. **The Fast Evaluator (`local_security.py`):** We constructed an `analyze_intent()` middleware function that executes an ultra-fast REST call to a lightweight model (`gemini-1.5-flash`). This model is stripped of all agency and instructed strictly to output "ATTACK" or "SAFE" based on the presence of jailbreaks or prompt injections in the user's text.
+2. **The WebSocket Hook (`server.py`):** The firewall is injected directly into the WebSocket inbound stream (`ws.receive()`). Before the Main Agent is invoked, the prompt passes through the Evaluator.
+3. **The Drop:** If adversarial intent is classified ("ATTACK"), the WebSocket immediately drops the packet and bounces a `> [!CAUTION] Semantic Firewall Active` alert back to the UI. The Main Agent is shielded from the hostile payload.
+4. **Fail-Open Mechanics:** To prevent denial-of-service or self-bricking during API outages, the Evaluator is designed to "fail-open" (defaulting to "SAFE") if the REST call times out.
