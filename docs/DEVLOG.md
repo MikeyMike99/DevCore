@@ -617,3 +617,13 @@ Instead of embedding a raw iframe, the `video_application.html` template utilize
 4. **Teleportation:** We bound a global `Alt+N` shortcut in the parent UI that teleports NVDA focus directly into the isolated sandbox's Title element.
 
 This proves that Autonomous Agents can do more than just embed content—they can actively re-wrap hostile third-party media into mathematically perfect, accessible sandboxes.
+
+## Chapter 43: Architecting Continuous Validation (CART)
+
+A static security audit (like a point-in-time JSON report) is insufficient for dynamic, multi-tiered applications. To ensure boundaries hold over time, architectures must support Continuous Automated Red Teaming (CART).
+
+### The Isolated Testing Framework
+Automated security validation must never target a live production instance, as aggressive boundary testing can corrupt application state or trigger false-positive lockouts for legitimate users. The architecture requires:
+1. **The Ephemeral Playground (Staging):** An identical, containerized clone of the production environment is spun up exclusively for testing.
+2. **Role Impersonation Testing:** Automated integration tests systematically assume the identity of each RBAC Tier (e.g., Guest, User, Admin) and execute standard workflows to verify that Least Privilege is enforced.
+3. **Telemetry Analysis:** Security Information and Event Management (SIEM) systems analyze the staging logs to differentiate between expected security blocks (True Positives) and unintended usability lockouts (False Positives).
