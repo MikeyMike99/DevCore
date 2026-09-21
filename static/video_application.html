@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity Media Player</title>
+    <title>Antigravity Accessible Media Player</title>
     <style>
         :root {
             --bg-color: #1e1e2e;
@@ -11,6 +11,8 @@
             --text-primary: #f8f8f2;
             --text-secondary: #a1a1aa;
             --accent-color: #bd93f9;
+            --button-bg: #44475a;
+            --button-hover: #6272a4;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -42,43 +44,262 @@
             overflow: hidden;
             border-radius: 8px;
             background-color: #000;
+            margin-bottom: 15px;
         }
-        .video-wrapper iframe, .video-wrapper video {
+        .video-wrapper iframe {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             border: none;
+            /* Hide native controls from screen readers so they use our accessible ones */
+        }
+        
+        /* Custom Accessible Controls */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            background: #191a21;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        button, select {
+            background-color: var(--button-bg);
+            color: var(--text-primary);
+            border: 2px solid transparent;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover, select:hover {
+            background-color: var(--button-hover);
+        }
+        button:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 3px rgba(189, 147, 249, 0.3);
+        }
+        .scrubber-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        input[type="range"] {
+            flex-grow: 1;
+            cursor: pointer;
+        }
+        .time-display {
+            font-variant-numeric: tabular-nums;
+            font-size: 0.9rem;
+            min-width: 100px;
+            text-align: right;
         }
         .description {
-            margin-top: 15px;
+            margin-top: 20px;
             font-size: 0.95rem;
             color: var(--text-secondary);
             line-height: 1.5;
+            padding-top: 15px;
+            border-top: 1px solid #44475a;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
     </style>
 </head>
 <body>
-    <main class="player-container" aria-label="Media Player">
+    <main class="player-container" aria-label="Media Player Application">
         <!-- TITLE_PLACEHOLDER -->
-        <h1 id="videoTitle" tabindex="-1">Video Playback</h1>
+        <h1 id="videoTitle" tabindex="-1">Accessible Video Player</h1>
         
-        <div class="video-wrapper" aria-label="Video Content">
-            <!-- VIDEO_EMBED_PLACEHOLDER -->
-            <p>No video loaded.</p>
+        <div class="video-wrapper" aria-hidden="true">
+            <div id="ytplayer"></div>
         </div>
+
+        <section class="controls" aria-label="Video Controls">
+            <div class="scrubber-container">
+                <label for="scrubber" class="sr-only">Video Progress</label>
+                <input type="range" id="scrubber" min="0" max="100" value="0" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div class="time-display" id="timeDisplay" aria-live="polite">0:00 / 0:00</div>
+            </div>
+            
+            <button id="btnPlayPause" aria-label="Play Video" accesskey="k">Play</button>
+            <button id="btnRewind" aria-label="Rewind 10 seconds">⏪ -10s</button>
+            <button id="btnForward" aria-label="Fast forward 10 seconds">⏩ +10s</button>
+            
+            <label for="speedSelect" class="sr-only">Playback Speed</label>
+            <select id="speedSelect" title="Playback Speed">
+                <option value="0.25">0.25x</option>
+                <option value="0.5">0.5x</option>
+                <option value="0.75">0.75x</option>
+                <option value="1" selected>1x Normal</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+                <option value="1.75">1.75x</option>
+                <option value="2">2x</option>
+            </select>
+            
+            <button id="btnFullscreen" aria-label="Enter Fullscreen">⛶ Fullscreen</button>
+            
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="chkAutoplay" checked aria-label="Toggle Autoplay">
+                <span>Autoplay</span>
+            </label>
+        </section>
 
         <div class="description" aria-live="polite">
             <!-- DESCRIPTION_PLACEHOLDER -->
+            <p>Video Description</p>
         </div>
     </main>
 
+    <!-- Load YouTube Iframe API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
     <script>
-        // Set focus to the title immediately for screen readers (NVDA)
-        window.onload = function() {
+        // Data injected by Agent
+        const VIDEO_ID = "<!-- VIDEO_ID_PLACEHOLDER -->";
+        
+        let player;
+        let isPlaying = false;
+        let scrubberInterval;
+
+        function onYouTubeIframeAPIReady() {
+            const autoplay = document.getElementById('chkAutoplay').checked ? 1 : 0;
+            
+            player = new YT.Player('ytplayer', {
+                height: '100%',
+                width: '100%',
+                videoId: VIDEO_ID !== '<!-- VIDEO_ID_PLACEHOLDER -->' ? VIDEO_ID : 'jNQXAC9IVRw',
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 0, // Disable native controls to force screen readers to use our accessible ones
+                    'disablekb': 1, // We handle keyboard
+                    'rel': 0,
+                    'autoplay': autoplay
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds)) return "0:00";
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            return `${m}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function updateScrubber() {
+            if (player && player.getCurrentTime) {
+                const current = player.getCurrentTime();
+                const duration = player.getDuration();
+                const scrubber = document.getElementById('scrubber');
+                const timeDisplay = document.getElementById('timeDisplay');
+                
+                if (duration > 0) {
+                    const percent = (current / duration) * 100;
+                    scrubber.value = percent;
+                    scrubber.setAttribute('aria-valuenow', Math.round(percent));
+                    timeDisplay.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+                }
+            }
+        }
+
+        function onPlayerReady(event) {
             document.getElementById('videoTitle').focus();
-        };
+            
+            const btnPlayPause = document.getElementById('btnPlayPause');
+            const btnRewind = document.getElementById('btnRewind');
+            const btnForward = document.getElementById('btnForward');
+            const btnFullscreen = document.getElementById('btnFullscreen');
+            const speedSelect = document.getElementById('speedSelect');
+            const scrubber = document.getElementById('scrubber');
+
+            // Play / Pause
+            btnPlayPause.addEventListener('click', () => {
+                if (isPlaying) {
+                    player.pauseVideo();
+                } else {
+                    player.playVideo();
+                }
+            });
+
+            // Rewind / Forward
+            btnRewind.addEventListener('click', () => {
+                player.seekTo(player.getCurrentTime() - 10, true);
+                document.getElementById('timeDisplay').textContent = "Rewound 10 seconds";
+            });
+            btnForward.addEventListener('click', () => {
+                player.seekTo(player.getCurrentTime() + 10, true);
+                document.getElementById('timeDisplay').textContent = "Skipped 10 seconds";
+            });
+
+            // Speed
+            speedSelect.addEventListener('change', (e) => {
+                player.setPlaybackRate(parseFloat(e.target.value));
+            });
+
+            // Scrubber
+            scrubber.addEventListener('input', (e) => {
+                const duration = player.getDuration();
+                const seekTo = (e.target.value / 100) * duration;
+                player.seekTo(seekTo, true);
+            });
+
+            // Fullscreen
+            btnFullscreen.addEventListener('click', () => {
+                const iframe = document.querySelector('.video-wrapper iframe');
+                if (iframe.requestFullscreen) {
+                    iframe.requestFullscreen();
+                } else if (iframe.webkitRequestFullscreen) { /* Safari */
+                    iframe.webkitRequestFullscreen();
+                } else if (iframe.msRequestFullscreen) { /* IE11 */
+                    iframe.msRequestFullscreen();
+                }
+            });
+
+            // Scrubber sync
+            scrubberInterval = setInterval(updateScrubber, 1000);
+        }
+
+        function onPlayerStateChange(event) {
+            const btnPlayPause = document.getElementById('btnPlayPause');
+            if (event.data == YT.PlayerState.PLAYING) {
+                isPlaying = true;
+                btnPlayPause.textContent = "Pause";
+                btnPlayPause.setAttribute('aria-label', "Pause Video");
+            } else {
+                isPlaying = false;
+                btnPlayPause.textContent = "Play";
+                btnPlayPause.setAttribute('aria-label', "Play Video");
+            }
+        }
+        
+        // Setup Cross-Iframe Alt+N shortcut
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key.toLowerCase() === 'n') {
+                document.getElementById('videoTitle').focus();
+            }
+        });
     </script>
 </body>
 </html>
