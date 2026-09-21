@@ -523,3 +523,18 @@ To distribute the Agent without the bloat and security warnings, we must abandon
 1. **Nuitka (Ahead-of-Time Compilation):** Instead of packing a zip file, Nuitka translates the Python source code directly into C code, and then compiles it into a true, native machine binary using GCC/Clang. This eliminates the startup lag, shrinks the file size, and avoids AV false positives.
 2. **The Systems Language Wrapper (Rust/Go):** The most professional approach. The Agent's backend remains hosted on a secure cloud server. We rewrite *only* the Client UI / CLI application in a compiled systems language like Rust or Go. Go and Rust compile into ultra-fast, native binaries that are often less than 10MB, and they simply forward the user's inputs to our API Proxy.
 3. **Progressive Web Apps (PWA):** We bypass executables entirely. Because our interface is already a beautiful HTML/JS UI (the Dev Portal), we configure it as a PWA. Users simply click "Install App" in their browser, and it adds an icon to their desktop that launches our web application natively, requiring 0MB of local installation space.
+
+### The Trust Penalty (Distribution Death)
+Beyond bloat and startup lag, the absolute fatal flaw of PyInstaller is **The Trust Penalty**. 
+
+Because PyInstaller bundles the Python runtime and a payload into a self-extracting bootloader (a technique called "Dropping"), it perfectly mimics the exact behavioral signature of malware droppers and Trojans (e.g., `Trojan:Win32/Wacatac`). 
+
+When an independent developer distributes a PyInstaller `.exe`, Windows Defender and Enterprise EDRs will almost universally flag it as a severe virus. Users are greeted with terrifying, screen-blocking red warnings ("Windows protected your PC"). 
+
+In software distribution, trust is the only currency. If an application throws a malware warning upon download, the user's trust drops to zero, and the distribution pipeline dies immediately. You cannot build a user base if the operating system itself calls your software malicious.
+
+### The Cryptographic and Architectural Fixes
+To bypass the Trust Penalty, you must abandon PyInstaller and adopt:
+1. **Nuitka (True Compilation):** Nuitka translates Python to C and compiles it directly to machine code using GCC. It does not use a self-extracting bootloader, so it completely avoids the malware heuristic signatures.
+2. **Code Signing Certificates (EV):** Regardless of how you compile the `.exe` (even with Nuitka or Rust), if you are distributing to Windows, you must purchase an Extended Validation (EV) Code Signing Certificate. Signing the executable cryptographically guarantees to Microsoft SmartScreen that the software is from a verified business entity, instantly bypassing the "Unknown Publisher" warnings.
+3. **The Systems Language Wrapper (Rust/Go) or PWA:** As outlined above, utilizing a tiny, signed Rust binary to talk to the cloud API, or distributing the app as a zero-install Progressive Web App (PWA), sidesteps the entire ecosystem of Windows executable suspicion.
