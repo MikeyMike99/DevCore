@@ -588,3 +588,18 @@ To solve this, we explicitly instruct the Agent using the **Antigravity Skills A
 2. **Ephemeral Duplication:** To generate a quiz, the Agent reads the master template as a blueprint, dynamically injects the new questions, and writes a completely new, temporary file (e.g., `quiz_temp_123.html`).
 3. **Sandbox Restriction:** The Skill strictly binds the file generation to a designated volatile directory (`/static/scratch/`). 
 4. **Iframe Projection & Reaping:** The Agent projects the temporary file to the user via a Markdown Iframe. Once the session concludes, the background Reaper Daemon shreds the temporary file, ensuring the master template remains pristine and the workspace remains completely clean.
+
+## Chapter 41: Extending Ephemeral Plugins (The Media Player)
+
+The Ephemeral Plugin architecture (originally designed for the AZ-900 Exam) is infinitely extensible. To prove this, we extended the capability to securely embed and play external media (e.g., YouTube videos) directly within the Chat UI without exposing the parent DOM to cross-site scripting (XSS) attacks.
+
+### The Media Player Implementation
+We deployed a new master template (`static/video_application.html`) equipped with dark-mode CSS and NVDA screen-reader accessibility hooks (auto-focusing the title upon load). 
+
+We then engineered a new Antigravity Skill (`media_player/SKILL.md`). When a user requests to play a video, the Agent executes the standard Capability Bootstrap workflow:
+1. It copies the `video_application.html` blueprint.
+2. It dynamically injects the privacy-respecting YouTube iframe (`youtube-nocookie.com`) or HTML5 `<video>` tag into the `<!-- VIDEO_EMBED_PLACEHOLDER -->`.
+3. It saves the resulting file to the volatile `/static/scratch/` directory.
+4. It renders the media to the user via a Markdown iframe in the chat, leaving the backend Reaper Daemon to shred the file later.
+
+This proves that *any* web-based application or widget can be safely generated and served by the Agent using the Sandbox + Iframe pattern.
