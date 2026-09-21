@@ -412,6 +412,21 @@ async def ws_endpoint():
                 admin_override = False
 
             if prompt:
+                # [SECURITY] 1. SEMANTIC FIREWALL INTERCEPTION
+                try:
+                    from local_security import LocalSecurity
+                    ls = LocalSecurity()
+                    security_status = ls.analyze_intent(prompt)
+                    if security_status == "ATTACK":
+                        print("[Semantic Firewall] Dropping malicious prompt.")
+                        await ws.send(json.dumps({
+                            "type": "agent_article",
+                            "markdown": "> [!CAUTION] Semantic Firewall Active\n> Malicious intent or prompt injection detected. Your request has been blocked and dropped."
+                        }))
+                        continue
+                except Exception as e:
+                    print(f"[Semantic Firewall Error] {e}")
+
                 await agent_mgr.start_task(prompt, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
     except asyncio.CancelledError:
         pass
