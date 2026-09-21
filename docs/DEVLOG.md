@@ -577,3 +577,14 @@ To mathematically guarantee the death of all Subagents when the Main Agent dies,
 
 1. **`start_new_session=True`:** When the Main Agent is invoked via subprocess, the Linux Kernel is instructed to create a distinct Process Group (a Session ID) for it. All Subagents spawned by the Main Agent inherit this identical Process Group ID.
 2. **`os.killpg(SIGKILL)`:** When a cancellation or timeout occurs, the server no longer targets the individual Agent PID. It issues a `SIGKILL` to the entire Process Group ID (`os.killpg(os.getpgid(pid), signal.SIGKILL)`). The Linux Kernel violently and simultaneously terminates the Main Agent and every single Subagent in its hierarchy, guaranteeing absolute memory reclamation and zero API budget drift.
+
+## Chapter 40: Agentic Skills and Template Immutability
+
+As the system generates dynamic, user-facing applications (like the AZ-900 Exam Plugin), a core vulnerability arises: **Template Corruption**. If an Autonomous Agent modifies the master `exam_application.html` to generate a quiz, it risks corrupting the core UI blueprint or inadvertently injecting malicious code into the permanent application layer.
+
+### The Capability Bootstrapping Solution
+To solve this, we explicitly instruct the Agent using the **Antigravity Skills Architecture** (`SKILL.md`). We built a dedicated `exam_generator` skill that enforces strict operational boundaries:
+1. **Template Immutability:** The master UI templates are declared READ-ONLY. The Agent is mathematically forbidden from altering them.
+2. **Ephemeral Duplication:** To generate a quiz, the Agent reads the master template as a blueprint, dynamically injects the new questions, and writes a completely new, temporary file (e.g., `quiz_temp_123.html`).
+3. **Sandbox Restriction:** The Skill strictly binds the file generation to a designated volatile directory (`/static/scratch/`). 
+4. **Iframe Projection & Reaping:** The Agent projects the temporary file to the user via a Markdown Iframe. Once the session concludes, the background Reaper Daemon shreds the temporary file, ensuring the master template remains pristine and the workspace remains completely clean.
