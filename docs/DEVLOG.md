@@ -563,3 +563,17 @@ To realize the Semantic Firewall without destabilizing the core Agent logic, we 
 4. **Fail-Open Mechanics:** To prevent denial-of-service or self-bricking during API outages, the Evaluator is designed to "fail-open" (defaulting to "SAFE") if the REST call times out.
 
 5. **RBAC Firewall Bypass:** A rigid firewall blocks *all* users, including System Administrators performing legitimate system diagnostics. To resolve this, the Interceptor was bound to the RBAC token layer. If the authenticated user holds the `Tier5_SysAdmin` role, the Semantic Firewall is explicitly bypassed, granting the Admin unrestricted execution privileges while maintaining Zero-Trust for lower tiers.
+
+## Chapter 39: The Subagent Zombie Threat (Process Reaping)
+
+As Agentic architectures scale, the Main Agent is frequently granted the authority to spawn asynchronous "Subagents" to perform parallel research or code execution. 
+
+### The Orphaned Process Threat
+When a user clicks "Cancel" in the UI, or the Main Agent hits an API timeout, the standard architectural response is to execute `process.kill()` on the Main Agent.
+However, `process.kill()` only terminates the immediate parent process. If the Main Agent had spawned three Subagents, those three Subagents instantly become **Orphaned Zombies**. They continue running indefinitely in the background, burning through Cloud Compute and LLM API budgets, completely detached from any UI or control structure. This leads to catastrophic Resource Exhaustion (Denial of Wallet).
+
+### The Architectural Fix: Process Group Reaping
+To mathematically guarantee the death of all Subagents when the Main Agent dies, the deployment architecture was updated to utilize **Process Groups**.
+
+1. **`start_new_session=True`:** When the Main Agent is invoked via subprocess, the Linux Kernel is instructed to create a distinct Process Group (a Session ID) for it. All Subagents spawned by the Main Agent inherit this identical Process Group ID.
+2. **`os.killpg(SIGKILL)`:** When a cancellation or timeout occurs, the server no longer targets the individual Agent PID. It issues a `SIGKILL` to the entire Process Group ID (`os.killpg(os.getpgid(pid), signal.SIGKILL)`). The Linux Kernel violently and simultaneously terminates the Main Agent and every single Subagent in its hierarchy, guaranteeing absolute memory reclamation and zero API budget drift.
