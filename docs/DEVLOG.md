@@ -561,3 +561,5 @@ To realize the Semantic Firewall without destabilizing the core Agent logic, we 
 2. **The WebSocket Hook (`server.py`):** The firewall is injected directly into the WebSocket inbound stream (`ws.receive()`). Before the Main Agent is invoked, the prompt passes through the Evaluator.
 3. **The Drop:** If adversarial intent is classified ("ATTACK"), the WebSocket immediately drops the packet and bounces a `> [!CAUTION] Semantic Firewall Active` alert back to the UI. The Main Agent is shielded from the hostile payload.
 4. **Fail-Open Mechanics:** To prevent denial-of-service or self-bricking during API outages, the Evaluator is designed to "fail-open" (defaulting to "SAFE") if the REST call times out.
+
+5. **RBAC Firewall Bypass:** A rigid firewall blocks *all* users, including System Administrators performing legitimate system diagnostics. To resolve this, the Interceptor was bound to the RBAC token layer. If the authenticated user holds the `Tier5_SysAdmin` role, the Semantic Firewall is explicitly bypassed, granting the Admin unrestricted execution privileges while maintaining Zero-Trust for lower tiers.
