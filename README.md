@@ -109,3 +109,59 @@ To prevent the AI from being tricked into writing malicious code (e.g., reverse 
 
 **Action**: 
 Even though the AI itself is securely sandboxed, any code it generates could be dangerous if executed by a secondary system. Before any executable file (such as `.lua`, `.py`, or `.sh` scripts) is actually saved to the disk, the backend intercepts the payload and performs a static code analysis scan. If high-risk system commands (e.g., `os.execute`, `subprocess`, `rm -rf`) are detected, the payload is destroyed and the write operation is permanently blocked.
+
+---
+
+## 10. The Immutable Host Doctrine (Containerization)
+
+**Methodology**: Read-Only Filesystems & Ephemeral RAM-Disks (Docker)
+
+**Purpose in the Application**:
+To ensure that if the AI Agent or the Application Server is ever fully compromised (e.g., via Remote Code Execution), the attacker cannot persist their presence, install rootkits, or exfiltrate sensitive files.
+
+**Action**: 
+The entire backend operates inside a Docker Container engineered with absolute Zero-Trust primitives:
+- `read_only: true`: The core application filesystem cannot be modified, preventing code injection or script overwriting.
+- `tmpfs`: Writable areas (like logs or scratch directories) are mapped exclusively to volatile RAM-disks. Upon container restart, all data ceases to exist, mathematically neutralizing Data Remanence and ensuring a pristine environment on every boot.
+- Compute Limits: Hardcaps on RAM and CPU (`deploy.resources.limits`) prevent Cryptojacking or CPU exhaustion attacks.
+
+---
+
+## 11. The Semantic Firewall (Evaluator LLM)
+
+**Methodology**: The Interceptor Pattern / Middle-ware Intent Classification
+
+**Purpose in the Application**:
+To defend against advanced Prompt Injection and "Jailbreak" attacks that attempt to psychologically manipulate the Agent into overriding its own System Prompts or RBAC rules.
+
+**Action**: 
+Before an untrusted user prompt is ever processed by the Main Agent, it is intercepted and routed to a dedicated, stateless, ultra-fast "Evaluator Model" (e.g., NeMo Guardrails or a fast-inferencing LLM). This Semantic Firewall acts as a strict classifier. If it detects adversarial intent, prompt injection signatures, or rule-override attempts, the firewall drops the connection instantly (Fail-Closed) and returns a 403 Forbidden. The Main Agent is fully shielded from the hostile semantic payload.
+
+---
+
+## 12. Capability Bootstrapping (Ephemeral UI Plugins)
+
+**Methodology**: Iframe Sandboxing & Volatile Media Projection
+
+**Purpose in the Application**:
+To allow the AI Agent to generate dynamic, interactive User Interfaces (e.g., Exam Portals, Video Players) without granting it write access to the core frontend application.
+
+**Action**: 
+Instead of modifying the master application DOM (which risks Cross-Site Scripting or Template Corruption), the Agent utilizes pre-approved "Skills" to generate UI components ephemerally. 
+1. The Agent duplicates a read-only blueprint.
+2. It injects the custom content (e.g., an accessible YouTube iframe).
+3. It saves the resulting file to a volatile `/static/scratch/` RAM-disk.
+4. The Agent returns an isolated `<iframe src="/static/scratch/...">` to the user's chat stream.
+5. An OS-level Reaper Daemon automatically shreds the temporary file upon session expiration.
+
+---
+
+## 13. Subagent Zombie Reaping (Resource Exhaustion Defense)
+
+**Methodology**: Process Group Lifecycle Management (`os.killpg`)
+
+**Purpose in the Application**:
+To prevent "Agentic Drift" and catastrophic resource exhaustion caused by orphaned Subagents that detach from the primary UI layer and run infinitely in the background, consuming API budgets (Denial of Wallet).
+
+**Action**: 
+The Main Agent is initialized within an isolated Linux Session (`start_new_session=True`). Any parallel Subagents it spawns automatically inherit this identical Process Group ID. When the user cancels a task, or an API timeout occurs, the server does not target individual processes. It issues a `SIGKILL` to the entire Process Group, commanding the Linux Kernel to simultaneously and violently terminate the entire process tree. Zero zombie processes can survive.
