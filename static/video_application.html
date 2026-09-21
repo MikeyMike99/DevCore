@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity Media Player</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --surface-color: #2a2a3c;
+            --text-primary: #f8f8f2;
+            --text-secondary: #a1a1aa;
+            --accent-color: #bd93f9;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .player-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--surface-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            background-color: #000;
+        }
+        .video-wrapper iframe, .video-wrapper video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .description {
+            margin-top: 15px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <main class="player-container" aria-label="Media Player">
+        <!-- TITLE_PLACEHOLDER -->
+        <h1 id="videoTitle" tabindex="-1">Video Playback</h1>
+        
+        <div class="video-wrapper" aria-label="Video Content">
+            <!-- VIDEO_EMBED_PLACEHOLDER -->
+            <p>No video loaded.</p>
+        </div>
+
+        <div class="description" aria-live="polite">
+            <!-- DESCRIPTION_PLACEHOLDER -->
+        </div>
+    </main>
+
+    <script>
+        // Set focus to the title immediately for screen readers (NVDA)
+        window.onload = function() {
+            document.getElementById('videoTitle').focus();
+        };
+    </script>
+</body>
+</html>
