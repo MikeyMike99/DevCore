@@ -249,7 +249,8 @@ class AgentTaskManager:
                 stderr=asyncio.subprocess.STDOUT,
                 cwd=workspace_dir,
                 env=safe_env,
-                limit=1024 * 1024 * 100  # 100MB limit to safely handle 2M token context windows
+                start_new_session=True, # Creates a Process Group for child subagents
+                limit=1024 * 1024 * 100
             )
             self.active_proc = proc
 
@@ -392,7 +393,9 @@ class AgentTaskManager:
     async def cancel_task(self):
         if self.is_running():
             try:
-                self.active_proc.kill()
+                import os, signal
+                # Kill the entire Process Group (Main Agent + All Subagents)
+                os.killpg(os.getpgid(self.active_proc.pid), signal.SIGKILL)
             except Exception:
                 pass
             if self.active_task and not self.active_task.done():
