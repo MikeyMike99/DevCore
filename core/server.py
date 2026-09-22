@@ -367,7 +367,7 @@ async def auth_check():
 
 @app.route('/login')
 async def login_page():
-    login_file = os.path.join(BASE_DIR, "templates", "login.html")
+    login_file = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "login.html")
     if not os.path.exists(login_file):
         return "Login template not found", 404
     with open(login_file, 'r', encoding='utf-8') as f:
@@ -757,6 +757,15 @@ async def api_trigger_red_team():
 async def start_red_team_daemon():
     app.add_background_task(auto_red_team_daemon)
 
+import signal
+
+def force_shutdown(sig, frame):
+    print("\n[Antigravity] Force quitting server (bypassing asyncio graceful shutdown)...")
+    os._exit(0)
+
 if __name__ == '__main__':
+    # Bind Ctrl+C to instantly nuke the process
+    signal.signal(signal.SIGINT, force_shutdown)
+    
     print("Starting Antigravity Backend Engine on port 5000...")
     app.run(host='0.0.0.0', port=5000, use_reloader=False)
