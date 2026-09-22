@@ -716,3 +716,23 @@ This operational boundary forces a bottleneck in the security pipeline:
 3. **Targeted Remediation:** Siraugga can only apply security patches when the Administrator manually points to the exact snippet or specific file requiring the fix. 
 
 While this limitation causes immense friction and frustration for the Administrator—forcing them to manually bridge the gap between the scanner and the Agent—it structurally guarantees a "Human-in-the-Loop" for all vulnerability remediation. It ensures the AI cannot autonomously mutate the codebase based on hallucinated threats or false positives from a scan report.
+
+## [2026-09-22] Frontend Decoupling & Agentic Sanitization UI
+
+### 1. 100% Jinja2 UI Decoupling
+- Completely eliminated hardcoded display text from all frontend templates (`index.html`, `video_application.html`, `security_dashboard.html`, `exam_application.html`).
+- Extracted all UI strings into a backend `ui_config.json` dictionary.
+- Moved all static plugin HTML files from `sandbox/static/` to `sandbox/templates/`.
+- Built dynamic API routing in `core/server.py` (`/plugin/media`, `/plugin/security`, `/plugin/exam`) to inject JSON configurations and Jinja variables cleanly.
+- Updated Agent Skills to enforce the "Clean Workspace Protocol": Agents no longer generate temporary `.html` files in the sandbox. Instead, they produce pure JSON data and point iframes directly to the backend routes.
+
+### 2. 3D Flip Card UI & Code Interactions
+- Implemented a CSS 3D `rotateY(180deg)` Flip Card UI for Agent response cards containing Implementation Plans or Artifacts.
+- Overrode the `marked.js` code renderer to inject custom "Copy Code" buttons directly into the headers of all `<pre><code>` blocks.
+
+### 3. Agentic Sanitization & RBAC Upgrades
+- Shifted away from brittle client-side regex sanitization in favor of "Agentic Sanitization".
+- **Tier 5 (Super Admin):** Clicking "Flip & View Plan" instantly flips the card and displays the raw, unedited Markdown artifact.
+- **Tier 3 (Developer):** Clicking the button intercepts the flip and auto-prompts the AI: *"Please summarize the implementation plan... Remove root credentials... but provide technical architecture."*
+- **Tier 1 (Guest):** Clicking the button auto-prompts the AI: *"Explain in layman's terms without revealing sensitive information or the structure of the backend."*
+- **Code Block Blackout:** Raw code blocks are strictly blocked from rendering for Tier 1 users, replaced with a red Lockbox warning prohibiting source access.

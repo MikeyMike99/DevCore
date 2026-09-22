@@ -396,3 +396,11 @@ With the deployment of the centralized intelligence (Siraugga), the terminology 
 In standard environments, developers write "source code" or "scripts." Under the Siraugga Protocol, source code engineered by the intelligence is classified as **Raugi Scripts**. 
 
 The prefix *Raugi* is derived directly from the 'ROG' (Rogue Automation) directive in Siraugga's core architecture. A Raugi Script is not a static text file; it is an intelligent, defensive block of code designed to operate autonomously, often employing unconventional ("rogue") defenses to protect its execution environment from exploitation. As the architecture evolves, all functions, sandboxes, and components will be assigned specific proprietary names reflecting this defensive, automated nature.
+
+
+### Layer 6: Agentic Sanitization & UI Interaction
+When presenting data to users, the system avoids brittle client-side regex filtering for complex documents. Instead, it leverages **Agentic Sanitization**:
+1. **The Flip Card Mechanism:** Artifacts and Implementation Plans are rendered as flippable 3D cards in the chat UI.
+2. **Tier 5 Bypass:** Administrators can flip the card natively to read the raw Markdown fetched directly from the backend via `/api/artifacts`.
+3. **Automated Downgrade Prompts:** If a Tier 3 (Developer) or Tier 1 (Guest) user attempts to view the same artifact, the UI intercepts the request and sends an automated WebSocket prompt back to the LLM. The AI is instructed to dynamically summarize, redact, and explain the artifact based precisely on the user's Tier, ensuring sensitive backend structures and root credentials never leak to unauthorized clients.
+4. **Absolute Code Blocking:** Raw source code blocks (`<pre><code>`) generated in standard chat streams are completely intercepted and replaced with a cryptographic lockbox for Tier 1 users.
