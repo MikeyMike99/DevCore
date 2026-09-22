@@ -5,5 +5,22 @@
         "title": "Confirmation Required",
         "btn_cancel": "Cancel",
         "btn_confirm": "Confirm"
+    },
+    "nav": {
+        "aria_label": "Quick Actions",
+        "btn1": {
+            "text": "Create Sandbox Environment",
+            "prompt": "Create a new Sandbox Environment",
+            "sr_text": "Shortcut: Alt plus S. Injects prompt into chat input."
+        },
+        "btn2": {
+            "text": "Analyze System Logs",
+            "prompt": "Analyze system logs for the last 24 hours",
+            "sr_text": "Shortcut: Alt plus L. Injects prompt into chat input."
+        },
+        "btn3": {
+            "text": "Jump to Chat Input",
+            "sr_text": "Shortcut: Alt plus C. Moves focus to text area."
+        }
     }
 }
