@@ -279,7 +279,7 @@ class AgentTaskManager:
                             self.current_conversation_id = real_conv_id
                             await self.broadcast({"type": "init_conv_id", "conversation_id": real_conv_id})
                             try:
-                                import session_manager
+                                from core import session_manager
                                 sm_inst = session_manager.SessionManager()
                                 proj_name = self.project_manager.active_project if self.project_manager else None
                                 username = user.get("username") if user else "admin"

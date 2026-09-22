@@ -1,6 +1,6 @@
 {
     "devcore.agent_manager.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agent_manager.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/agent_manager.py",
         "required_tier": 5,
         "id": "f6da5d05-227d-4bbb-b929-6cacfbcaab20"
     },
@@ -20,7 +20,7 @@
         "id": "3b9684a8-9777-43af-8a97-34f4d05e77a1"
     },
     "devcore.bootstrap_gateway.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/bootstrap_gateway.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
         "required_tier": 5,
         "id": "6d2fcfd7-dd26-4f8a-ad4e-4fb12de141c4"
     },
@@ -60,7 +60,7 @@
         "id": "0bb0afdf-1b80-4e18-a0fb-09ee19ec6472"
     },
     "devcore.local_security.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/local_security.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/local_security.py",
         "required_tier": 5,
         "id": "411bcfda-67d5-4930-b8b6-65c5f483d3ca"
     },
@@ -70,7 +70,7 @@
         "id": "b31e10b0-bff9-4095-8be1-c779548c950f"
     },
     "devcore.project_manager.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/project_manager.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/project_manager.py",
         "required_tier": 5,
         "id": "f4903029-c24a-419c-bc90-1580dca18257"
     },
@@ -85,22 +85,22 @@
         "id": "669ee024-4759-4162-8087-7da119b432ee"
     },
     "devcore.security_manager.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/security_manager.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "required_tier": 5,
         "id": "1def7170-106e-468c-85b5-4d33631f3797"
     },
     "devcore.server.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/server.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server.py",
         "required_tier": 5,
         "id": "1bf6bdf9-90e8-4dc6-a655-322253a23c1c"
     },
     "devcore.server_new.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/server_new.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_new.py",
         "required_tier": 5,
         "id": "eb605686-534d-4c75-a1db-13e705d00a6e"
     },
     "devcore.session_manager.py": {
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/session_manager.py",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/session_manager.py",
         "required_tier": 5,
         "id": "cc6fa53d-687c-4645-ba9b-08a23d8135fe"
     },

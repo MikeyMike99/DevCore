@@ -6,14 +6,14 @@ import time
 import sys
 from quart import Quart, websocket, request, jsonify
 
-import session_manager as sm
-import project_manager as pm
-import agent_manager as am
-import security_manager as sec_m
+from core import session_manager as sm
+from core import project_manager as pm
+from agents import agent_manager as am
+from security import security_manager as sec_m
 
 app = Quart(__name__)
 
-import security_headers
+from security import security_headers
 security_headers.init_security_headers(app)
 
 # Initialize modular managers
