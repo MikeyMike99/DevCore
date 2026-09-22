@@ -1,0 +1,12 @@
+
+# --- Siraugga Runtime & Sandbox Data ---
+venv/
+workspaces/
+logs/
+backups/
+data/
+archives/
+archive_scripts/
+.agents/
+sessions.json
+install_done.txt
