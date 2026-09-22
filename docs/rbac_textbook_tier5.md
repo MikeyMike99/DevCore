@@ -398,17 +398,35 @@ In standard environments, developers write "source code" or "scripts." Under the
 The prefix *Raugi* is derived directly from the 'ROG' (Rogue Automation) directive in Siraugga's core architecture. A Raugi Script is not a static text file; it is an intelligent, defensive block of code designed to operate autonomously, often employing unconventional ("rogue") defenses to protect its execution environment from exploitation. As the architecture evolves, all functions, sandboxes, and components will be assigned specific proprietary names reflecting this defensive, automated nature.
 
 
-### Layer 6: Agentic Sanitization & UI Interaction
-When presenting data to users, the system avoids brittle client-side regex filtering for complex documents. Instead, it leverages **Agentic Sanitization**:
-1. **The Flip Card Mechanism:** Artifacts and Implementation Plans are rendered as flippable 3D cards in the chat UI.
-2. **Tier 5 Bypass:** Administrators can flip the card natively to read the raw Markdown fetched directly from the backend via `/api/artifacts`.
-3. **Automated Downgrade Prompts:** If a Tier 3 (Developer) or Tier 1 (Guest) user attempts to view the same artifact, the UI intercepts the request and sends an automated WebSocket prompt back to the LLM. The AI is instructed to dynamically summarize, redact, and explain the artifact based precisely on the user's Tier, ensuring sensitive backend structures and root credentials never leak to unauthorized clients.
-4. **Absolute Code Blocking:** Raw source code blocks (`<pre><code>`) generated in standard chat streams are completely intercepted and replaced with a cryptographic lockbox for Tier 1 users.
+### Layer 6: Agentic Sanitization — The Death of Static Filtering
 
+Traditional security architectures rely heavily on brittle, client-side regex filters or hardcoded UI toggles to hide sensitive information from lower-tier users. This is a fatal flaw; if a regex filter fails to anticipate a specific string format, or if a user inspects the network payload, the root credentials and system blueprints are exposed. 
 
-### Layer 7: Virtual File System (VFS) Phonebook Integration
-The physical directory structure of Siraugga is strictly obfuscated from the application logic. Hardcoded file paths (e.g., `os.path.join(...)`) are prohibited in the core engine. 
-Instead, the system relies on the **Zero-Trust Phonebook** (`raugus_map.json`). 
-1. **Abstract Route Keys:** Every core configuration, template, and script is assigned a unique abstract namespace (e.g., `devcore.sandbox.templates.index.html`) and a UUID.
-2. **Security Manager Gatekeeper:** When the backend needs to render a page or fetch a configuration, it must pass the abstract key to ``RaugusResolver.get_path(alias, user_tier)``.
-3. **Execution Decoupling:** If the path exists and clearance is validated, the physical path is returned. If an attacker attempts to inject path traversals or unregistered files into the server logic, the phonebook resolution immediately fails, throwing a rigid `FileNotFoundError`.
+To achieve the apex standard of top security, the Siraugga Protocol completely abandons static filtering in favor of **Agentic Sanitization**. The philosophy is simple: *Data that a user is not authorized to see should never exist in their memory space in the first place.*
+
+**The Narrative of the Flip Card:**
+When the AI generates a complex Implementation Plan or architectural blueprint, it is encapsulated within a 3D Flip Card in the chat interface. 
+- For a **Tier 5 Super Admin**, clicking the card flips it instantly. The UI fetches the raw, unedited Markdown document directly from the secure backend vault, exposing every technical secret and root pathway.
+- However, if a **Tier 1 Guest** attempts to flip that exact same card, the architecture intervenes. Rather than sending the file and trying to "hide" the sensitive parts in the browser, the UI intercepts the click and silently dispatches an automated prompt back to the Artificial Intelligence. The system commands the AI: *"Read this blueprint. Remove all code. Explain it in layman's terms without revealing the backend structure."*
+
+The AI dynamically processes the document in the secure backend and streams down a perfectly safe, downgraded summary. The guest receives the knowledge they need to understand the system's progress, but the true cryptographic logic and directory structures remain mathematically isolated. This is why it is the gold standard: the firewall is no longer a static wall of code, but an active, thinking intelligence dynamically evaluating clearance in real-time.
+
+---
+
+### Layer 7: The Raugus Resolver — The Invisible Digital Territory
+
+If an attacker breaches an application, their first objective is cartography: mapping the file system to locate configuration files, user databases, and execution scripts. Traditional applications make this easy by hardcoding absolute paths (`os.path.join('/app', 'config.json')`) directly into their execution logic. If an attacker can inject a payload, they can manipulate these strings to execute Path Traversal attacks (`../../etc/shadow`).
+
+Siraugga neutralizes this threat by destroying the concept of a physical map entirely. The application itself does not know where its files are located. 
+
+**The VFS Gatekeeper:**
+Instead of hardcoded paths, the system relies on the **Zero-Trust Phonebook** (`raugus_map.json`) and its executioner, the `RaugusResolver` singleton. 
+Every core configuration, template, and script is assigned a purely abstract namespace—an alias like `devcore.sandbox.templates.index.html`. 
+
+When the backend server needs to render a page, it cannot simply open the file. It must petition the Gatekeeper: `RaugusResolver.get_path(alias, user_tier)`. 
+
+1. **Interception:** The Resolver halts execution and examines the request.
+2. **Clearance Verification:** It cross-references the requested abstract alias against the Phonebook vault. It compares the application's required Tier against the requester's Tier. 
+3. **Manifestation:** Only if the Tier is sufficient does the Resolver translate the abstract alias into a true, physical disk path and return it to the application.
+
+This methodology is the pinnacle of Zero-Trust architecture. An attacker cannot traverse directories because the directories do not logically exist within the application's code. If a malicious actor attempts to request `../../core/server.py`, the Resolver simply checks the Phonebook, finds no such alias, logs a potential intrusion, and violently terminates the request with a `KeyError`. They are trapped in a digital territory with no doors, where pathways only manifest for those with the absolute highest clearance.
