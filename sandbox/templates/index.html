@@ -63,6 +63,32 @@
         .markdown-body th { background: #1e293b; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border-width: 0; }
         .skip-link:focus { position: static; width: auto; height: auto; padding: 0.5rem 1rem; clip: auto; white-space: normal; }
+    
+        /* FLIP CARD CSS */
+        .flip-container {
+            perspective: 2000px;
+        }
+        .flip-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            position: relative;
+            width: 100%;
+        }
+        .is-flipped .flip-inner {
+            transform: rotateY(180deg);
+        }
+        .flip-front, .flip-back {
+            backface-visibility: hidden;
+            width: 100%;
+        }
+        .flip-back {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotateY(180deg);
+            height: 100%;
+        }
+
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden">
@@ -353,6 +379,28 @@
 
         // Custom Marked renderer to avoid markdown headings polluting screen reader H/2 navigation
         var renderer = new marked.Renderer();
+        
+        renderer.code = function(code, language) {
+            // RBAC Filtering for code blocks
+            if (currentUser && currentUser.role === 'guest' && (language === 'python' || language === 'bash' || language === 'sh' || code.includes('SECURE') || code.includes('password') || code.includes('key'))) {
+                return `<div class="bg-red-950/80 border border-red-800 rounded-lg p-4 text-red-400 font-mono text-xs my-4 shadow-[0_0_15px_rgba(220,38,38,0.15)] flex flex-col items-center justify-center gap-2">
+                    <i class="fas fa-lock text-xl"></i>
+                    <span>[ TIER 1 RESTRICTION ]</span>
+                    <span class="text-slate-400">Code block redacted. Requires Tier 3 clearance or higher.</span>
+                </div>`;
+            }
+            
+            return `<div class="code-wrapper relative bg-slate-950 rounded-lg border border-slate-700/50 mb-4 overflow-hidden shadow-sm">
+                <div class="code-header flex justify-between items-center bg-slate-800/80 px-3 py-1.5 border-b border-slate-700/50 text-xs text-slate-400">
+                    <span class="font-mono uppercase tracking-wider text-[10px] text-teal-400/70">${escapeHtml(language || 'text')}</span>
+                    <button class="copy-code-btn hover:text-teal-300 transition-colors flex items-center gap-1.5 bg-slate-700/50 hover:bg-slate-600 px-2 py-0.5 rounded cursor-pointer text-[10px]" onclick="copyCode(this)">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                </div>
+                <pre class="m-0"><code class="language-${escapeHtml(language||'text')} p-3 block overflow-x-auto text-sm text-slate-300 font-mono leading-relaxed" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(code)}</code></pre>
+            </div>`;
+        };
+
         renderer.heading = function(arg1, arg2) {
             var text = '';
             var depth = 3;
@@ -394,7 +442,10 @@
                         </a>
                     </div>
                     <div class="flex mt-3 border-t border-teal-500/30 pt-4">
-                        <button onclick="proceedArtifact()" class="bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400 focus:outline-none text-white font-medium py-2 px-5 rounded shadow transition-colors artifact-proceed-btn flex items-center gap-2">
+                        <button onclick="flipCardToPlan(this, '${escapeHtml(href)}')" class="bg-slate-800 border border-teal-700 hover:bg-slate-700 focus:ring-2 focus:ring-teal-400 focus:outline-none text-teal-400 font-medium py-2 px-5 rounded shadow transition-colors flex items-center gap-2 text-sm">
+                            <i class="fas fa-sync-alt"></i> Flip & View Plan
+                        </button>
+                        <button onclick="proceedArtifact()" class="bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400 focus:outline-none text-white font-medium py-2 px-5 rounded shadow transition-colors artifact-proceed-btn flex items-center gap-2 text-sm">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             Proceed (Alt+P)
                         </button>
@@ -404,6 +455,42 @@
             return `<a href="${escapeHtml(href||'')}" title="${escapeHtml(title||'')}" target="_blank" class="text-teal-400 hover:underline font-medium">${escapeHtml(text||href)}</a>`;
         };
         marked.use({ renderer: renderer, breaks: true, gfm: true });
+
+        
+        function copyCode(btn) {
+            var code = btn.closest('.code-wrapper').querySelector('code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                var original = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check text-green-400"></i> Copied';
+                setTimeout(() => { btn.innerHTML = original; }, 2000);
+            });
+        }
+        
+        async function flipCardToPlan(btn, url) {
+            var article = btn.closest('.flip-container');
+            var backText = article.querySelector('.agent-back-text');
+            
+            // Check RBAC before flipping
+            if (currentUser && currentUser.role === 'guest') {
+                alert("Security Clearance Tier 1 (Guest) is not authorized to view raw Implementation Plans.");
+                return;
+            }
+            
+            backText.innerHTML = '<div class="text-amber-400 animate-pulse">Decrypting and loading artifact...</div>';
+            article.classList.add('is-flipped');
+            
+            try {
+                var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url));
+                var data = await res.json();
+                if (data.content) {
+                    backText.innerHTML = marked.parse(data.content);
+                } else {
+                    backText.innerHTML = '<div class="text-red-400">Failed to load artifact: ' + (data.error || 'Unknown error') + '</div>';
+                }
+            } catch (e) {
+                backText.innerHTML = '<div class="text-red-400">Network error fetching artifact.</div>';
+            }
+        }
 
         function proceedArtifact() {
             var prompt = "Proceed";
@@ -1194,43 +1281,60 @@
             currentAgentId = msgId;
 
             var article = document.createElement('article');
-            article.className = 'message-card agent-message mb-4';
+            
             article.setAttribute('aria-labelledby', msgId);
             article.dataset.sender = 'agent';
             article.dataset.rawMarkdown = '';
 
             var modelDisplay = modelName || (modelSelector ? modelSelector.value : 'Gemini');
 
+            article.className = 'message-card agent-message mb-4 flip-container'; // ADDED FLIP CONTAINER
             article.innerHTML = `
-                <div class="flex items-center justify-between mb-1.5">
-                    <div class="flex items-center gap-2">
-                        <div class="w-5 h-5 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">{{ ui.welcome.icon }}</div>
-                        <h2 id="${msgId}" tabindex="-1" class="text-xs font-bold uppercase tracking-wider text-cyan-300 focus:outline-none focus:ring-1 focus:ring-teal-400 rounded px-1">
-                            {{ ui.js_alerts.msg_agent }}
-                        </h2>
-                        <span class="text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800">${escapeHtml(modelDisplay)}</span>
+            <div class="flip-inner">
+                <div class="flip-front flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-1.5 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">{{ ui.welcome.icon }}</div>
+                            <h2 id="${msgId}" tabindex="-1" class="text-xs font-bold uppercase tracking-wider text-cyan-300 focus:outline-none focus:ring-1 focus:ring-teal-400 rounded px-1">
+                                {{ ui.js_alerts.msg_agent }}
+                            </h2>
+                            <span class="text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800">${escapeHtml(modelDisplay)}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="copyToClipboard(this)" class="text-[10px] text-teal-500 hover:text-teal-300 transition-colors bg-teal-950/40 hover:bg-teal-900/60 px-2 py-0.5 rounded cursor-pointer border border-teal-800/30" title="Copy raw markdown response">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                            <div class="status-badge text-[11px] text-teal-400 font-mono flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" aria-hidden="true"></span> Processing...
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button onclick="copyToClipboard(this)" class="text-[10px] text-teal-500 hover:text-teal-300 transition-colors bg-teal-950/40 hover:bg-teal-900/60 px-2 py-0.5 rounded cursor-pointer border border-teal-800/30" title="Copy raw markdown response">
-                            <i class="fas fa-copy"></i> Copy
-                        </button>
-                        <div class="status-badge text-[11px] text-teal-400 font-mono flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full bg-teal-400 animate-ping" aria-hidden="true"></span> Processing...
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm flex-1">
+                        <div class="actions-list space-y-1.5 mb-2.5"></div>
+                        <div class="agent-text markdown-body text-slate-200 text-sm"></div>
+                        <div class="typing-indicator flex items-center gap-2 text-xs text-teal-400 mt-2 font-medium" aria-hidden="true">
+                            <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> Thinking &amp; streaming...
                         </div>
                     </div>
                 </div>
-                <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm">
-                    <!-- Actions container (collapsed logs, not polluting main text) -->
-                    <div class="actions-list space-y-1.5 mb-2.5"></div>
-                    
-                    <!-- Response markdown text -->
-                    <div class="agent-text markdown-body text-slate-200 text-sm"></div>
-
-                    <!-- Streaming typing indicator -->
-                    <div class="typing-indicator flex items-center gap-2 text-xs text-teal-400 mt-2 font-medium" aria-hidden="true">
-                        <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> Thinking &amp; streaming...
+                
+                <div class="flip-back flex flex-col h-full ">
+                    <div class="flex items-center justify-between mb-1.5 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <div class="w-5 h-5 rounded bg-amber-900/60 border border-amber-700/50 text-amber-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true"><i class="fas fa-project-diagram"></i></div>
+                            <h2 tabindex="-1" class="text-xs font-bold uppercase tracking-wider text-amber-300 focus:outline-none rounded px-1">
+                                Implementation Plan
+                            </h2>
+                        </div>
+                        <button onclick="this.closest('.flip-container').classList.remove('is-flipped')" class="text-[10px] text-amber-400 hover:text-white bg-amber-950/40 border border-amber-800/50 px-2 py-0.5 rounded transition-colors flex items-center gap-1">
+                            <i class="fas fa-undo"></i> Flip Back
+                        </button>
+                    </div>
+                    <div class="bg-slate-800/95 border border-amber-500/30 rounded-xl p-5 shadow-xl flex-1 overflow-y-auto custom-scrollbar">
+                        <div class="agent-back-text markdown-body text-slate-200 text-sm pb-4">Loading...</div>
                     </div>
                 </div>
+            </div>
             `;
 
             chatFeed.appendChild(article);

@@ -4,7 +4,11 @@ import json
 import os
 import time
 import sys
-from quart import Quart, websocket, request, jsonify
+
+# Dynamically add the DevCore root to the Python path so absolute imports work regardless of execution context
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from quart import Quart, websocket, request, jsonify, render_template_string
 
 from core import session_manager as sm
 from core import project_manager as pm
@@ -244,6 +248,23 @@ async def plugin_exam():
         
     rendered = await render_template_string(content, ui=ui_strings, quiz_file=quiz_file, exam_title=exam_title)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/api/artifacts', methods=['GET'])
+async def get_artifact():
+    """Fetches artifact markdown for the Flip Card UI."""
+    path = request.args.get('path', '')
+    if path.startswith('file://'):
+        path = path[7:]
+    
+    if not os.path.exists(path):
+        return jsonify({"error": "Artifact not found"}), 404
+        
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return jsonify({"content": content})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/prompt/massive', methods=['POST'])
 async def handle_massive_prompt():
