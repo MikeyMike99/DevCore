@@ -410,5 +410,5 @@ When presenting data to users, the system avoids brittle client-side regex filte
 The physical directory structure of Siraugga is strictly obfuscated from the application logic. Hardcoded file paths (e.g., `os.path.join(...)`) are prohibited in the core engine. 
 Instead, the system relies on the **Zero-Trust Phonebook** (`raugus_map.json`). 
 1. **Abstract Route Keys:** Every core configuration, template, and script is assigned a unique abstract namespace (e.g., `devcore.sandbox.templates.index.html`) and a UUID.
-2. **Security Manager Gatekeeper:** When the backend needs to render a page or fetch a configuration, it must pass the abstract key to `SecurityManager.get_phonebook_path()`.
+2. **Security Manager Gatekeeper:** When the backend needs to render a page or fetch a configuration, it must pass the abstract key to ``RaugusResolver.get_path(alias, user_tier)``.
 3. **Execution Decoupling:** If the path exists and clearance is validated, the physical path is returned. If an attacker attempts to inject path traversals or unregistered files into the server logic, the phonebook resolution immediately fails, throwing a rigid `FileNotFoundError`.

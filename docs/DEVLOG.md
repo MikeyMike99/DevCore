@@ -740,4 +740,4 @@ While this limitation causes immense friction and frustration for the Administra
 ### 4. Zero-Trust VFS Phonebook Enforced
 - Stripped all hardcoded `os.path.join` absolute paths from `core/server.py`.
 - Injected all templates (`index.html`, `login.html`, `video_application.html`, etc.) and configs (`ui_config.json`) into the `security/raugus_map.json` Phonebook.
-- Engineered `SecurityManager.get_phonebook_path(key)` to serve as the exclusive path resolver. The backend now requests abstract keys (e.g., `"devcore.sandbox.templates.login.html"`) instead of relying on physical disk structures, solidifying the application's VFS (Virtual File System) boundaries.
+- Engineered `the `RaugusResolver` singleton (`raugus_resolver.py`)` to serve as the exclusive path resolver. The backend now requests abstract keys (e.g., `"devcore.sandbox.templates.login.html"`) instead of relying on physical disk structures, solidifying the application's VFS (Virtual File System) boundaries.
