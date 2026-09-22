@@ -404,3 +404,11 @@ When presenting data to users, the system avoids brittle client-side regex filte
 2. **Tier 5 Bypass:** Administrators can flip the card natively to read the raw Markdown fetched directly from the backend via `/api/artifacts`.
 3. **Automated Downgrade Prompts:** If a Tier 3 (Developer) or Tier 1 (Guest) user attempts to view the same artifact, the UI intercepts the request and sends an automated WebSocket prompt back to the LLM. The AI is instructed to dynamically summarize, redact, and explain the artifact based precisely on the user's Tier, ensuring sensitive backend structures and root credentials never leak to unauthorized clients.
 4. **Absolute Code Blocking:** Raw source code blocks (`<pre><code>`) generated in standard chat streams are completely intercepted and replaced with a cryptographic lockbox for Tier 1 users.
+
+
+### Layer 7: Virtual File System (VFS) Phonebook Integration
+The physical directory structure of Siraugga is strictly obfuscated from the application logic. Hardcoded file paths (e.g., `os.path.join(...)`) are prohibited in the core engine. 
+Instead, the system relies on the **Zero-Trust Phonebook** (`raugus_map.json`). 
+1. **Abstract Route Keys:** Every core configuration, template, and script is assigned a unique abstract namespace (e.g., `devcore.sandbox.templates.index.html`) and a UUID.
+2. **Security Manager Gatekeeper:** When the backend needs to render a page or fetch a configuration, it must pass the abstract key to `SecurityManager.get_phonebook_path()`.
+3. **Execution Decoupling:** If the path exists and clearance is validated, the physical path is returned. If an attacker attempts to inject path traversals or unregistered files into the server logic, the phonebook resolution immediately fails, throwing a rigid `FileNotFoundError`.

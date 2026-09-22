@@ -736,3 +736,8 @@ While this limitation causes immense friction and frustration for the Administra
 - **Tier 3 (Developer):** Clicking the button intercepts the flip and auto-prompts the AI: *"Please summarize the implementation plan... Remove root credentials... but provide technical architecture."*
 - **Tier 1 (Guest):** Clicking the button auto-prompts the AI: *"Explain in layman's terms without revealing sensitive information or the structure of the backend."*
 - **Code Block Blackout:** Raw code blocks are strictly blocked from rendering for Tier 1 users, replaced with a red Lockbox warning prohibiting source access.
+
+### 4. Zero-Trust VFS Phonebook Enforced
+- Stripped all hardcoded `os.path.join` absolute paths from `core/server.py`.
+- Injected all templates (`index.html`, `login.html`, `video_application.html`, etc.) and configs (`ui_config.json`) into the `security/raugus_map.json` Phonebook.
+- Engineered `SecurityManager.get_phonebook_path(key)` to serve as the exclusive path resolver. The backend now requests abstract keys (e.g., `"devcore.sandbox.templates.login.html"`) instead of relying on physical disk structures, solidifying the application's VFS (Virtual File System) boundaries.
