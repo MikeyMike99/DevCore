@@ -1,0 +1,172 @@
+{
+    "devcore.agent_manager.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agent_manager.py",
+        "required_tier": 5,
+        "id": "f6da5d05-227d-4bbb-b929-6cacfbcaab20"
+    },
+    "devcore.ai_plugin.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "required_tier": 5,
+        "id": "8faa103a-d138-41a2-bddb-0ac5f941db72"
+    },
+    "devcore.apply_mods.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/apply_mods.py",
+        "required_tier": 5,
+        "id": "b1b45cb1-a406-45db-af88-9f2b24e7ece7"
+    },
+    "devcore.apply_upgrade.sh": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/apply_upgrade.sh",
+        "required_tier": 5,
+        "id": "3b9684a8-9777-43af-8a97-34f4d05e77a1"
+    },
+    "devcore.bootstrap_gateway.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/bootstrap_gateway.py",
+        "required_tier": 5,
+        "id": "6d2fcfd7-dd26-4f8a-ad4e-4fb12de141c4"
+    },
+    "devcore.deploy_zero_trust.sh": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/deploy_zero_trust.sh",
+        "required_tier": 5,
+        "id": "41d3cc46-36dc-4029-bbf8-05773f571deb"
+    },
+    "devcore.docker-compose.yml": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/docker-compose.yml",
+        "required_tier": 5,
+        "id": "f991b395-780c-4354-a2fb-293a9a8e3b0e"
+    },
+    "devcore.Dockerfile": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/Dockerfile",
+        "required_tier": 5,
+        "id": "4efc43f2-22a7-4cf8-a7ab-956a17f240b2"
+    },
+    "devcore.GEMINI.md": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/GEMINI.md",
+        "required_tier": 5,
+        "id": "85abdd19-d0e5-436f-83b5-99a5e057bde1"
+    },
+    "devcore.generate_shadowmap.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/generate_shadowmap.py",
+        "required_tier": 5,
+        "id": "3627b2b2-320a-402f-b3b8-ca65d3d96ac5"
+    },
+    "devcore.install_done.txt": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/install_done.txt",
+        "required_tier": 5,
+        "id": "4be02028-cba7-4733-a519-c5c332959060"
+    },
+    "devcore.install_script.sh": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/install_script.sh",
+        "required_tier": 5,
+        "id": "0bb0afdf-1b80-4e18-a0fb-09ee19ec6472"
+    },
+    "devcore.local_security.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/local_security.py",
+        "required_tier": 5,
+        "id": "411bcfda-67d5-4930-b8b6-65c5f483d3ca"
+    },
+    "devcore.npc_state.json": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/npc_state.json",
+        "required_tier": 5,
+        "id": "b31e10b0-bff9-4095-8be1-c779548c950f"
+    },
+    "devcore.project_manager.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/project_manager.py",
+        "required_tier": 5,
+        "id": "f4903029-c24a-419c-bc90-1580dca18257"
+    },
+    "devcore.README.md": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/README.md",
+        "required_tier": 5,
+        "id": "ad5e4ae3-19ff-4000-bd8a-71fd7a9d7602"
+    },
+    "devcore.SECURITY.md": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/SECURITY.md",
+        "required_tier": 5,
+        "id": "669ee024-4759-4162-8087-7da119b432ee"
+    },
+    "devcore.security_manager.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/security_manager.py",
+        "required_tier": 5,
+        "id": "1def7170-106e-468c-85b5-4d33631f3797"
+    },
+    "devcore.server.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/server.py",
+        "required_tier": 5,
+        "id": "1bf6bdf9-90e8-4dc6-a655-322253a23c1c"
+    },
+    "devcore.server_new.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/server_new.py",
+        "required_tier": 5,
+        "id": "eb605686-534d-4c75-a1db-13e705d00a6e"
+    },
+    "devcore.session_manager.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/session_manager.py",
+        "required_tier": 5,
+        "id": "cc6fa53d-687c-4645-ba9b-08a23d8135fe"
+    },
+    "devcore.session_ownership.json": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/session_ownership.json",
+        "required_tier": 5,
+        "id": "225a0e78-ba95-4a65-b748-12e1cac0f148"
+    },
+    "devcore.test.js": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test.js",
+        "required_tier": 5,
+        "id": "928843fb-dc4a-4681-a040-a322413f00d4"
+    },
+    "devcore.test_async.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_async.py",
+        "required_tier": 5,
+        "id": "486abef5-5859-4eed-866a-e490e2abbb91"
+    },
+    "devcore.test_ws.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_ws.py",
+        "required_tier": 5,
+        "id": "b48c6821-7f99-40d0-be12-8c73fc80d7dd"
+    },
+    "devcore.test_ws2.py": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_ws2.py",
+        "required_tier": 5,
+        "id": "d0a84216-8b2e-4813-b215-e7d98356d832"
+    },
+    "devcore.docs.DEVLOG.md": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/docs/DEVLOG.md",
+        "required_tier": 3,
+        "id": "349709c0-4308-4ce4-92fc-a7bebeadbeec"
+    },
+    "devcore.docs.rbac_textbook_tier5.md": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/docs/rbac_textbook_tier5.md",
+        "required_tier": 3,
+        "id": "3f4ad99c-1ebe-4077-bf6c-13331f1d3bf1"
+    },
+    "devcore.static.exam_application.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/static/exam_application.html",
+        "required_tier": 2,
+        "id": "ec69b579-d828-454a-a9da-a6b21b33176b"
+    },
+    "devcore.static.security_audit.json": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/static/security_audit.json",
+        "required_tier": 2,
+        "id": "111f5d21-3512-47c5-afbe-777564b55e88"
+    },
+    "devcore.static.security_dashboard.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/static/security_dashboard.html",
+        "required_tier": 2,
+        "id": "ef44ea2c-3213-4859-aec0-8ca5c0858e34"
+    },
+    "devcore.static.video_application.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/static/video_application.html",
+        "required_tier": 2,
+        "id": "c079e710-23ce-4973-bc4e-c9488f8464ed"
+    },
+    "devcore.templates.ai_index.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/templates/ai_index.html",
+        "required_tier": 2,
+        "id": "09b90dff-90ee-4178-a5cb-ddcafaa8db8d"
+    },
+    "devcore.templates.index.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/templates/index.html",
+        "required_tier": 2,
+        "id": "6ec5c5df-a39e-437f-8188-97735a5dae25"
+    }
+}
