@@ -168,7 +168,7 @@ The Main Agent is initialized within an isolated Linux Session (`start_new_sessi
 
 ---
 
-## 14. ShadowMap VFS (Virtual File System)
+## 14. Raugus Map VFS (Virtual File System)
 
 **Methodology**: Cryptographic Path Aliasing & File DNS
 

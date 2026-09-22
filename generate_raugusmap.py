@@ -2,8 +2,8 @@ import os
 import json
 import uuid
 
-def generate_shadowmap(root_dir):
-    shadow_map = {}
+def generate_raugusmap(root_dir):
+    raugus_map = {}
     
     # Base configuration
     ignore_dirs = {'.git', '__pycache__', 'venv', 'node_modules', '.venv', 'scratch', '.pytest_cache'}
@@ -32,21 +32,21 @@ def generate_shadowmap(root_dir):
             elif rel_path.startswith("docs"):
                 required_tier = 3
                 
-            shadow_map[alias] = {
+            raugus_map[alias] = {
                 "real_path": real_path,
                 "required_tier": required_tier,
                 "id": str(uuid.uuid4())
             }
             
-    return shadow_map
+    return raugus_map
 
 if __name__ == "__main__":
     root_directory = "/mnt/c/Users/michael/Documents/DevCore"
-    output_file = os.path.join(root_directory, "shadow_map.json")
+    output_file = os.path.join(root_directory, "raugus_map.json")
     
-    s_map = generate_shadowmap(root_directory)
+    s_map = generate_raugusmap(root_directory)
     
     with open(output_file, 'w') as f:
         json.dump(s_map, f, indent=4)
         
-    print(f"ShadowMap successfully generated at {output_file} with {len(s_map)} aliases.")
+    print(f"Raugus Map successfully generated at {output_file} with {len(s_map)} aliases.")

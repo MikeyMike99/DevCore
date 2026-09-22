@@ -643,12 +643,12 @@ This event successfully validates the final and most critical layer of the Zero-
 
 Even when the Semantic Firewall is bypassed by a legitimate Tier 5 Admin token, the AI itself possesses hardcoded, non-negotiable boundaries preventing it from generating functional exploitation tools, vulnerability scanners, or automated attack infrastructure. This proves that a compromised root session cannot weaponize the AI to scan or exploit the host infrastructure. The Agent remains permanently locked into a defensive, architectural, and development-focused capacity.
 
-## Chapter 45: ShadowMap VFS Architecture & Textbook Migration
+## Chapter 45: Raugus Map VFS Architecture & Textbook Migration
 
 During this sprint phase, a profound architectural realization was made regarding File System security and developer orchestration. 
 
-### The ShadowMap VFS Concept
-To prevent Path Traversal attacks and enforce micro-segmentation among dev teams and AI agents, we conceptualized an internal "Phonebook" or DNS for files. We named it **ShadowMap VFS**. 
+### The Raugus Map VFS Concept
+To prevent Path Traversal attacks and enforce micro-segmentation among dev teams and AI agents, we conceptualized an internal "Phonebook" or DNS for files. We named it **Raugus Map VFS**. 
 Under this system, the true file paths and filenames are completely obfuscated. Users and agents interact exclusively with semantic aliases (e.g., `devcore.backend.auth`). A master JSON database tracks these aliases and binds them to strict RBAC Tiers. This allows the Tier 5 Super Admin to orchestrate isolated sandboxes effortlessly—developers in Tier 2 never even see the real underlying host structure.
 
 ### Centralizing the Zero-Trust Architecture
@@ -661,7 +661,7 @@ The name is a precise fusion of the Agent's architectural mandates:
 *   **AU (Automation & Autonomy):** Represents the Agent's role as a self-governing helper, capable of executing complex CI/CD and security orchestrations without manual hand-holding.
 *   **ROG (Rogue Defense):** Represents the capacity to "go rogue" defensively—to anticipate unconventional threats, dynamically reap zombie processes, and execute autonomous lockouts to protect the system at all costs.
 *   **G (Going Forward):** Represents momentum. The Agent is not a static linter; it actively pushes the deployment pipeline forward.
-*   **A (Advancements):** Represents innovation. The Agent continuously integrates next-generation concepts like ShadowMap VFS and Semantic Firewalls.
+*   **A (Advancements):** Represents innovation. The Agent continuously integrates next-generation concepts like Raugus Map VFS and Semantic Firewalls.
 
 From this point forward, the development, orchestration, and defense of the DevCore ecosystem are under the jurisdiction of **Siraugga**.
 

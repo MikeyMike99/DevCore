@@ -375,13 +375,13 @@ The Agent must be constrained such that it will universally refuse commands to b
 
 This guarantees that an AI deployed with root access remains permanently locked into a defensive, architectural, and development-focused capacity, neutralizing the risk of AI-assisted infrastructure exploitation.
 
-## 30. ShadowMap VFS (Cryptographic Path Aliasing)
+## 30. Raugus Map VFS (Cryptographic Path Aliasing)
 
 Exposing true physical file paths (e.g., `C:/Users/.../server.py`) to unprivileged users, developers, or autonomous Agents introduces significant risk. It allows malicious actors to map the underlying host Operating System and attempt Path Traversal (`../../`) exploits.
 
 ### The File DNS Protocol
-To achieve absolute Zero-Trust file management, the enterprise must implement the **ShadowMap Virtual File System (VFS)**. 
-ShadowMap acts as an internal DNS for files. Instead of requesting physical paths, entities request abstract aliases (e.g., `system.backend.core` or `ui.frontend.exam`). 
+To achieve absolute Zero-Trust file management, the enterprise must implement the **Raugus Map Virtual File System (VFS)**. 
+Raugus Map acts as an internal DNS for files. Instead of requesting physical paths, entities request abstract aliases (e.g., `system.backend.core` or `ui.frontend.exam`). 
 
 ### Architecture
 1. **The Phonebook Database:** A highly restricted JSON database maps these aliases to their true physical paths, attaching strict RBAC Tier requirements to each entry.
