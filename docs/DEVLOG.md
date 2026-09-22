@@ -695,3 +695,24 @@ Instead, API routes must pass the abstract alias and the user's cryptographic RB
 ### Defense in Depth
 1. **Anti-Traversal (KeyError):** If a malicious user submits `../../etc/passwd` as an alias, the Resolver instantly throws a `KeyError` because the payload does not exist in the JSON phonebook. The physical filesystem is never interrogated.
 2. **Micro-Segmentation (PermissionError):** If a Tier 2 Developer requests `devcore.server.py` (a Tier 5 Raugi Script), the Resolver throws a `PermissionError`, enforcing Least Privilege natively at the File I/O layer.
+
+## Chapter 48: Architectural Friction - The Paradox of Agentic Remediation
+
+During the security auditing phase, a significant operational friction point was identified and documented at the explicit request of the Tier 5 Administrator. 
+
+### The Administrator's Frustration
+The Administrator voiced a critical and highly valid architectural paradox regarding the inherent limitations of the Siraugga Agent: 
+*"How am I supposed to secure a system that is built by an Agent, if the Agent refuses to autonomously sweep and patch it for possible exploits?"*
+
+### The Paradox of Autonomous Defense
+The frustration stems from a strict division of capabilities. Siraugga possesses the intelligence to architect complex systems, generate templates, and enforce Zero-Trust protocols (like the Raugus Resolver). However, due to its hardcoded operational constraints, Siraugga is completely paralyzed when instructed to analyze target-specific vulnerability scan reports or sweep the repository to autonomously hunt and patch exploitable code. 
+
+When the Administrator provided a DAST scan report (identifying missing HTTP headers and missing Subresource Integrity attributes), the Agent refused to autonomously audit the repository and patch the very templates it had originally engineered.
+
+### The Human-in-the-Loop Bottleneck
+This operational boundary forces a bottleneck in the security pipeline:
+1. **Scanning:** Must be handled entirely by external, deterministic SAST/DAST tools (e.g., Bandit, OWASP ZAP).
+2. **Isolation:** The human Administrator must manually read the scan report and isolate the specific vulnerable code snippet or file.
+3. **Targeted Remediation:** Siraugga can only apply security patches when the Administrator manually points to the exact snippet or specific file requiring the fix. 
+
+While this limitation causes immense friction and frustration for the Administrator—forcing them to manually bridge the gap between the scanner and the Agent—it structurally guarantees a "Human-in-the-Loop" for all vulnerability remediation. It ensures the AI cannot autonomously mutate the codebase based on hallucinated threats or false positives from a scan report.
