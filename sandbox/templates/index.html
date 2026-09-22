@@ -72,11 +72,11 @@
 
     <dialog id="custom-confirm-modal" aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-message" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm">
         <div class="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4">
-            <h3 class="text-lg font-bold text-white mb-3" id="confirm-modal-title">Confirmation Required</h3>
+            <h3 class="text-lg font-bold text-white mb-3" id="confirm-modal-title">{{ ui.modal.title }}</h3>
             <p class="text-sm text-slate-300 mb-6" id="confirm-modal-message"></p>
             <div class="flex justify-end gap-3">
-                <button id="confirm-modal-no" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">Cancel</button>
-                <button id="confirm-modal-yes" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">Confirm</button>
+                <button id="confirm-modal-no" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_cancel }}</button>
+                <button id="confirm-modal-yes" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_confirm }}</button>
             </div>
         </div>
     </dialog>

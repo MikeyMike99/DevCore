@@ -1,4 +1,9 @@
 {
     "title": "Siraugga Command Center (Dynamic)",
-    "welcome_message": "Zero-Trust Architecture Active"
+    "welcome_message": "Zero-Trust Architecture Active",
+    "modal": {
+        "title": "Confirmation Required",
+        "btn_cancel": "Cancel",
+        "btn_confirm": "Confirm"
+    }
 }
