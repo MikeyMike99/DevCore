@@ -185,13 +185,13 @@
                     <nav aria-label="{{ ui.nav.aria_label }}">
                         <ul class="space-y-3">
                             <li>
-                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').value = '{{ ui.nav.btn1.prompt }}'; document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+S">
+                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn1.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+S">
                                     <span class="text-base">{{ ui.nav.btn1.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn1.sr_text }}</span>
                                 </button>
                             </li>
                             <li>
-                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').value = '{{ ui.nav.btn2.prompt }}'; document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+L">
+                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn2.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+L">
                                     <span class="text-base">{{ ui.nav.btn2.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn2.sr_text }}</span>
                                 </button>
