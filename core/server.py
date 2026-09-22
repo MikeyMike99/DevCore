@@ -164,16 +164,27 @@ async def start_background_tasks():
     app.add_background_task(auto_patch_daemon)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TEMPLATE_FILE = os.path.join(BASE_DIR, "templates", "index.html")
+# Dynamically load from the sandbox layer
+TEMPLATE_FILE = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "index.html")
+UI_CONFIG_FILE = os.path.join(BASE_DIR, "ui_config.json")
 
 @app.route('/')
 async def index():
-    """Dynamically serves index.html on each request so UI edits take effect instantly."""
+    """Dynamically serves and renders the template using Jinja2 variables."""
     if not os.path.exists(TEMPLATE_FILE):
         return "Template not found: " + TEMPLATE_FILE, 404
+        
     with open(TEMPLATE_FILE, 'r', encoding='utf-8') as f:
         content = f.read()
-    return content, 200, {'Content-Type': 'text/html; charset=utf-8'}
+        
+    # Load dynamic strings
+    import json
+    with open(UI_CONFIG_FILE, 'r') as f:
+        ui_strings = json.load(f)
+        
+    # Render variables into the HTML
+    rendered_content = await render_template_string(content, ui=ui_strings)
+    return rendered_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 GLOBAL_AUTH_PROC = None
 
