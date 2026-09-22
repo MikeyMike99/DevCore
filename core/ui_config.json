@@ -81,5 +81,20 @@
         "msg_thinking": "Siraugga thinking...",
         "msg_user": "User prompt:",
         "msg_agent": "Siraugga response:"
+    },
+    "media_player": {
+        "title_tag": "Siraugga Accessible Media Player",
+        "btn_play": "Play",
+        "btn_play_aria": "Play Video",
+        "btn_pause": "Pause",
+        "btn_pause_aria": "Pause Video",
+        "btn_rewind": "\u23ea -10s",
+        "btn_rewind_aria": "Rewind 10 seconds",
+        "btn_forward": "\u23e9 +10s",
+        "btn_forward_aria": "Fast forward 10 seconds",
+        "btn_fullscreen": "\u26f6 Fullscreen",
+        "btn_fullscreen_aria": "Enter Fullscreen",
+        "lbl_volume": "Volume:",
+        "chk_autoplay": "Autoplay Next"
     }
 }

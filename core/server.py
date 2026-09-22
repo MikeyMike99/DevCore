@@ -188,6 +188,26 @@ async def index():
 
 GLOBAL_AUTH_PROC = None
 
+@app.route('/plugin/media')
+async def plugin_media():
+    """Dynamically renders the video application plugin."""
+    video_id = request.args.get('v', 'jNQXAC9IVRw')
+    video_title = request.args.get('title', 'Accessible Video Player')
+    
+    template = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "video_application.html")
+    if not os.path.exists(template):
+        return "Media template not found", 404
+        
+    with open(template, 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    import json
+    with open(UI_CONFIG_FILE, 'r') as f:
+        ui_strings = json.load(f)
+        
+    rendered = await render_template_string(content, ui=ui_strings, video_id=video_id, video_title=video_title)
+    return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
 @app.route('/api/prompt/massive', methods=['POST'])
 async def handle_massive_prompt():
     auth_hdr = request.headers.get('Authorization', '')

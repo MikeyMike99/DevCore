@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity Accessible Media Player</title>
+    <title>{{ ui.media_player.title_tag }}</title>
     <style>
         :root {
             --bg-color: #1e1e2e;
@@ -124,8 +124,7 @@
 </head>
 <body>
     <main class="player-container" aria-label="Media Player Application">
-        <!-- TITLE_PLACEHOLDER -->
-        <h1 id="videoTitle" tabindex="-1">Accessible Video Player</h1>
+        <h1 id="videoTitle" tabindex="-1">{{ video_title }}</h1>
         
         <div class="video-wrapper" aria-hidden="true">
             <div id="ytplayer"></div>
@@ -138,9 +137,9 @@
                 <div class="time-display" id="timeDisplay" aria-hidden="true">0:00 / 0:00</div>
             </div>
             
-            <button id="btnPlayPause" aria-label="Play Video" accesskey="k">Play</button>
-            <button id="btnRewind" aria-label="Rewind 10 seconds">⏪ -10s</button>
-            <button id="btnForward" aria-label="Fast forward 10 seconds">⏩ +10s</button>
+            <button id="btnPlayPause" aria-label="{{ ui.media_player.btn_play_aria }}" accesskey="k">{{ ui.media_player.btn_play }}</button>
+            <button id="btnRewind" aria-label="{{ ui.media_player.btn_rewind_aria }}">{{ ui.media_player.btn_rewind }}</button>
+            <button id="btnForward" aria-label="{{ ui.media_player.btn_forward_aria }}">{{ ui.media_player.btn_forward }}</button>
             
             <label for="speedSelect" class="sr-only">Playback Speed</label>
             <select id="speedSelect" title="Playback Speed">
@@ -154,7 +153,7 @@
                 <option value="2">2x</option>
             </select>
             
-            <button id="btnFullscreen" aria-label="Enter Fullscreen">⛶ Fullscreen</button>
+            <button id="btnFullscreen" aria-label="{{ ui.media_player.btn_fullscreen_aria }}">{{ ui.media_player.btn_fullscreen }}</button>
             
             <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
                 <input type="checkbox" id="chkAutoplay" checked aria-label="Toggle Autoplay">
@@ -172,7 +171,7 @@
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         // Data injected by Agent
-        const VIDEO_ID = "<!-- VIDEO_ID_PLACEHOLDER -->";
+        const VIDEO_ID = {{ video_id | default("jNQXAC9IVRw") | tojson | safe }};
         
         let player;
         let isPlaying = false;
@@ -184,7 +183,7 @@
             player = new YT.Player('ytplayer', {
                 height: '100%',
                 width: '100%',
-                videoId: VIDEO_ID !== '<!-- VIDEO_ID_PLACEHOLDER -->' ? VIDEO_ID : 'jNQXAC9IVRw',
+                videoId: VIDEO_ID,
                 playerVars: {
                     'playsinline': 1,
                     'controls': 0, // Disable native controls to force screen readers to use our accessible ones
@@ -285,12 +284,12 @@
             const btnPlayPause = document.getElementById('btnPlayPause');
             if (event.data == YT.PlayerState.PLAYING) {
                 isPlaying = true;
-                btnPlayPause.textContent = "Pause";
-                btnPlayPause.setAttribute('aria-label', "Pause Video");
+                btnPlayPause.textContent = {{ ui.media_player.btn_pause | tojson | safe }};
+                btnPlayPause.setAttribute('aria-label', {{ ui.media_player.btn_pause_aria | tojson | safe }});
             } else {
                 isPlaying = false;
-                btnPlayPause.textContent = "Play";
-                btnPlayPause.setAttribute('aria-label', "Play Video");
+                btnPlayPause.textContent = {{ ui.media_player.btn_play | tojson | safe }};
+                btnPlayPause.setAttribute('aria-label', {{ ui.media_player.btn_play_aria | tojson | safe }});
             }
         }
         
