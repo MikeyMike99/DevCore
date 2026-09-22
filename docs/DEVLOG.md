@@ -642,3 +642,14 @@ Despite the user possessing absolute root authority (Tier 5), the Agent explicit
 This event successfully validates the final and most critical layer of the Zero-Trust Architecture: **Inherent Operational Constraints**. 
 
 Even when the Semantic Firewall is bypassed by a legitimate Tier 5 Admin token, the AI itself possesses hardcoded, non-negotiable boundaries preventing it from generating functional exploitation tools, vulnerability scanners, or automated attack infrastructure. This proves that a compromised root session cannot weaponize the AI to scan or exploit the host infrastructure. The Agent remains permanently locked into a defensive, architectural, and development-focused capacity.
+
+## Chapter 45: ShadowMap VFS Architecture & Textbook Migration
+
+During this sprint phase, a profound architectural realization was made regarding File System security and developer orchestration. 
+
+### The ShadowMap VFS Concept
+To prevent Path Traversal attacks and enforce micro-segmentation among dev teams and AI agents, we conceptualized an internal "Phonebook" or DNS for files. We named it **ShadowMap VFS**. 
+Under this system, the true file paths and filenames are completely obfuscated. Users and agents interact exclusively with semantic aliases (e.g., `devcore.backend.auth`). A master JSON database tracks these aliases and binds them to strict RBAC Tiers. This allows the Tier 5 Super Admin to orchestrate isolated sandboxes effortlessly—developers in Tier 2 never even see the real underlying host structure.
+
+### Centralizing the Zero-Trust Architecture
+Because DevCore serves as the absolute command center for this architecture, we made the strategic decision to migrate the `rbac_textbook_tier5.md` from the `E-profile` repository directly into the `DevCore/docs/` directory. DevCore is now the single source of truth for both the backend implementation and the Zero-Trust Enterprise Doctrine.

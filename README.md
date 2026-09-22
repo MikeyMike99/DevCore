@@ -165,3 +165,15 @@ To prevent "Agentic Drift" and catastrophic resource exhaustion caused by orphan
 
 **Action**: 
 The Main Agent is initialized within an isolated Linux Session (`start_new_session=True`). Any parallel Subagents it spawns automatically inherit this identical Process Group ID. When the user cancels a task, or an API timeout occurs, the server does not target individual processes. It issues a `SIGKILL` to the entire Process Group, commanding the Linux Kernel to simultaneously and violently terminate the entire process tree. Zero zombie processes can survive.
+
+---
+
+## 14. ShadowMap VFS (Virtual File System)
+
+**Methodology**: Cryptographic Path Aliasing & File DNS
+
+**Purpose in the Application**:
+To perfectly obfuscate the host operating system's true directory structure from lower-tier users, developers, and autonomous agents, neutralizing Path Traversal attacks and enforcing strict micro-segmentation.
+
+**Action**: 
+Physical file paths (e.g., `/mnt/c/Users/...`) are never exposed or accepted by the backend. Instead, the architecture utilizes an internal "Phonebook" mapping database. Users request access to abstract aliases (e.g., `system.backend.core`). The server's Resolver intercepts the alias, verifies the user's RBAC Tier against the Phonebook, and silently resolves the true physical path on the backend. This allows System Admins to easily provision highly contained virtual sandboxes for dev teams without moving physical files.
