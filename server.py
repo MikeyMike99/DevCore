@@ -13,6 +13,9 @@ import security_manager as sec_m
 
 app = Quart(__name__)
 
+import security_headers
+security_headers.init_security_headers(app)
+
 # Initialize modular managers
 project_mgr = pm.ProjectManager()
 session_mgr = sm.SessionManager()
@@ -63,12 +66,6 @@ async def execute_hot_patch_sequence():
     global project_mgr, session_mgr, agent_mgr, security_mgr, sm, pm, am, sec_m
     import shutil, py_compile, os, traceback
     
-    await agent_mgr.broadcast({
-        "type": "system",
-        "level": "warning",
-        "message": "🚨 EXPLOIT DETECTED: Initiating safe zero-downtime hot-patching sequence..."
-    })
-    
     # Pre-validation & Backup Phase
     patch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
     backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backups")
@@ -76,6 +73,15 @@ async def execute_hot_patch_sequence():
     os.makedirs(backup_dir, exist_ok=True)
     
     patches_found = [f for f in os.listdir(patch_dir) if f.endswith('.py')]
+    
+    if not patches_found:
+        return
+        
+    await agent_mgr.broadcast({
+        "type": "system",
+        "level": "warning",
+        "message": "🚨 EXPLOIT DETECTED: Initiating safe zero-downtime hot-patching sequence..."
+    })
     
     # 1. Syntax Validation: Ensure no patch has syntax errors before applying
     for patch in patches_found:
@@ -421,14 +427,14 @@ async def ws_endpoint():
                         ls = LocalSecurity()
                         security_status = ls.analyze_intent(prompt)
                         if security_status == "ATTACK":
-                        print("[Semantic Firewall] Dropping malicious prompt.")
-                        await ws.send(json.dumps({
-                            "type": "agent_article",
-                            "markdown": "> [!CAUTION] Semantic Firewall Active\n> Malicious intent or prompt injection detected. Your request has been blocked and dropped."
-                        }))
-                        continue
-                except Exception as e:
-                    print(f"[Semantic Firewall Error] {e}")
+                            print("[Semantic Firewall] Dropping malicious prompt.")
+                            await ws.send(json.dumps({
+                                "type": "agent_article",
+                                "markdown": "> [!CAUTION] Semantic Firewall Active\n> Malicious intent or prompt injection detected. Your request has been blocked and dropped."
+                            }))
+                            continue
+                    except Exception as e:
+                        print(f"[Security Firewall] Error parsing intent: {e}")
 
                 await agent_mgr.start_task(prompt, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
     except asyncio.CancelledError:
@@ -615,6 +621,52 @@ async def auth_me():
     return jsonify({"error": "Unauthorized"}), 401
 
 # (Removed duplicate /api/reload endpoint that caused state loss)
+
+# --- THE PURPLE TEAM ENGINE (DAST / ZAP INTEGRATION) ---
+
+async def trigger_dast_scan_internal():
+    """Triggers the Red Team ZAP Docker scan natively."""
+    await agent_mgr.broadcast({
+        "type": "system",
+        "level": "warning",
+        "message": "🔴 ACTIVE SPEAR: Initiating internal Red Team DAST strike..."
+    })
+    
+    scanner_path = r"C:\Users\michael\Documents\scanners\scanner.py"
+    # Using host.docker.internal to route the ZAP attack correctly back to WSL
+    cmd = ["python3", scanner_path, "--dast", "http://host.docker.internal:5000"]
+    
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=r"C:\Users\michael\Documents\scanners"
+        )
+        # We don't block the event loop here. It runs as a true background task.
+    except Exception as e:
+        print(f"[DAST] Failed to launch Red Team engine: {e}")
+
+async def auto_red_team_daemon():
+    """Biological clock: Wakes up every 12 hours to strike the server."""
+    while True:
+        # 12 hours = 43200 seconds
+        await asyncio.sleep(43200)
+        await trigger_dast_scan_internal()
+
+@app.route('/api/security/red-team-strike', methods=['POST'])
+async def api_trigger_red_team():
+    user = get_current_user()
+    if not user or user.get("role") not in ["super_admin", "Tier5_SysAdmin"]:
+        return jsonify({"error": "Access Denied: Red Team strikes require Tier 5 Admin authorization."}), 403
+        
+    asyncio.create_task(trigger_dast_scan_internal())
+    return jsonify({"success": True, "message": "Red Team strike initiated."})
+
+# Register the autonomous testing biological clock safely when the event loop starts
+@app.before_serving
+async def start_red_team_daemon():
+    app.add_background_task(auto_red_team_daemon)
 
 if __name__ == '__main__':
     print("Starting Antigravity Backend Engine on port 5000...")

@@ -56,7 +56,7 @@ class AgentTaskManager:
         return self.active_proc is not None and self.active_proc.returncode is None
 
     async def broadcast(self, message: dict):
-        """Buffers message with monotonic seq and broadcasts to all active clients."""
+        """Buffers message with monotonic seq and broadcasts to all active clients via asyncio.Queue."""
         async with self._lock:
             self.current_seq += 1
             seq = self.current_seq
@@ -69,8 +69,13 @@ class AgentTaskManager:
                 self.message_queue.pop(0)
 
         payload = json.dumps(message_with_seq)
-        # HTTP Polling mode: We do not send directly to connected clients.
-        # The frontend will fetch from the queue using short-polling.
+        
+        # Broadcast to all connected clients (which are asyncio.Queue objects)
+        for client_queue in list(self.connected_clients):
+            try:
+                client_queue.put_nowait(payload)
+            except Exception as e:
+                print(f"[AgentTaskManager] Failed to push to client queue: {e}")
 
     def handle_ack(self, ack_seq: int):
         """Prunes messages from the queue that have been confirmed received by the client."""
@@ -79,11 +84,11 @@ class AgentTaskManager:
         # Keep only messages with seq > ack_seq
         self.message_queue = [item for item in self.message_queue if item["seq"] > ack_seq]
 
-    async def sync_client(self, ws, last_seq: int = 0):
+    async def sync_client(self, client_queue, last_seq: int = 0):
         """Replays all buffered messages since last_seq to guarantee no message is dropped."""
         try:
             # First send initial status
-            await ws.send(json.dumps({
+            await client_queue.put(json.dumps({
                 "type": "init",
                 "connected": True,
                 "current_seq": self.current_seq,
@@ -94,11 +99,11 @@ class AgentTaskManager:
             pending = [item["msg"] for item in self.message_queue if item["seq"] > last_seq]
             if pending:
                 for msg in pending:
-                    await ws.send(json.dumps(msg))
+                    await client_queue.put(json.dumps(msg))
             else:
                 # If no queue items match (e.g. fresh connection or queue pruned), fallback to state snapshot
                 if self.is_running():
-                    await ws.send(json.dumps({
+                    await client_queue.put(json.dumps({
                         "type": "task_active",
                         "prompt": self.current_prompt,
                         "model": self.current_model,
@@ -109,7 +114,7 @@ class AgentTaskManager:
                         "seq": self.current_seq
                     }))
                 elif self.last_completed_task:
-                    await ws.send(json.dumps({
+                    await client_queue.put(json.dumps({
                         "type": "task_last_result",
                         "task": self.last_completed_task,
                         "seq": self.current_seq
