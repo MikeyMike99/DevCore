@@ -11,7 +11,7 @@ from core import project_manager as pm
 from agents import agent_manager as am
 from security import security_manager as sec_m
 
-app = Quart(__name__)
+app = Quart(__name__, static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static"))
 
 from security import security_headers
 security_headers.init_security_headers(app)
@@ -223,6 +223,26 @@ async def plugin_security():
         ui_strings = json.load(f)
         
     rendered = await render_template_string(content, ui=ui_strings)
+    return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/plugin/exam')
+async def plugin_exam():
+    """Dynamically renders the exam generator plugin."""
+    quiz_file = request.args.get('quiz', 'quiz_temp.json')
+    exam_title = request.args.get('title', 'Siraugga Exam')
+    
+    template = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "exam_application.html")
+    if not os.path.exists(template):
+        return "Exam template not found", 404
+        
+    with open(template, 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    import json
+    with open(UI_CONFIG_FILE, 'r') as f:
+        ui_strings = json.load(f)
+        
+    rendered = await render_template_string(content, ui=ui_strings, quiz_file=quiz_file, exam_title=exam_title)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 @app.route('/api/prompt/massive', methods=['POST'])

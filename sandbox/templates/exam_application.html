@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exam: AZ-900 Module 1</title>
+    <title>{{ exam_title }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 text-slate-300 font-sans p-2 m-0 h-full flex justify-center items-start overflow-hidden">
 
 <div class="w-full bg-slate-900 rounded-lg p-4">
-    <h1 class="text-2xl font-bold text-cyan-400 mb-6" tabindex="-1" id="main-heading">AZ-900 Module 1: Cloud Concepts</h1>
+    <h1 class="text-2xl font-bold text-cyan-400 mb-6" tabindex="-1" id="main-heading">{{ exam_title }}</h1>
     
     <div id="exam-container">
-        <button type="button" id="start-btn" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-6 rounded focus:outline-none focus:ring-4 focus:ring-teal-400">Start Exam</button>
+        <button type="button" id="start-btn" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-6 rounded focus:outline-none focus:ring-4 focus:ring-teal-400">{{ ui.exam_app.btn_start }}</button>
     </div>
 
     <div id="question-container" class="hidden mt-4">
@@ -30,14 +30,26 @@
     </div>
     
     <div id="score-container" class="hidden mt-4 text-center">
-        <h2 class="text-2xl font-bold text-teal-400 mb-4" tabindex="-1" id="score-heading">Exam Complete!</h2>
+        <h2 class="text-2xl font-bold text-teal-400 mb-4" tabindex="-1" id="score-heading">{{ ui.exam_app.heading_complete }}</h2>
         <p id="final-score" class="text-lg text-slate-200"></p>
     </div>
 </div>
 
 <div id="announcer" class="sr-only" aria-live="assertive"></div>
 
+
 <script>
+    const uiStrings = {
+        score_prefix: {{ ui.exam_app.score_prefix | tojson | safe }},
+        score_mid: {{ ui.exam_app.score_mid | tojson | safe }},
+        question_prefix: {{ ui.exam_app.question_prefix | tojson | safe }},
+        progress_mid: {{ ui.exam_app.progress_mid | tojson | safe }},
+        btn_submit: {{ ui.exam_app.btn_submit | tojson | safe }},
+        btn_next: {{ ui.exam_app.btn_next | tojson | safe }},
+        feedback_correct: {{ ui.exam_app.feedback_correct | tojson | safe }},
+        feedback_incorrect: {{ ui.exam_app.feedback_incorrect | tojson | safe }}
+    };
+
     const questions = [
         {
             text: "What is the key characteristic that distinguishes a public cloud from a private cloud?",
@@ -114,7 +126,7 @@
         if (currentIndex >= questions.length) {
             questionContainer.classList.add('hidden');
             scoreContainer.classList.remove('hidden');
-            finalScore.innerText = `You scored ${score} out of ${questions.length}.`;
+            finalScore.innerText = `${uiStrings.score_prefix}${score}${uiStrings.score_mid}${questions.length}.`;
             scoreContainer.setAttribute('tabindex', '-1');
             scoreContainer.focus();
             return;
@@ -122,7 +134,7 @@
 
         isReviewing = false;
         const q = questions[currentIndex];
-        document.getElementById('question-heading').innerText = `Question ${currentIndex + 1}`;
+        document.getElementById('question-heading').innerText = `${uiStrings.question_prefix}${currentIndex + 1}`;
         document.getElementById('question-text').innerText = q.text;
         
         optionsForm.innerHTML = '';
@@ -186,8 +198,8 @@
         });
 
         feedbackContainer.classList.add('hidden');
-        submitNextBtn.innerText = "Submit (Alt+N)";
-        progressText.innerText = `Question ${currentIndex + 1} of ${questions.length}`;
+        submitNextBtn.innerText = uiStrings.btn_submit;
+        progressText.innerText = `${uiStrings.question_prefix}${currentIndex + 1}${uiStrings.progress_mid}${questions.length}`;
         
         document.getElementById('question-heading').focus();
         
@@ -224,13 +236,13 @@
             feedbackContainer.classList.remove('hidden', 'bg-green-900/50', 'border-green-700', 'bg-red-900/50', 'border-red-700');
             if (isCorrect) {
                 feedbackContainer.classList.add('bg-green-900/50', 'border-green-700');
-                feedbackContainer.innerHTML = `<h3 class="text-green-300 font-bold mb-2">Correct!</h3><p class="text-slate-300">${escapeHtml(q.explanation)}</p>`;
+                feedbackContainer.innerHTML = `<h3 class="text-green-300 font-bold mb-2">${uiStrings.feedback_correct}</h3><p class="text-slate-300">${escapeHtml(q.explanation)}</p>`;
             } else {
                 feedbackContainer.classList.add('bg-red-900/50', 'border-red-700');
-                feedbackContainer.innerHTML = `<h3 class="text-red-300 font-bold mb-2">Incorrect.</h3><p class="text-slate-300">${escapeHtml(q.explanation)}</p>`;
+                feedbackContainer.innerHTML = `<h3 class="text-red-300 font-bold mb-2">${uiStrings.feedback_incorrect}</h3><p class="text-slate-300">${escapeHtml(q.explanation)}</p>`;
             }
 
-            submitNextBtn.innerText = "Next Question (Alt+N)";
+            submitNextBtn.innerText = uiStrings.btn_next;
             
             // Focus the feedback container so the screen reader reads it naturally without double-announcing
             feedbackContainer.focus();

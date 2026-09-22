@@ -107,5 +107,17 @@
         "architecture": "Architectural Solution",
         "resolution": "Resolution Outcome",
         "error_loading": "Error loading security audit data: "
+    },
+    "exam_app": {
+        "btn_start": "Start Exam",
+        "btn_submit": "Submit (Alt+N)",
+        "btn_next": "Next Question (Alt+N)",
+        "heading_complete": "Exam Complete!",
+        "score_prefix": "You scored ",
+        "score_mid": " out of ",
+        "question_prefix": "Question ",
+        "progress_mid": " of ",
+        "feedback_correct": "Correct!",
+        "feedback_incorrect": "Incorrect."
     }
 }
