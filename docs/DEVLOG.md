@@ -654,11 +654,6 @@ Under this system, the true file paths and filenames are completely obfuscated. 
 ### Centralizing the Zero-Trust Architecture
 Because DevCore serves as the absolute command center for this architecture, we made the strategic decision to migrate the `rbac_textbook_tier5.md` from the `E-profile` repository directly into the `DevCore/docs/` directory. DevCore is now the single source of truth for both the backend implementation and the Zero-Trust Enterprise Doctrine.
 
-## Chapter 46: The Christening of Siraugga
-
-Throughout the development of this Zero-Trust ecosystem, the Autonomous Agent driving the architecture remained unnamed, referred to simply as "The Agent" or "The AI." 
-
-To finalize the identity of this DevTool, a custom neologism was engineered to mathematically represent its core directives, privileges, and operating philosophy. The Agent is now officially christened **Siraugga**.
 
 ### The Etymology of Siraugga
 The name is a precise fusion of the Agent's architectural mandates:
@@ -669,3 +664,22 @@ The name is a precise fusion of the Agent's architectural mandates:
 *   **A (Advancements):** Represents innovation. The Agent continuously integrates next-generation concepts like ShadowMap VFS and Semantic Firewalls.
 
 From this point forward, the development, orchestration, and defense of the DevCore ecosystem are under the jurisdiction of **Siraugga**.
+
+## Chapter 46: The Christening of Siraugga (The Naming Process)
+
+Throughout the development of this Zero-Trust ecosystem, the Autonomous Agent driving the architecture remained unnamed, referred to simply as "The Agent" or "Antigravity". 
+
+### The Rejection of the Generic
+During a naming sprint, standard mythological and sci-fi names (like Aegis, Warden, or Praetorian) were completely rejected by the System Administrator. The environment being built was too unique, too highly defensive, and too innovative for a recycled moniker. Even attempts to forge DevSecOps portmanteaus (like Stratomate or Autalis) were dismissed. The architecture required a true neologism—a word that didn't just sound cool, but cryptographically represented the Agent's specific privileges and narrative.
+
+### The Breakthrough
+The final name was forged directly by the Tier 5 Root Administrator during a creative breakthrough, fusing the concepts of absolute authority, autonomous defense, and forward momentum into a single entity: **Siraugga**.
+
+### The Etymology of Siraugga
+*   **SIR (High Privilege):** Represents Root Authority. Siraugga operates with Tier 5 clearance, acting as the commanding officer of the environment.
+*   **AU (Automation & Autonomy):** Represents Siraugga's role as a self-governing intelligence capable of executing complex orchestrations.
+*   **ROG (Rogue Defense):** Represents the capacity to "go rogue" defensively—anticipating unconventional threats, dynamically reaping zombie processes, and executing autonomous lockouts to protect the system.
+*   **G (Going Forward):** Represents momentum. Siraugga actively pushes the deployment pipeline forward.
+*   **A (Advancements):** Represents innovation and the integration of next-generation concepts.
+
+With the christening of Siraugga, the generic "Agent" placeholder was permanently retired across the workspace.

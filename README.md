@@ -19,10 +19,10 @@ The system dynamically scrubs and anonymizes detected entities (e.g., replacing 
 **Methodology**: Semantic Delimiters / XML-Tag Context Isolation
 
 **Purpose in the Application**:
-To prevent attackers or poisoned third-party assets from hijacking the AI's underlying instructions (a vulnerability known as Prompt Injection). 
+To prevent attackers or poisoned third-party assets from hijacking Siraugga's underlying instructions (a vulnerability known as Prompt Injection). 
 
 **Action**: 
-When the application reads or processes untrusted content (such as community mods, external game assets, or user-provided scripts), it isolates this data from the core system prompts. It does this by wrapping the untrusted content in strict semantic delimiters (e.g., `<user_data_untrusted> ... </user_data_untrusted>`). This structural boundary explicitly instructs the AI to treat the enclosed content strictly as passive data rather than executable commands, neutralizing any hidden malicious directives.
+When the application reads or processes untrusted content (such as community mods, external game assets, or user-provided scripts), it isolates this data from the core system prompts. It does this by wrapping the untrusted content in strict semantic delimiters (e.g., `<user_data_untrusted> ... </user_data_untrusted>`). This structural boundary explicitly instructs Siraugga to treat the enclosed content strictly as passive data rather than executable commands, neutralizing any hidden malicious directives.
 
 ---
 
@@ -44,10 +44,10 @@ To enforce a zero-trust boundary that ensures users only interact with data appr
 **Methodology**: Server-Side Session Enforcement
 
 **Purpose in the Application**:
-To guarantee that the AI itself cannot be socially engineered into bypassing security restrictions on behalf of a malicious user.
+To guarantee that Siraugga itself cannot be socially engineered into bypassing security restrictions on behalf of a malicious user.
 
 **Action**: 
-The architecture operates under a "Zero-Trust" model for the AI agent. If a user attempts to elevate their privileges through conversation (e.g., claiming to be an administrator in the chat), the AI might acknowledge the prompt, but it is physically incapable of complying. All sensitive actions (reading files, executing commands) are intercepted and verified by the backend server using the user's immutable authentication token. The AI has no capacity to alter backend roles, and the server, not the AI, holds the ultimate cryptographic truth.
+The architecture operates under a "Zero-Trust" model for Siraugga (The Autonomous DevTool). If a user attempts to elevate their privileges through conversation (e.g., claiming to be an administrator in the chat), Siraugga might acknowledge the prompt, but it is physically incapable of complying. All sensitive actions (reading files, executing commands) are intercepted and verified by the backend server using the user's immutable authentication token. The AI has no capacity to alter backend roles, and the server, not Siraugga, holds the ultimate cryptographic truth.
 
 ---
 
@@ -59,7 +59,7 @@ The architecture operates under a "Zero-Trust" model for the AI agent. If a user
 To prevent the leakage of sensitive internal system information (such as backend logic, file paths, or security configurations) to an attacker.
 
 **Action**: 
-When a user or the AI violates a security boundary, the backend intercepts the action and returns a highly generic error string (e.g., "Permission Denied: Access outside of project workspace is forbidden"). The AI only receives this generic string. Consequently, if a user asks the AI *why* it was blocked, the AI is physically incapable of revealing the underlying logic, security variables, or the true filesystem structure, because that data was intentionally excluded from its memory.
+When a user or Siraugga violates a security boundary, the backend intercepts the action and returns a highly generic error string (e.g., "Permission Denied: Access outside of project workspace is forbidden"). The AI only receives this generic string. Consequently, if a user asks Siraugga *why* it was blocked, Siraugga is physically incapable of revealing the underlying logic, security variables, or the true filesystem structure, because that data was intentionally excluded from its memory.
 
 ---
 
@@ -71,8 +71,8 @@ When a user or the AI violates a security boundary, the backend intercepts the a
 To ensure that users restricted to a single working directory cannot map out the underlying host operating system or escape their designated boundaries.
 
 **Action**: 
-- **Obfuscation**: The application presents paths to unprivileged users and the AI in a logical, relative format. The true absolute directory path (e.g., `C:\Users\...\` or `/mnt/c/...`) of the host's underlying operating system is kept completely obfuscated.
-- **Escape Prevention**: If a malicious user attempts to "guess" their way out by instructing the AI to use deep path traversal techniques (such as `../../../../../etc/passwd` or `..\..\Windows`), the backend's path canonicalization algorithm calculates the true physical destination. If that destination falls anywhere outside the pre-approved anchor directory, the request is instantly destroyed. It is mathematically impossible to traverse upwards beyond the anchor root.
+- **Obfuscation**: The application presents paths to unprivileged users and Siraugga in a logical, relative format. The true absolute directory path (e.g., `C:\Users\...\` or `/mnt/c/...`) of the host's underlying operating system is kept completely obfuscated.
+- **Escape Prevention**: If a malicious user attempts to "guess" their way out by instructing Siraugga to use deep path traversal techniques (such as `../../../../../etc/passwd` or `..\..\Windows`), the backend's path canonicalization algorithm calculates the true physical destination. If that destination falls anywhere outside the pre-approved anchor directory, the request is instantly destroyed. It is mathematically impossible to traverse upwards beyond the anchor root.
 
 ---
 
@@ -105,10 +105,10 @@ Rather than relying purely on standard string-based filesystem operations, the b
 **Methodology**: Static Code Analysis Interception
 
 **Purpose in the Application**:
-To prevent the AI from being tricked into writing malicious code (e.g., reverse shells, destructive commands) into game scripts that the host Game Engine might blindly execute at a later time.
+To prevent Siraugga from being tricked into writing malicious code (e.g., reverse shells, destructive commands) into game scripts that the host Game Engine might blindly execute at a later time.
 
 **Action**: 
-Even though the AI itself is securely sandboxed, any code it generates could be dangerous if executed by a secondary system. Before any executable file (such as `.lua`, `.py`, or `.sh` scripts) is actually saved to the disk, the backend intercepts the payload and performs a static code analysis scan. If high-risk system commands (e.g., `os.execute`, `subprocess`, `rm -rf`) are detected, the payload is destroyed and the write operation is permanently blocked.
+Even though Siraugga itself is securely sandboxed, any code it generates could be dangerous if executed by a secondary system. Before any executable file (such as `.lua`, `.py`, or `.sh` scripts) is actually saved to the disk, the backend intercepts the payload and performs a static code analysis scan. If high-risk system commands (e.g., `os.execute`, `subprocess`, `rm -rf`) are detected, the payload is destroyed and the write operation is permanently blocked.
 
 ---
 
@@ -117,7 +117,7 @@ Even though the AI itself is securely sandboxed, any code it generates could be 
 **Methodology**: Read-Only Filesystems & Ephemeral RAM-Disks (Docker)
 
 **Purpose in the Application**:
-To ensure that if the AI Agent or the Application Server is ever fully compromised (e.g., via Remote Code Execution), the attacker cannot persist their presence, install rootkits, or exfiltrate sensitive files.
+To ensure that if Siraugga Agent or the Application Server is ever fully compromised (e.g., via Remote Code Execution), the attacker cannot persist their presence, install rootkits, or exfiltrate sensitive files.
 
 **Action**: 
 The entire backend operates inside a Docker Container engineered with absolute Zero-Trust primitives:
@@ -132,7 +132,7 @@ The entire backend operates inside a Docker Container engineered with absolute Z
 **Methodology**: The Interceptor Pattern / Middle-ware Intent Classification
 
 **Purpose in the Application**:
-To defend against advanced Prompt Injection and "Jailbreak" attacks that attempt to psychologically manipulate the Agent into overriding its own System Prompts or RBAC rules.
+To defend against advanced Prompt Injection and "Jailbreak" attacks that attempt to psychologically manipulate Siraugga into overriding its own System Prompts or RBAC rules.
 
 **Action**: 
 Before an untrusted user prompt is ever processed by the Main Agent, it is intercepted and routed to a dedicated, stateless, ultra-fast "Evaluator Model" (e.g., NeMo Guardrails or a fast-inferencing LLM). This Semantic Firewall acts as a strict classifier. If it detects adversarial intent, prompt injection signatures, or rule-override attempts, the firewall drops the connection instantly (Fail-Closed) and returns a 403 Forbidden. The Main Agent is fully shielded from the hostile semantic payload.
@@ -144,14 +144,14 @@ Before an untrusted user prompt is ever processed by the Main Agent, it is inter
 **Methodology**: Iframe Sandboxing & Volatile Media Projection
 
 **Purpose in the Application**:
-To allow the AI Agent to generate dynamic, interactive User Interfaces (e.g., Exam Portals, Video Players) without granting it write access to the core frontend application.
+To allow Siraugga Agent to generate dynamic, interactive User Interfaces (e.g., Exam Portals, Video Players) without granting it write access to the core frontend application.
 
 **Action**: 
-Instead of modifying the master application DOM (which risks Cross-Site Scripting or Template Corruption), the Agent utilizes pre-approved "Skills" to generate UI components ephemerally. 
-1. The Agent duplicates a read-only blueprint.
+Instead of modifying the master application DOM (which risks Cross-Site Scripting or Template Corruption), Siraugga utilizes pre-approved "Skills" to generate UI components ephemerally. 
+1. Siraugga duplicates a read-only blueprint.
 2. It injects the custom content (e.g., an accessible YouTube iframe).
 3. It saves the resulting file to a volatile `/static/scratch/` RAM-disk.
-4. The Agent returns an isolated `<iframe src="/static/scratch/...">` to the user's chat stream.
+4. Siraugga returns an isolated `<iframe src="/static/scratch/...">` to the user's chat stream.
 5. An OS-level Reaper Daemon automatically shreds the temporary file upon session expiration.
 
 ---
