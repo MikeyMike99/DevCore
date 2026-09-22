@@ -164,7 +164,7 @@
             <article class="p-5 rounded-xl bg-slate-900/90 text-slate-300 border border-slate-800 shadow-sm flex flex-col gap-4 message-welcome" aria-labelledby="welcome-heading">
                 <header class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center shrink-0 text-sm font-bold" aria-hidden="true">{{ ui.welcome.icon }}</div>
-                    <h2 id="welcome-heading" class="font-bold text-teal-400 text-lg m-0" aria-live="polite">{{ ui.welcome.heading }}</h2>
+                    <div class="flex items-center gap-2"><h2 id="welcome-heading" class="font-bold text-teal-400 text-lg m-0" aria-live="polite">{{ ui.welcome.heading }}</h2><span id="tier-badge" class="px-2 py-0.5 rounded text-xs font-bold bg-slate-800 text-slate-400 hidden"></span></div>
                 </header>
 
                     <div class="text-sm space-y-5">
@@ -764,16 +764,16 @@
             if (state === 'connected') {
                 connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/80 border border-emerald-800 text-emerald-400";
                 connBadge.children[0].className = "w-2 h-2 rounded-full bg-emerald-400";
-                connText.innerText = "Connected";
-                announce("Connected to Antigravity server.");
+                connText.innerText = {{ ui.js_alerts.status_connected | tojson | safe }};
+                announce({{ ui.js_alerts.announce_connected | tojson | safe }});
             } else if (state === 'reconnecting') {
                 connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-amber-950/80 border border-amber-800 text-amber-400";
                 connBadge.children[0].className = "w-2 h-2 rounded-full bg-amber-400 animate-pulse";
-                connText.innerText = "Reconnecting...";
+                connText.innerText = {{ ui.js_alerts.status_reconnecting | tojson | safe }};
             } else {
                 connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-rose-950/80 border border-rose-800 text-rose-400";
                 connBadge.children[0].className = "w-2 h-2 rounded-full bg-rose-400";
-                connText.innerText = "Disconnected";
+                connText.innerText = {{ ui.js_alerts.status_failed | tojson | safe }};
                 announce("Disconnected from server. Retrying connection...", true);
             }
         }
@@ -1206,7 +1206,7 @@
                     <div class="flex items-center gap-2">
                         <div class="w-5 h-5 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">{{ ui.welcome.icon }}</div>
                         <h2 id="${msgId}" tabindex="-1" class="text-xs font-bold uppercase tracking-wider text-cyan-300 focus:outline-none focus:ring-1 focus:ring-teal-400 rounded px-1">
-                            Antigravity response:
+                            {{ ui.js_alerts.msg_agent }}
                         </h2>
                         <span class="text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800">${escapeHtml(modelDisplay)}</span>
                     </div>
@@ -1500,6 +1500,21 @@
             if (welcomeHeading && currentUser && currentUser.role) {
                 let roleName = currentUser.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
                 welcomeHeading.innerText = roleName + " Dashboard Ready";
+                
+                var tierBadge = document.getElementById('tier-badge');
+                if (tierBadge) {
+                    tierBadge.classList.remove('hidden');
+                    if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                        tierBadge.innerText = 'TIER 5';
+                        tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-red-900/80 text-red-300 border border-red-700/50';
+                    } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev') {
+                        tierBadge.innerText = 'TIER 3';
+                        tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-cyan-900/80 text-cyan-300 border border-cyan-700/50';
+                    } else {
+                        tierBadge.innerText = 'TIER 1';
+                        tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-slate-800 text-slate-400 border border-slate-700/50';
+                    }
+                }
             }
             
             if (roleBadge) {

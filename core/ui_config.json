@@ -71,5 +71,15 @@
         "dd_nav_prefix": "Press ",
         "dd_nav_mid": " or ",
         "dd_nav_suffix": " for messages"
+    },
+    "js_alerts": {
+        "status_connected": "Connected",
+        "status_reconnecting": "Reconnecting...",
+        "status_failed": "Disconnected",
+        "announce_connected": "Connected to Siraugga server.",
+        "announce_failed": "Failed to connect to Siraugga core.",
+        "msg_thinking": "Siraugga thinking...",
+        "msg_user": "User prompt:",
+        "msg_agent": "Siraugga response:"
     }
 }
