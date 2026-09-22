@@ -96,5 +96,16 @@
         "btn_fullscreen_aria": "Enter Fullscreen",
         "lbl_volume": "Volume:",
         "chk_autoplay": "Autoplay Next"
+    },
+    "security_dashboard": {
+        "title_tag": "Zero-Trust Security Posture Dashboard",
+        "aria_label": "Security Dashboard",
+        "h1_title": "Security Posture Dashboard",
+        "loading": "Loading Audit Data...",
+        "audit_pass": "AUDIT PASS",
+        "red_team": "Red Team Test Protocol",
+        "architecture": "Architectural Solution",
+        "resolution": "Resolution Outcome",
+        "error_loading": "Error loading security audit data: "
     }
 }

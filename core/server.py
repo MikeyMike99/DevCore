@@ -208,6 +208,23 @@ async def plugin_media():
     rendered = await render_template_string(content, ui=ui_strings, video_id=video_id, video_title=video_title)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
+@app.route('/plugin/security')
+async def plugin_security():
+    """Dynamically renders the security dashboard plugin."""
+    template = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "security_dashboard.html")
+    if not os.path.exists(template):
+        return "Security template not found", 404
+        
+    with open(template, 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    import json
+    with open(UI_CONFIG_FILE, 'r') as f:
+        ui_strings = json.load(f)
+        
+    rendered = await render_template_string(content, ui=ui_strings)
+    return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
 @app.route('/api/prompt/massive', methods=['POST'])
 async def handle_massive_prompt():
     auth_hdr = request.headers.get('Authorization', '')

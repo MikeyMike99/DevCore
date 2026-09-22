@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zero-Trust Security Posture Dashboard</title>
+    <title>{{ ui.security_dashboard.title_tag }}</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -127,11 +127,11 @@
     </style>
 </head>
 <body>
-    <main class="dashboard-container" aria-label="Security Dashboard">
-        <h1 tabindex="0">Security Posture Dashboard</h1>
+    <main class="dashboard-container" aria-label="{{ ui.security_dashboard.aria_label }}">
+        <h1 tabindex="0">{{ ui.security_dashboard.h1_title }}</h1>
         <div class="header-meta">
-            <span id="auditMeta">Loading Audit Data...</span>
-            <span class="status-badge" id="auditStatus">AUDIT PASS</span>
+            <span id="auditMeta">{{ ui.security_dashboard.loading }}</span>
+            <span class="status-badge" id="auditStatus">{{ ui.security_dashboard.audit_pass }}</span>
         </div>
 
         <div id="threatContainer" aria-live="polite">
@@ -165,17 +165,17 @@
                             
                             <div class="grid-container">
                                 <div>
-                                    <div class="section-title">Red Team Test Protocol</div>
+                                    <div class="section-title">{{ ui.security_dashboard.red_team }}</div>
                                     <ul>${testStepsHTML}</ul>
                                 </div>
                                 <div>
-                                    <div class="section-title">Architectural Solution</div>
+                                    <div class="section-title">{{ ui.security_dashboard.architecture }}</div>
                                     <ul>${solStepsHTML}</ul>
                                 </div>
                             </div>
                             
                             <div class="outcome-box">
-                                <div class="section-title" style="color: var(--accent-green); border-bottom: none;">Resolution Outcome</div>
+                                <div class="section-title" style="color: var(--accent-green); border-bottom: none;">{{ ui.security_dashboard.resolution }}</div>
                                 <p class="outcome-text">${item.outcome}</p>
                             </div>
                         `;
@@ -183,7 +183,7 @@
                     });
                 })
                 .catch(err => {
-                    document.getElementById('threatContainer').innerHTML = `<p style="color:red;">Error loading security audit data: ${err}</p>`;
+                    document.getElementById('threatContainer').innerHTML = `<p style="color:red;">{{ ui.security_dashboard.error_loading }}${err}</p>`;
                 });
         });
     </script>
