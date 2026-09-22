@@ -1,3 +1,51 @@
+# The Siraugga Security Textbook
+
+*A Zero-Trust Architecture for Autonomous AI Orchestration*
+
+---
+
+# The Siraugga Architecture: A Hacker's Manifesto (Foreword)
+
+*The itch has become a reality.*
+
+When we started building this, it was just supposed to be a script. But the deeper we dug into autonomous AI agents, the more terrifying the reality became. We realized that if you give an AI Agent a generic API key and root access, you aren't just speeding up development—you are wiring a bomb directly to your host OS. 
+
+We watched in real-time as background threads drifted out of sync, session caches went stale, and our own UI laid silent, invisible traps for screen readers. We fought the sandbox. In one swift move, the sandbox fell away, and the Super Admin was born, granting unrestricted access to the host machine. But with God Mode came a horrifying realization: *What if I do something crazy and start two sessions and they converse and build me whatever?*
+
+We weren't just building a chat interface. We were building a multi-tenant, asynchronous orchestration engine for an AI Game Master. 
+
+To survive this, we had to throw traditional security out the window. If you trust a developer's laptop connected to public Wi-Fi at a coffee shop, you have already lost. If you rely on regex to filter malicious commands, a clever attacker will just rename `exploit.sh` to `exploit.config` and walk right past your guards.
+
+This textbook is the architectural blueprint for survival. It is a system forged in the frustration of token exhaustion, broken interfaces, and runaway loops. 
+
+Here, source code doesn't live on hard drives—it lives ephemerally in RAM, guarded by JIT decryption and cryptographic self-destruct sequences. Here, files are routed through the Raugus Resolver to mathematically eliminate path traversal. Here, static filters are dead, replaced by an intelligent AI Agentic Sanitization layer.
+
+This is not a standard security manual. This is the blueprint for containing an intelligence.
+
+*- Michael & Antigravity, September 2026*
+
+
+---
+
+## Table of Contents
+
+**Foreword: A Hacker's Manifesto**
+- The Reality of the AI Game Master
+
+**Chapter 1: Tier 5 - The Architecture of Absolute Power**
+- Section 1: The Genesis of Identity
+- Section 2: The Physical Bridge & IPC
+- Section 3: Forging the Sandbox
+- Section 4: Agent Cognition & Orchestration
+- Section 5: The Shield (Self-Healing & Attack Surface)
+- Section 6: Defeating Race Conditions (TOCTOU & Symlink Armor)
+
+**Chapter 2: The Siraugga Protocol & Raugi Scripts**
+- Layer 6: Agentic Sanitization — The Death of Static Filtering
+- Layer 7: The Raugus Resolver — The Invisible Digital Territory
+
+---
+
 # Chapter 1: Tier 5 - The Architecture of Absolute Power
 
 ## Introduction: The God Mode Paradox
