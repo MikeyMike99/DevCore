@@ -116,20 +116,6 @@ class SecurityManager:
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self._load_sessions()
 
-    def get_phonebook_path(self, key: str) -> str:
-        """Resolves an abstract route key to its physical path using raugus_map.json."""
-        map_file = os.path.join(self.base_dir, "security", "raugus_map.json")
-        try:
-            import json
-            with open(map_file, "r", encoding="utf-8") as f:
-                phonebook = json.load(f)
-            if key in phonebook:
-                return phonebook[key]["real_path"]
-        except Exception as e:
-            print(f"[Security] Failed to resolve phonebook path for {key}: {e}")
-        
-        raise FileNotFoundError(f"Phonebook route {key} not found or map corrupted.")
-
     def authenticate(self, username, password):
         """Authenticates a user and issues a bearer session token."""
         user = self.TEST_USERS.get(username)

@@ -14,6 +14,8 @@ from core import session_manager as sm
 from core import project_manager as pm
 from agents import agent_manager as am
 from security import security_manager as sec_m
+from security.raugus_resolver import resolver
+
 
 app = Quart(__name__, static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static"))
 
@@ -169,8 +171,8 @@ async def start_background_tasks():
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Dynamically load from the sandbox layer
-TEMPLATE_FILE = security_mgr.get_phonebook_path("devcore.sandbox.templates.index.html")
-UI_CONFIG_FILE = security_mgr.get_phonebook_path("devcore.core.ui_config.json")
+TEMPLATE_FILE = resolver.get_path("devcore.sandbox.templates.index.html", user_tier=5)
+UI_CONFIG_FILE = resolver.get_path("devcore.core.ui_config.json", user_tier=5)
 
 @app.route('/')
 async def index():
@@ -198,7 +200,7 @@ async def plugin_media():
     video_id = request.args.get('v', 'jNQXAC9IVRw')
     video_title = request.args.get('title', 'Accessible Video Player')
     
-    template = security_mgr.get_phonebook_path("devcore.sandbox.templates.video_application.html")
+    template = resolver.get_path("devcore.sandbox.templates.video_application.html", user_tier=5)
     if not os.path.exists(template):
         return "Media template not found", 404
         
@@ -215,7 +217,7 @@ async def plugin_media():
 @app.route('/plugin/security')
 async def plugin_security():
     """Dynamically renders the security dashboard plugin."""
-    template = security_mgr.get_phonebook_path("devcore.sandbox.templates.security_dashboard.html")
+    template = resolver.get_path("devcore.sandbox.templates.security_dashboard.html", user_tier=5)
     if not os.path.exists(template):
         return "Security template not found", 404
         
@@ -235,7 +237,7 @@ async def plugin_exam():
     quiz_file = request.args.get('quiz', 'quiz_temp.json')
     exam_title = request.args.get('title', 'Siraugga Exam')
     
-    template = security_mgr.get_phonebook_path("devcore.sandbox.templates.exam_application.html")
+    template = resolver.get_path("devcore.sandbox.templates.exam_application.html", user_tier=5)
     if not os.path.exists(template):
         return "Exam template not found", 404
         
@@ -367,7 +369,7 @@ async def auth_check():
 
 @app.route('/login')
 async def login_page():
-    login_file = security_mgr.get_phonebook_path("devcore.sandbox.templates.login.html")
+    login_file = resolver.get_path("devcore.sandbox.templates.login.html", user_tier=5)
     if not os.path.exists(login_file):
         return "Login template not found", 404
     with open(login_file, 'r', encoding='utf-8') as f:
