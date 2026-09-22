@@ -76,7 +76,8 @@ class SecurityManager:
     }
 
     def __init__(self, base_dir=None):
-        self.base_dir = base_dir or os.path.dirname(os.path.abspath(__file__))
+        # Resolve to the root of DevCore instead of the security/ folder
+        self.base_dir = base_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
         self.sessions = {}  # token -> {"username": ..., "role": ..., "created_at": ...}
         self.sessions_file = os.path.join(self.base_dir, "sessions.json")
         self._local_sec = None

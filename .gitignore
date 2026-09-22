@@ -10,3 +10,5 @@ archive_scripts/
 .agents/
 sessions.json
 install_done.txt
+__pycache__/
+*.pyc

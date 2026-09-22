@@ -63,7 +63,7 @@ class SessionManager:
         # Unclaimed legacy sessions are restricted to admin only
         return False
 
-    def list_conversations(self, project_name=None, user=None):
+    def list_conversations(self, project_name=None, user=None, limit=None):
         valid_ids = []
         is_admin = user and user.get("role") == "admin"
         
@@ -96,7 +96,16 @@ class SessionManager:
                 except Exception:
                     pass
             results.append({"id": conv_id, "title": title})
-        return results
+            
+        # Ensure latest conversations are first
+        results.reverse()
+        
+        has_more = False
+        if limit is not None and limit > 0:
+            has_more = len(results) > limit
+            results = results[:limit]
+            
+        return results, has_more
 
     def delete_project_sessions(self, project_name, user):
         import shutil
