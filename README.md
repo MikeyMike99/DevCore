@@ -177,3 +177,14 @@ To perfectly obfuscate the host operating system's true directory structure from
 
 **Action**: 
 Physical file paths (e.g., `/mnt/c/Users/...`) are never exposed or accepted by the backend. Instead, the architecture utilizes an internal "Phonebook" mapping database. Users request access to abstract aliases (e.g., `system.backend.core`). The server's Resolver intercepts the alias, verifies the user's RBAC Tier against the Phonebook, and silently resolves the true physical path on the backend. This allows System Admins to easily provision highly contained virtual sandboxes for dev teams without moving physical files.
+
+## 5. Agentic Sanitization & UI Architecture
+
+**Methodology**: Tier-Driven LLM Summarization & 3D Flip UI
+
+**Purpose in the Application**:
+To ensure lower-tier users can understand technical implementations and system changes without ever being exposed to raw source code, backend blueprints, or root credentials. 
+
+**Action**: 
+The system employs a dynamic, fully-decoupled Jinja2 frontend powered by a centralized `ui_config.json`. The chat interface features 3D Flip Cards for artifact inspection and universal Code Copy buttons. 
+To enforce zero-trust security on the frontend, the system relies on **Agentic Sanitization**. Instead of hardcoded regex filters, lower-tier users requesting access to implementation plans trigger automated background prompts. These prompts force the AI to dynamically downgrade, redact, and summarize the document to match the user's specific clearance tier, while completely blocking raw code access for Guest accounts.
