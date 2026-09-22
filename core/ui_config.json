@@ -22,5 +22,12 @@
             "text": "Jump to Chat Input",
             "sr_text": "Shortcut: Alt plus C. Moves focus to text area."
         }
+    },
+    "chat_input": {
+        "label_sr": "Enter instructions for Siraugga",
+        "placeholder": "Enter instructions (e.g. modify file, test feature, refactor code)... Press Enter to execute.",
+        "helper_text": "Enter to run \u2022 Shift+Enter for newline",
+        "btn_aria_label": "Execute prompt",
+        "btn_text": "Execute"
     }
 }

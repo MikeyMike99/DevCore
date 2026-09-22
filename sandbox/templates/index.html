@@ -212,25 +212,25 @@
         <div class="p-4 bg-slate-900 border-t border-slate-800/80 shrink-0">
             <form id="chat-form" class="flex gap-2.5 items-end" onsubmit="sendPrompt(event)">
                 <div class="flex-1 relative">
-                    <label for="prompt" class="sr-only">Enter instructions for Antigravity</label>
+                    <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
                     <textarea 
                         id="prompt" 
                         rows="2"
                         style="white-space: pre-wrap !important; word-break: break-word !important;"
                         class="w-full bg-slate-950 text-slate-100 rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none text-sm placeholder-slate-500" 
-                        placeholder="Enter instructions (e.g. modify file, test feature, refactor code)... Press Enter to execute."
+                        placeholder="{{ ui.chat_input.placeholder }}"
                         onkeydown="handleKeyDown(event)"></textarea>
                     <div class="text-[11px] text-slate-500 absolute bottom-2 right-3 pointer-events-none" aria-hidden="true">
-                        Enter to run • Shift+Enter for newline
+                        {{ ui.chat_input.helper_text }}
                     </div>
                 </div>
                 <button 
                     type="submit" 
                     id="send-btn" 
-                    aria-label="Execute prompt"
+                    aria-label="{{ ui.chat_input.btn_aria_label }}"
                     class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg px-6 py-2.5 transition-colors h-[58px] flex items-center justify-center gap-2 shadow-sm shrink-0">
                     <span id="send-btn-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
-                    <span id="send-btn-text">Execute</span>
+                    <span id="send-btn-text">{{ ui.chat_input.btn_text }}</span>
                 </button>
             </form>
         </div>
