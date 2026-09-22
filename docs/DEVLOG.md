@@ -683,3 +683,15 @@ The final name was forged directly by the Tier 5 Root Administrator during a cre
 *   **A (Advancements):** Represents innovation and the integration of next-generation concepts.
 
 With the christening of Siraugga, the generic "Agent" placeholder was permanently retired across the workspace.
+
+## Chapter 47: The Raugus Resolver (VFS Gatekeeper)
+
+To actualize the theoretical Raugus Map VFS, the core **RaugusResolver** Python module was engineered and injected into the DevCore backend.
+
+### The Gatekeeper Mechanism
+The `raugus_resolver.py` module acts as an absolute middleware gatekeeper for File I/O operations. It strips the backend of its ability to open raw physical paths requested by clients.
+Instead, API routes must pass the abstract alias and the user's cryptographic RBAC Tier to `resolver.get_path(alias, user_tier)`.
+
+### Defense in Depth
+1. **Anti-Traversal (KeyError):** If a malicious user submits `../../etc/passwd` as an alias, the Resolver instantly throws a `KeyError` because the payload does not exist in the JSON phonebook. The physical filesystem is never interrogated.
+2. **Micro-Segmentation (PermissionError):** If a Tier 2 Developer requests `devcore.server.py` (a Tier 5 Raugi Script), the Resolver throws a `PermissionError`, enforcing Least Privilege natively at the File I/O layer.

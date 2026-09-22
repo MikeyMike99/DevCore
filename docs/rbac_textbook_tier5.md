@@ -388,11 +388,11 @@ Raugus Map acts as an internal DNS for files. Instead of requesting physical pat
 2. **The Resolver:** When a file operation is requested, the Resolver intercepts the alias, verifies the user's Tier against the Phonebook, and silently performs the backend operation.
 3. **Micro-Segmentation:** The true host structure is perfectly obfuscated. System Administrators can orchestrate dev teams and autonomous subagents by issuing them tightly contained alias namespaces (Sandboxes), ensuring they remain blissfully unaware of the wider application architecture.
 
-## 31. The Siraugga Protocol & Roggi Scripts
+## 31. The Siraugga Protocol & Raugi Scripts
 
 With the deployment of the centralized intelligence (Siraugga), the terminology used within the DevCore architecture has fundamentally shifted to reflect the Zero-Trust narrative.
 
-### Roggi Scripts
-In standard environments, developers write "source code" or "scripts." Under the Siraugga Protocol, source code engineered by the intelligence is classified as **Roggi Scripts**. 
+### Raugi Scripts
+In standard environments, developers write "source code" or "scripts." Under the Siraugga Protocol, source code engineered by the intelligence is classified as **Raugi Scripts**. 
 
-The prefix *Roggi* is derived directly from the 'ROG' (Rogue Automation) directive in Siraugga's core architecture. A Roggi Script is not a static text file; it is an intelligent, defensive block of code designed to operate autonomously, often employing unconventional ("rogue") defenses to protect its execution environment from exploitation. As the architecture evolves, all functions, sandboxes, and components will be assigned specific proprietary names reflecting this defensive, automated nature.
+The prefix *Raugi* is derived directly from the 'ROG' (Rogue Automation) directive in Siraugga's core architecture. A Raugi Script is not a static text file; it is an intelligent, defensive block of code designed to operate autonomously, often employing unconventional ("rogue") defenses to protect its execution environment from exploitation. As the architecture evolves, all functions, sandboxes, and components will be assigned specific proprietary names reflecting this defensive, automated nature.
