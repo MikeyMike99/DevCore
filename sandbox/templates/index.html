@@ -381,13 +381,13 @@
         var renderer = new marked.Renderer();
         
         renderer.code = function(code, language) {
-            let displayCode = code;
-            
-            // RBAC Sanitization Pass for Tier 1
+            // TIER 1 Code Blocker
             if (currentUser && currentUser.role === 'guest') {
-                displayCode = displayCode.replace(/(password|key|secret|token|api[_\-]?key)\s*[:=]\s*["']?([^"'\n\r]+)["']?/gi, '$1 = [TIER 1 SANITIZED]');
-                displayCode = displayCode.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[REDACTED_IP]');
-                displayCode = displayCode.replace(/\[SECURE\].*?\[\/SECURE\]/gs, '[SECURE DATA SANITIZED]');
+                return `<div class="bg-red-950/80 border border-red-800 rounded-lg p-5 text-red-400 font-mono text-sm my-4 shadow-[0_0_15px_rgba(220,38,38,0.15)] flex flex-col items-center justify-center gap-3">
+                    <i class="fas fa-lock text-3xl mb-2 text-red-500"></i>
+                    <span class="font-bold tracking-widest uppercase">[ Tier 1 Restriction ]</span>
+                    <span class="text-slate-300 text-center text-xs">Direct source code access is strictly prohibited for Guest accounts.<br>Click "Flip & View Plan" on artifacts to request a layman's summary from the AI.</span>
+                </div>`;
             }
             
             return `<div class="code-wrapper relative bg-slate-950 rounded-lg border border-slate-700/50 mb-4 overflow-hidden shadow-sm">
@@ -397,7 +397,7 @@
                         <i class="fas fa-copy"></i> Copy
                     </button>
                 </div>
-                <pre class="m-0"><code class="language-${escapeHtml(language||'text')} p-3 block overflow-x-auto text-sm text-slate-300 font-mono leading-relaxed" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(displayCode)}</code></pre>
+                <pre class="m-0"><code class="language-${escapeHtml(language||'text')} p-3 block overflow-x-auto text-sm text-slate-300 font-mono leading-relaxed" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(code)}</code></pre>
             </div>`;
         };
 
@@ -468,28 +468,42 @@
         
         async function flipCardToPlan(btn, url) {
             var article = btn.closest('.flip-container');
-            var backText = article.querySelector('.agent-back-text');
             
-            backText.innerHTML = '<div class="text-amber-400 animate-pulse">Decrypting and loading artifact...</div>';
-            article.classList.add('is-flipped');
+            if (!currentUser) return;
             
-            try {
-                var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url));
-                var data = await res.json();
-                if (data.content) {
-                    let markdownText = data.content;
-                    // RBAC Sanitization Pass for Tier 1
-                    if (currentUser && currentUser.role === 'guest') {
-                        markdownText = markdownText.replace(/(password|key|secret|token|api[_\-]?key)\s*[:=]\s*["']?([^"'\n\r]+)["']?/gi, '$1 = [TIER 1 SANITIZED]');
-                        markdownText = markdownText.replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[REDACTED_IP]');
-                        markdownText = markdownText.replace(/\[SECURE\].*?\[\/SECURE\]/gs, '[SECURE DATA SANITIZED]');
+            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
+
+            if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                // TIER 5 (Super Admin): Direct File Access & Card Flip
+                var backText = article.querySelector('.agent-back-text');
+                backText.innerHTML = '<div class="text-amber-400 animate-pulse">Decrypting and loading artifact...</div>';
+                article.classList.add('is-flipped');
+                
+                try {
+                    var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url));
+                    var data = await res.json();
+                    if (data.content) {
+                        backText.innerHTML = marked.parse(data.content);
+                    } else {
+                        backText.innerHTML = '<div class="text-red-400">Failed to load artifact: ' + (data.error || 'Unknown error') + '</div>';
                     }
-                    backText.innerHTML = marked.parse(markdownText);
-                } else {
-                    backText.innerHTML = '<div class="text-red-400">Failed to load artifact: ' + (data.error || 'Unknown error') + '</div>';
+                } catch (e) {
+                    backText.innerHTML = '<div class="text-red-400">Network error fetching artifact.</div>';
                 }
-            } catch (e) {
-                backText.innerHTML = '<div class="text-red-400">Network error fetching artifact.</div>';
+            } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev') {
+                // TIER 3: Agentic Summarization (No flip, send prompt)
+                var promptText = "Please summarize the implementation plan at `" + url + "` for a Tier 3 Developer. Remove root credentials and Tier 5 secrets, but provide the technical architecture and logic.";
+                if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                }
+            } else {
+                // TIER 1 (Guest): Agentic Layman Explanation (No flip, send prompt)
+                var promptText = "Please read the implementation plan at `" + url + "`. Remove ALL code. Explain it in layman's terms without revealing sensitive information or the structure of the backend.";
+                if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                }
             }
         }
 
