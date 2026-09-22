@@ -168,5 +168,35 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/templates/index.html",
         "required_tier": 2,
         "id": "6ec5c5df-a39e-437f-8188-97735a5dae25"
+    },
+    "devcore.core.ui_config.json": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/ui_config.json",
+        "required_tier": 1,
+        "id": "62b9d1fe-3047-4fc2-87c8-c28112c0d3b6"
+    },
+    "devcore.sandbox.templates.index.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/sandbox/templates/index.html",
+        "required_tier": 1,
+        "id": "f40de62c-f543-4bb0-a769-8d0e5e51202a"
+    },
+    "devcore.sandbox.templates.video_application.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/sandbox/templates/video_application.html",
+        "required_tier": 1,
+        "id": "364108e6-0e49-4138-abc1-026e50b73a7d"
+    },
+    "devcore.sandbox.templates.security_dashboard.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/sandbox/templates/security_dashboard.html",
+        "required_tier": 1,
+        "id": "89d36df8-23e1-420b-93da-16f33340780b"
+    },
+    "devcore.sandbox.templates.exam_application.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/sandbox/templates/exam_application.html",
+        "required_tier": 1,
+        "id": "0918cc75-5168-480b-a819-fb6ca8c909a7"
+    },
+    "devcore.sandbox.templates.login.html": {
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/sandbox/templates/login.html",
+        "required_tier": 1,
+        "id": "1ffca015-6cb9-45d3-9972-5be46b07221b"
     }
 }

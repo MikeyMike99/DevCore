@@ -169,8 +169,8 @@ async def start_background_tasks():
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Dynamically load from the sandbox layer
-TEMPLATE_FILE = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "index.html")
-UI_CONFIG_FILE = os.path.join(BASE_DIR, "ui_config.json")
+TEMPLATE_FILE = security_mgr.get_phonebook_path("devcore.sandbox.templates.index.html")
+UI_CONFIG_FILE = security_mgr.get_phonebook_path("devcore.core.ui_config.json")
 
 @app.route('/')
 async def index():
@@ -198,7 +198,7 @@ async def plugin_media():
     video_id = request.args.get('v', 'jNQXAC9IVRw')
     video_title = request.args.get('title', 'Accessible Video Player')
     
-    template = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "video_application.html")
+    template = security_mgr.get_phonebook_path("devcore.sandbox.templates.video_application.html")
     if not os.path.exists(template):
         return "Media template not found", 404
         
@@ -215,7 +215,7 @@ async def plugin_media():
 @app.route('/plugin/security')
 async def plugin_security():
     """Dynamically renders the security dashboard plugin."""
-    template = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "security_dashboard.html")
+    template = security_mgr.get_phonebook_path("devcore.sandbox.templates.security_dashboard.html")
     if not os.path.exists(template):
         return "Security template not found", 404
         
@@ -235,7 +235,7 @@ async def plugin_exam():
     quiz_file = request.args.get('quiz', 'quiz_temp.json')
     exam_title = request.args.get('title', 'Siraugga Exam')
     
-    template = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "exam_application.html")
+    template = security_mgr.get_phonebook_path("devcore.sandbox.templates.exam_application.html")
     if not os.path.exists(template):
         return "Exam template not found", 404
         
@@ -367,7 +367,7 @@ async def auth_check():
 
 @app.route('/login')
 async def login_page():
-    login_file = os.path.join(os.path.dirname(BASE_DIR), "sandbox", "templates", "login.html")
+    login_file = security_mgr.get_phonebook_path("devcore.sandbox.templates.login.html")
     if not os.path.exists(login_file):
         return "Login template not found", 404
     with open(login_file, 'r', encoding='utf-8') as f:
