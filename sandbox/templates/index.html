@@ -1888,5 +1888,48 @@
     });
     </script>
 <div id="exam-announcer" class="sr-only" aria-live="assertive"></div>
+
+    <!-- Singleton Plugin Cleanup Script -->
+    <script>
+    (function() {
+        const observer = new MutationObserver(function(mutations) {
+            let pluginAdded = false;
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1 && (node.querySelector('iframe[src*="/plugin/exam"]') || node.matches && node.matches('iframe[src*="/plugin/exam"]'))) {
+                            pluginAdded = true;
+                        }
+                    });
+                }
+            });
+
+            if (pluginAdded) {
+                // Find all exam iframes
+                const allExams = document.querySelectorAll('iframe[src*="/plugin/exam"]');
+                if (allExams.length > 1) {
+                    // Keep the last one, destroy the rest
+                    for (let i = 0; i < allExams.length - 1; i++) {
+                        const oldExam = allExams[i];
+                        const container = oldExam.closest('.message-card') || oldExam.parentElement;
+                        
+                        // Create a placeholder
+                        const placeholder = document.createElement('div');
+                        placeholder.className = "p-4 border border-slate-700 bg-slate-800/50 rounded-lg text-slate-400 text-center text-sm italic mb-4";
+                        placeholder.innerText = "[ Previous Exam Session Closed to Prevent Clutter ]";
+                        
+                        oldExam.replaceWith(placeholder);
+                    }
+                }
+            }
+        });
+
+        observer.observe(document.getElementById('chat-history') || document.body, {
+            childList: true,
+            subtree: true
+        });
+    })();
+    </script>
+
 </body>
 </html>
