@@ -677,6 +677,19 @@ When the backend server needs to render a page, it cannot simply open the file. 
 
 This methodology is the pinnacle of Zero-Trust architecture. An attacker cannot traverse directories because the directories do not logically exist within the application's code. If a malicious actor attempts to request `../../core/server.py`, the Resolver simply checks the Phonebook, finds no such alias, logs a potential intrusion, and violently terminates the request with a `KeyError`. They are trapped in a digital territory with no doors, where pathways only manifest for those with the absolute highest clearance.
 
+
+### Layer 8: Asynchronous Swarm Ingestion (Large Data Handling)
+
+When dealing with massive data ingestion (e.g., generating extensive exams from study directories, parsing massive codebases), a fundamental vulnerability arises: **Context Degradation**. Feeding an AI a massive wall of text in a single prompt guarantees hallucinations, dropped data, and massive user wait times.
+
+To solve this, the Siraugga Protocol mandates the **Asynchronous Swarm Ingestion** architecture as the standard operating procedure for all large data tasks:
+
+1. **Decoupled Processing:** The Main Agent refuses the single-prompt execution. Instead, it spawns a dedicated Subagent (The Harvester) in the background.
+2. **Iterative Backend Appending:** The Harvester reads the data in isolated chunks. For each chunk, it processes the text and instantly executes a local `POST` request to the backend API (e.g., `/api/plugin/exam/save`). The data is securely appended and locked into the physical JSON database on disk.
+3. **Zero-Wait User Experience:** The Main Agent monitors the Harvester's progress. The exact millisecond the Harvester confirms Chunk 1 is securely saved, the Main Agent renders the UI for the User. 
+
+The User can instantly interact with the application, blissfully unaware that the Subagent is silently looping through the remaining hundreds of files in the background, building out the database ahead of them. The context is preserved on the disk, not in the LLM's fragile memory window.
+
 # Conclusion: The Future of Autonomous Architecture
 
 The Antigravity Engine represents a paradigm shift in how we handle autonomous AI agents in production environments. Traditional systems rely on fragile prompt engineering, hoping the AI simply *chooses* not to execute malicious code. We have proven throughout this textbook that hope is not a security strategy.
