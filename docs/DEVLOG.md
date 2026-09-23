@@ -755,3 +755,7 @@ While this limitation causes immense friction and frustration for the Administra
   2. The Subagent reads the data in isolated chunks and continuously `POST`s the structured output to the backend (e.g., `/api/plugin/exam/save`) to iteratively build the JSON database on disk.
   3. The Main Agent monitors for the *first successful chunk completion*, and immediately renders the UI/Iframe for the user, resulting in a zero-wait experience.
 - **Status:** This is now the permanent, codified standard for all large-scale data ingestion within the Siraugga architecture.
+
+### [STANDARD OPERATING PROCEDURE] Non-Interruptive Agentic Reporting (The Silent Completion Protocol)
+- **Mandate:** When an AI Agent spawns a background task or subagent (The Swarm), the Main Agent must **NEVER** proactively interrupt the user in the main chat feed upon completion if the user is engaged in a localized UI application (e.g., taking an exam in an Iframe).
+- **Protocol:** Subagents and background tasks must report their completion silently. The Main Agent will log the completion internally or wait for the user to explicitly query the status. Hijacking the user's visual focus or chat scroll state while they are operating a plugin is strictly prohibited.
