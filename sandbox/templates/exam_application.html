@@ -50,52 +50,27 @@
         feedback_incorrect: {{ ui.exam_app.feedback_incorrect | tojson | safe }}
     };
 
-    const questions = [
-        {
-            text: "What is the key characteristic that distinguishes a public cloud from a private cloud?",
-            options: [
-                "A public cloud is accessed over the internet and a private cloud is not.",
-                "A public cloud is available to anyone who purchases the service; a private cloud is used by a single organisation.",
-                "A public cloud is hosted off site and a private cloud is hosted on site.",
-                "A public cloud is always cheaper than a private cloud."
-            ],
-            correct_index: 1,
-            explanation: "General availability to anyone who buys the service is what defines a public cloud. A private cloud is defined by being used by a single organisation, regardless of whether it is hosted on-site or off-site."
-        },
-        {
-            text: "In the shared responsibility model, which of the following areas remains with the customer across on-premises, IaaS, PaaS, and SaaS?",
-            options: [
-                "Operating system",
-                "Physical hosts",
-                "Identities and users",
-                "Network controls"
-            ],
-            correct_index: 2,
-            explanation: "Identities and users, customer data, and configurations/settings are the three areas that never transfer to the provider. They remain the customer's responsibility in every cloud model."
-        },
-        {
-            text: "An organisation moves a workload from its own datacentre to Azure Virtual Machines (IaaS). Which responsibility transfers to Microsoft?",
-            options: [
-                "Patching the operating system on the virtual machine",
-                "Classifying and protecting the data stored on the virtual machine",
-                "Managing which users have access to the virtual machine",
-                "Physical security of the datacentre housing the hardware"
-            ],
-            correct_index: 3,
-            explanation: "In Infrastructure as a Service (IaaS), the provider (Microsoft) takes over the physical layer: physical hosts, physical network, and physical datacentre. The customer retains the OS, data, and access controls."
-        },
-        {
-            text: "An organisation uses its own datacentre for patient records and Azure for its public website, with the two environments interconnected. Which cloud model is this?",
-            options: [
-                "Public cloud",
-                "Private cloud",
-                "Hybrid cloud",
-                "Multicloud"
-            ],
-            correct_index: 2,
-            explanation: "A hybrid cloud is an interconnected computing environment that uses both public (Azure) and private (own datacentre) clouds together."
-        }
-    ];
+    let questions = [];
+    const quizFileUrl = '/static/{{ quiz_file }}';
+
+    // Fetch the quiz data dynamically from the backend JSON
+    fetch(quizFileUrl)
+        .then(response => {
+            if (!response.ok) throw new Error("Failed to load quiz data");
+            return response.json();
+        })
+        .then(data => {
+            questions = data;
+            // Optionally enable the start button only after data loads
+            document.getElementById('start-btn').innerText = uiStrings.btn_start || "Start Exam";
+            document.getElementById('start-btn').disabled = false;
+        })
+        .catch(err => {
+            console.error("Error loading quiz:", err);
+            document.getElementById('start-btn').innerText = "Error Loading Exam Data";
+            document.getElementById('start-btn').disabled = true;
+            announce("Error loading exam data.");
+        });
 
     let currentIndex = 0;
     let isReviewing = false;
