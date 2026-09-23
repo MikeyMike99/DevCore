@@ -119,5 +119,11 @@
         "progress_mid": " of ",
         "feedback_correct": "Correct!",
         "feedback_incorrect": "Incorrect."
+    },
+    "tts_engine": {
+        "enabled": false,
+        "provider": "elevenlabs",
+        "api_key": "",
+        "voice_id": "pNInz6obbfDQGcgMyIGC"
     }
 }

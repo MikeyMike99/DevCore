@@ -308,6 +308,41 @@ async def handle_massive_prompt():
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/auth_check')
+@app.route('/api/plugin/tts', methods=['POST'])
+async def plugin_tts():
+    """
+    Zero-Trust Proxy Route for Cinematic TTS.
+    """
+    data = await request.get_json()
+    if not data or 'text' not in data:
+        return jsonify({"error": "No text provided"}), 400
+        
+    text = data['text'].strip()
+    if not text:
+        return jsonify({"error": "Empty text provided"}), 400
+
+    # 1. Ask the Gatekeeper for the Proxy Plugin
+    try:
+        proxy_path = resolver.get_path("devcore.plugins.tts_proxy.py", user_tier=5)
+    except Exception as e:
+        return jsonify({"error": "TTS Plugin not found or unauthorized"}), 403
+
+    # 2. Dynamically load the plugin to maintain execution decoupling
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tts_proxy", proxy_path)
+    tts_plugin = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tts_plugin)
+    
+    # 3. Handoff execution
+    result, status_code = tts_plugin.generate_audio(text, UI_CONFIG_FILE)
+    
+    if status_code == 200:
+        # Return binary audio stream
+        from quart import Response
+        return Response(result, mimetype="audio/mpeg")
+    else:
+        return jsonify(result), status_code
+
 async def auth_check():
     """Proactively tests if the CLI needs authentication by running a dummy command."""
     import sys
