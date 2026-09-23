@@ -747,3 +747,11 @@ While this limitation causes immense friction and frustration for the Administra
 - **Accessibility Integration:** The TTS engine will also be utilized to narrate in-game quests and operations, completely bypassing standard robotic screen readers for an immersive, accessible gaming experience.
 - **Security:** Adheres strictly to the API Proxy Doctrine. The core Agent remains air-gapped and ignorant of the external cloud API. The TTS engine operates strictly as a peripheral black-box output layer.
 - **Implementation Steps:** Fully documented in the `Cinematic_TTS_Roadmap` artifact.
+
+### [STANDARD OPERATING PROCEDURE] Asynchronous Swarm Ingestion (Large Data Handling)
+- **Mandate:** AI Agents must NEVER attempt to ingest or process large directories of data (like exam materials or large codebases) in a single prompt. This causes context degradation and hallucination.
+- **The Swarm Pipeline:** 
+  1. The Main Agent must spawn a dedicated **Subagent** to handle the data processing.
+  2. The Subagent reads the data in isolated chunks and continuously `POST`s the structured output to the backend (e.g., `/api/plugin/exam/save`) to iteratively build the JSON database on disk.
+  3. The Main Agent monitors for the *first successful chunk completion*, and immediately renders the UI/Iframe for the user, resulting in a zero-wait experience.
+- **Status:** This is now the permanent, codified standard for all large-scale data ingestion within the Siraugga architecture.
