@@ -54,7 +54,7 @@
     const quizFileUrl = '/static/{{ quiz_file }}';
 
     // Fetch the quiz data dynamically from the backend JSON
-    fetch(quizFileUrl)
+    fetch(quizFileUrl + '?t=' + new Date().getTime())
         .then(response => {
             if (!response.ok) throw new Error("Failed to load quiz data");
             return response.json();
