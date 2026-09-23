@@ -343,6 +343,41 @@ async def plugin_tts():
     else:
         return jsonify(result), status_code
 
+@app.route('/api/plugin/exam/save', methods=['POST'])
+async def plugin_exam_save():
+    """
+    Backend operation to permanently save generated exam questions to a specific quiz file.
+    Expects JSON: {"quiz_file": "master_exam.json", "questions": [...]}
+    """
+    data = await request.get_json()
+    if not data or 'questions' not in data:
+        return jsonify({"error": "No questions provided"}), 400
+        
+    quiz_file_name = data.get('quiz_file', 'master_exam.json')
+    # Prevent path traversal
+    safe_file_name = os.path.basename(quiz_file_name)
+    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static", safe_file_name)
+    
+    new_questions = data['questions']
+    
+    # Load existing if available to append
+    existing_data = []
+    if os.path.exists(save_path):
+        try:
+            with open(save_path, 'r', encoding='utf-8') as f:
+                existing_data = json.load(f)
+        except Exception:
+            existing_data = []
+            
+    existing_data.extend(new_questions)
+    
+    try:
+        with open(save_path, 'w', encoding='utf-8') as f:
+            json.dump(existing_data, f, indent=4)
+        return jsonify({"success": True, "total_questions": len(existing_data), "file": safe_file_name}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to save exam data: {str(e)}"}), 500
+
 async def auth_check():
     """Proactively tests if the CLI needs authentication by running a dummy command."""
     import sys
