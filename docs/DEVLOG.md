@@ -741,3 +741,9 @@ While this limitation causes immense friction and frustration for the Administra
 - Stripped all hardcoded `os.path.join` absolute paths from `core/server.py`.
 - Injected all templates (`index.html`, `login.html`, `video_application.html`, etc.) and configs (`ui_config.json`) into the `security/raugus_map.json` Phonebook.
 - Engineered `the `RaugusResolver` singleton (`raugus_resolver.py`)` to serve as the exclusive path resolver. The backend now requests abstract keys (e.g., `"devcore.sandbox.templates.login.html"`) instead of relying on physical disk structures, solidifying the application's VFS (Virtual File System) boundaries.
+
+### [ROADMAP] Cinematic TTS Plugin & In-Game Narrator
+- **Concept:** Implement a decoupled TTS (Text-to-Speech) proxy plugin (e.g., ElevenLabs) to give Siraugga a distinct, cinematic voice.
+- **Accessibility Integration:** The TTS engine will also be utilized to narrate in-game quests and operations, completely bypassing standard robotic screen readers for an immersive, accessible gaming experience.
+- **Security:** Adheres strictly to the API Proxy Doctrine. The core Agent remains air-gapped and ignorant of the external cloud API. The TTS engine operates strictly as a peripheral black-box output layer.
+- **Implementation Steps:** Fully documented in the `Cinematic_TTS_Roadmap` artifact.
