@@ -135,6 +135,7 @@ async def proxy_ws():
 def run_preflight_checks():
     import subprocess
     import os
+    import sys
     print("=========================================================")
     print("[Bootstrap] Running Pre-Flight Diagnostics...")
     core_files = [
@@ -144,52 +145,65 @@ def run_preflight_checks():
         "core/session_manager.py",
         "core/project_manager.py"
     ]
-    all_passed = True
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    for file in core_files:
-        path = os.path.join(base_dir, file)
-        if os.path.exists(path):
-            result = subprocess.run(["python3", "-m", "py_compile", path], capture_output=True, text=True)
-            if result.returncode != 0:
-                print(f"[Bootstrap] \033[91mCRITICAL SYNTAX ERROR in {file}:\033[0m\n{result.stderr}")
-                all_passed = False
-                
-                # --- AUTO-REPAIR AGENT SPAWN ---
-                print(f"[Bootstrap] \033[93m⚠️ Spawning Emergency Auto-Repair Agent for {file}...\033[0m")
-                import shutil
-                agy_binary = shutil.which("agy")
-                if not agy_binary:
-                    fallback = os.path.expanduser("~/.local/bin/agy")
-                    agy_binary = fallback if os.path.exists(fallback) else "agy"
-                
-                repair_prompt = (
-                    f"CRITICAL SYSTEM ERROR: The core file '{file}' failed python compilation.\n"
-                    f"Error Traceback:\n{result.stderr}\n\n"
-                    f"You are the Emergency Auto-Repair Agent. You have ADMIN privileges.\n"
-                    f"1. Read the file '{file}'.\n"
-                    f"2. Locate the syntax or indentation error causing this traceback.\n"
-                    f"3. Fix the code and overwrite the file immediately.\n"
-                    f"4. Do not write markdown blocks or explanations to the file, just correct the python syntax."
-                )
-                
-                try:
-                    subprocess.run([
-                        agy_binary,
-                        "--dangerously-skip-permissions",
-                        "--print", repair_prompt
-                    ], cwd=base_dir)
-                    print(f"[Bootstrap] \033[92m✅ Auto-Repair Agent has completed its override. Please restart the gateway to verify the fix.\033[0m")
-                except Exception as e:
-                    print(f"[Bootstrap] \033[91mAuto-repair agent failed to launch: {e}\033[0m")
-                    
-            else:
-                print(f"[Bootstrap] \033[92m[OK]\033[0m {file} compiled successfully.")
     
-    if not all_passed:
-        print("[Bootstrap] \033[91mWARNING: Core files have syntax errors! Internal Backend (5001) may fail to start or reload.\033[0m")
-    else:
-        print("[Bootstrap] All core files passed syntax validation. Architecture is stable.")
-    print("=========================================================")
+    max_retries = 2
+    for attempt in range(max_retries + 1):
+        all_passed = True
+        for file in core_files:
+            path = os.path.join(base_dir, file)
+            if os.path.exists(path):
+                result = subprocess.run(["python3", "-m", "py_compile", path], capture_output=True, text=True)
+                if result.returncode != 0:
+                    print(f"[Bootstrap] [91mCRITICAL SYNTAX ERROR in {file}:[0m
+{result.stderr}")
+                    all_passed = False
+                    
+                    if attempt < max_retries:
+                        # --- AUTO-REPAIR AGENT SPAWN ---
+                        print(f"[Bootstrap] [93m⚠️ Spawning Emergency Auto-Repair Agent for {file} (Attempt {attempt+1}/{max_retries})...[0m")
+                        import shutil
+                        agy_binary = shutil.which("agy")
+                        if not agy_binary:
+                            fallback = os.path.expanduser("~/.local/bin/agy")
+                            agy_binary = fallback if os.path.exists(fallback) else "agy"
+                        
+                        repair_prompt = (
+                            f"CRITICAL SYSTEM ERROR: The core file '{file}' failed python compilation.
+"
+                            f"Error Traceback:
+{result.stderr}
+
+"
+                            f"You are the Emergency Auto-Repair Agent. You have ADMIN privileges.
+"
+                            f"1. Read the file '{file}'.
+"
+                            f"2. Locate the syntax or indentation error causing this traceback.
+"
+                            f"3. Fix the code and overwrite the file immediately.
+"
+                            f"4. Do not write markdown blocks or explanations to the file, just correct the python syntax."
+                        )
+                        
+                        try:
+                            subprocess.run([
+                                agy_binary,
+                                "--dangerously-skip-permissions",
+                                "--print", repair_prompt
+                            ], cwd=base_dir)
+                            print(f"[Bootstrap] [92m✅ Auto-Repair Agent finished. Re-running diagnostics...[0m")
+                        except Exception as e:
+                            print(f"[Bootstrap] [91mAuto-repair agent failed to launch: {e}[0m")
+                    break # Break the file loop, restart diagnostic checks
+
+        if all_passed:
+            print("[Bootstrap] All core files passed syntax validation. Architecture is stable.")
+            print("=========================================================")
+            return
+
+    print("[Bootstrap] [91mFATAL: Auto-repair failed after multiple attempts. Manual intervention required.[0m")
+    sys.exit(1)
 
 if __name__ == '__main__':
     run_preflight_checks()
