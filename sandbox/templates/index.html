@@ -238,13 +238,13 @@
                 <div class="flex-1 relative">
                     
                     <!-- Slash Command Menu -->
-                    <div id="slash-command-menu" class="hidden absolute bottom-[65px] left-0 w-full max-w-sm bg-slate-800 border border-slate-600 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
+                    <div id="slash-command-menu" role="listbox" aria-label="Slash Commands" class="hidden absolute bottom-[65px] left-0 w-full max-w-sm bg-slate-800 border border-slate-600 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
                         <div class="px-3 py-2 bg-slate-900 border-b border-slate-700 text-xs text-slate-400 font-bold uppercase tracking-wider">Slash Commands</div>
-                        <button type="button" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-b border-slate-700/50" data-command="/help exam">
+                        <button type="button" role="option" id="slash-item-0" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-b border-slate-700/50" data-command="/help exam">
                             <div class="font-bold text-teal-400 text-sm">/help exam</div>
                             <div class="text-xs text-slate-300 mt-1">Guide to launching the Custom Exam Builder</div>
                         </button>
-                        <button type="button" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors" data-command="/clear">
+                        <button type="button" role="option" id="slash-item-1" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors" data-command="/clear">
                             <div class="font-bold text-teal-400 text-sm">/clear</div>
                             <div class="text-xs text-slate-300 mt-1">Clears the current chat interface</div>
                         </button>
@@ -253,6 +253,10 @@
                     <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
                     <textarea 
                         id="prompt" 
+                        role="combobox" 
+                        aria-autocomplete="list" 
+                        aria-expanded="false" 
+                        aria-controls="slash-command-menu" 
                         rows="2"
                         style="white-space: pre-wrap !important; word-break: break-word !important;"
                         class="w-full bg-slate-950 text-slate-100 rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none text-sm placeholder-slate-500" 
@@ -1454,7 +1458,7 @@
             var lowerP = prompt.toLowerCase();
             const p = lowerP.trim();
             const isHelp = 
-                p === 'help exam' || p === '/help exam' || 
+                p === 'help exam' || p.startsWith('/help exam') || 
                 p === 'help quiz' || p === '/help quiz' || 
                 p === 'help test' || p === '/help test' ||
                 p === 'exam help' || p === 'quiz help' || p === 'test help' ||
@@ -1983,10 +1987,13 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
 
         function showMenu() {
             menuEl.classList.remove('hidden');
+            inputEl.setAttribute('aria-expanded', 'true');
         }
 
         function hideMenu() {
             menuEl.classList.add('hidden');
+            inputEl.setAttribute('aria-expanded', 'false');
+            inputEl.removeAttribute('aria-activedescendant');
             activeIndex = -1;
             updateActiveItem();
         }
@@ -1995,8 +2002,11 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
             items.forEach((item, index) => {
                 if (index === activeIndex) {
                     item.classList.add('bg-slate-700');
+                    item.setAttribute('aria-selected', 'true');
+                    inputEl.setAttribute('aria-activedescendant', item.id);
                 } else {
                     item.classList.remove('bg-slate-700');
+                    item.setAttribute('aria-selected', 'false');
                 }
             });
         }
