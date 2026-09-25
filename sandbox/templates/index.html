@@ -1544,6 +1544,15 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
 
         function handleKeyDown(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
+                // Prevent sending if the slash menu is active and an item is highlighted
+                var menuEl = document.getElementById('slash-command-menu');
+                if (menuEl && !menuEl.classList.contains('hidden')) {
+                    // Check if the user is navigating the menu (active item exists)
+                    var hasActiveItem = menuEl.querySelector('[aria-selected="true"]');
+                    if (hasActiveItem) {
+                        return; // Let the slash command event listener handle the selection
+                    }
+                }
                 e.preventDefault();
                 sendPrompt();
             }
