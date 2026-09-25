@@ -489,7 +489,7 @@
             
             if (!currentUser) return;
             
-            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
+            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
 
             if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
                 // TIER 5 (Super Admin): Direct File Access & Card Flip
@@ -527,7 +527,7 @@
 
         function proceedArtifact() {
             var prompt = "Proceed";
-            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
+            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
             if (typeof appendUserMessage === 'function') {
                 appendUserMessage(prompt);
             }
@@ -1436,7 +1436,7 @@
             var prompt = inputEl.value.trim();
             if (!prompt || isTaskRunning) return;
 
-            var model = modelSelector ? modelSelector.value : 'gemini-3.8-flash-high';
+            var model = modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
 
             if (!currentConversationId) {
                 currentConversationId = 'conv-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
