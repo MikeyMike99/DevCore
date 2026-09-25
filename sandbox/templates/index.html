@@ -1452,7 +1452,7 @@
                 p.includes('how the quiz works') || p.includes('how the test works');
             
             if (isHelp) {
-                actualPromptToSend = "SYSTEM TRIGGER [Help Exam/Quiz]: The user wants a simple, non-technical guide on how to launch a custom Exam Application. Explain that they simply need to provide their study material (a folder path) and tell the AI exactly how they want their exam tailored. 
+                actualPromptToSend = `SYSTEM TRIGGER [Help Exam/Quiz]: The user wants a simple, non-technical guide on how to launch a custom Exam Application. Explain that they simply need to provide their study material (a folder path) and tell the AI exactly how they want their exam tailored. 
 
 Also, explicitly inform the user of these powerful features:
 1. They can request to activate 'Anti-Cheat' mode.
@@ -1460,7 +1460,7 @@ Also, explicitly inform the user of these powerful features:
 3. They can dynamically change the interface (colors, timers, etc.) by sending follow-up prompts even while a test is currently active.
 4. To keep the chat clean, only one exam is allowed to be open in the feed at a time.
 
-Provide 2-3 easy example prompts they can copy and paste. Do not use technical jargon like 'backend', 'subagents', or 'swarm'.";
+Provide 2-3 easy example prompts they can copy and paste. Do not use technical jargon like 'backend', 'subagents', or 'swarm'.`;
             }
             
             // Clear the local draft JSON only upon intentional send
