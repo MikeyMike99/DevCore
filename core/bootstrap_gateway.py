@@ -131,7 +131,39 @@ async def proxy_ws():
         client_listen_task.cancel()
         heartbeat_task.cancel()
 
+
+def run_preflight_checks():
+    import subprocess
+    import os
+    print("=========================================================")
+    print("[Bootstrap] Running Pre-Flight Diagnostics...")
+    core_files = [
+        "core/server.py", 
+        "agents/agent_manager.py", 
+        "security/security_manager.py",
+        "core/session_manager.py",
+        "core/project_manager.py"
+    ]
+    all_passed = True
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for file in core_files:
+        path = os.path.join(base_dir, file)
+        if os.path.exists(path):
+            result = subprocess.run(["python3", "-m", "py_compile", path], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"[Bootstrap] \033[91mCRITICAL SYNTAX ERROR in {file}:\033[0m\n{result.stderr}")
+                all_passed = False
+            else:
+                print(f"[Bootstrap] \033[92m[OK]\033[0m {file} compiled successfully.")
+    
+    if not all_passed:
+        print("[Bootstrap] \033[91mWARNING: Core files have syntax errors! Internal Backend (5001) may fail to start or reload.\033[0m")
+    else:
+        print("[Bootstrap] All core files passed syntax validation. Architecture is stable.")
+    print("=========================================================")
+
 if __name__ == '__main__':
+    run_preflight_checks()
     print("=========================================================")
     print("Starting Antigravity Persistent Bootstrap Gateway on 5000")
     print("Direct Link: http://172.29.245.229:5000 (or http://localhost:5000)")
