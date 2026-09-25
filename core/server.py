@@ -524,7 +524,7 @@ async def ws_endpoint():
                 continue
 
             prompt = None
-            model = "gemini-3.8-flash-high"
+            model = "gemini-3.8-flash-low"
             conversation_id = None
             try:
                 data = json.loads(raw_msg)
@@ -557,7 +557,7 @@ async def ws_endpoint():
                     continue
                 elif msg_type == "prompt":
                     prompt = data.get("prompt", "").strip()
-                    model = data.get("model", "gemini-3.8-flash-high")
+                    model = data.get("model", "gemini-3.8-flash-low")
                     conversation_id = data.get("conversation_id")
                     admin_override = data.get("admin_override", False)
                     token = data.get("token")
