@@ -1438,7 +1438,7 @@
             
             var actualPromptToSend = prompt;
             var lowerP = prompt.toLowerCase();
-            if ((lowerP.includes('help') || lowerP.includes('how to')) && (lowerP.includes('exam') || lowerP.includes('quiz') || lowerP.includes('test'))) {
+            if ((lowerP.includes('help') || lowerP.includes('how to') || lowerP.includes('how ') || lowerP.includes('explain') || lowerP.includes('guide')) && (lowerP.includes('exam') || lowerP.includes('quiz') || lowerP.includes('test'))) {
                 actualPromptToSend = "SYSTEM TRIGGER [Help Exam/Quiz]: The user wants a simple, non-technical guide on how to launch a custom Exam Application. Explain that they simply need to provide their study material (a folder path) and tell the AI exactly how they want their exam tailored. 
 
 Also, explicitly inform the user of these powerful features:
