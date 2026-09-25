@@ -1080,6 +1080,25 @@
                 appendSystemMessage(data.message, data.level || 'info');
                 announce(data.message, data.level === 'warning');
             }
+            else if (data.type === 'model_fallback') {
+                if (taskModelBadge) {
+                    taskModelBadge.innerText = data.fallback_model + " (Forced)";
+                    taskModelBadge.classList.add("text-yellow-400");
+                    taskModelBadge.classList.remove("text-teal-400");
+                }
+                if (typeof modelSelector !== 'undefined' && modelSelector) {
+                    var options = Array.from(modelSelector.options);
+                    var optionExists = options.some(opt => opt.value === data.fallback_model);
+                    if (optionExists) {
+                        modelSelector.value = data.fallback_model;
+                        localStorage.setItem('agy_selected_model', data.fallback_model);
+                    }
+                }
+                appendSystemMessage("⚠️ QUOTA EXCEEDED / FALLBACK: " + data.message, "warning");
+                if (typeof announce === 'function') {
+                    announce("Quota limit reached. System forcefully downgraded model to " + data.fallback_model);
+                }
+            }
             else if (data.type === 'task_started') {
                 startTaskUI(data.prompt, data.model, data.start_time);
             }
