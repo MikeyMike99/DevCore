@@ -34,6 +34,11 @@ class SecurityManager:
         "server_new.py", "test.js", "test_ws.py"
     }
 
+    CORE_DIRECTORIES = {
+        "core", "security", "sandbox", "plugins", "docs", 
+        "archives", "backups", "scripts"
+    }
+
     ALLOWED_EXTENSIONS = {
         ".py", ".json", ".lua", ".js", ".ts", ".md", ".txt",
         ".yaml", ".yml", ".xml", ".csv", ".ini", ".cfg", ".log", ".html", ".css"
@@ -166,9 +171,16 @@ class SecurityManager:
         norm_path = os.path.normpath(rel_path).replace("\\", "/")
         parts = norm_path.split("/")
 
-        for p in parts:
+        for p in parts[:-1]:  # Check all directory parts
             if p in self.FORBIDDEN_NAMES or p.startswith("."):
                 return self.TIER_FORBIDDEN
+            if p in self.CORE_DIRECTORIES:
+                return self.TIER_CORE_ENGINE
+                
+        # Check the final file/folder name
+        final_part = parts[-1]
+        if final_part in self.FORBIDDEN_NAMES or final_part.startswith("."):
+            return self.TIER_FORBIDDEN
 
         filename = os.path.basename(norm_path)
         if filename in self.CORE_FILES:
