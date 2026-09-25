@@ -475,13 +475,36 @@
         marked.use({ renderer: renderer, breaks: true, gfm: true });
 
         
+        function executeCopy(text, btn, successHtml) {
+            var original = btn.innerHTML;
+            function showSuccess() {
+                btn.innerHTML = successHtml || '<i class="fas fa-check text-green-400"></i> Copied';
+                setTimeout(() => { btn.innerHTML = original; }, 2000);
+            }
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(showSuccess).catch(err => console.error("Clipboard API failed", err));
+            } else {
+                var textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.top = "0";
+                textArea.style.left = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    if (document.execCommand('copy')) showSuccess();
+                } catch (err) {
+                    console.error('Fallback copy error', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
         function copyCode(btn) {
             var code = btn.closest('.code-wrapper').querySelector('code').innerText;
-            navigator.clipboard.writeText(code).then(() => {
-                var original = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check text-green-400"></i> Copied';
-                setTimeout(() => { btn.innerHTML = original; }, 2000);
-            });
+            executeCopy(code, btn, '<i class="fas fa-check text-green-400"></i> Copied');
         }
         
         async function flipCardToPlan(btn, url) {
@@ -557,12 +580,67 @@
             }
             fetch('/api/auth_check').then(r => r.json()).then(data => {
                 if (data.authenticated === false) {
-                    window.location.href = '/login';
+                    showLoginOverlay(data);
                 }
             }).catch(e => console.error("Auth check failed", e));
         });
+        
+        function showLoginOverlay(data) {
+            if (document.getElementById('login-overlay')) return;
+            const overlay = document.createElement('div');
+            overlay.id = 'login-overlay';
+            overlay.className = 'fixed inset-0 bg-slate-900/95 z-[9999] flex flex-col items-center justify-center backdrop-blur-sm';
+            
+            if (data && data.expired) {
+                overlay.innerHTML = `
+                    <div class="bg-slate-800 p-8 rounded-xl shadow-2xl text-center max-w-md border border-red-900 border-2">
+                        <i class="fas fa-calendar-times text-red-500 text-5xl mb-4"></i>
+                        <h2 class="text-2xl font-bold text-red-400 mb-2">Trial Expired</h2>
+                        <p class="text-slate-400 mb-6 text-sm">This application's access token has expired. Please contact the administrator for a new version.</p>
+                    </div>
+                `;
+            } else {
+                overlay.innerHTML = `
+                    <div class="bg-slate-800 p-8 rounded-xl shadow-2xl text-center max-w-md border border-slate-700">
+                        <i class="fas fa-lock text-teal-500 text-4xl mb-4"></i>
+                        <h2 class="text-2xl font-bold text-slate-200 mb-2">Authentication Required</h2>
+                        <p class="text-slate-400 mb-6 text-sm">You must authenticate to connect to the backend engine.</p>
+                        <button onclick="window.open('/login', '_blank')" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-6 rounded-lg w-full transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-external-link-alt"></i> Open Login Screen
+                        </button>
+                    </div>
+                `;
+            }
+            document.body.appendChild(overlay);
+            
+            // Poll in background until authenticated
+            const authInterval = setInterval(() => {
+                fetch('/api/auth_check').then(r => r.json()).then(d => {
+                    if (d.authenticated === true) {
+                        clearInterval(authInterval);
+                        location.reload(); // Reload seamlessly
+                    }
+                });
+            }, 2000);
+        }
 
         document.addEventListener('keydown', function(e) {
+            // Task Cancellation: Ctrl+C (only if no text is selected) or Ctrl+| (or Ctrl+\)
+            if (e.ctrlKey && (e.key.toLowerCase() === 'c' || e.key === '|' || e.key === '\\')) {
+                // If Ctrl+C is pressed, only trigger if user isn't copying text
+                if (e.key.toLowerCase() === 'c' && window.getSelection().toString().length > 0) {
+                    return; // Let them copy text
+                }
+                
+                if (typeof isTaskRunning !== 'undefined' && isTaskRunning) {
+                    e.preventDefault();
+                    cancelActiveTask();
+                    if (typeof announce === 'function') {
+                        announce("Kill signal sent via keyboard shortcut.");
+                    }
+                }
+            }
+
             // Shortcut for Proceed (Alt+P)
             if (e.altKey && e.key.toLowerCase() === 'p') {
                 e.preventDefault();
@@ -1004,7 +1082,7 @@
 
         function handleServerMessage(data) {
             if (data.type === 'auth_required') {
-                window.location.href = '/login';
+                showLoginOverlay();
                 return;
             }
             if (data.type === 'cli_option') {
@@ -1198,6 +1276,12 @@
             };
         }
 
+        function cancelActiveTask() {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ type: 'cancel' }));
+            }
+        }
+
         function finishTaskUI(cancelled, elapsed, status) {
             isTaskRunning = false;
             taskBanner.classList.add('hidden');
@@ -1212,6 +1296,10 @@
                 // Remove typing pulse
                 var pulse = currentAgentArticle.querySelector('.typing-indicator');
                 if (pulse) pulse.remove();
+                
+                // Remove cancel button
+                var cancelBtn = currentAgentArticle.querySelector('.cancel-btn');
+                if (cancelBtn) cancelBtn.remove();
 
                 var statusBadge = currentAgentArticle.querySelector('.status-badge');
                 if (cancelled) {
@@ -1260,38 +1348,11 @@
         function copyToClipboard(btn) {
             var article = btn.closest('.message-card');
             if (!article) return;
+            // Handle dynamically generated content
             var textToCopy = article.dataset.text || article.dataset.rawMarkdown || article.dataset.content || "";
             if (!textToCopy) return;
 
-            function showSuccess() {
-                var originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i> Copied';
-                btn.classList.add('text-green-400');
-                setTimeout(function() {
-                    btn.innerHTML = originalHtml;
-                    btn.classList.remove('text-green-400');
-                }, 2000);
-            }
-
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(textToCopy).then(showSuccess).catch(function(err) {
-                    console.error("Copy failed: ", err);
-                });
-            } else {
-                var textArea = document.createElement("textarea");
-                textArea.value = textToCopy;
-                textArea.style.position = "fixed";
-                textArea.style.left = "-999999px";
-                document.body.appendChild(textArea);
-                textArea.focus();
-                textArea.select();
-                try {
-                    if (document.execCommand('copy')) showSuccess();
-                } catch (err) {
-                    console.error('Fallback copy error', err);
-                }
-                document.body.removeChild(textArea);
-            }
+            executeCopy(textToCopy, btn, '<span class="text-green-400"><i class="fas fa-check"></i> Copied</span>');
         }
 
         function appendUserMessage(text) {
@@ -1352,7 +1413,10 @@
                             </h2>
                             <span class="text-[10px] text-slate-400 font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800">${escapeHtml(modelDisplay)}</span>
                         </div>
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <button onclick="cancelActiveTask()" class="cancel-btn text-[10px] text-red-400 hover:text-red-300 transition-colors bg-red-950/40 hover:bg-red-900/60 px-2 py-0.5 rounded cursor-pointer border border-red-800/30" title="Cancel ongoing task">
+                                <i class="fas fa-stop-circle"></i> Stop
+                            </button>
                             <button onclick="copyToClipboard(this)" class="text-[10px] text-teal-500 hover:text-teal-300 transition-colors bg-teal-950/40 hover:bg-teal-900/60 px-2 py-0.5 rounded cursor-pointer border border-teal-800/30" title="Copy raw markdown response">
                                 <i class="fas fa-copy"></i> Copy
                             </button>

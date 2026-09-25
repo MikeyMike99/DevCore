@@ -225,13 +225,20 @@ class AgentTaskManager:
                     "</SYSTEM_MESSAGE>\n\n"
                 ) + prompt
 
-            # Resolve the binary safely
-            import shutil
-            agy_binary = shutil.which("agy")
-            if not agy_binary:
-                # Fallback to local pythonanywhere path
-                fallback = os.path.expanduser("~/.local/bin/agy")
-                agy_binary = fallback if os.path.exists(fallback) else "agy"
+            # 1. First, check if we are running as a compiled Nuitka executable with a bundled engine
+            import shutil, sys
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            bundled_exe = os.path.join(base_dir, "agy.exe")
+            bundled_linux = os.path.join(base_dir, "agy")
+            
+            if getattr(sys, 'frozen', False) or os.path.exists(bundled_exe) or os.path.exists(bundled_linux):
+                agy_binary = bundled_exe if os.path.exists(bundled_exe) else bundled_linux
+            else:
+                # 2. Fallback to normal environment resolution (for local development)
+                agy_binary = shutil.which("agy")
+                if not agy_binary:
+                    fallback = os.path.expanduser("~/.local/bin/agy")
+                    agy_binary = fallback if os.path.exists(fallback) else "agy"
                 
             cmd = [
                 agy_binary,
@@ -422,11 +429,17 @@ class AgentTaskManager:
     async def cancel_task(self):
         if self.is_running():
             try:
-                import os, signal
-                # Kill the entire Process Group (Main Agent + All Subagents)
-                os.killpg(os.getpgid(self.active_proc.pid), signal.SIGKILL)
+                import sys, os, signal
+                if sys.platform == "win32":
+                    # Native Windows: Kill process tree
+                    import subprocess
+                    subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.active_proc.pid)], capture_output=True)
+                else:
+                    # Linux/WSL: Kill the entire Process Group (Main Agent + All Subagents)
+                    os.killpg(os.getpgid(self.active_proc.pid), signal.SIGKILL)
             except Exception:
-                pass
+                try: self.active_proc.kill()
+                except: pass
             if self.active_task and not self.active_task.done():
                 self.active_task.cancel()
             await self.broadcast({

@@ -28,6 +28,33 @@ class SecurityManager:
     TIER_ADMIN_LOG = "admin_log"
     TIER_FORBIDDEN = "forbidden"
 
+    @staticmethod
+    def check_master_signature() -> bool:
+        """
+        Cryptographically verifies if this application is running on Michael's physical machine.
+        Reads the local .devcore_master.key and compares its SHA-256 hash to the expected value.
+        This prevents reverse-engineers from finding the raw key in the compiled executable.
+        """
+        import hashlib
+        # The key should be located in the same directory as the executable or the CWD (DevCore folder)
+        key_path = os.path.join(os.getcwd(), ".devcore_master.key")
+        
+        if not os.path.exists(key_path):
+            return False
+            
+        try:
+            with open(key_path, "r", encoding="utf-8") as f:
+                raw_key = f.read().strip()
+                
+            # Expected Hash of the raw key
+            EXPECTED_HASH = "80fbad65507294b850a67db5e7f915f40390c8d10dbfca1a3e08a624523904d6"
+            actual_hash = hashlib.sha256(raw_key.encode('utf-8')).hexdigest()
+            
+            return actual_hash == EXPECTED_HASH
+        except Exception as e:
+            print(f"[Security] Failed to verify master signature: {e}")
+            return False
+
     CORE_FILES = {
         "server.py", "agent_manager.py", "project_manager.py",
         "session_manager.py", "security_manager.py", "apply_upgrade.sh",
