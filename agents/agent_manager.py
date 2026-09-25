@@ -330,6 +330,30 @@ class AgentTaskManager:
                                     self.actions.append(act)
                                 await self.broadcast({"type": "action_done", "action": act})
 
+                        elif stype in ("system", "error"):
+                            msg = step.get("text") or step.get("error") or ""
+                            if msg:
+                                await self.broadcast({
+                                    "type": "system",
+                                    "level": "warning" if stype == "system" else "error",
+                                    "message": msg
+                                })
+                                # Send a specific model_fallback event if detected
+                                lower_msg = msg.lower()
+                                if "quota" in lower_msg or "fallback" in lower_msg or "falling back" in lower_msg:
+                                    import re
+                                    # Try to extract what model it fell back to, or default to flash
+                                    fallback_model = "gemini-3.8-flash-low"
+                                    match = re.search(r'model ([\w.-]+)', lower_msg)
+                                    if match:
+                                        fallback_model = match.group(1)
+                                    await self.broadcast({
+                                        "type": "model_fallback",
+                                        "message": msg,
+                                        "fallback_model": fallback_model
+                                    })
+                                    self.current_model = fallback_model
+
                         elif stype == "agent_response":
                             delta = step.get("text_delta", "")
                             if delta:
