@@ -17,7 +17,7 @@ class AgentTaskManager:
         self.active_task: asyncio.Task = None
         self.active_proc: asyncio.subprocess.Process = None
         self.current_prompt: str = None
-        self.current_model: str = "gemini-3.8-flash-high"
+        self.current_model: str = "gemini-3.8-flash-low"
         self.start_time: float = None
         self.output_buffer: list = []
         self.actions: list = []
@@ -129,7 +129,7 @@ class AgentTaskManager:
     async def unregister_client(self, ws):
         self.connected_clients.discard(ws)
 
-    async def start_task(self, prompt: str, model: str = "gemini-3.8-flash-high", conversation_id: str = None, user: dict = None, admin_override: bool = False):
+    async def start_task(self, prompt: str, model: str = "gemini-3.8-flash-low", conversation_id: str = None, user: dict = None, admin_override: bool = False):
         if self.is_running():
             await self.broadcast({
                 "type": "system",
@@ -160,7 +160,7 @@ class AgentTaskManager:
             scrubbed_prompt = self._get_security().scrub_text(prompt)
             
         self.current_prompt = scrubbed_prompt
-        self.current_model = model or "gemini-3.8-flash-high"
+        self.current_model = model or "gemini-3.8-flash-low"
         self.start_time = time.time()
         self.output_buffer = []
         self.actions = []
