@@ -23,3 +23,9 @@ Because the agent runs locally on the player's machine, it is highly restricted 
 The parent Game Engine is entirely responsible for rendering the agent to the player. Two supported methodologies exist:
 1. **In-Game Web Browser (CEF):** The game engine embeds a Chromium Embedded Framework (CEF) overlay. The CEF frame simply targets `http://localhost:5000`, instantly rendering the HTML/Tailwind web interface as a 2D or 3D holographic UI inside the game world.
 2. **Native Parsing:** The game engine ignores the HTML interface, connects directly to the WebSocket, and parses the raw JSON text to drive native game UI elements (like traditional RPG dialogue boxes or terminal screens).
+
+## 5. Protecting Host Source Code (Zero-Trust Injection)
+A critical requirement of plugging this agent into third-party projects is guaranteeing that the AI cannot accidentally (or maliciously) modify the parent application's proprietary source code.
+* **Workspace Confinement:** When the parent application starts the daemon, it designates a strictly confined directory (e.g., `C:\MyGame\Player_Mods\`). 
+* **Path Traversal Defense:** The internal `security_manager.py` uses strict `os.path.realpath` boundary checks. If the agent attempts to use directory traversal (e.g., reading `../../src/main_engine.cpp`) to look at the host application's source code, the backend intercepts the filesystem call, instantly blocks the execution, and returns a `PermissionError`.
+* **The Guarantee:** The parent application's source code, host OS files, and intellectual property remain 100% invisible and physically inaccessible to the AI agent. It can only "see" the exact sandbox folder the parent application gives it.
