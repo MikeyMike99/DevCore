@@ -1439,7 +1439,7 @@
             var actualPromptToSend = prompt;
             var lowerP = prompt.toLowerCase();
             if (lowerP === 'help exam' || lowerP === 'help quiz' || lowerP === '/help exam' || lowerP === '/help quiz') {
-                actualPromptToSend = "SYSTEM TRIGGER [Help Exam/Quiz]: The user wants to learn how to create a new exam application/session using the Asynchronous Swarm Ingestion Protocol we established in Layer 8. Please provide a concise, step-by-step guide explaining that they just need to provide a directory path containing .docx or .pdf files, and that we will use Swarm subagents to parse it into the frontend iframe. Do not actually invoke the swarm yet, just provide the guide.";
+                actualPromptToSend = "SYSTEM TRIGGER [Help Exam/Quiz]: The user wants a simple, non-technical guide on how to launch a custom Exam Application. Explain that they simply need to provide their study material (a folder path) and tell the AI exactly how they want their exam tailored (e.g., add a timer, use a high-contrast dark theme, focus on hard questions). Explain that the AI will automatically design a custom exam card just for them. Provide 2-3 easy example prompts they can copy and paste to get started. Do not use technical jargon like 'backend', 'subagents', or 'swarm'.";
             }
             
             // Clear the local draft JSON only upon intentional send
