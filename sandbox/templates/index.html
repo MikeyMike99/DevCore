@@ -236,6 +236,20 @@
         <div class="p-4 bg-slate-900 border-t border-slate-800/80 shrink-0">
             <form id="chat-form" class="flex gap-2.5 items-end" onsubmit="sendPrompt(event)">
                 <div class="flex-1 relative">
+                    
+                    <!-- Slash Command Menu -->
+                    <div id="slash-command-menu" class="hidden absolute bottom-[65px] left-0 w-full max-w-sm bg-slate-800 border border-slate-600 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
+                        <div class="px-3 py-2 bg-slate-900 border-b border-slate-700 text-xs text-slate-400 font-bold uppercase tracking-wider">Slash Commands</div>
+                        <button type="button" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-b border-slate-700/50" data-command="/help exam">
+                            <div class="font-bold text-teal-400 text-sm">/help exam</div>
+                            <div class="text-xs text-slate-300 mt-1">Guide to launching the Custom Exam Builder</div>
+                        </button>
+                        <button type="button" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors" data-command="/clear">
+                            <div class="font-bold text-teal-400 text-sm">/clear</div>
+                            <div class="text-xs text-slate-300 mt-1">Clears the current chat interface</div>
+                        </button>
+                    </div>
+
                     <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
                     <textarea 
                         id="prompt" 
@@ -1954,6 +1968,96 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
         observer.observe(document.getElementById('chat-history') || document.body, {
             childList: true,
             subtree: true
+        });
+    })();
+    </script>
+
+
+    <!-- Slash Command Auto-Complete Logic -->
+    <script>
+    (function() {
+        const inputEl = document.getElementById('prompt');
+        const menuEl = document.getElementById('slash-command-menu');
+        const items = menuEl.querySelectorAll('.slash-item');
+        let activeIndex = -1;
+
+        function showMenu() {
+            menuEl.classList.remove('hidden');
+        }
+
+        function hideMenu() {
+            menuEl.classList.add('hidden');
+            activeIndex = -1;
+            updateActiveItem();
+        }
+
+        function updateActiveItem() {
+            items.forEach((item, index) => {
+                if (index === activeIndex) {
+                    item.classList.add('bg-slate-700');
+                } else {
+                    item.classList.remove('bg-slate-700');
+                }
+            });
+        }
+
+        function selectItem(index) {
+            if (index >= 0 && index < items.length) {
+                inputEl.value = items[index].getAttribute('data-command') + ' ';
+                hideMenu();
+                inputEl.focus();
+            }
+        }
+
+        inputEl.addEventListener('input', function(e) {
+            const val = inputEl.value;
+            if (val === '/') {
+                showMenu();
+            } else if (val.startsWith('/') && val.length > 1) {
+                // Future feature: filter the menu items based on text
+                showMenu();
+            } else {
+                hideMenu();
+            }
+        });
+
+        inputEl.addEventListener('keydown', function(e) {
+            if (!menuEl.classList.contains('hidden')) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex + 1) % items.length;
+                    updateActiveItem();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    activeIndex = (activeIndex - 1 + items.length) % items.length;
+                    updateActiveItem();
+                } else if (e.key === 'Enter') {
+                    if (activeIndex >= 0) {
+                        e.preventDefault();
+                        selectItem(activeIndex);
+                    } else if (inputEl.value.trim() === '/help exam') {
+                        // Let sendPrompt handle it
+                        hideMenu();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideMenu();
+                }
+            }
+        });
+
+        items.forEach((item, index) => {
+            item.addEventListener('click', () => selectItem(index));
+            item.addEventListener('mouseenter', () => {
+                activeIndex = index;
+                updateActiveItem();
+            });
+        });
+        
+        // Hide menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!menuEl.contains(e.target) && e.target !== inputEl) {
+                hideMenu();
+            }
         });
     })();
     </script>
