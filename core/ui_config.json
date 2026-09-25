@@ -35,8 +35,8 @@
         "model_aria": "Select AI Model",
         "models": [
             {
-                "value": "gemini-3.8-flash-high",
-                "text": "Gemini 3.8 Flash (Fast & Responsive)"
+                "value": "gemini-3.8-flash-low",
+                "text": "Gemini 3.8 Flash (Fast & Cheap)"
             },
             {
                 "value": "gemini-3.1-pro-high",
