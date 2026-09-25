@@ -44,7 +44,7 @@ if __name__ == '__main__':
     if wait_for_server():
         # 3. Create the Native Desktop Window wrapper around our web UI
         webview.create_window(
-            title="Antigravity DevCore", 
+            title="Siraugga", 
             url="http://localhost:5000",
             width=1280,
             height=800,

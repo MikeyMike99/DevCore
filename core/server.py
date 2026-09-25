@@ -307,7 +307,6 @@ async def handle_massive_prompt():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/auth_check')
 @app.route('/api/plugin/tts', methods=['POST'])
 async def plugin_tts():
     """
@@ -377,14 +376,58 @@ async def plugin_exam_save():
         return jsonify({"success": True, "total_questions": len(existing_data), "file": safe_file_name}), 200
     except Exception as e:
         return jsonify({"error": f"Failed to save exam data: {str(e)}"}), 500
+@app.route('/api/auth_check')
+async def auth_check_route():
+    # 0. Load persisted Client API Key if it exists
+    client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+    if os.path.exists(client_key_path):
+        try:
+            with open(client_key_path, "r", encoding="utf-8") as f:
+                os.environ["GEMINI_API_KEY"] = f.read().strip()
+        except: pass
+
+    # 1. Master Developer Auto-Bypass
+    if security_mgr.check_master_signature():
+        return jsonify({"authenticated": True})
+        
+    # 2. Validate Client EXE Stamp (Expiration Logic)
+    try:
+        from security.stamper import read_stamp
+        import datetime
+        stamp = read_stamp()
+        if stamp and 'expires' in stamp:
+            expire_date = datetime.datetime.fromisoformat(stamp['expires'])
+            if datetime.datetime.now() > expire_date:
+                # Lockout the UI if the trial is expired
+                return jsonify({"authenticated": False, "expired": True, "message": "This application's access token has expired."})
+    except Exception as e:
+        print(f"[Auth] Stamp validation error: {e}")
+    
+    # 3. Fallback to the real auth check (Google API Key)
+    return await auth_check()
 
 async def auth_check():
     """Proactively tests if the CLI needs authentication by running a dummy command."""
     import sys
-    import subprocess
-    cmd = ['script', '-q', '-c', '/home/michael/.local/bin/agy --print ping', '/dev/null']
-    if sys.platform == 'win32':
-        cmd = ['wsl.exe'] + cmd
+    import os
+    import shutil
+    
+    # 1. Check for bundled engine (Nuitka payload)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    bundled_exe = os.path.join(base_dir, "agy.exe")
+    bundled_linux = os.path.join(base_dir, "agy")
+    
+    if getattr(sys, 'frozen', False) or os.path.exists(bundled_exe) or os.path.exists(bundled_linux):
+        agy_binary = bundled_exe if os.path.exists(bundled_exe) else bundled_linux
+    else:
+        agy_binary = shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
+        
+    if sys.platform == 'win32' and not agy_binary.endswith('.exe'):
+        # We are on Windows but testing against a WSL binary (development environment fallback)
+        cmd = ['wsl.exe', 'script', '-q', '-c', f'{agy_binary} --print ping', '/dev/null']
+    else:
+        # Native Windows Execution (Compiled/Bundled) or Native Linux
+        cmd = [agy_binary, '--print', 'ping']
         
     def run_check():
         global GLOBAL_AUTH_PROC
@@ -450,9 +493,35 @@ async def auth_submit():
     print("[auth_submit] Starting request...")
     data = await request.get_json() or {}
     token = data.get('token', '').strip()
+    api_key = data.get('api_key', '').strip()
+    
+    # 1. API Key Injection (For Clients/Customers)
+    if api_key:
+        os.environ["GEMINI_API_KEY"] = api_key
+        
+        # Persist the API key locally on the client's machine so they don't have to enter it every time
+        try:
+            client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+            with open(client_key_path, "w", encoding="utf-8") as f:
+                f.write(api_key)
+        except Exception as e:
+            print(f"[Auth] Failed to save client API key: {e}")
+            
+        # If the CLI was paused waiting for OAuth, kill it. It will use the API key next time.
+        global GLOBAL_AUTH_PROC
+        if GLOBAL_AUTH_PROC:
+            try: GLOBAL_AUTH_PROC.kill()
+            except: pass
+            GLOBAL_AUTH_PROC = None
+            
+        # TODO: Here we could verify the Deployment Token (EXE ID) for expiration logic
+        # For now, if they provide a valid API key, we let them in.
+        return jsonify({"success": True})
+        
+    # 2. Legacy Fallback (If they are doing terminal OAuth)
     if not token:
-        print("[auth_submit] No token provided")
-        return jsonify({"success": False, "error": "No token provided"})
+        print("[auth_submit] No token or API key provided")
+        return jsonify({"success": False, "error": "No token or API key provided"})
         
     def run_submit():
         global GLOBAL_AUTH_PROC
