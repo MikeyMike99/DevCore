@@ -5,12 +5,20 @@ class ProjectManager:
     Manages workspace project directories and active project tracking.
     """
     def __init__(self, base_dir=None):
-        self.base_dir = base_dir or os.path.dirname(os.path.abspath(__file__))
+        # Default workspace directory moved to [DevCore]/playground to prevent mixing with TIER_CORE_ENGINE
+        if not base_dir:
+            devcore_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            base_dir = os.path.join(devcore_root, "playground")
+            os.makedirs(base_dir, exist_ok=True)
+            
+        self.base_dir = base_dir
         self.active_project = None
 
     def reinit(self):
         """Re-initializes project manager state."""
-        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        devcore_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.base_dir = os.path.join(devcore_root, "playground")
+        os.makedirs(self.base_dir, exist_ok=True)
 
     def list_projects(self):
         projects = []
