@@ -1438,7 +1438,20 @@
             
             var actualPromptToSend = prompt;
             var lowerP = prompt.toLowerCase();
-            if ((lowerP.includes('help') || lowerP.includes('how to') || lowerP.includes('how ') || lowerP.includes('explain') || lowerP.includes('guide')) && (lowerP.includes('exam') || lowerP.includes('quiz') || lowerP.includes('test'))) {
+            const p = lowerP.trim();
+            const isHelp = 
+                p === 'help exam' || p === '/help exam' || 
+                p === 'help quiz' || p === '/help quiz' || 
+                p === 'help test' || p === '/help test' ||
+                p === 'exam help' || p === 'quiz help' || p === 'test help' ||
+                p === 'exam guide' || p === 'quiz guide' || p === 'test guide' ||
+                (p.startsWith('how to create') && (p.includes('exam') || p.includes('quiz') || p.includes('test'))) ||
+                (p.startsWith('how to make') && (p.includes('exam') || p.includes('quiz') || p.includes('test'))) ||
+                (p.startsWith('how to use') && (p.includes('exam') || p.includes('quiz') || p.includes('test'))) ||
+                p.includes('how the exam works') || p.includes('how the exam app works') ||
+                p.includes('how the quiz works') || p.includes('how the test works');
+            
+            if (isHelp) {
                 actualPromptToSend = "SYSTEM TRIGGER [Help Exam/Quiz]: The user wants a simple, non-technical guide on how to launch a custom Exam Application. Explain that they simply need to provide their study material (a folder path) and tell the AI exactly how they want their exam tailored. 
 
 Also, explicitly inform the user of these powerful features:
