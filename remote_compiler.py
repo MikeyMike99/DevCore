@@ -44,7 +44,7 @@ cmd = [
     "--include-data-dir=security=security",
     "--include-data-dir=plugins=plugins",
     f"--include-data-file={agy_path}=agy.exe",
-    "--output-filename=Antigravity_Desktop.exe",
+    "--output-filename=Siraugga.exe",
     "desktop_app.py"
 ]
 
