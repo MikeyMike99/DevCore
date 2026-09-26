@@ -40,6 +40,7 @@ cmd = [
     "--include-data-dir=sandbox/templates=sandbox/templates",
     "--include-data-dir=sandbox/static=sandbox/static",
     "--include-data-file=core/ui_config.json=core/ui_config.json",
+    "--include-package=security",
     "--include-data-dir=security=security",
     "--include-data-dir=plugins=plugins",
     f"--include-data-file={agy_path}=agy.exe",

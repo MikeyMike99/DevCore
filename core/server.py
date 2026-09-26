@@ -674,7 +674,7 @@ async def ws_endpoint():
                 is_admin = user and user.get("role") == "Tier5_SysAdmin"
                 if not is_admin:
                     try:
-                        from local_security import LocalSecurity
+                        from security.local_security import LocalSecurity
                         ls = LocalSecurity()
                         security_status = ls.analyze_intent(prompt)
                         if security_status == "ATTACK":
