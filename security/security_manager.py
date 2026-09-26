@@ -118,7 +118,7 @@ class SecurityManager:
     def _get_security(self):
         if self._local_sec is None:
             try:
-                from local_security import LocalSecurity
+                from security.local_security import LocalSecurity
                 self._local_sec = LocalSecurity()
             except Exception as e:
                 print(f"[Security] LocalSecurity init failed. Error: {e}")
