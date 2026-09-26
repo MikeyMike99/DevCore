@@ -22,7 +22,8 @@ if [ $? -ne 0 ]; then
     echo "  Please type Robert's password ONE LAST TIME."
     echo "======================================================"
     # 3. Push the key to the remote Windows machine securely
-    cat ~/.ssh/id_rsa.pub | ssh $TARGET 'cmd.exe /c "if not exist .ssh mkdir .ssh && type con >> .ssh\authorized_keys && icacls .ssh\authorized_keys /inheritance:r /grant %USERNAME%:F"'
+    # Fix: type con does not read from SSH stdin on Windows. We use powershell to append stdin.
+    cat ~/.ssh/id_rsa.pub | ssh $TARGET 'powershell -NoProfile -Command "if (!(Test-Path .ssh)) { New-Item -ItemType Directory -Path .ssh }; $input | Out-File -Append -Encoding ascii .ssh\authorized_keys; icacls .ssh\authorized_keys /inheritance:r /grant ${env:USERNAME}:F"'
     echo ""
     echo "✅ Key installed! You will never have to type the password again."
     echo ""
@@ -39,11 +40,13 @@ scp -q /tmp/devcore_build.tar $TARGET:~/devcore_build.tar
 
 echo ""
 echo "[3/4] Extracting & Verifying Windows Dependencies..."
-ssh -q $TARGET 'cmd.exe /c "if not exist DevCore_Build mkdir DevCore_Build && tar -xf devcore_build.tar -C DevCore_Build && del devcore_build.tar && cd DevCore_Build && pip install nuitka quart websockets pywebview google-antigravity"'
+# Use powershell for reliable sequential execution regardless of directory existence
+# Use powershell for reliable sequential execution regardless of directory existence
+ssh -q $TARGET 'powershell -NoProfile -Command "Set-Location \"$env:USERPROFILE\"; if (!(Test-Path DevCore_Build)) { New-Item -ItemType Directory -Path DevCore_Build | Out-Null }; tar -xf devcore_build.tar -C DevCore_Build; Remove-Item devcore_build.tar -Force; Set-Location DevCore_Build; pip install nuitka quart websockets pywebview; pip install --force-reinstall --no-cache-dir google-antigravity"'
 
 echo ""
 echo "[4/4] Compiling Native Windows Executable (This will take 5-10 minutes)..."
-ssh -q -o ServerAliveInterval=60 -o ServerAliveCountMax=30 $TARGET 'cmd.exe /c "cd DevCore_Build && python remote_compiler.py"'
+ssh -q -o ServerAliveInterval=60 -o ServerAliveCountMax=30 $TARGET 'cmd.exe /c "cd /d %USERPROFILE%\DevCore_Build && python remote_compiler.py"'
 
 echo ""
 echo "[5/5] Retrieving Compiled Binary..."
