@@ -36,7 +36,10 @@ class AgentTaskManager:
     def _get_security(self):
         if self._local_sec is None:
             try:
-                from local_security import LocalSecurity
+                try:
+                    from security.local_security import LocalSecurity
+                except ImportError:
+                    from local_security import LocalSecurity
                 self._local_sec = LocalSecurity()
             except Exception as e:
                 print(f"[Security] LocalSecurity init failed, using Dummy. Error: {e}")
@@ -225,23 +228,32 @@ class AgentTaskManager:
                     "</SYSTEM_MESSAGE>\n\n"
                 ) + prompt
 
-            # 1. First, check if we are running as a compiled Nuitka executable with a bundled engine
+            # 1. Determine if a real agy executable is available (and NOT the 19-byte dummy)
             import shutil, sys
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             bundled_exe = os.path.join(base_dir, "agy.exe")
             bundled_linux = os.path.join(base_dir, "agy")
             
-            if getattr(sys, 'frozen', False) or os.path.exists(bundled_exe) or os.path.exists(bundled_linux):
-                agy_binary = bundled_exe if os.path.exists(bundled_exe) else bundled_linux
-            else:
-                # 2. Fallback to normal environment resolution (for local development)
-                agy_binary = shutil.which("agy")
-                if not agy_binary:
-                    fallback = os.path.expanduser("~/.local/bin/agy")
-                    agy_binary = fallback if os.path.exists(fallback) else "agy"
-                
+            real_agy = None
+            cand = shutil.which("agy")
+            if cand and os.path.exists(cand) and os.path.getsize(cand) > 1024:
+                real_agy = cand
+            elif os.path.exists(bundled_exe) and os.path.getsize(bundled_exe) > 1024:
+                real_agy = bundled_exe
+            elif os.path.exists(bundled_linux) and os.path.getsize(bundled_linux) > 1024:
+                real_agy = bundled_linux
+            elif sys.platform != "win32":
+                local_agy = os.path.expanduser("~/.local/bin/agy")
+                if os.path.exists(local_agy) and os.path.getsize(local_agy) > 1024:
+                    real_agy = local_agy
+
+            # 2. If NO real working agy CLI binary exists, seamlessly use the native Gemini engine
+            if not real_agy:
+                await self._execute_native_gemini(prompt, model, task_time, conversation_id, is_admin)
+                return
+
             cmd = [
-                agy_binary,
+                real_agy,
                 perm_flag,
                 "--model", model,
                 "--output-format", "stream-json"
@@ -250,8 +262,8 @@ class AgentTaskManager:
                 cmd.extend(["--conversation", conversation_id])
             cmd.extend(["--print", prompt])
             
-            import sys
-            if sys.platform == "win32":
+            # Only use wsl if running a non-Windows binary on Windows
+            if sys.platform == "win32" and not real_agy.endswith(".exe"):
                 cmd = ["wsl.exe"] + cmd
 
             proc = await asyncio.create_subprocess_exec(
@@ -419,6 +431,131 @@ class AgentTaskManager:
             self.active_proc = None
             self.active_task = None
             self.start_time = None
+
+    async def _execute_native_gemini(self, prompt: str, model: str, task_time: float, conversation_id: str, is_admin: bool):
+        await self.broadcast({"type": "agent_start", "model": model})
+
+        if not conversation_id:
+            import uuid
+            conversation_id = f"conv-{uuid.uuid4().hex[:8]}"
+            self.current_conversation_id = conversation_id
+            await self.broadcast({"type": "init_conv_id", "conversation_id": conversation_id})
+
+        # Load API key from env or saved client key file
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+            if os.path.exists(client_key_path):
+                try:
+                    with open(client_key_path, "r", encoding="utf-8") as f:
+                        api_key = f.read().strip()
+                        if api_key:
+                            os.environ["GEMINI_API_KEY"] = api_key
+                except Exception:
+                    pass
+
+        if not api_key:
+            err_msg = (
+                "⚠️ **No Google Gemini API Key Configured**\n\n"
+                "Siraugga is running in native desktop mode without external CLI dependencies.\n\n"
+                "To chat with the AI:\n"
+                "1. Open the **Authentication / Settings** screen.\n"
+                "2. Enter your Google Gemini API key (`AIzaSy...`).\n"
+                "3. Click **Authenticate Client**.\n\n"
+                "*Tip: You can get a free API key at https://aistudio.google.com/app/apikey*"
+            )
+            self.output_buffer.append(err_msg)
+            await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+            elapsed = round(time.time() - task_time, 1)
+            self.last_completed_task = {
+                "prompt": prompt,
+                "model": model,
+                "actions": [],
+                "output": err_msg,
+                "elapsed": elapsed,
+                "status": "SUCCESS",
+                "timestamp": time.time()
+            }
+            await self.broadcast({
+                "type": "agent_done",
+                "exit_code": 0,
+                "elapsed": elapsed,
+                "status": "SUCCESS",
+                "cancelled": False
+            })
+            return
+
+        try:
+            from google import genai
+            client = genai.Client(api_key=api_key)
+
+            clean_prompt = prompt
+            if clean_prompt.startswith("<SYSTEM_MESSAGE>"):
+                parts = clean_prompt.split("</SYSTEM_MESSAGE>\n\n", 1)
+                if len(parts) == 2:
+                    clean_prompt = parts[1]
+
+            # Candidate models for fallback
+            candidate_models = []
+            if model and model not in ("gemini-3.8-flash-low", "gemini-3.8-flash-high"):
+                candidate_models.append(model)
+            candidate_models.extend(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"])
+
+            response_iter = None
+            last_err = None
+            for candidate in candidate_models:
+                try:
+                    response_iter = await client.aio.models.generate_content_stream(
+                        model=candidate,
+                        contents=clean_prompt
+                    )
+                    break
+                except Exception as ex:
+                    last_err = ex
+                    continue
+
+            if response_iter is None:
+                raise last_err or RuntimeError("Failed to connect to Gemini models.")
+
+            async for chunk in response_iter:
+                if chunk.text:
+                    delta = chunk.text
+                    if not is_admin:
+                        delta = self._get_security().scrub_text(delta)
+                    self.output_buffer.append(delta)
+                    await self.broadcast({"type": "agent_chunk", "chunk": delta})
+
+            elapsed = round(time.time() - task_time, 1)
+            full_output = "".join(self.output_buffer)
+            self.last_completed_task = {
+                "prompt": prompt,
+                "model": model,
+                "actions": [],
+                "output": full_output,
+                "elapsed": elapsed,
+                "status": "SUCCESS",
+                "timestamp": time.time()
+            }
+            await self.broadcast({
+                "type": "agent_done",
+                "exit_code": 0,
+                "elapsed": elapsed,
+                "status": "SUCCESS",
+                "cancelled": False
+            })
+        except Exception as e:
+            err_msg = f"\n\n❌ **AI Generation Error**: {str(e)}"
+            self.output_buffer.append(err_msg)
+            await self.broadcast({"type": "system", "level": "error", "message": str(e)})
+            await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+            elapsed = round(time.time() - task_time, 1)
+            await self.broadcast({
+                "type": "agent_done",
+                "exit_code": 1,
+                "elapsed": elapsed,
+                "status": "ERROR",
+                "cancelled": False
+            })
 
     
     async def send_input(self, text: str):

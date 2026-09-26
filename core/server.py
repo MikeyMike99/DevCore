@@ -407,27 +407,48 @@ async def auth_check_route():
     return await auth_check()
 
 async def auth_check():
-    """Proactively tests if the CLI needs authentication by running a dummy command."""
+    """Proactively tests if the CLI or API key is authenticated."""
     import sys
     import os
     import shutil
     
-    # 1. Check for bundled engine (Nuitka payload)
+    # 0. If Gemini API key is configured, client is authenticated
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+        if os.path.exists(client_key_path):
+            try:
+                with open(client_key_path, "r", encoding="utf-8") as f:
+                    api_key = f.read().strip()
+                    if api_key:
+                        os.environ["GEMINI_API_KEY"] = api_key
+            except Exception:
+                pass
+
+    if api_key:
+        return jsonify({"authenticated": True})
+
+    # Check for real agy binary
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     bundled_exe = os.path.join(base_dir, "agy.exe")
     bundled_linux = os.path.join(base_dir, "agy")
     
-    if getattr(sys, 'frozen', False) or os.path.exists(bundled_exe) or os.path.exists(bundled_linux):
-        agy_binary = bundled_exe if os.path.exists(bundled_exe) else bundled_linux
+    real_agy = None
+    if shutil.which("agy"):
+        real_agy = shutil.which("agy")
+    elif os.path.exists(bundled_exe) and os.path.getsize(bundled_exe) > 1024:
+        real_agy = bundled_exe
+    elif os.path.exists(bundled_linux) and os.path.getsize(bundled_linux) > 1024:
+        real_agy = bundled_linux
+
+    if not real_agy:
+        # No external CLI found - prompt for API key via login page
+        return jsonify({"authenticated": False, "url": "/login"})
+
+    if sys.platform == 'win32' and not real_agy.endswith('.exe'):
+        cmd = ['wsl.exe', 'script', '-q', '-c', f'{real_agy} --print ping', '/dev/null']
     else:
-        agy_binary = shutil.which("agy") or os.path.expanduser("~/.local/bin/agy")
-        
-    if sys.platform == 'win32' and not agy_binary.endswith('.exe'):
-        # We are on Windows but testing against a WSL binary (development environment fallback)
-        cmd = ['wsl.exe', 'script', '-q', '-c', f'{agy_binary} --print ping', '/dev/null']
-    else:
-        # Native Windows Execution (Compiled/Bundled) or Native Linux
-        cmd = [agy_binary, '--print', 'ping']
+        cmd = [real_agy, '--print', 'ping']
         
     def run_check():
         global GLOBAL_AUTH_PROC

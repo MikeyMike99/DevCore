@@ -5,6 +5,12 @@ import sys
 import os
 import subprocess
 
+# Safeguard for --windows-disable-console where stdout/stderr can be None
+if sys.stdout is None:
+    sys.stdout = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "stdout.log"), "a", encoding="utf-8", buffering=1)
+if sys.stderr is None:
+    sys.stderr = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "stderr.log"), "a", encoding="utf-8", buffering=1)
+
 try:
     import webview
 except ImportError:
@@ -12,13 +18,31 @@ except ImportError:
     print("Please run: pip install pywebview")
     sys.exit(1)
 
+import asyncio
+
+shutdown_event = asyncio.Event()
+
 def start_server():
-    """Starts the DevCore backend (Bootstrap Gateway) in a background process."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    gateway_path = os.path.join(base_dir, "core", "bootstrap_gateway.py")
-    
-    # We spawn it as a subprocess to keep the architecture perfectly isolated
-    subprocess.run([sys.executable, gateway_path], cwd=base_dir)
+    """Starts the DevCore backend in a background thread using Hypercorn ASGI."""
+    try:
+        from hypercorn.config import Config
+        from hypercorn.asyncio import serve
+        import core.server as server
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        config = Config()
+        config.bind = ["127.0.0.1:5000"]
+        
+        print("Starting DevCore Backend on 5000 (Hypercorn ASGI Thread)")
+        # Explicit shutdown_trigger bypasses Hypercorn signal installation in worker threads
+        loop.run_until_complete(serve(server.app, config, shutdown_trigger=shutdown_event.wait))
+    except Exception as e:
+        with open("crash_log.txt", "w") as crash_file:
+            import traceback
+            crash_file.write(traceback.format_exc())
+        print(f"CRASH: {e}")
 
 def wait_for_server():
     """Polls localhost until the backend is fully booted and responsive."""
@@ -33,6 +57,8 @@ def wait_for_server():
             time.sleep(0.5)
     
     print("ERROR: Backend failed to start in time.")
+    with open("crash_log.txt", "a") as crash_file:
+        crash_file.write("ERROR: Backend failed to start in time.\n")
     return False
 
 if __name__ == '__main__':
@@ -42,15 +68,23 @@ if __name__ == '__main__':
 
     # 2. Wait for the server to be ready
     if wait_for_server():
-        # 3. Create the Native Desktop Window wrapper around our web UI
-        webview.create_window(
-            title="Siraugga", 
-            url="http://localhost:5000",
-            width=1280,
-            height=800,
-            min_size=(800, 600),
-            background_color='#0f172a' # Matches Tailwind slate-900 background
-        )
-        
-        # 4. Start the native window event loop
-        webview.start()
+        try:
+            # 3. Create the Native Desktop Window wrapper around our web UI
+            webview.create_window(
+                title="Siraugga", 
+                url="http://localhost:5000",
+                width=1280,
+                height=800,
+                min_size=(800, 600),
+                background_color='#0f172a' # Matches Tailwind slate-900 background
+            )
+            
+            # 4. Start the native window event loop
+            webview.start(gui='edgechromium,mshtml')
+        except Exception as e:
+            import traceback
+            with open("crash_log_ui.txt", "w") as crash_file:
+                crash_file.write(traceback.format_exc())
+            print(f"UI CRASH: {e}")
+        finally:
+            shutdown_event.set()
