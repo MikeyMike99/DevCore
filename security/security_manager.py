@@ -240,6 +240,15 @@ class SecurityManager:
         else:
             # Admins get root visibility of e_profile
             target_base = "/mnt/c/Users/michael/Documents/e_profile"
+            if not os.path.exists(target_base):
+                for candidate in [
+                    os.path.expanduser("~/Documents/e_profile"),
+                    r"C:\Users\Robert\Documents\e_profile",
+                    r"C:\Users\michael\Documents\e_profile"
+                ]:
+                    if os.path.exists(candidate):
+                        target_base = candidate
+                        break
             
         # Resolve real canonical paths (following symlinks)
         real_base = os.path.realpath(target_base)

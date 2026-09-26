@@ -37,7 +37,23 @@ class RaugusResolver:
             raise PermissionError(f"Access Denied. Tier {required_tier} clearance required.")
 
         logging.info(f"[RAUGUS APPROVED] Alias '{alias}' resolved for Tier {user_tier}.")
-        return entry.get("real_path")
+        real_path = entry.get("real_path")
+        if not real_path or not os.path.exists(real_path):
+            base_dir = os.path.dirname(os.path.abspath(__file__)) # security folder
+            devcore_root = os.path.dirname(base_dir) # DevCore root or bundle root
+            if "Documents/DevCore/" in real_path:
+                rel = real_path.split("Documents/DevCore/")[-1].replace("/", os.sep)
+            elif "/DevCore/" in real_path:
+                rel = real_path.split("/DevCore/")[-1].replace("/", os.sep)
+            else:
+                rel = os.path.basename(real_path)
+            candidate = os.path.normpath(os.path.join(devcore_root, rel))
+            if os.path.exists(candidate):
+                return candidate
+            cwd_candidate = os.path.normpath(os.path.join(os.getcwd(), rel))
+            if os.path.exists(cwd_candidate):
+                return cwd_candidate
+        return real_path
 
 # Singleton instance for the application to import
 resolver = RaugusResolver()
