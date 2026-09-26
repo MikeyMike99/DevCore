@@ -14,7 +14,25 @@ class RaugusResolver:
         if os.path.exists(self.map_file):
             with open(self.map_file, 'r') as f:
                 self.phonebook = json.load(f)
-            logging.info(f"[RAUGUS] Loaded {len(self.phonebook)} aliases from {self.map_file}")
+            
+            # DYNAMIC PATH CORRECTION FOR COMPILED EXECUTABLES:
+            # We recalculate the real_path based on the current executable's root directory,
+            # ignoring the hardcoded machine paths from when the map was generated.
+            current_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+            for alias, data in self.phonebook.items():
+                if alias.startswith("devcore."):
+                    # We can simply take the alias, remove devcore., and assume all dots EXCEPT the last one are folder separators.
+                    # Wait, no. What if a folder has a dot? Better to rely on the fact that generate_raugusmap replaced os.sep with '.'
+                    # Actually, we can just replace devcore. with empty, and then replace . with os.sep, but fix the last extension.
+                    # Easier: just use the original real_path from the JSON, find "DevCore", and take everything after it!
+                    old_path = data.get("real_path", "")
+                    if "DevCore" in old_path:
+                        # Extract the part after DevCore/
+                        parts = old_path.split("DevCore")
+                        rel_path = parts[-1].lstrip("\\/")
+                        data["real_path"] = os.path.join(current_root, rel_path)
+            
+            logging.info(f"[RAUGUS] Loaded and dynamically patched {len(self.phonebook)} aliases from {self.map_file}")
         else:
             logging.error(f"[RAUGUS FATAL] Raugus Map not found at {self.map_file}")
 

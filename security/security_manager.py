@@ -108,12 +108,20 @@ class SecurityManager:
     }
 
     def __init__(self, base_dir=None):
-        # Resolve to the root of DevCore instead of the security/ folder
-        self.base_dir = base_dir or os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-        self.sessions = {}  # token -> {"username": ..., "role": ..., "created_at": ...}
+        import sys
+        if hasattr(sys, 'frozen') or '__compiled__' in globals() or getattr(sys, 'frozen', False):
+            persist_dir = os.path.dirname(sys.executable)
+        else:
+            persist_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        
+        self.base_dir = base_dir or persist_dir
+        self.sessions = {}
         self.sessions_file = os.path.join(self.base_dir, "sessions.json")
+        self.keys_file = os.path.join(self.base_dir, "keys.json")
+        self.keys = {} # key -> {"role": ..., "name": ..., "allowed_projects": ...}
         self._local_sec = None
         self._load_sessions()
+        self._load_keys()
 
     def _get_security(self):
         if self._local_sec is None:
@@ -148,23 +156,86 @@ class SecurityManager:
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
         self._load_sessions()
 
-    def authenticate(self, username, password):
-        """Authenticates a user and issues a bearer session token."""
-        user = self.TEST_USERS.get(username)
-        if not user or user["password"] != password:
+    def authenticate(self, access_key):
+        """Authenticates a user using an access key and issues a bearer session token."""
+        user = self.keys.get(access_key)
+        
+        # Fallback to test users if key is provided as 'username:password' for legacy compatibility
+        if not user and ":" in access_key:
+            username, password = access_key.split(":", 1)
+            test_user = self.TEST_USERS.get(username)
+            if test_user and test_user["password"] == password:
+                user = test_user
+                user["key_id"] = "test-" + username
+        
+        # Auto-login for Super Admin via master signature
+        if access_key == "SUPER_ADMIN_AUTO" and self.check_master_signature():
+            user = {
+                "role": "super_admin",
+                "name": "Super Admin",
+                "allowed_projects": ["*"]
+            }
+
+        if not user:
             return None
 
         token = "sec-" + uuid.uuid4().hex
         session_data = {
-            "username": username,
+            "username": user.get("name", "Unknown"),
             "role": user["role"],
             "name": user["name"],
-            "allowed_projects": user["allowed_projects"],
+            "allowed_projects": user.get("allowed_projects", []),
             "created_at": time.time()
         }
         self.sessions[token] = session_data
         self._save_sessions()
         return {"token": token, "user": session_data}
+
+
+    def _load_keys(self):
+        if os.path.exists(self.keys_file):
+            try:
+                with open(self.keys_file, "r") as f:
+                    self.keys = json.load(f)
+            except Exception as e:
+                print(f"[Security] Error loading keys: {e}")
+                self.keys = {}
+        else:
+            self.keys = {}
+
+    def _save_keys(self):
+        try:
+            with open(self.keys_file, "w") as f:
+                json.dump(self.keys, f, indent=4)
+        except Exception as e:
+            print(f"[Security] Error saving keys: {e}")
+
+    def generate_key(self, role, name, allowed_projects=None):
+        new_key = "key-" + uuid.uuid4().hex
+        if allowed_projects is None:
+            if role in [self.ROLE_ADMIN, "super_admin"]:
+                allowed_projects = ["*"]
+            else:
+                allowed_projects = []
+                
+        self.keys[new_key] = {
+            "role": role,
+            "name": name,
+            "allowed_projects": allowed_projects,
+            "created_at": time.time()
+        }
+        self._save_keys()
+        return new_key
+
+    def delete_key(self, key_to_delete):
+        if key_to_delete in self.keys:
+            del self.keys[key_to_delete]
+            self._save_keys()
+            return True
+        return False
+
+    def get_all_keys(self):
+        return self.keys
 
     def get_user_from_token(self, token):
         """Validates token and returns user details. Returns None if no token provided."""
