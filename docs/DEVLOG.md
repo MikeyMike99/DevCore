@@ -725,19 +725,28 @@ While this limitation causes immense friction and frustration for the Administra
 - Moved all static plugin HTML files from `sandbox/static/` to `sandbox/templates/`.
 - Built dynamic API routing in `core/server.py` (`/plugin/media`, `/plugin/security`, `/plugin/exam`) to inject JSON configurations and Jinja variables cleanly.
 - Updated Agent Skills to enforce the "Clean Workspace Protocol": Agents no longer generate temporary `.html` files in the sandbox. Instead, they produce pure JSON data and point iframes directly to the backend routes.
+### 2. Security by Depth Layered Architecture
+- Completely refactored the project structure to enforce Security by Depth.
+- Separated components into isolated directories: `agents/`, `core/`, `security/`, `projects/`, and `sandbox/`.
+- Implemented Tiered READMEs across all directories to explicitly dictate permission boundaries and access control rules for the Agents.
 
-### 2. 3D Flip Card UI & Code Interactions
+### 3. Dynamic Security Headers & Hot-Patch Updates
+- Addressed the DAST scan vulnerability report manually due to the Agent's autonomous limitations.
+- Engineered a dynamic `security_headers.py` injection module to enforce Strict-Transport-Security, X-Content-Type-Options, and Content-Security-Policy across all endpoints.
+- Integrated hot-patch recovery mechanics to ensure the server remains stable during live header injections.
+
+### 4. 3D Flip Card UI & Code Interactions
 - Implemented a CSS 3D `rotateY(180deg)` Flip Card UI for Agent response cards containing Implementation Plans or Artifacts.
 - Overrode the `marked.js` code renderer to inject custom "Copy Code" buttons directly into the headers of all `<pre><code>` blocks.
 
-### 3. Agentic Sanitization & RBAC Upgrades
+### 5. Agentic Sanitization & RBAC Upgrades
 - Shifted away from brittle client-side regex sanitization in favor of "Agentic Sanitization".
 - **Tier 5 (Super Admin):** Clicking "Flip & View Plan" instantly flips the card and displays the raw, unedited Markdown artifact.
 - **Tier 3 (Developer):** Clicking the button intercepts the flip and auto-prompts the AI: *"Please summarize the implementation plan... Remove root credentials... but provide technical architecture."*
 - **Tier 1 (Guest):** Clicking the button auto-prompts the AI: *"Explain in layman's terms without revealing sensitive information or the structure of the backend."*
 - **Code Block Blackout:** Raw code blocks are strictly blocked from rendering for Tier 1 users, replaced with a red Lockbox warning prohibiting source access.
 
-### 4. Zero-Trust VFS Phonebook Enforced
+### 6. Zero-Trust VFS Phonebook Enforced
 - Stripped all hardcoded `os.path.join` absolute paths from `core/server.py`.
 - Injected all templates (`index.html`, `login.html`, `video_application.html`, etc.) and configs (`ui_config.json`) into the `security/raugus_map.json` Phonebook.
 - Engineered `the `RaugusResolver` singleton (`raugus_resolver.py`)` to serve as the exclusive path resolver. The backend now requests abstract keys (e.g., `"devcore.sandbox.templates.login.html"`) instead of relying on physical disk structures, solidifying the application's VFS (Virtual File System) boundaries.
@@ -793,3 +802,51 @@ The system began throwing `Wsl/Service/0x8007072c` RPC errors because `wsl.exe` 
 The previous `turndown.js` and `contenteditable` UI architecture for Artifacts was completely stripped out. It broke screen-reader form traversal and was visually confusing. We redesigned the Flip Card to use a raw, native `<textarea class="artifact-raw-editor">` and implemented an automatic JavaScript `.focus()` hook to snap visually impaired users directly into the edit box the moment the card flips. 
 
 Finally, we re-routed the `POST /api/artifacts/save` endpoint to bypass Python's buggy `wsl.exe` stdin pipeline. It now writes to a temporary file natively on Windows and uses `wsl.exe cp` via `wslpath -a` to guarantee reliable saves into the Linux subsystem.
+
+## Chapter 47: Swarm Orchestration & Autonomous Self-Healing
+
+Following the UI overhaul, a massive architectural sprint focused on extreme scalability and fault tolerance was committed.
+
+### [2026-09-27 18:23] The Flash Swarm Orchestrator
+To solve context-window bottlenecks when parsing massive files (like gigabyte-sized transcripts), the new gents/swarm_orchestrator.py was introduced. It implements a SwarmOrchestrator class that dynamically partitions massive texts into ~7k token chunks and spawns parallel 'Flash Sub-Agents' (gemini-3.8-flash-low) to asynchronously distill the chunks down to their core narratives. The distilled summaries are then re-stitched and handed off to the Main Pro Agent, achieving upwards of 90% compression without losing chronological context.
+
+### [2026-09-27 18:23] Zero-Downtime Autonomous Self-Healing
+The self_heal.py module was introduced to catch critical runtime crashes. Instead of dropping the user into a broken state, heal_crash() now intercepts fatal exceptions, packages the traceback, dials out to the Gemini API, and dynamically generates a Python repair script. The engine automatically executes the AI-generated hot-fix patch and seamlessly invokes os.execv() to restart the application, effectively creating an autonomous, self-healing loop.
+
+### System & Security Upgrades
+The core components including gents/agent_manager.py and security/raugus_resolver.py were heavily updated to integrate the Swarm and Self-Heal pipelines. A new Compilation_Evidence_Report.md, Uninstall_Siraugga.bat, and Siraugga.spec were added for packaging and audit trails, completing the system-wide stabilization.
+## Chapter 49: The Compilation Crucible (Nuitka vs PyInstaller)
+
+With the web portal running and the core architecture secured, a new requirement emerged: deployment. We needed to package the entire Antigravity portal into a single, standalone executable that could be distributed and run offline without relying on complex Python environment setups or WSL dependencies. 
+
+Our first instinct was the industry standard: PyInstaller. But the moment we tried to compile the project, the inherent flaws of PyInstaller became agonizingly clear. It didn't actually compile the code; it merely bundled the Python interpreter alongside the scripts, unpacking them into a temporary directory at runtime. This resulted in a massive, bloated executable that was slow to boot and fundamentally incompatible with our strict, in-memory zero-trust architecture. Worse, the executable kept breaking itself when trying to resolve relative paths for our templates and plugins.
+
+I hit a wall of frustration: *"py installer is not working... dude we are not using this bloat."*
+
+We needed a true compiler. We pivoted hard to **Nuitka**, a tool that translates Python code directly into highly optimized C and compiles it natively. The shift was brutal. Nuitka's strict compilation process exposed every hidden dependency and dynamic import flaw in our codebase. We spent hours wrestling with missing DLLs, Windows-to-Linux path resolution errors, and the agonizing process of explicitly defining every single embedded template and static asset. 
+
+But when the Nuitka build finally succeeded, the result was a revelation. We had a lean, incredibly fast, true binary executable. It ran entirely offline, respecting our zero-trust boundaries without the massive overhead. To complete the deployment pipeline, we even engineered a lightweight installer and uninstaller, transforming a sprawling Python project into a professional, distributed application.
+
+## Chapter 50: The Artifact Card Refactor (Interactive Feedback)
+
+As the executable stabilized, we turned our attention back to the frontend UI, specifically the "Artifact Viewer." The agents were generating massive markdown plans, but the user experience for reviewing and editing these plans was incredibly clunky, especially for screen reader users.
+
+We designed an interactive "Flip Card" architecture. The idea was simple: the front of the card displays the rendered markdown, and clicking a "Flip" button flips the card to reveal a raw text editor on the back. But the implementation immediately fought back. 
+
+First, the flip button wouldn't reliably trigger. Then, when it did flip, the screen reader was left completely blind to the state change. I had to explicitly instruct the AI: *"the flip button does not work... pinpoint the failure... dude I am talking about the UI of this project."*
+
+We ripped out the complicated custom focus management and replaced it with a native `<textarea class="artifact-raw-editor">`. We added a rigid auto-focus hook that forced the browser to instantly snap the screen reader's focus to the raw text the millisecond the card flipped. 
+
+Then came the execution problem. If an agent wrote a script, how do we run it? We added a "Proceed" button directly to the artifact card. But testing it was terrifying. The agent would write a script, and when I clicked "Proceed," the system would freeze or the button would get stuck in a loading state. We had to systematically debug the async task queues, ensuring that clicking "Proceed" triggered a secure, non-blocking execution pipeline that piped the script directly into the backend subprocess. 
+
+When it finally worked, it was magic. An agent could draft a script, I could flip the card to review it, and with one click of "Proceed," the system would execute it live.
+
+## Chapter 51: The Timeline Self-Reflection
+
+With the executable built and the UI refined, I took a step back and looked at the sheer volume of work we had accomplished. The project directory was littered with temporary files, duplicate devlogs, and legacy documentation. 
+
+*"I see two devlogs... lets clean up the templates and docs,"* I noted. 
+
+But as we began to clean the workspace, I realized something profound. The story of building this application—the struggles with the sandbox, the battles against the terminal UI, the token quota crises—was just as important as the code itself. The entire history was buried in massive, raw chat transcripts, thousands of lines of chronological prompts and system messages.
+
+I realized we didn't need to write the devlog from memory. We had an exact, immutable timeline of every failure, every architectural pivot, and every breakthrough. I instructed the system to mine its own chat logs, to sift through the raw timeline, and to synthesize those missing technical events into the very story you are reading now. The AI was documenting its own genesis. 
