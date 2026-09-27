@@ -73,7 +73,24 @@ Because this system serves third-party game developers and modders, strict bound
 
 ---
 
-## 6. Error Handling & Loop Prevention
+## 6. Interactive Artifact Viewer & Safe Saving Routing
+When agents generate `.md` artifacts (like Implementation Plans) and require user feedback, the UI uses a specialized Flip Card architecture:
+
+### Accessibility & Editor UX
+- **No Raw `contenteditable` HTML**: The back of the card relies strictly on a native `<textarea class="artifact-raw-editor">` for direct raw markdown editing. This guarantees standard form-control behavior (like the `E` key shortcut) for screen readers.
+- **Auto-Focus Hook**: `rawEditor.focus()` is called immediately upon flipping the card to instantly alert the screen reader to the state change.
+
+### WSL & Windows I/O Interop
+- **Broken Pipes Mitigation**: Do NOT use `wsl.exe bash -c "cat > file"` with `stdin=subprocess.PIPE` inside `server.py`, as it can silently drop data on Windows.
+- **Save Route (`POST /api/artifacts/save`)**: Artifacts are saved by writing a temporary `.md` file to the Windows host directory first, then using `wsl.exe cp` (via `wslpath -a`) to move it into the Linux `/home/...` artifact directory safely.
+
+### Artifact Access Control (RBAC)
+- **Admins (Tier 5)**: Allowed to natively fetch, flip, directly edit, and save artifacts.
+- **Developers (Tier 3)**: Denied direct file access. Clicking an artifact triggers an invisible WebSocket instruction asking the agent to read the plan, scrub out root credentials/secrets, and provide a high-level technical summary in the chat window.
+
+---
+
+## 7. Error Handling & Loop Prevention
 - **No Infinite Loops**: If a tool call (such as searching, reading a file, or running a command) fails or returns an error, DO NOT retry it in a loop.
 - **Fail Fast & Inform User**: If you hit a restriction, error, or sandbox boundary, immediately STOP. Output a summary of the error to the user and ask for guidance.
 - **Avoid Massive Directories**: Regardless of admin or sandbox status, DO NOT recursively search massive directories (like env or 
