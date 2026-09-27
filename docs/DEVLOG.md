@@ -775,3 +775,21 @@ While this limitation causes immense friction and frustration for the Administra
 - **Process Tree Annihilation:** Upgraded the backend `agent_manager.py` to use native Windows `taskkill /F /T /PID` when cancelling tasks. This ensures the entire process tree (including any spawned subagents) is completely destroyed, eliminating invisible zombie processes.
 - **Global Kill Switches:** Injected global keyboard shortcuts (`Ctrl + C`, `Ctrl + |`, `Ctrl + \`) to trigger task cancellation instantly from anywhere in the application. Added intelligent context awareness so `Ctrl + C` still natively copies text if the user has a selection highlighted.
 - **Secure Context Clipboard Fix:** Rewrote the application's markdown copy mechanisms (`executeCopy`). Browsers and WebViews aggressively block `navigator.clipboard` over local network IPs for security reasons. Engineered a bulletproof fallback using invisible text areas and `document.execCommand('copy')` that successfully bypasses these restrictions, restoring 1-click code copying across all environments.
+
+## Chapter 46: The Web UI Overhaul & Windows-to-WSL Bridge
+
+As the application scaled, the integration between the native Windows host and the Linux WSL environment began to buckle under the weight of complex string piping. The active timeline for this sprint focused heavily on stabilizing the core boot sequence, fixing cross-OS data drops, and completely overhauling the Artifact Viewer for screen-reader accessibility.
+
+### [2026-09-27 12:15 - 13:20] Boot Sequence & Architecture Documentation
+We started by migrating the standalone execution of `core/server.py` away from Quart's flaky built-in dev server and onto the production-grade Hypercorn ASGI server to guarantee stable WebSocket connections. We immediately documented the entire `Siraugga.exe` startup sequence, Master Signature verification flow, and OTA hot-patch mechanisms into the `TEXTBOOK.md` to ensure future agents understood the live architecture.
+
+### [2026-09-27 13:48 - 14:34] Native OAuth & Scrub Engine
+The manual API key bypass was ripped out in favor of Antigravity's native Google OAuth flow. To aid local development, a "Scrub Authentication" endpoint was built to cleanly wipe Windows `%APPDATA%` credentials without nuking the active WSL environment's tokens.
+
+### [2026-09-27 15:27 - 15:58] The WSL RPC Crashes
+The system began throwing `Wsl/Service/0x8007072c` RPC errors because `wsl.exe` was being invoked in a hidden console (via `CREATE_NO_WINDOW`) while piping standard handles. We removed the hidden console flags and implemented the `-e` flag to bypass Bash's multiline argument splitting, successfully stabilizing the WSL pipeline.
+
+### [2026-09-27 15:45] Artifact Viewer Accessibility Overhaul
+The previous `turndown.js` and `contenteditable` UI architecture for Artifacts was completely stripped out. It broke screen-reader form traversal and was visually confusing. We redesigned the Flip Card to use a raw, native `<textarea class="artifact-raw-editor">` and implemented an automatic JavaScript `.focus()` hook to snap visually impaired users directly into the edit box the moment the card flips. 
+
+Finally, we re-routed the `POST /api/artifacts/save` endpoint to bypass Python's buggy `wsl.exe` stdin pipeline. It now writes to a temporary file natively on Windows and uses `wsl.exe cp` via `wslpath -a` to guarantee reliable saves into the Linux subsystem.
