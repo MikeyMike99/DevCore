@@ -31,8 +31,8 @@ async def reload_system():
     global project_mgr, session_mgr, agent_mgr, security_mgr, sm, pm, am, sec_m
     
     try:
-        # Preserve active WebSocket connections
-        active_clients = set(agent_mgr.connected_clients)
+        # Preserve active WebSocket connections (CWE-200)
+        active_clients = dict(agent_mgr.connected_clients)
         is_busy = agent_mgr.is_running()
         
         # Reload modules dynamically
@@ -110,7 +110,7 @@ async def execute_hot_patch_sequence():
     await agent_mgr.broadcast({"type": "system", "level": "info", "message": "Files updated! Re-compiling backend modules in-memory..."})
     
     # 3. Reload & Rollback Phase
-    active_clients = set(agent_mgr.connected_clients)
+    active_clients = dict(agent_mgr.connected_clients)
     is_busy = agent_mgr.is_running()
     
     try:
@@ -581,6 +581,9 @@ async def ws_endpoint():
                     continue
                 elif msg_type == "auth_token":
                     token = data.get("token", "")
+                    user = security_mgr.get_user_from_token(token)
+                    if user:
+                        await agent_mgr.authenticate_client(client_queue, user.get("username"))
                     await agent_mgr.submit_auth_token(token)
                     continue
                 elif msg_type == "save_artifact":
@@ -639,6 +642,7 @@ async def ws_endpoint():
                                 "message": "Your session has expired. Please refresh the page and log in again."
                             }))
                             continue
+                        await agent_mgr.authenticate_client(client_queue, user.get("username"))
                     else:
                         user = security_mgr.get_user_from_token(None)
             except (json.JSONDecodeError, AttributeError):
