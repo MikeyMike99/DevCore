@@ -22,7 +22,7 @@ When embedding this AI portal inside developer workflows and game engines for un
 
 ### 3. Subprocess Environment & Credential Exfiltration (CWE-214)
 - **Vulnerability**: Subprocesses spawn with the parent process's full `os.environ`, exposing API keys (`GEMINI_API_KEY`), cloud tokens, and host variables if a prompt asks the agent to inspect the environment.
-- **Mitigation Applied**: `_execute_agent()` constructs a strictly whitelisted environment dictionary (`PATH`, `HOME`, `LANG`, `TERM`, `SHELL`, `AGY_*`). Host secrets, internal keys, and system environment variables are stripped prior to execution.
+- **Mitigation Applied**: `_execute_agent()` constructs a strictly whitelisted environment dictionary. The root billing keys (`GEMINI_API_KEY`, `GOOGLE_API_KEY`) are completely stripped from the agent's memory space. Instead, the subprocess receives a dummy token and an internal `GEMINI_BASE_URL`. All LLM traffic is routed through our local Secure Proxy (`/api/proxy`), which securely attaches the encrypted root vault key server-side before forwarding to Google.
 
 ---
 
