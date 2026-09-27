@@ -24,12 +24,9 @@
                 <label for="tokenInput" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Deployment Token</label>
                 <input type="password" id="tokenInput" autocomplete="off"
                        class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono placeholder-slate-600 mb-4"
-                       placeholder="e.g. AGY-DEPLOY-XXXX (Optional)">
+                       placeholder="e.g. AGY-DEPLOY-XXXX" required>
                        
-                <label for="apiKeyInput" class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Google API Key</label>
-                <input type="password" id="apiKeyInput" required autocomplete="off"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent font-mono placeholder-slate-600"
-                       placeholder="AIzaSy...">
+
             </div>
             <div id="errorMsg" class="hidden text-sm text-red-400 font-medium"></div>
             <div id="successMsg" class="hidden text-sm text-emerald-400 font-medium flex items-center gap-2">
@@ -48,7 +45,7 @@
             const errorMsg = document.getElementById('errorMsg');
             const successMsg = document.getElementById('successMsg');
             const tokenInput = document.getElementById('tokenInput');
-            const apiKeyInput = document.getElementById('apiKeyInput');
+
             
             errorMsg.classList.add('hidden');
             btn.disabled = true;
@@ -59,8 +56,8 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        token: tokenInput.value,
-                        api_key: apiKeyInput.value
+                        token: tokenInput.value
+
                     })
                 });
                 
@@ -70,7 +67,7 @@
                     successMsg.classList.remove('hidden');
                     btn.classList.add('hidden');
                     tokenInput.disabled = true;
-                    if (apiKeyInput) apiKeyInput.disabled = true;
+
                     setTimeout(() => {
                         // Attempt to close the newly opened tab
                         window.close();

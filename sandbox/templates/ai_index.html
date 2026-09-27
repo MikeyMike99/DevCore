@@ -729,7 +729,17 @@
             taskStartTime = startTime || Date.now() / 1000;
             currentTaskPromptEl.innerText = prompt || 'Executing instruction...';
             if (taskModelBadge) {
-                taskModelBadge.innerText = model || (modelSelector ? modelSelector.value : 'Gemini');
+                var rawModel = model || (modelSelector ? modelSelector.value : 'Gemini');
+                var modelDisplay = rawModel;
+                if (modelSelector) {
+                    for (var i = 0; i < modelSelector.options.length; i++) {
+                        if (modelSelector.options[i].value === rawModel) {
+                            modelDisplay = modelSelector.options[i].text;
+                            break;
+                        }
+                    }
+                }
+                taskModelBadge.innerText = modelDisplay;
             }
             taskBanner.classList.remove('hidden');
 
@@ -846,8 +856,16 @@
             article.dataset.sender = 'agent';
             article.dataset.rawMarkdown = '';
 
-            var modelDisplay = modelName || (modelSelector ? modelSelector.value : 'Gemini');
-
+            var rawModel = modelName || (modelSelector ? modelSelector.value : 'Gemini');
+            var modelDisplay = rawModel;
+            if (modelSelector) {
+                for (var i = 0; i < modelSelector.options.length; i++) {
+                    if (modelSelector.options[i].value === rawModel) {
+                        modelDisplay = modelSelector.options[i].text;
+                        break;
+                    }
+                }
+            }
             article.innerHTML = `
                 <div class="flex items-center justify-between mb-1.5">
                     <div class="flex items-center gap-2">
