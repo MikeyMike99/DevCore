@@ -22,7 +22,8 @@ class AgentTaskManager:
         self.output_buffer: list = []
         self.actions: list = []
         self.last_completed_task: dict = None
-        self.connected_clients: set = set()
+        self.connected_clients: dict = {}
+        self.active_task_owner: str = None
         self.current_conversation_id: str = None
         
         # Guaranteed Delivery & ACK Queue
@@ -73,12 +74,15 @@ class AgentTaskManager:
 
         payload = json.dumps(message_with_seq)
         
-        # Broadcast to all connected clients (which are asyncio.Queue objects)
-        for client_queue in list(self.connected_clients):
-            try:
-                client_queue.put_nowait(payload)
-            except Exception as e:
-                print(f"[AgentTaskManager] Failed to push to client queue: {e}")
+        # Broadcast only to the active task owner or admin (CWE-200)
+        is_system_msg = message_with_seq.get("type") in ("system", "agent_stop", "agent_start")
+        for client_queue, username in list(self.connected_clients.items()):
+            is_owner = self.active_task_owner is None or username == self.active_task_owner or username == "admin"
+            if is_system_msg or is_owner:
+                try:
+                    client_queue.put_nowait(payload)
+                except Exception as e:
+                    print(f"[AgentTaskManager] Failed to push to client queue: {e}")
 
     def handle_ack(self, ack_seq: int):
         """Prunes messages from the queue that have been confirmed received by the client."""
@@ -126,11 +130,15 @@ class AgentTaskManager:
             print(f"[AgentTaskManager] Error syncing client: {e}")
 
     async def register_client(self, ws):
-        self.connected_clients.add(ws)
+        self.connected_clients.setdefault(ws, None)
         # Client will send its own sync message with last_seq; don't sync automatically to avoid duplicate seq=0 broadcast.
+        
+    async def authenticate_client(self, ws, username: str):
+        if ws in self.connected_clients:
+            self.connected_clients[ws] = username
 
     async def unregister_client(self, ws):
-        self.connected_clients.discard(ws)
+        self.connected_clients.pop(ws, None)
 
     async def start_task(self, prompt: str, model: str = "gemini-3.8-flash-low", conversation_id: str = None, user: dict = None, admin_override: bool = False):
         if self.is_running():
@@ -141,7 +149,7 @@ class AgentTaskManager:
             })
             return
         is_admin = (user and user.get("role") == "admin") or admin_override
-        
+        self.active_task_owner = user.get("username") if user else None
         # Financial DoS / Rate Limiting Protection (Max 15 requests per minute per user)
         if not is_admin:
             user_id = user.get("username", "anonymous") if user else "anonymous"
@@ -213,9 +221,12 @@ class AgentTaskManager:
             elif "PATH" not in safe_env:
                 safe_env["PATH"] = local_bin
 
-            # Unconditionally allow all permissions to bypass headless auto-denies
+            # Determine if user is admin to grant skip permissions, else enforce sandbox (CWE-918)
             is_admin = (user and user.get("role") == "admin") or admin_override
-            perm_flag = "--dangerously-skip-permissions"
+            if is_admin:
+                perm_flag = "--dangerously-skip-permissions"
+            else:
+                perm_flag = "--sandbox"
             
             # Instruct Antigravity to avoid the sandbox when running as admin and prevent quota-exhausting loops
             if is_admin:
@@ -255,7 +266,8 @@ class AgentTaskManager:
             cmd = [
                 real_agy,
                 "--model", model,
-                "--output-format", "stream-json"
+                "--output-format", "stream-json",
+                "--print-timeout", "180s" # Enforce hard timeout (CWE-400)
             ]
             if perm_flag:
                 cmd.insert(1, perm_flag)
