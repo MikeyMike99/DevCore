@@ -107,6 +107,21 @@ class SessionManager:
             
         return results, has_more
 
+    def delete_session(self, conv_id, user):
+        if not self.can_user_access_session(conv_id, user):
+            return False
+        print(f"[SessionManager] Archiving single session {conv_id} to admin access instead of deleting.")
+        if conv_id in self.ownership:
+            self.ownership[conv_id]["owner"] = "admin"
+            self.ownership[conv_id]["project"] = "archived_deletions"
+        else:
+            self.ownership[conv_id] = {
+                "owner": "admin",
+                "project": "archived_deletions"
+            }
+        self._save_ownership()
+        return True
+
     def delete_project_sessions(self, project_name, user):
         import shutil
         to_delete = []
