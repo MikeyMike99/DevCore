@@ -46,6 +46,7 @@
         }
     });
     </script>
+    <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
     <style>
         .markdown-body { font-size: 0.95rem; line-height: 1.6; }
         .markdown-body p { margin-bottom: 0.75rem; }
@@ -460,12 +461,8 @@
                         </a>
                     </div>
                     <div class="flex mt-3 border-t border-teal-500/30 pt-4">
-                        <button onclick="flipCardToPlan(this, '${escapeHtml(href)}')" class="bg-slate-800 border border-teal-700 hover:bg-slate-700 focus:ring-2 focus:ring-teal-400 focus:outline-none text-teal-400 font-medium py-2 px-5 rounded shadow transition-colors flex items-center gap-2 text-sm">
-                            <i class="fas fa-sync-alt"></i> Flip & View Plan
-                        </button>
-                        <button onclick="proceedArtifact()" class="bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400 focus:outline-none text-white font-medium py-2 px-5 rounded shadow transition-colors artifact-proceed-btn flex items-center gap-2 text-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                            Proceed (Alt+P)
+                        <button onclick="flipCardToPlan(this, '${escapeHtml(href)}')" class="bg-slate-800 border border-teal-700 hover:bg-slate-700 focus:ring-2 focus:ring-teal-400 focus:outline-none text-teal-400 font-medium py-2 px-5 rounded shadow transition-colors flex items-center gap-2 text-sm w-full justify-center">
+                            <i class="fas fa-sync-alt"></i> Flip to read ${escapeHtml(artifactName)}
                         </button>
                     </div>
                 </div>`;
@@ -508,48 +505,100 @@
         }
         
         async function flipCardToPlan(btn, url) {
-            var article = btn.closest('.flip-container');
-            
-            if (!currentUser) return;
-            
-            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
+            try {
+                var article = btn.closest('.flip-container');
+                if (!article) {
+                    alert("Debug: Could not find .flip-container. Are you sure the HTML structure matches?");
+                    return;
+                }
+                
+                if (!currentUser) {
+                    alert("Debug: currentUser is null or undefined.");
+                    return;
+                }
+                
+                var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
 
-            if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
-                // TIER 5 (Super Admin): Direct File Access & Card Flip
-                var backText = article.querySelector('.agent-back-text');
-                backText.innerHTML = '<div class="text-amber-400 animate-pulse">Decrypting and loading artifact...</div>';
-                article.classList.add('is-flipped');
+                if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                    // TIER 5 (Super Admin): Direct File Access & Card Flip
+                    var rawEditor = article.querySelector('.artifact-raw-editor');
+                    if (!rawEditor) {
+                        alert("Debug: Could not find .artifact-raw-editor inside article.");
+                        return;
+                    }
+                    rawEditor.value = 'Decrypting and loading artifact...';
+                    article.classList.add('is-flipped');
+                    var flipBack = article.querySelector('.flip-back');
+                    if (flipBack) flipBack.removeAttribute('aria-hidden');
                 
                 try {
                     var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url));
                     var data = await res.json();
                     if (data.content) {
-                        backText.innerHTML = marked.parse(data.content);
+                        rawEditor.value = data.content;
+                        article.dataset.artifactUrl = url;
+                        // Force screen reader focus into the edit box so they instantly know it flipped!
+                        rawEditor.focus();
                     } else {
-                        backText.innerHTML = '<div class="text-red-400">Failed to load artifact: ' + (data.error || 'Unknown error') + '</div>';
+                        rawEditor.value = 'Failed to load artifact: ' + (data.error || 'Unknown error');
                     }
                 } catch (e) {
-                    backText.innerHTML = '<div class="text-red-400">Network error fetching artifact.</div>';
+                    rawEditor.value = 'Network error fetching artifact.';
                 }
-            } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev') {
-                // TIER 3: Agentic Summarization (No flip, send prompt)
-                var promptText = "Please summarize the implementation plan at `" + url + "` for a Tier 3 Developer. Remove root credentials and Tier 5 secrets, but provide the technical architecture and logic.";
-                if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev') {
+                    // TIER 3: Agentic Summarization (No flip, send prompt)
+                    var promptText = "Please summarize the implementation plan at `" + url + "` for a Tier 3 Developer. Remove root credentials and Tier 5 secrets, but provide the technical architecture and logic.";
+                    if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                    }
+                } else {
+                    alert("Debug: You are logged in as a Guest or Dev. Card flipping is disabled for this role. Sending a prompt instead...");
+                    // TIER 1 (Guest): Agentic Layman Explanation (No flip, send prompt)
+                    var promptText = "Please read the implementation plan at `" + url + "`. Remove ALL code. Explain it in layman's terms without revealing sensitive information or the structure of the backend.";
+                    if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                    }
                 }
-            } else {
-                // TIER 1 (Guest): Agentic Layman Explanation (No flip, send prompt)
-                var promptText = "Please read the implementation plan at `" + url + "`. Remove ALL code. Explain it in layman's terms without revealing sensitive information or the structure of the backend.";
-                if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
-                }
+            } catch (err) {
+                alert("Debug: Unexpected error in flipCardToPlan: " + err.message);
+                console.error(err);
             }
         }
 
-        function proceedArtifact() {
+        async function proceedArtifact(btn) {
             var prompt = "Proceed";
+            
+            // Auto-save edited artifact content
+            if (btn) {
+                var article = btn.closest('.flip-container');
+                if (article) {
+                    var rawEditor = article.querySelector('.artifact-raw-editor');
+                    var url = article.dataset.artifactUrl;
+                    if (rawEditor && url) {
+                        try {
+                            btn.disabled = true;
+                            var originalBtnHtml = btn.innerHTML;
+                            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                            
+                            // Save via the dedicated HTTP route
+                            await fetch('/api/artifacts/save', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ path: url, content: rawEditor.value })
+                            });
+                            
+                            btn.innerHTML = originalBtnHtml;
+                            btn.disabled = false;
+                        } catch (e) {
+                            console.error("Failed to auto-save artifact before proceeding:", e);
+                            btn.disabled = false;
+                        }
+                    }
+                }
+            }
+            
             var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
             if (typeof appendUserMessage === 'function') {
                 appendUserMessage(prompt);
@@ -561,7 +610,7 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     type: 'prompt',
-                    prompt: actualPromptToSend,
+                    prompt: prompt,
                     model: model,
                     conversation_id: typeof currentConversationId !== 'undefined' ? currentConversationId : null,
                     admin_override: adminOverride,
@@ -569,7 +618,7 @@
                 }));
             }
             if (typeof announce === 'function') {
-                announce("Sent proceed instruction.");
+                announce("Saved changes and sent proceed instruction.");
             }
         }
 
@@ -589,7 +638,10 @@
                 const authData = await authRes.json();
                 
                 if (authData.authenticated === false) {
-                    if (sysData.super_admin) {
+                    if (authData.url && authData.url !== "#") {
+                        // AI Engine Needs Google OAuth Deployment Token
+                        window.location.href = "/login";
+                    } else if (sysData.super_admin) {
                         showSuperAdminSetupOverlay(sysData);
                     } else {
                         showLoginOverlay(authData);
@@ -698,6 +750,10 @@
                                     <label class="text-xs text-slate-300 block mb-1">Allowed Projects (comma separated)</label>
                                     <input id="new-key-projects" type="text" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm text-white" placeholder="game_demo, npc_quest">
                                 </div>
+                                <div>
+                                    <label class="text-xs text-slate-300 block mb-1">Days Active</label>
+                                    <input id="new-key-expires" type="number" min="1" max="365" value="30" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm text-white">
+                                </div>
                                 <button onclick="generateKey()" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-bold py-2 px-4 rounded text-sm transition mt-2">
                                     Generate Key
                                 </button>
@@ -715,11 +771,40 @@
                             <div class="flex-1 overflow-y-auto pr-2" id="keys-list-container">
                             </div>
                         </div>
+                        
+                        <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 md:col-span-3">
+                            <h3 class="text-sm font-bold text-teal-400 mb-2">Engine Testing Controls</h3>
+                            <div class="flex gap-4 items-center justify-between">
+                                <p class="text-xs text-slate-400">Scrub the Google OAuth configuration to test the unauthenticated flow natively.</p>
+                                <button onclick="scrubEngineAuth()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold py-2 px-4 rounded transition-colors whitespace-nowrap">Scrub Authentication</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
             document.body.appendChild(modal);
             loadKeys();
+        }
+
+        window.scrubEngineAuth = async function() {
+            if (confirm("Are you sure you want to scrub all Google OAuth credentials? The engine will require re-authentication via the UI flow.")) {
+                try {
+                    const res = await fetch('/api/auth/scrub', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken
+                        }
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert(data.message);
+                        checkAuth();
+                    }
+                } catch (e) {
+                    alert("Failed to scrub auth: " + e);
+                }
+            }
         }
         
         window.loadKeys = async function() {
@@ -756,6 +841,7 @@
             const name = document.getElementById('new-key-name').value;
             const role = document.getElementById('new-key-role').value;
             const projects = document.getElementById('new-key-projects').value.split(',').map(s => s.trim()).filter(s => s);
+            const expires_in_days = document.getElementById('new-key-expires').value;
             
             try {
                 const res = await fetch('/api/auth/keys', {
@@ -764,7 +850,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + authToken
                     },
-                    body: JSON.stringify({ name, role, allowed_projects: projects.length > 0 ? projects : ['*'] })
+                    body: JSON.stringify({ name, role, allowed_projects: projects.length > 0 ? projects : ['*'], expires_in_days: parseFloat(expires_in_days) })
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -1480,7 +1566,17 @@
             
             currentTaskPromptEl.innerText = displayPrompt;
             if (taskModelBadge) {
-                taskModelBadge.innerText = model || (modelSelector ? modelSelector.value : 'Gemini');
+                var rawModel = model || (modelSelector ? modelSelector.value : 'Gemini');
+                var modelDisplay = rawModel;
+                if (modelSelector) {
+                    for (var i = 0; i < modelSelector.options.length; i++) {
+                        if (modelSelector.options[i].value === rawModel) {
+                            modelDisplay = modelSelector.options[i].text;
+                            break;
+                        }
+                    }
+                }
+                taskModelBadge.innerText = modelDisplay;
             }
             taskBanner.classList.remove('hidden');
 
@@ -1622,8 +1718,16 @@
             article.dataset.sender = 'agent';
             article.dataset.rawMarkdown = '';
 
-            var modelDisplay = modelName || (modelSelector ? modelSelector.value : 'Gemini');
-
+            var rawModel = modelName || (modelSelector ? modelSelector.value : 'Gemini');
+            var modelDisplay = rawModel;
+            if (modelSelector) {
+                for (var i = 0; i < modelSelector.options.length; i++) {
+                    if (modelSelector.options[i].value === rawModel) {
+                        modelDisplay = modelSelector.options[i].text;
+                        break;
+                    }
+                }
+            }
             article.className = 'message-card agent-message mb-4 flip-container'; // ADDED FLIP CONTAINER
             article.innerHTML = `
             <div class="flip-inner">
@@ -1657,7 +1761,7 @@
                     </div>
                 </div>
                 
-                <div class="flip-back flex flex-col h-full ">
+                <div class="flip-back flex flex-col h-full" aria-hidden="true">
                     <div class="flex items-center justify-between mb-1.5 shrink-0">
                         <div class="flex items-center gap-2">
                             <div class="w-5 h-5 rounded bg-amber-900/60 border border-amber-700/50 text-amber-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true"><i class="fas fa-project-diagram"></i></div>
@@ -1665,12 +1769,21 @@
                                 Implementation Plan
                             </h2>
                         </div>
-                        <button onclick="this.closest('.flip-container').classList.remove('is-flipped')" class="text-[10px] text-amber-400 hover:text-white bg-amber-950/40 border border-amber-800/50 px-2 py-0.5 rounded transition-colors flex items-center gap-1">
+                        <button onclick="this.closest('.flip-container').classList.remove('is-flipped'); this.closest('.flip-back').setAttribute('aria-hidden', 'true');" class="text-[10px] text-amber-400 hover:text-white bg-amber-950/40 border border-amber-800/50 px-2 py-0.5 rounded transition-colors flex items-center gap-1">
                             <i class="fas fa-undo"></i> Flip Back
                         </button>
                     </div>
-                    <div class="bg-slate-800/95 border border-amber-500/30 rounded-xl p-5 shadow-xl flex-1 overflow-y-auto custom-scrollbar">
-                        <div class="agent-back-text markdown-body text-slate-200 text-sm pb-4">Loading...</div>
+                    <div class="bg-slate-800/95 border border-amber-500/30 rounded-xl p-5 shadow-xl flex-1 flex flex-col" aria-live="polite">
+                        <textarea id="artifact-editor-${msgId}" class="artifact-raw-editor w-full bg-transparent text-slate-200 text-sm outline-none flex-1 font-mono custom-scrollbar resize-none" spellcheck="false" aria-label="Artifact Content (Editable Markdown)">Loading...</textarea>
+                        
+                        <div class="mt-4 pt-4 border-t border-amber-500/30">
+                            <div class="flex justify-end">
+                                <button onclick="proceedArtifact(this)" class="artifact-proceed-btn bg-teal-600 hover:bg-teal-500 focus:ring-2 focus:ring-teal-400 focus:outline-none text-white font-bold py-2.5 px-6 rounded shadow transition-colors flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                    Save & Proceed
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

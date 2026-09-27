@@ -14,8 +14,6 @@ from core import session_manager as sm
 from core import project_manager as pm
 from agents import agent_manager as am
 from security import security_manager as sec_m
-from security.raugus_resolver import resolver
-
 
 app = Quart(__name__, static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static"))
 
@@ -170,9 +168,33 @@ async def start_background_tasks():
     app.add_background_task(auto_patch_daemon)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# Dynamically load from the sandbox layer
-TEMPLATE_FILE = resolver.get_path("devcore.sandbox.templates.index.html", user_tier=5)
-UI_CONFIG_FILE = resolver.get_path("devcore.core.ui_config.json", user_tier=5)
+
+def get_live_override_path(rel_path):
+    """
+    LIVE OVERRIDE ARCHITECTURE (OTA Drop-in Updates)
+    Checks if a loose file exists next to the .exe (in CWD) before falling back to the compiled bundle.
+    This allows updating the UI/Plugins without downloading a new .exe!
+    """
+    import os
+    import sys
+    # When running as compiled executable, sys.executable is the .exe directory
+    # or os.getcwd() if launched from there.
+    exe_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
+    
+    live_path = os.path.join(exe_dir, rel_path)
+    if os.path.exists(live_path):
+        return live_path
+        
+    cwd_path = os.path.join(os.getcwd(), rel_path)
+    if os.path.exists(cwd_path):
+        return cwd_path
+        
+    # Fallback to the bundled extraction directory
+    return os.path.join(os.path.dirname(BASE_DIR), rel_path)
+
+# Dynamically load from the sandbox layer (with Live Override Support)
+TEMPLATE_FILE = get_live_override_path("sandbox/templates/index.html")
+UI_CONFIG_FILE = get_live_override_path("core/ui_config.json")
 
 @app.route('/')
 async def index():
@@ -200,7 +222,7 @@ async def plugin_media():
     video_id = request.args.get('v', 'jNQXAC9IVRw')
     video_title = request.args.get('title', 'Accessible Video Player')
     
-    template = resolver.get_path("devcore.sandbox.templates.video_application.html", user_tier=5)
+    template = get_live_override_path("sandbox/templates/video_application.html")
     if not os.path.exists(template):
         return "Media template not found", 404
         
@@ -217,7 +239,7 @@ async def plugin_media():
 @app.route('/plugin/security')
 async def plugin_security():
     """Dynamically renders the security dashboard plugin."""
-    template = resolver.get_path("devcore.sandbox.templates.security_dashboard.html", user_tier=5)
+    template = get_live_override_path("sandbox/templates/security_dashboard.html")
     if not os.path.exists(template):
         return "Security template not found", 404
         
@@ -237,7 +259,7 @@ async def plugin_exam():
     quiz_file = request.args.get('quiz', 'quiz_temp.json')
     exam_title = request.args.get('title', 'Siraugga Exam')
     
-    template = resolver.get_path("devcore.sandbox.templates.exam_application.html", user_tier=5)
+    template = get_live_override_path("sandbox/templates/exam_application.html")
     if not os.path.exists(template):
         return "Exam template not found", 404
         
@@ -253,11 +275,23 @@ async def plugin_exam():
 
 @app.route('/api/artifacts', methods=['GET'])
 async def get_artifact():
-    """Fetches artifact markdown for the Flip Card UI."""
+    import sys
+    import subprocess
+    
     path = request.args.get('path', '')
     if path.startswith('file://'):
         path = path[7:]
-    
+        
+    if sys.platform == "win32" and path.startswith("/"):
+        try:
+            result = subprocess.run(["wsl.exe", "-e", "cat", path], capture_output=True, text=True)
+            if result.returncode == 0:
+                return jsonify({"content": result.stdout})
+            else:
+                return jsonify({"error": f"WSL Artifact not found: {result.stderr}"}), 404
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
     if not os.path.exists(path):
         return jsonify({"error": "Artifact not found"}), 404
         
@@ -265,6 +299,38 @@ async def get_artifact():
         with open(path, 'r', encoding='utf-8') as f:
             content = f.read()
         return jsonify({"content": content})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+        
+@app.route('/api/artifacts/save', methods=['POST'])
+async def save_artifacts():
+    import sys
+    import subprocess
+    
+    data = await request.get_json()
+    path = data.get('path', '')
+    content = data.get('content', '')
+    if path.startswith('file://'):
+        path = path[7:]
+        
+    if sys.platform == "win32" and path.startswith("/"):
+        try:
+            process = subprocess.Popen(
+                ["wsl.exe", "-e", "bash", "-c", f"cat > '{path}'"],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            stdout, stderr = process.communicate(input=content)
+            if process.returncode == 0:
+                return jsonify({"success": True})
+            else:
+                return jsonify({"error": f"WSL Artifact write failed: {stderr}"}), 500
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return jsonify({"success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -296,7 +362,7 @@ async def handle_massive_prompt():
             scrubbed_prompt = raw_prompt
         
         # Save to disk instead of spawning hardcoded background agents
-        upload_dir = os.path.join(os.getcwd(), ".agents", "massive_prompts")
+        upload_dir = os.path.join(".agents", "massive_prompts")
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, f"{conv_id}.txt")
         
@@ -307,155 +373,45 @@ async def handle_massive_prompt():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/plugin/tts', methods=['POST'])
-async def plugin_tts():
-    """
-    Zero-Trust Proxy Route for Cinematic TTS.
-    """
-    data = await request.get_json()
-    if not data or 'text' not in data:
-        return jsonify({"error": "No text provided"}), 400
-        
-    text = data['text'].strip()
-    if not text:
-        return jsonify({"error": "Empty text provided"}), 400
-
-    # 1. Ask the Gatekeeper for the Proxy Plugin
-    try:
-        proxy_path = resolver.get_path("devcore.plugins.tts_proxy.py", user_tier=5)
-    except Exception as e:
-        return jsonify({"error": "TTS Plugin not found or unauthorized"}), 403
-
-    # 2. Dynamically load the plugin to maintain execution decoupling
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("tts_proxy", proxy_path)
-    tts_plugin = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(tts_plugin)
-    
-    # 3. Handoff execution
-    result, status_code = tts_plugin.generate_audio(text, UI_CONFIG_FILE)
-    
-    if status_code == 200:
-        # Return binary audio stream
-        from quart import Response
-        return Response(result, mimetype="audio/mpeg")
-    else:
-        return jsonify(result), status_code
-
-@app.route('/api/plugin/exam/save', methods=['POST'])
-async def plugin_exam_save():
-    """
-    Backend operation to permanently save generated exam questions to a specific quiz file.
-    Expects JSON: {"quiz_file": "master_exam.json", "questions": [...]}
-    """
-    data = await request.get_json()
-    if not data or 'questions' not in data:
-        return jsonify({"error": "No questions provided"}), 400
-        
-    quiz_file_name = data.get('quiz_file', 'master_exam.json')
-    # Prevent path traversal
-    safe_file_name = os.path.basename(quiz_file_name)
-    save_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static", safe_file_name)
-    
-    new_questions = data['questions']
-    
-    # Load existing if available to append
-    existing_data = []
-    if os.path.exists(save_path):
-        try:
-            with open(save_path, 'r', encoding='utf-8') as f:
-                existing_data = json.load(f)
-        except Exception:
-            existing_data = []
-            
-    existing_data.extend(new_questions)
-    
-    try:
-        with open(save_path, 'w', encoding='utf-8') as f:
-            json.dump(existing_data, f, indent=4)
-        return jsonify({"success": True, "total_questions": len(existing_data), "file": safe_file_name}), 200
-    except Exception as e:
-        return jsonify({"error": f"Failed to save exam data: {str(e)}"}), 500
 @app.route('/api/auth_check')
-async def auth_check_route():
-    # 0. Load persisted Client API Key if it exists
-    client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
-    if os.path.exists(client_key_path):
-        try:
-            with open(client_key_path, "r", encoding="utf-8") as f:
-                os.environ["GEMINI_API_KEY"] = f.read().strip()
-        except: pass
-
-    # 1. Master Developer Auto-Bypass
-    if security_mgr.check_master_signature():
-        return jsonify({"authenticated": True})
-        
-    # 2. Validate Client EXE Stamp (Expiration Logic)
-    try:
-        from security.stamper import read_stamp
-        import datetime
-        stamp = read_stamp()
-        if stamp and 'expires' in stamp:
-            expire_date = datetime.datetime.fromisoformat(stamp['expires'])
-            if datetime.datetime.now() > expire_date:
-                # Lockout the UI if the trial is expired
-                return jsonify({"authenticated": False, "expired": True, "message": "This application's access token has expired."})
-    except Exception as e:
-        print(f"[Auth] Stamp validation error: {e}")
-    
-    # 3. Fallback to the real auth check (Google API Key)
-    return await auth_check()
-
 async def auth_check():
-    """Proactively tests if the CLI or API key is authenticated."""
-    import sys
-    import os
-    import shutil
-    
-    # 0. If Gemini API key is configured, client is authenticated
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-    if not api_key:
-        client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
-        if os.path.exists(client_key_path):
-            try:
-                with open(client_key_path, "r", encoding="utf-8") as f:
-                    api_key = f.read().strip()
-                    if api_key:
-                        os.environ["GEMINI_API_KEY"] = api_key
-            except Exception:
-                pass
-
-    if api_key:
-        return jsonify({"authenticated": True})
-
-    # Check for real agy binary
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    bundled_exe = os.path.join(base_dir, "agy.exe")
-    bundled_linux = os.path.join(base_dir, "agy")
-    
-    real_agy = None
-    if shutil.which("agy"):
-        real_agy = shutil.which("agy")
-    elif os.path.exists(bundled_exe) and os.path.getsize(bundled_exe) > 1024:
-        real_agy = bundled_exe
-    elif os.path.exists(bundled_linux) and os.path.getsize(bundled_linux) > 1024:
-        real_agy = bundled_linux
-
-    if not real_agy:
-        # No external CLI found - prompt for API key via login page
-        return jsonify({"authenticated": False, "url": "/login"})
-
-    if sys.platform == 'win32' and not real_agy.endswith('.exe'):
-        cmd = ['wsl.exe', 'script', '-q', '-c', f'{real_agy} --print ping', '/dev/null']
-    else:
-        cmd = [real_agy, '--print', 'ping']
-        
+    """Proactively tests if the CLI needs authentication by running a dummy command."""
     def run_check():
         global GLOBAL_AUTH_PROC
         import subprocess
         import os
         import re
+        import shutil
+        import sys
         
+        # Resolve agy executable
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        bundled_exe = os.path.join(base_dir, "agy.exe")
+        bundled_linux = os.path.join(base_dir, "agy")
+        
+        real_agy = None
+        cand = shutil.which("agy")
+        if cand and os.path.exists(cand) and os.path.getsize(cand) > 1024:
+            real_agy = cand
+        elif os.path.exists(bundled_exe) and os.path.getsize(bundled_exe) > 1024:
+            real_agy = bundled_exe
+        elif os.path.exists(bundled_linux) and os.path.getsize(bundled_linux) > 1024:
+            real_agy = bundled_linux
+        elif sys.platform != "win32":
+            local_agy = os.path.expanduser("~/.local/bin/agy")
+            if os.path.exists(local_agy) and os.path.getsize(local_agy) > 1024:
+                real_agy = local_agy
+        elif sys.platform == "win32":
+            try:
+                wsl_agy = subprocess.check_output(["wsl.exe", "-e", "bash", "-lc", "which agy"], text=True, stderr=subprocess.DEVNULL).strip()
+                if wsl_agy and wsl_agy.startswith("/"):
+                    real_agy = wsl_agy
+            except Exception:
+                pass
+                
+        if not real_agy:
+            return {"authenticated": True} # Fallback to native gemini if no CLI found
+
         # Kill any existing dangling process
         if GLOBAL_AUTH_PROC:
             try: GLOBAL_AUTH_PROC.kill()
@@ -464,11 +420,16 @@ async def auth_check():
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
         env["WSLENV"] = "PYTHONUNBUFFERED/u"
+        
+        cmd = [real_agy, '--print', 'ping']
+        if sys.platform == 'win32' and not real_agy.endswith('.exe'):
+            cmd = ['wsl.exe', '-e'] + cmd
+            
         try:
             proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
             
             # Read line by line synchronously
-            for _ in range(5): # Don't read forever
+            for _ in range(15): # Don't read forever
                 line = proc.stdout.readline()
                 if not line:
                     break
@@ -488,12 +449,11 @@ async def auth_check():
             try: proc.kill()
             except: pass
             GLOBAL_AUTH_PROC = None
-            # If we get here, no URL or pong found
             return {"authenticated": False, "url": "#"}
         except Exception as e:
             print(f"Auth check error in thread: {e}")
             return {"authenticated": False, "url": "#"}
-                
+            
     try:
         result = await asyncio.to_thread(run_check)
         return jsonify(result)
@@ -503,46 +463,36 @@ async def auth_check():
 
 @app.route('/login')
 async def login_page():
-    login_file = resolver.get_path("devcore.sandbox.templates.login.html", user_tier=5)
+    login_file = get_live_override_path("sandbox/templates/login.html")
     if not os.path.exists(login_file):
         return "Login template not found", 404
     with open(login_file, 'r', encoding='utf-8') as f:
         return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/api/set_api_key', methods=['POST'])
+async def set_api_key():
+    data = await request.get_json() or {}
+    api_key = data.get('api_key', '').strip()
+    if not api_key:
+        return jsonify({"success": False, "error": "No API key provided"})
+    
+    os.environ["GEMINI_API_KEY"] = api_key
+    client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+    try:
+        with open(client_key_path, "w", encoding="utf-8") as f:
+            f.write(api_key)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
 
 @app.route('/api/auth_submit', methods=['POST'])
 async def auth_submit():
     print("[auth_submit] Starting request...")
     data = await request.get_json() or {}
     token = data.get('token', '').strip()
-    api_key = data.get('api_key', '').strip()
-    
-    # 1. API Key Injection (For Clients/Customers)
-    if api_key:
-        os.environ["GEMINI_API_KEY"] = api_key
-        
-        # Persist the API key locally on the client's machine so they don't have to enter it every time
-        try:
-            client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
-            with open(client_key_path, "w", encoding="utf-8") as f:
-                f.write(api_key)
-        except Exception as e:
-            print(f"[Auth] Failed to save client API key: {e}")
-            
-        # If the CLI was paused waiting for OAuth, kill it. It will use the API key next time.
-        global GLOBAL_AUTH_PROC
-        if GLOBAL_AUTH_PROC:
-            try: GLOBAL_AUTH_PROC.kill()
-            except: pass
-            GLOBAL_AUTH_PROC = None
-            
-        # TODO: Here we could verify the Deployment Token (EXE ID) for expiration logic
-        # For now, if they provide a valid API key, we let them in.
-        return jsonify({"success": True})
-        
-    # 2. Legacy Fallback (If they are doing terminal OAuth)
     if not token:
-        print("[auth_submit] No token or API key provided")
-        return jsonify({"success": False, "error": "No token or API key provided"})
+        print("[auth_submit] No token provided")
+        return jsonify({"success": False, "error": "No token provided"})
         
     def run_submit():
         global GLOBAL_AUTH_PROC
@@ -614,7 +564,7 @@ async def ws_endpoint():
                 continue
 
             prompt = None
-            model = "gemini-3.8-flash-low"
+            model = "gemini-3.8-flash-high"
             conversation_id = None
             try:
                 data = json.loads(raw_msg)
@@ -633,6 +583,34 @@ async def ws_endpoint():
                     token = data.get("token", "")
                     await agent_mgr.submit_auth_token(token)
                     continue
+                elif msg_type == "save_artifact":
+                    path = data.get("path", "")
+                    content = data.get("content", "")
+                    if path.startswith('file://'):
+                        path = path[7:]
+                        
+                    import sys, subprocess, os
+                    if sys.platform == "win32" and path.startswith("/"):
+                        try:
+                            # Avoid stdin piping bugs on Windows by writing to a local temp file first
+                            temp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wsl_temp_save.md")
+                            with open(temp_path, "w", encoding="utf-8") as tf:
+                                tf.write(content)
+                            
+                            # Convert Windows path to WSL path and copy
+                            wsl_temp = subprocess.run(["wsl.exe", "wslpath", "-a", temp_path], capture_output=True, text=True, creationflags=0x08000000).stdout.strip()
+                            subprocess.run(["wsl.exe", "bash", "-c", f"cp '{wsl_temp}' '{path}'"], creationflags=0x08000000)
+                            
+                            if os.path.exists(temp_path):
+                                os.remove(temp_path)
+                        except Exception as e:
+                            print(f"WSL save error: {e}")
+                    else:
+                        try:
+                            with open(path, 'w', encoding='utf-8') as f:
+                                f.write(content)
+                        except: pass
+                    continue
                 elif msg_type == "exam_ready":
                     await agent_mgr.broadcast(data)
                     continue
@@ -647,7 +625,7 @@ async def ws_endpoint():
                     continue
                 elif msg_type == "prompt":
                     prompt = data.get("prompt", "").strip()
-                    model = data.get("model", "gemini-3.8-flash-low")
+                    model = data.get("model", "gemini-3.8-flash-high")
                     conversation_id = data.get("conversation_id")
                     admin_override = data.get("admin_override", False)
                     token = data.get("token")
@@ -674,7 +652,7 @@ async def ws_endpoint():
                 is_admin = user and user.get("role") == "Tier5_SysAdmin"
                 if not is_admin:
                     try:
-                        from security.local_security import LocalSecurity
+                        from local_security import LocalSecurity
                         ls = LocalSecurity()
                         security_status = ls.analyze_intent(prompt)
                         if security_status == "ATTACK":
@@ -684,6 +662,8 @@ async def ws_endpoint():
                                 "markdown": "> [!CAUTION] Semantic Firewall Active\n> Malicious intent or prompt injection detected. Your request has been blocked and dropped."
                             }))
                             continue
+                    except ImportError:
+                        pass
                     except Exception as e:
                         print(f"[Security Firewall] Error parsing intent: {e}")
 
@@ -780,6 +760,62 @@ def get_current_user():
     token = auth_hdr.replace('Bearer ', '').strip()
     return security_mgr.get_user_from_token(token)
 
+
+@app.route('/api/auth/keys', methods=['GET'])
+async def list_keys():
+    user = get_current_user()
+    if not user or user.get("role") not in ["super_admin", "admin"]:
+        return jsonify({"error": "Admin access required"}), 403
+    return jsonify(security_mgr.get_all_keys())
+
+@app.route('/api/auth/scrub', methods=['POST'])
+async def scrub_auth():
+    """Removes all Google OAuth and Gemini API key configuration to test fresh state."""
+    import os
+    import sys
+    import subprocess
+    
+    if 'GEMINI_API_KEY' in os.environ:
+        del os.environ['GEMINI_API_KEY']
+        
+    paths = [
+        os.path.expanduser('~/.devcore_client_key.txt'),
+        os.path.expanduser('~/.config/gcloud/application_default_credentials.json'),
+        os.path.expanduser('~/.gemini/credentials.json'),
+        os.path.expanduser('~/.gemini/antigravity/credentials.json'),
+        os.path.expanduser('~/.config/antigravity/credentials.json'),
+        os.path.expandvars('%APPDATA%/gcloud/application_default_credentials.json')
+    ]
+    for p in paths:
+        if os.path.exists(p):
+            try: os.remove(p)
+            except: pass
+            
+    return jsonify({"success": True, "message": "Host Authentication scrubbed. You can now test the setup flow."})
+
+@app.route('/api/auth/keys', methods=['POST'])
+async def create_key():
+    user = get_current_user()
+    if not user or user.get("role") not in ["super_admin", "admin"]:
+        return jsonify({"error": "Admin access required"}), 403
+    data = await request.get_json() or {}
+    role = data.get("role", "guest")
+    name = data.get("name", "New User")
+    allowed_projects = data.get("allowed_projects")
+    expires_in_days = float(data.get("expires_in_days", 30))
+    
+    new_key = security_mgr.generate_key(role, name, allowed_projects, expires_in_days)
+    return jsonify({"success": True, "key": new_key})
+
+@app.route('/api/auth/keys/<key_id>', methods=['DELETE'])
+async def delete_key(key_id):
+    user = get_current_user()
+    if not user or user.get("role") not in ["super_admin", "admin"]:
+        return jsonify({"error": "Admin access required"}), 403
+    success = security_mgr.delete_key(key_id)
+    return jsonify({"success": success})
+
+
 # File & Security Management API endpoints
 @app.route('/api/files', methods=['GET'])
 async def list_files():
@@ -847,6 +883,12 @@ async def get_log_content(log_name):
         return jsonify({"error": str(e)}), 403
 
 # Authentication endpoints
+
+@app.route('/api/auth/system-status', methods=['GET'])
+async def auth_system_status():
+    """First-Time Setup System Status Check."""
+    is_super = security_mgr.check_master_signature()
+    return jsonify({"super_admin": is_super})
 @app.route('/api/auth/login', methods=['POST'])
 async def auth_login():
     data = await request.get_json() or {}
@@ -915,9 +957,7 @@ async def api_trigger_red_team():
     return jsonify({"success": True, "message": "Red Team strike initiated."})
 
 # Register the autonomous testing biological clock safely when the event loop starts
-@app.before_serving
-async def start_red_team_daemon():
-    app.add_background_task(auto_red_team_daemon)
+
 
 import signal
 
@@ -926,8 +966,11 @@ def force_shutdown(sig, frame):
     os._exit(0)
 
 if __name__ == '__main__':
-    # Bind Ctrl+C to instantly nuke the process
+    import signal
+    def force_shutdown(sig, frame):
+        import os
+        print('\n[Antigravity] Force quitting...')
+        os._exit(0)
     signal.signal(signal.SIGINT, force_shutdown)
-    
-    print("Starting Antigravity Backend Engine on port 5000...")
-    app.run(host='0.0.0.0', port=5000, use_reloader=False)
+    print('Starting Antigravity Backend Engine on port 5000...')
+    import asyncio; from hypercorn.config import Config; from hypercorn.asyncio import serve; config = Config(); config.bind = ['0.0.0.0:5000']; asyncio.run(serve(app, config))
