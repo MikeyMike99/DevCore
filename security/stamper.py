@@ -1,13 +1,21 @@
 import os
 import sys
 import json
+from cryptography.fernet import Fernet
 
 MAGIC_START = b"\n---AGY_STAMP_START---\n"
 MAGIC_END = b"\n---AGY_STAMP_END---\n"
 
+# AES-128 (Fernet) internal key for the binary stamping process
+# This prevents the payload from being read in plaintext by inspecting the binary
+STAMP_KEY = b'A4l7KaUtSVz1kvIS0SPXP2olNkyY6XVLNOhrEtTvkrc='
+
+def get_cipher():
+    return Fernet(STAMP_KEY)
+
 def stamp_exe(source_exe: str, dest_exe: str, payload: dict):
     """
-    Copies the source .exe and safely appends a JSON payload to the bottom of the binary file.
+    Copies the source .exe and safely appends an AES-encrypted JSON payload to the bottom.
     This creates a uniquely stamped executable without recompiling.
     """
     import shutil
@@ -18,20 +26,21 @@ def stamp_exe(source_exe: str, dest_exe: str, payload: dict):
     # 1. Copy the clean master .exe
     shutil.copy2(source_exe, dest_exe)
     
-    # 2. Prepare the payload
+    # 2. Prepare and encrypt the payload
     payload_bytes = json.dumps(payload).encode('utf-8')
-    stamp_data = MAGIC_START + payload_bytes + MAGIC_END
+    encrypted_payload = get_cipher().encrypt(payload_bytes)
     
-    # 3. Inject it at the end of the binary
+    # 3. Inject the ciphertext at the end of the binary
+    stamp_data = MAGIC_START + encrypted_payload + MAGIC_END
     with open(dest_exe, "ab") as f:
         f.write(stamp_data)
         
-    print(f"Successfully stamped {dest_exe} with payload: {payload}")
+    print(f"Successfully stamped {dest_exe} with AES-encrypted payload: {payload}")
 
 def read_stamp() -> dict:
     """
     Reads the currently executing binary (sys.executable) to see if it was stamped
-    with a JSON payload. Returns the dictionary if found, else None.
+    with an encrypted JSON payload. Decrypts and returns the dictionary if found in RAM.
     """
     if not getattr(sys, 'frozen', False):
         # We are running natively in Python (not an .exe)
@@ -54,19 +63,22 @@ def read_stamp() -> dict:
         end_idx = tail_data.rfind(MAGIC_END)
         
         if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
-            # We found a valid stamp!
-            json_bytes = tail_data[start_idx + len(MAGIC_START) : end_idx]
-            return json.loads(json_bytes.decode('utf-8'))
+            # We found a valid stamp! Decrypt it directly into volatile RAM
+            encrypted_payload = tail_data[start_idx + len(MAGIC_START) : end_idx]
+            decrypted_bytes = get_cipher().decrypt(encrypted_payload)
+            return json.loads(decrypted_bytes.decode('utf-8'))
             
     except Exception as e:
-        print(f"[Stamper] Failed to read executable stamp: {e}")
+        print(f"[Stamper] Failed to read or decrypt executable stamp: {e}")
         
     return None
 
 if __name__ == "__main__":
     # Simple CLI for the developer to stamp an exe quickly
     import argparse
-    parser = argparse.ArgumentParser(description="Stamp a DevCore Executable with a Client ID")
+    import datetime
+    
+    parser = argparse.ArgumentParser(description="Stamp a DevCore Executable with a Client ID (AES Encrypted)")
     parser.add_argument("--source", default="Siraugga.exe", help="The master .exe file")
     parser.add_argument("--dest", required=True, help="The output stamped .exe file")
     parser.add_argument("--id", required=True, help="The unique EXE ID / Deployment Token")
@@ -74,7 +86,6 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    import datetime
     expire_date = (datetime.datetime.now() + datetime.timedelta(days=args.days)).isoformat()
     
     payload = {
