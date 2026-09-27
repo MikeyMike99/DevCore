@@ -4,6 +4,7 @@ import json
 import os
 import time
 import sys
+import httpx
 
 # Dynamically add the DevCore root to the Python path so absolute imports work regardless of execution context
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -978,3 +979,56 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, force_shutdown)
     print('Starting Antigravity Backend Engine on port 5000...')
     import asyncio; from hypercorn.config import Config; from hypercorn.asyncio import serve; config = Config(); config.bind = ['0.0.0.0:5000']; asyncio.run(serve(app, config))
+
+# =====================================================================
+# CWE-214: Secure Proxy Server for Agent LLM Egress
+# =====================================================================
+@app.route('/api/proxy/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
+async def proxy_gemini(subpath):
+    """
+    Intercepts the Agent's API calls, replaces the dummy token with the true root 
+    vault key, and forwards it to Google. The Agent never sees the real key.
+    """
+    # 1. Grab the real root API key securely from the host
+    real_api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not real_api_key:
+        client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+        if os.path.exists(client_key_path):
+            try:
+                with open(client_key_path, "r", encoding="utf-8") as f:
+                    real_api_key = f.read().strip()
+            except Exception:
+                pass
+                
+    if not real_api_key:
+        return jsonify({"error": "No root billing key configured on server."}), 500
+
+    # 2. Reconstruct the request to the real Google API
+    target_url = f"https://generativelanguage.googleapis.com/{subpath}"
+    
+    headers = dict(request.headers)
+    headers.pop("Host", None) # Let httpx compute correct Host for Google
+    
+    # 3. Transparent Token Replacement
+    if headers.get("x-goog-api-key") == "dummy_token_123":
+        headers["x-goog-api-key"] = real_api_key
+        
+    query_params = dict(request.args)
+    if query_params.get("key") == "dummy_token_123":
+        query_params["key"] = real_api_key
+
+    body = await request.get_data()
+    
+    # 4. Forward to Google
+    async with httpx.AsyncClient() as client:
+        resp = await client.request(
+            method=request.method,
+            url=target_url,
+            headers=headers,
+            params=query_params,
+            content=body,
+            timeout=180.0
+        )
+        
+    from quart import Response
+    return Response(resp.content, status=resp.status_code, headers=dict(resp.headers))

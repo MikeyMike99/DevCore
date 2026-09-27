@@ -209,11 +209,15 @@ class AgentTaskManager:
             if not workspace_dir:
                 workspace_dir = os.path.dirname(os.path.abspath(__file__))
 
-            # Sanitize environment: strip API keys and host secrets from subprocess
+            # Sanitize environment: strip API keys and host secrets from subprocess (CWE-214)
             safe_env = {
                 k: v for k, v in os.environ.items()
-                if k in ("PATH", "HOME", "USER", "LANG", "TERM", "SHELL", "GEMINI_API_KEY", "GOOGLE_API_KEY") or k.startswith("AGY_")
+                if k in ("PATH", "HOME", "USER", "LANG", "TERM", "SHELL") or k.startswith("AGY_")
             }
+            # Secure Proxy Setup: Provide a dummy token and route through local proxy
+            safe_env["GEMINI_API_KEY"] = "dummy_token_123"
+            safe_env["GOOGLE_API_KEY"] = "dummy_token_123"
+            safe_env["GEMINI_BASE_URL"] = "http://127.0.0.1:5000/api/proxy"
             # Ensure ~/.local/bin is in PATH so PythonAnywhere WSGI can find the agy binary
             local_bin = os.path.expanduser("~/.local/bin")
             if "PATH" in safe_env and local_bin not in safe_env["PATH"]:
