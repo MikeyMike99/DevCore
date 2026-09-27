@@ -160,6 +160,14 @@ class SecurityManager:
         """Authenticates a user using an access key and issues a bearer session token."""
         user = self.keys.get(access_key)
         
+        # Check Expiration
+        if user and "expires_in_days" in user and user["expires_in_days"] is not None:
+            expiration_time = user["created_at"] + (user["expires_in_days"] * 86400)
+            if time.time() > expiration_time:
+                print(f"[Security] Access key {access_key} has expired.")
+                self.delete_key(access_key)
+                return None
+        
         # Fallback to test users if key is provided as 'username:password' for legacy compatibility
         if not user and ":" in access_key:
             username, password = access_key.split(":", 1)
@@ -210,7 +218,7 @@ class SecurityManager:
         except Exception as e:
             print(f"[Security] Error saving keys: {e}")
 
-    def generate_key(self, role, name, allowed_projects=None):
+    def generate_key(self, role, name, allowed_projects=None, expires_in_days=30):
         new_key = "key-" + uuid.uuid4().hex
         if allowed_projects is None:
             if role in [self.ROLE_ADMIN, "super_admin"]:
@@ -222,7 +230,8 @@ class SecurityManager:
             "role": role,
             "name": name,
             "allowed_projects": allowed_projects,
-            "created_at": time.time()
+            "created_at": time.time(),
+            "expires_in_days": expires_in_days
         }
         self._save_keys()
         return new_key
