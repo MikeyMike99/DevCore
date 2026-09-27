@@ -717,104 +717,46 @@ This operational boundary forces a bottleneck in the security pipeline:
 
 While this limitation causes immense friction and frustration for the Administrator—forcing them to manually bridge the gap between the scanner and the Agent—it structurally guarantees a "Human-in-the-Loop" for all vulnerability remediation. It ensures the AI cannot autonomously mutate the codebase based on hallucinated threats or false positives from a scan report.
 
-## [2026-09-22] Frontend Decoupling & Agentic Sanitization UI
+## Chapter 45.1: The Great Decoupling
+It was September 22nd. I stared at the UI codebase, and I wanted to tear it all down. Our frontend was a tangled mess of hardcoded strings and tightly coupled logic. If we were going to build a truly dynamic Zero-Trust environment, this monolithic garbage had to go. I ripped out every hardcoded string in `index.html`, `security_dashboard.html`, and `exam_application.html`. I extracted them into a central `ui_config.json`. We built dynamic API routes (`/plugin/media`, `/plugin/security`) to inject configurations cleanly via Jinja2. No more temporary `.html` files littering the sandbox.
 
-### 1. 100% Jinja2 UI Decoupling
-- Completely eliminated hardcoded display text from all frontend templates (`index.html`, `video_application.html`, `security_dashboard.html`, `exam_application.html`).
-- Extracted all UI strings into a backend `ui_config.json` dictionary.
-- Moved all static plugin HTML files from `sandbox/static/` to `sandbox/templates/`.
-- Built dynamic API routing in `core/server.py` (`/plugin/media`, `/plugin/security`, `/plugin/exam`) to inject JSON configurations and Jinja variables cleanly.
-- Updated Agent Skills to enforce the "Clean Workspace Protocol": Agents no longer generate temporary `.html` files in the sandbox. Instead, they produce pure JSON data and point iframes directly to the backend routes.
-### 2. Security by Depth Layered Architecture
-- Completely refactored the project structure to enforce Security by Depth.
-- Separated components into isolated directories: `agents/`, `core/`, `security/`, `projects/`, and `sandbox/`.
-- Implemented Tiered READMEs across all directories to explicitly dictate permission boundaries and access control rules for the Agents.
+Then, I brought the hammer down on the architecture itself. We separated everything into isolated silos: `agents/`, `core/`, `security/`, `projects/`, and `sandbox/`. Each directory got its own Tiered README—explicit laws dictating what the Agent could and could not touch. 
 
-### 3. Dynamic Security Headers & Hot-Patch Updates
-- Addressed the DAST scan vulnerability report manually due to the Agent's autonomous limitations.
-- Engineered a dynamic `security_headers.py` injection module to enforce Strict-Transport-Security, X-Content-Type-Options, and Content-Security-Policy across all endpoints.
-- Integrated hot-patch recovery mechanics to ensure the server remains stable during live header injections.
+## Chapter 45.2: The Sanitization Wars & Flip Cards
+The security audits kept screaming at us. We needed dynamic security headers. I built a hot-patch recovery module that injected Strict-Transport-Security and CSP across all endpoints without crashing the server.
 
-### 4. 3D Flip Card UI & Code Interactions
-- Implemented a CSS 3D `rotateY(180deg)` Flip Card UI for Agent response cards containing Implementation Plans or Artifacts.
-- Overrode the `marked.js` code renderer to inject custom "Copy Code" buttons directly into the headers of all `<pre><code>` blocks.
+But the real battle was the UI. I was tired of flat, boring text for the Agent's architectural plans. So, I engineered a CSS 3D Flip Card UI. When the agent spawned an implementation plan, the card would rotate 180 degrees. But we couldn't just let anyone read the raw markdown. I instituted Agentic Sanitization: Tier 5 Super Admins got the raw, unfiltered truth. Tier 3 Developers got a scrubbed technical summary devoid of root credentials. And Tier 1 Guests? They got a layman's explanation and a giant red Lockbox warning. Code blocks were blacked out.
 
-### 5. Agentic Sanitization & RBAC Upgrades
-- Shifted away from brittle client-side regex sanitization in favor of "Agentic Sanitization".
-- **Tier 5 (Super Admin):** Clicking "Flip & View Plan" instantly flips the card and displays the raw, unedited Markdown artifact.
-- **Tier 3 (Developer):** Clicking the button intercepts the flip and auto-prompts the AI: *"Please summarize the implementation plan... Remove root credentials... but provide technical architecture."*
-- **Tier 1 (Guest):** Clicking the button auto-prompts the AI: *"Explain in layman's terms without revealing sensitive information or the structure of the backend."*
-- **Code Block Blackout:** Raw code blocks are strictly blocked from rendering for Tier 1 users, replaced with a red Lockbox warning prohibiting source access.
+## Chapter 45.3: The Swarm and the Silent Protocol
+We realized the Agent was choking on massive datasets. Feeding it an entire codebase at once induced violent hallucinations. The solution? Asynchronous Swarm Ingestion. The Main Agent was no longer allowed to read the files directly. Instead, it spawned a dedicated Subagent to ingest data in chunks, iterating over the dataset and writing a structured JSON database in the background. The user felt zero delay.
 
-### 6. Zero-Trust VFS Phonebook Enforced
-- Stripped all hardcoded `os.path.join` absolute paths from `core/server.py`.
-- Injected all templates (`index.html`, `login.html`, `video_application.html`, etc.) and configs (`ui_config.json`) into the `security/raugus_map.json` Phonebook.
-- Engineered `the `RaugusResolver` singleton (`raugus_resolver.py`)` to serve as the exclusive path resolver. The backend now requests abstract keys (e.g., `"devcore.sandbox.templates.login.html"`) instead of relying on physical disk structures, solidifying the application's VFS (Virtual File System) boundaries.
+And to protect the user's focus, I established the Silent Completion Protocol. If you are taking an exam in an iframe, the Agent is strictly forbidden from interrupting your chat feed when its background task finishes. It has to wait in the shadows.
 
-### [ROADMAP] Cinematic TTS Plugin & In-Game Narrator
-- **Concept:** Implement a decoupled TTS (Text-to-Speech) proxy plugin (e.g., ElevenLabs) to give Siraugga a distinct, cinematic voice.
-- **Accessibility Integration:** The TTS engine will also be utilized to narrate in-game quests and operations, completely bypassing standard robotic screen readers for an immersive, accessible gaming experience.
-- **Security:** Adheres strictly to the API Proxy Doctrine. The core Agent remains air-gapped and ignorant of the external cloud API. The TTS engine operates strictly as a peripheral black-box output layer.
-- **Implementation Steps:** Fully documented in the `Cinematic_TTS_Roadmap` artifact.
+## Chapter 45.4: Master Auto-Detect and the Kill Switches
+The ultimate goal was porting this beast into a standalone executable. But how do you distribute it without leaking my personal Google API credentials? We engineered the Master Auto-Detect. A cryptographic 32-byte key (`.devcore_master.key`) was generated locally. The compiled binary hashes the key at runtime. If I run it on my machine, I get God Mode. If a client runs it, they get a stamped Trial Mode overlay and are forced to provide their own API key. Zero quota drain. 
 
-### [STANDARD OPERATING PROCEDURE] Asynchronous Swarm Ingestion (Large Data Handling)
-- **Mandate:** AI Agents must NEVER attempt to ingest or process large directories of data (like exam materials or large codebases) in a single prompt. This causes context degradation and hallucination.
-- **The Swarm Pipeline:** 
-  1. The Main Agent must spawn a dedicated **Subagent** to handle the data processing.
-  2. The Subagent reads the data in isolated chunks and continuously `POST`s the structured output to the backend (e.g., `/api/plugin/exam/save`) to iteratively build the JSON database on disk.
-  3. The Main Agent monitors for the *first successful chunk completion*, and immediately renders the UI/Iframe for the user, resulting in a zero-wait experience.
-- **Status:** This is now the permanent, codified standard for all large-scale data ingestion within the Siraugga architecture.
-
-### [STANDARD OPERATING PROCEDURE] Non-Interruptive Agentic Reporting (The Silent Completion Protocol)
-- **Mandate:** When an AI Agent spawns a background task or subagent (The Swarm), the Main Agent must **NEVER** proactively interrupt the user in the main chat feed upon completion if the user is engaged in a localized UI application (e.g., taking an exam in an Iframe).
-- **Protocol:** Subagents and background tasks must report their completion silently. The Main Agent will log the completion internally or wait for the user to explicitly query the status. Hijacking the user's visual focus or chat scroll state while they are operating a plugin is strictly prohibited.
-
-### [SECURITY & ARCHITECTURE] Master Auto-Detect & Portable Executable Architecture
-- **Concept:** Transitioning the DevCore application into a standalone, portable Windows Executable (via Nuitka) that works on any machine, without risking the creator's personal Google API credentials or locking them out of their own application.
-- **The "Brain inside the Body":** Initiated plans to bundle the core `agy.exe` binary directly inside the distributable application. The executable becomes 100% self-sufficient. New users provide their own API key via the web UI, preventing unauthorized drain on the developer's quota.
-- **Master Auto-Detect (Zero-Friction Dev Mode):** Implemented a cryptographic signature bypass for the host developer. A highly secure, 32-byte cryptographic string (`.devcore_master.key`) was generated in the local directory (and strictly `.gitignore`d). 
-- **Reverse-Engineering Immunity:** The raw key is never stored in the compiled source code. `security_manager.py` computes the SHA-256 hash of the local file at runtime and verifies it against a hardcoded hash. If a hacker decompiles the `.exe`, they only see the hash, making it mathematically impossible to forge the master key.
-- **Workflow:** When the developer runs the app on their own machine, it detects the signature, bypasses all locks, and instantly grants Master Admin privileges. When distributed to clients, it gracefully falls back into a stamped Trial Mode.
-- **Binary Stamping Engine:** Implemented a zero-compile executable modifier (`security/stamper.py`). The script instantly appends an encrypted JSON payload containing an `EXE_ID` and an `expires` timestamp directly to the end of a copied `.exe`. When launched, the python code reads its own binary to enforce the expiration date with an inescapable "Trial Expired" UI overlay.
-- **Quota Protection (Client API Key UI):** Upgraded the frontend `login.html` to accept a Google API Key from end-users. The Quart backend dynamically injects this key into `os.environ` to bypass the developer's personal OAuth loop, ensuring client usage is strictly billed to their own Google quotas.
-- **Comprehensive Documentation:** Finalized the `docs/architecture/portable_distribution_guide.md` covering the entire End-to-End process of compiling, stamping, and distributing the standalone application.
-
-### [UI/UX & PROCESS CONTROL] Advanced Task Management & Security Contexts
-- **Full-Stack Task Cancellation:** Implemented a robust "Stop" button in the frontend UI that communicates via WebSocket to instantly kill runaway AI tasks.
-- **Process Tree Annihilation:** Upgraded the backend `agent_manager.py` to use native Windows `taskkill /F /T /PID` when cancelling tasks. This ensures the entire process tree (including any spawned subagents) is completely destroyed, eliminating invisible zombie processes.
-- **Global Kill Switches:** Injected global keyboard shortcuts (`Ctrl + C`, `Ctrl + |`, `Ctrl + \`) to trigger task cancellation instantly from anywhere in the application. Added intelligent context awareness so `Ctrl + C` still natively copies text if the user has a selection highlighted.
-- **Secure Context Clipboard Fix:** Rewrote the application's markdown copy mechanisms (`executeCopy`). Browsers and WebViews aggressively block `navigator.clipboard` over local network IPs for security reasons. Engineered a bulletproof fallback using invisible text areas and `document.execCommand('copy')` that successfully bypasses these restrictions, restoring 1-click code copying across all environments.
+But with great power comes the need for an absolute kill switch. Runaway tasks were spawning invisible zombie processes. I upgraded the backend to use native Windows `taskkill /F /T /PID` to annihilate the entire process tree. I mapped global kill switches (`Ctrl + C`, `Ctrl + |`) to instantly snap the neck of any rogue Agent task, carefully engineering the clipboard fallback so it didn't break standard text copying.
 
 ## Chapter 46: The Web UI Overhaul & Windows-to-WSL Bridge
 
-As the application scaled, the integration between the native Windows host and the Linux WSL environment began to buckle under the weight of complex string piping. The active timeline for this sprint focused heavily on stabilizing the core boot sequence, fixing cross-OS data drops, and completely overhauling the Artifact Viewer for screen-reader accessibility.
+The integration between the native Windows host and the Linux WSL environment was beginning to buckle under the weight of complex string piping. The active timeline for this sprint became a frantic race to stabilize the core boot sequence.
 
-### [2026-09-27 12:15 - 13:20] Boot Sequence & Architecture Documentation
-We started by migrating the standalone execution of `core/server.py` away from Quart's flaky built-in dev server and onto the production-grade Hypercorn ASGI server to guarantee stable WebSocket connections. We immediately documented the entire `Siraugga.exe` startup sequence, Master Signature verification flow, and OTA hot-patch mechanisms into the `TEXTBOOK.md` to ensure future agents understood the live architecture.
+We started by tearing out Quart's flaky built-in dev server. We migrated `core/server.py` onto the production-grade Hypercorn ASGI server to guarantee stable WebSocket connections. We immediately documented the entire `Siraugga.exe` startup sequence into the `TEXTBOOK.md`. We needed future agents to understand the live architecture without blowing it up.
 
-### [2026-09-27 13:48 - 14:34] Native OAuth & Scrub Engine
-The manual API key bypass was ripped out in favor of Antigravity's native Google OAuth flow. To aid local development, a "Scrub Authentication" endpoint was built to cleanly wipe Windows `%APPDATA%` credentials without nuking the active WSL environment's tokens.
+Then, we ripped out the manual API key bypass and wired in Antigravity's native Google OAuth flow. But development was messy, so I built a "Scrub Authentication" endpoint to violently wipe Windows `%APPDATA%` credentials without nuking the active WSL environment's tokens.
 
-### [2026-09-27 15:27 - 15:58] The WSL RPC Crashes
-The system began throwing `Wsl/Service/0x8007072c` RPC errors because `wsl.exe` was being invoked in a hidden console (via `CREATE_NO_WINDOW`) while piping standard handles. We removed the hidden console flags and implemented the `-e` flag to bypass Bash's multiline argument splitting, successfully stabilizing the WSL pipeline.
+But Linux doesn't go down without a fight. The system started throwing brutal `Wsl/Service/0x8007072c` RPC errors. `wsl.exe` was choking because we were invoking it in a hidden console. We stripped out the hidden console flags and weaponized the `-e` flag to bypass Bash's multiline argument splitting. The WSL pipeline finally stabilized.
 
-### [2026-09-27 15:45] Artifact Viewer Accessibility Overhaul
-The previous `turndown.js` and `contenteditable` UI architecture for Artifacts was completely stripped out. It broke screen-reader form traversal and was visually confusing. We redesigned the Flip Card to use a raw, native `<textarea class="artifact-raw-editor">` and implemented an automatic JavaScript `.focus()` hook to snap visually impaired users directly into the edit box the moment the card flips. 
+## Chapter 47: The Swarm Orchestrator & Autonomous Self-Healing
 
-Finally, we re-routed the `POST /api/artifacts/save` endpoint to bypass Python's buggy `wsl.exe` stdin pipeline. It now writes to a temporary file natively on Windows and uses `wsl.exe cp` via `wslpath -a` to guarantee reliable saves into the Linux subsystem.
+The old Artifact Viewer architecture using `turndown.js` was a UX disaster. It completely broke screen-reader form traversal. I tore it all out. We redesigned the Flip Card to use a raw, native `<textarea class="artifact-raw-editor">` with an aggressive JavaScript `.focus()` hook that snapped visually impaired users directly into the edit box the moment the card flipped. We also re-routed the save endpoint to bypass Python's buggy `wsl.exe` stdin pipeline, writing to a temporary file natively on Windows and using `wsl.exe cp` to guarantee a clean save.
 
-## Chapter 47: Swarm Orchestration & Autonomous Self-Healing
+But the final boss of this sprint was extreme scalability. When we tried to parse massive, gigabyte-sized transcripts, the context window choked. 
 
-Following the UI overhaul, a massive architectural sprint focused on extreme scalability and fault tolerance was committed.
+I engineered the **Flash Swarm Orchestrator**. The `swarm_orchestrator.py` module now dynamically partitions massive texts into 7k token chunks and spawns an army of parallel 'Flash Sub-Agents'. They ruthlessly distill the chunks down to their core narratives, re-stitch them, and hand them off to the Main Pro Agent. We hit 90% compression without losing a drop of chronological context.
 
-### [2026-09-27 18:23] The Flash Swarm Orchestrator
-To solve context-window bottlenecks when parsing massive files (like gigabyte-sized transcripts), the new gents/swarm_orchestrator.py was introduced. It implements a SwarmOrchestrator class that dynamically partitions massive texts into ~7k token chunks and spawns parallel 'Flash Sub-Agents' (gemini-3.8-flash-low) to asynchronously distill the chunks down to their core narratives. The distilled summaries are then re-stitched and handed off to the Main Pro Agent, achieving upwards of 90% compression without losing chronological context.
+And because crashes are inevitable, we built an immortal engine. The `self_heal.py` module was introduced to catch critical runtime crashes. Instead of dying, the engine intercepts fatal exceptions, packages the traceback, dials out to the Gemini API, and dynamically generates a Python repair script. It automatically executes the AI-generated hot-fix and seamlessly invokes `os.execv()` to restart the application. We had achieved the holy grail: an autonomous, zero-downtime self-healing loop. The system was finally stable.
 
-### [2026-09-27 18:23] Zero-Downtime Autonomous Self-Healing
-The self_heal.py module was introduced to catch critical runtime crashes. Instead of dropping the user into a broken state, heal_crash() now intercepts fatal exceptions, packages the traceback, dials out to the Gemini API, and dynamically generates a Python repair script. The engine automatically executes the AI-generated hot-fix patch and seamlessly invokes os.execv() to restart the application, effectively creating an autonomous, self-healing loop.
-
-### System & Security Upgrades
-The core components including gents/agent_manager.py and security/raugus_resolver.py were heavily updated to integrate the Swarm and Self-Heal pipelines. A new Compilation_Evidence_Report.md, Uninstall_Siraugga.bat, and Siraugga.spec were added for packaging and audit trails, completing the system-wide stabilization.
 ## Chapter 49: The Compilation Crucible (Nuitka vs PyInstaller)
 
 With the web portal running and the core architecture secured, a new requirement emerged: deployment. We needed to package the entire Antigravity portal into a single, standalone executable that could be distributed and run offline without relying on complex Python environment setups or WSL dependencies. 
