@@ -28,8 +28,10 @@ def lock_brain():
                 continue
                 
             encrypted = cipher.encrypt(data)
-            with open(file_path, 'wb') as f:
+            tmp_path = file_path + ".tmp"
+            with open(tmp_path, 'wb') as f:
                 f.write(encrypted)
+            os.replace(tmp_path, file_path) # Atomic swap
             print(f"[Cold Storage] Locked: {file_path}")
         except Exception as e:
             print(f"[Cold Storage Error] Failed to lock {file_path}: {e}")
@@ -64,8 +66,10 @@ def unlock_brain():
                     print(f"[Cold Storage Error] FATAL: No valid key found in keychain to decrypt {file_path}!")
                     continue
                     
-                with open(file_path, 'wb') as f:
+                tmp_path = file_path + ".tmp"
+                with open(tmp_path, 'wb') as f:
                     f.write(decrypted)
+                os.replace(tmp_path, file_path) # Atomic swap
                 print(f"[Cold Storage] Unlocked: {file_path}")
         except Exception as e:
             print(f"[Cold Storage Error] Failed to unlock {file_path}: {e}")
