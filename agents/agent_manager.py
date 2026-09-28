@@ -271,7 +271,7 @@ class AgentTaskManager:
                 real_agy,
                 "--model", model,
                 "--output-format", "stream-json",
-                "--print-timeout", "180s" # Enforce hard timeout (CWE-400)
+                "--print-timeout", "3600s" # Enforce hard timeout (CWE-400)
             ]
             if perm_flag:
                 cmd.insert(1, perm_flag)
@@ -294,6 +294,21 @@ class AgentTaskManager:
                 limit=1024 * 1024 * 100
             )
             self.active_proc = proc
+
+            async def soft_timeout_watchdog():
+                try:
+                    await asyncio.sleep(3570)
+                    if self.active_proc and self.active_proc.returncode is None:
+                        try:
+                            msg = b"\n<USER_REQUEST>SYSTEM OVERRIDE: Hard timeout in 30 seconds! Wrap up your current thought and save progress immediately!</USER_REQUEST>\n"
+                            self.active_proc.stdin.write(msg)
+                            await self.active_proc.stdin.drain()
+                        except Exception:
+                            pass
+                except asyncio.CancelledError:
+                    pass
+
+            watchdog_task = asyncio.create_task(soft_timeout_watchdog())
 
             await self.broadcast({"type": "agent_start", "model": model})
 
@@ -445,6 +460,8 @@ class AgentTaskManager:
             await self.broadcast({"type": "agent_done", "cancelled": True})
         finally:
             hb_task.cancel()
+            if 'watchdog_task' in locals() and not watchdog_task.done():
+                watchdog_task.cancel()
             self.active_proc = None
             self.active_task = None
             self.start_time = None

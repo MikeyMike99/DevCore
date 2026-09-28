@@ -13,7 +13,7 @@ async def apply_security_headers(response):
     
     # 3. Content Security Policy (CSP)
     # Smart CSP: Allows local execution + Tailwind/jsDelivr CDNs.
-    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https:;"
+    response.headers['Content-Security-Policy'] = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://www.youtube.com https://s.ytimg.com; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https: https://i.ytimg.com; report-uri /api/security/csp-report;"
     
     # 4. Permissions Policy
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'

@@ -261,7 +261,8 @@ We realized today that the Ingestion Swarm's ability to crush massive text logs 
 We cannot keep petabytes of raw JSON logs, system event logs, and NGINX access logs in hot storage, but we cannot destroy forensic evidence either.
 
 To solve this, we architected **The Global Forensic Vault Pipeline**:
-1. **Threat-Heuristic Triage:** The system actively monitors real-time prompts and system event logs. If a user spends hours fixing UI bugs, the chat and associated system telemetry are flagged "Benign." The second a user asks for privilege escalation, or a system event triggers a `SIGKILL` or Unauthorized Access flag, the session logs and system event logs are locked with a "Forensic Hold."
+1. **Threat-Heuristic Triage:** The system actively monitors real-time prompts and system event logs. If a user 
+spends hours fixing UI bugs, the chat and associated system telemetry are flagged "Benign." The second a user asks for privilege escalation, or a system event triggers a `SIGKILL` or Unauthorized Access flag, the session logs and system event logs are locked with a "Forensic Hold."
 2. **The Benign Swarm Crunch:** After a 30-day cooldown, "Benign" sessions and logs are actively purged. Conversational logs are fed into the Ingestion Swarm, crushed into tiny `synopsis.md` context files, and the raw JSON is permanently deleted, instantly freeing up expensive NVMe block storage. System telemetry is aggressively aggregated and truncated.
 3. **The Glacier Vault:** Sessions and system logs with a "Forensic Hold" bypass the compression pipeline entirely. Instead, the raw `transcript.jsonl` and raw server event logs are cryptographically signed (to prove immutability), gzipped (crushing text size by 90%), and shipped off-site to ultra-cheap cold storage (e.g., AWS S3 Glacier Deep Archive). 
 
@@ -792,3 +793,49 @@ With the executable built and the UI refined, I took a step back and looked at t
 But as we began to clean the workspace, I realized something profound. The story of building this application—the struggles with the sandbox, the battles against the terminal UI, the token quota crises—was just as important as the code itself. The entire history was buried in massive, raw chat transcripts, thousands of lines of chronological prompts and system messages.
 
 I realized we didn't need to write the devlog from memory. We had an exact, immutable timeline of every failure, every architectural pivot, and every breakthrough. I instructed the system to mine its own chat logs, to sift through the raw timeline, and to synthesize those missing technical events into the very story you are reading now. The AI was documenting its own genesis. 
+
+## Chapter 47: The Silent Assassin & The Cross-Origin Labyrinth
+
+The video player was dead. It was a complete phantom failure—no errors in the terminal, no crash logs in the backend, absolutely nothing. I was pulling my hair out, injecting telemetry scripts left and right, only to find my own telemetry scripts were failing silently too!
+
+It turns out, the very Zero-Trust architecture we built to protect the system was acting as a silent assassin. When we locked down `security_headers.py`, we deployed a strict Content-Security-Policy (CSP) that ruthlessly executed any unauthorized scripts on sight. The YouTube API never stood a chance. And because we didn't tell the browser to report its kills back to the server, it did it entirely in the shadows. We were completely blind.
+
+I finally patched the CSP to whitelist YouTube. But the nightmare wasn't over. The player loaded, but the buttons *still* ignored me. We had fallen into the cross-origin labyrinth. Because the video player was nested inside the chat feed's iframe, the browser was treating my Play button clicks as unauthorized programmatic tampering from a foreign origin. 
+
+I had to surgically inject `origin: window.location.origin` into the YouTube player payload to forge a diplomatic bridge between the iframes, and explicitly declare `allow="autoplay"` to delegate my physical mouse clicks down into the sandboxed video. 
+
+To ensure we are never caught blind again, I hardwired a CSP Telemetry Pipeline directly into `server.py`. Now, every single time the browser executes a security block, it's forced to confess to the backend, logging the exact violation in `csp_violations.log`. The shadows are officially illuminated.
+
+## Chapter 48: The Phantom Keystrokes & The Screen Reader Spam
+
+Just when I thought the video player was perfectly polished, two bizarre side-effects emerged from the shadows of our unified UI. 
+
+First, the accessibility testing revealed a nightmare. Every time I hit `Alt+N` to jump to the next video, the screen reader would absolutely lose its mind, screaming the entire playlist out loud all at once. I traced it back to my own lazy coding: my `renderPlaylist()` function was wiping the entire DOM tree and rebuilding it from scratch just to update the highlighted track. To a screen reader, this looked like 50 brand-new elements spawning instantly. I had to rip out the aggressive `innerHTML` wiping and implement surgical DOM manipulation, gently swapping only the `aria-current="true"` attribute to keep the screen reader calm and focused.
+
+But the second bug was much more insidious. While testing the player, I noticed the AI agent suddenly stopped debugging the UI and started cheerfully planning a completely unrelated "Cinematic TTS" architecture. I had no idea why it was trying to abandon the video player. 
+
+Then I found the culprit. The IDE's global chat UI has a hardcoded system shortcut: `Alt+P`, designed to click the "Proceed" button on pending artifacts. But I had *also* assigned `Alt+P` to mean "Previous Video" in the media player. Every time I tried to skip back a track, the global UI intercepted the keystroke, hunted down an invisible "Proceed" button on a stale artifact buried deep in the chat history, and silently submitted the command. 
+
+The AI wasn't going crazy—it was receiving phantom "Proceed" commands and interpreting them as my green light to move on! 
+
+I immediately swapped the player's back shortcut to `Alt+B`. But more importantly, I realized that leaving live "Proceed" buttons sitting in the chat history was a ticking time bomb. I tore into `server.py`'s frontend logic and coded a permanent expiration lock: the moment an artifact is proceeded, its button grays out and permanently disables itself. No more phantom clicks from the ghosts of chat histories past.
+
+## Chapter 52: The Caching Poltergeist & The Licensing Firewall
+
+With the phantom keystrokes neutralized, I was ready to declare victory on the media player. But the system had a few final tricks up its sleeve. 
+
+While testing the playlist management, I clicked the "Remove" button on a video. Instead of smoothly vanishing, the UI violently flashed, the entire page seemed to hard-reload, and the deleted video instantly reappeared, mocking me. 
+
+I traced the reload to a rookie HTML mistake. My dynamically created Remove button was missing the crucial `type="button"` attribute. Browsers are notoriously unforgiving—they default untyped buttons to `submit`. Clicking it was bubbling an invisible form-submission event all the way up the DOM, triggering a hard navigation reset. 
+
+But why did the deleted video resurrect? I dug into my 3-second auto-sync polling loop. When the UI requested the updated `playlist.json` from the server, the browser was lazily returning a cached, outdated version of the file where the video still existed! The javascript compared the cached list to its live list, assumed it was out of sync, and violently redrew the DOM to restore the ghost item. A simple timestamp cache-buster (`?t=...`) injected into the fetch request finally exorcised the poltergeist. 
+
+Then came the final boss: Rick Astley. 
+
+I tried to play *Never Gonna Give You Up*, and the player simply refused to load. No UI errors, no console crashes. Just silence. 
+
+I wired up a deep telemetry hook into the YouTube API's `onError` callback and finally caught the culprit: `Error 150`. It wasn't a bug in my code. It was a hardcoded DRM and Licensing firewall. YouTube strictly blocks official music videos and VEVO tracks from being played in customized API players that hide their native UI. Because I was using `controls: 0` to build our custom screen-reader friendly buttons, YouTube's servers instantly rejected the stream. 
+
+There is no bypassing the strict `X-Frame-Options` sandbox of a web browser. So, I embraced graceful degradation. I coded an elegant fallback interceptor: the moment the API throws a 150 error, the UI dynamically spawns a high-contrast "Watch on YouTube" button and quietly shifts the screen reader's focus to a "Content Restricted" warning, allowing the user to safely open the blocked music video in a new tab without breaking their experience.
+
+The media player is finally bulletproof.
