@@ -241,10 +241,7 @@
                     <!-- Slash Command Menu -->
                     <div id="slash-command-menu" role="listbox" aria-label="Slash Commands" class="hidden absolute bottom-[65px] left-0 w-full max-w-sm bg-slate-800 border border-slate-600 rounded-lg shadow-xl overflow-hidden z-50 flex flex-col">
                         <div class="px-3 py-2 bg-slate-900 border-b border-slate-700 text-xs text-slate-400 font-bold uppercase tracking-wider">Slash Commands</div>
-                        <button type="button" role="option" id="slash-item-0" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-b border-slate-700/50" data-command="/help exam">
-                            <div class="font-bold text-teal-400 text-sm">/help exam</div>
-                            <div class="text-xs text-slate-300 mt-1">Guide to launching the Custom Exam Builder</div>
-                        </button>
+                        
                         <button type="button" role="option" id="slash-item-1" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors" data-command="/clear">
                             <div class="font-bold text-teal-400 text-sm">/clear</div>
                             <div class="text-xs text-slate-300 mt-1">Clears the current chat interface</div>
@@ -1905,10 +1902,12 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
                 document.getElementById('chat-history').innerHTML = '';
                 inputEl.value = '';
                 return; // Do not send to backend
-            } else if (p === '/media') {
-                actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them.";
-            } else if (p === '/background') {
-                actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/background`. Please acknowledge this and ask them what long-running workload they would like you to execute using the `background-task-offloading` skill.";
+            } else if (p.startsWith('/media')) {
+                let context = prompt.substring(6).trim();
+                actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them. " + (context ? "User context: " + context : "");
+            } else if (p.startsWith('/background')) {
+                let context = prompt.substring(11).trim();
+                actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/background`. Please acknowledge this and ask them what long-running workload they would like you to execute using the `background-task-offloading` skill. " + (context ? "User context: " + context : "");
             }
             
             // Clear the local draft JSON only upon intentional send
