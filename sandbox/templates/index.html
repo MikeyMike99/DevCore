@@ -250,10 +250,7 @@
                             <div class="font-bold text-teal-400 text-sm">/media</div>
                             <div class="text-xs text-slate-300 mt-1">Spawns the Accessible Media Player (Music/Video)</div>
                         </button>
-                        <button type="button" role="option" id="slash-item-3" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/background">
-                            <div class="font-bold text-teal-400 text-sm">/background</div>
-                            <div class="text-xs text-slate-300 mt-1">Executes a massive workload using Asynchronous Task Offloading</div>
-                        </button>
+                        
                     </div>
 
                     <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
@@ -1905,6 +1902,8 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
             } else if (p.startsWith('/media')) {
                 let context = prompt.substring(6).trim();
                 actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them. " + (context ? "User context: " + context : "");
+            } else if (p === 'help background' || p === '/help background') {
+                actualPromptToSend = "SYSTEM TRIGGER [Help Menu]: The user is asking for help on how to use the `background-task-offloading` skill. Please explain to them that they do not need to execute slash commands. They just need to tell you to run a script (like 'run the TTS generator'), and you will automatically use the background skill to run it detached and wait for the webhook callback. Tell them to give you a workload to test!";
             } else if (p.startsWith('/background')) {
                 let context = prompt.substring(11).trim();
                 actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/background`. Please acknowledge this and ask them what long-running workload they would like you to execute using the `background-task-offloading` skill. " + (context ? "User context: " + context : "");
@@ -2320,6 +2319,28 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
 
     
     <script>
+    // Global shortcut to trigger Help (Alt+H)
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && (e.key === 'h' || e.key === 'H')) {
+            e.preventDefault();
+            var inputEl = document.getElementById('prompt');
+            if (inputEl) {
+                inputEl.value = 'help ';
+                inputEl.focus();
+                var liveRegion = document.getElementById('aria-announcer');
+                if (!liveRegion) {
+                    liveRegion = document.createElement('div');
+                    liveRegion.id = 'aria-announcer';
+                    liveRegion.setAttribute('aria-live', 'assertive');
+                    liveRegion.className = 'sr-only';
+                    document.body.appendChild(liveRegion);
+                }
+                liveRegion.textContent = "Help Menu activated. Type the topic you need help with, such as 'exam' or 'background', and press Enter.";
+            }
+            return;
+        }
+    });
+
     // Global shortcut to jump to the latest embedded Iframe Exam (Alt+T)
     document.addEventListener('keydown', function(e) {
         if (e.altKey && (e.key === 't' || e.key === 'T')) {
