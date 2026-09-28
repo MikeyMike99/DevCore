@@ -88,9 +88,24 @@ def start_server():
         asyncio.set_event_loop(loop)
         
         config = Config()
-        config.bind = ["127.0.0.1:5000"]
         
-        print("Starting DevCore Backend on 5000 (Hypercorn ASGI Thread)")
+        # 1. Generate/Ensure TLS certificates exist
+        import os
+        from generate_cert import generate_self_signed_cert
+        cert_path = os.path.join(get_real_cwd(), "cert.pem")
+        key_path = os.path.join(get_real_cwd(), "key.pem")
+        generate_self_signed_cert(cert_path, key_path)
+        
+        # 2. Configure Hypercorn for dual-binding
+        config.certfile = cert_path
+        config.keyfile = key_path
+        
+        # TLS encryption for public/external access
+        config.bind = ["0.0.0.0:5001"]
+        # Plaintext exclusively for local EdgeWebView2 wrapper to prevent SSL validation errors
+        config.insecure_bind = ["127.0.0.1:5000"]
+        
+        print("Starting DevCore Backend on 5001 (HTTPS) and 5000 (HTTP Localhost)")
         # Explicit shutdown_trigger bypasses Hypercorn signal installation in worker threads
         loop.run_until_complete(serve(server.app, config, shutdown_trigger=shutdown_event.wait))
     except Exception as e:
@@ -125,7 +140,15 @@ def wait_for_server():
     input("Press Enter to exit...")
     return False
 
+
 if __name__ == '__main__':
+    # [COLD STORAGE] Unlock AI Transcripts Before Boot
+    try:
+        from security.cold_storage import unlock_brain, lock_brain
+        unlock_brain()
+    except Exception as e:
+        print(f"Cold Storage Unlock Failed: {e}")
+
     # 1. Start the backend daemon in a background thread
     server_thread = threading.Thread(target=start_server, daemon=True)
     server_thread.start()
@@ -153,3 +176,9 @@ if __name__ == '__main__':
             input("Press Enter to exit...")
         finally:
             shutdown_event.set()
+            # [COLD STORAGE] Lock AI Transcripts on Shutdown
+            try:
+                from security.cold_storage import lock_brain
+                lock_brain()
+            except Exception as e:
+                print(f"Cold Storage Lock Failed: {e}")
