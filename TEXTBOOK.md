@@ -189,3 +189,21 @@ To mitigate the dangers of self-sabotage, DevCore employs the following strict r
 - **Mitigating Power-Loss (Atomic Writes)**: The `cold_storage.py` sweeps do NOT write ciphertext directly over the plaintext files. Instead, they write to a `.tmp` file and execute an OS-level `os.replace()` atomic swap. If the server loses power mid-write, the original file remains perfectly intact.
 - **Mitigating Blindness (CLI Tooling)**: The `security/cold_storage.py` script is built as a standalone CLI tool. Admins can run `python3 security/cold_storage.py unlock` at any time while the server is down to instantly decrypt the logs for manual `grep` auditing, and `lock` to seal them back up.
 - **Mitigating CWE-377 (Insecure Temporary Files)**: When executing the atomic swaps, the encryption sweeps do NOT use predictable string concatenation (like `file.tmp`). Instead, they leverage the native OS `tempfile.mkstemp()` API to securely allocate a randomized, collision-resistant file descriptor. This prevents rogue actors from launching symlink attacks (where a fake `.tmp` file is pointed at `/etc/passwd` to force the backend to overwrite sensitive OS files). If the atomic swap fails for any reason, a strict `try...except` wrapper instantly detonates the temporary file to prevent plaintext data from leaking to the disk.
+
+## API Hardening & Raugus Architecture
+
+To defend the backend against remote exploitation, DevCore implements strict API-level hardening alongside an abstracted path-resolution system.
+
+### 1. Neutralizing CWE-78 (Command Injection)
+System execution boundaries (such as passing arguments to `wsl.exe` for artifact operations) are strictly sanitized. Dynamic user inputs (like `path`) are wrapped in `shlex.quote()` to prevent breakout characters (e.g., `'; rm -rf /'`) from executing arbitrary bash commands. Furthermore, explicit boundary assertions (e.g., `startswith('/home/')`) guarantee the OS execution remains jailed to the intended directory.
+
+### 2. Neutralizing CWE-284 (Broken Access Control)
+All core utility endpoints are locked behind strict Bearer token authorization checks.
+- **Artifact Protection**: The `/api/artifacts/save` endpoint explicitly verifies token validity to prevent unauthenticated users or CSRF scripts from overwriting system files.
+- **DoS Defense**: Administrative endpoints, such as `/api/reload` (which triggers a high-overhead memory wipe of backend modules), strictly enforce the `can_reload_engine` Admin role check. This prevents unauthenticated actors from throwing the server into an endless Denial of Service loop.
+
+### 3. The Raugus Resolver (Anti-Traversal)
+Instead of exposing raw absolute filesystem paths to the frontend or network, the system utilizes the **Raugus Map** (`raugus_map.json`) and the **Raugus Resolver** (`security/raugus_resolver.py`). 
+- **Alias Abstraction**: Critical system files are registered under an alias (e.g., `devcore.core.server.py`). 
+- **Tier Verification**: When the frontend requests a file, it asks for the alias. The Raugus Resolver checks the map, verifies if the user's RBAC Tier is high enough to access that alias, and only then resolves it to a physical path internally. 
+- **Traversal Immunity**: By abstracting the paths, attackers cannot use `../../../etc/passwd` because the resolver strictly matches hardcoded dictionary keys rather than traversing the OS filesystem.
