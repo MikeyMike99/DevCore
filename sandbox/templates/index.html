@@ -249,6 +249,14 @@
                             <div class="font-bold text-teal-400 text-sm">/clear</div>
                             <div class="text-xs text-slate-300 mt-1">Clears the current chat interface</div>
                         </button>
+                        <button type="button" role="option" id="slash-item-2" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/media">
+                            <div class="font-bold text-teal-400 text-sm">/media</div>
+                            <div class="text-xs text-slate-300 mt-1">Spawns the Accessible Media Player (Music/Video)</div>
+                        </button>
+                        <button type="button" role="option" id="slash-item-3" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/background">
+                            <div class="font-bold text-teal-400 text-sm">/background</div>
+                            <div class="text-xs text-slate-300 mt-1">Executes a massive workload using Asynchronous Task Offloading</div>
+                        </button>
                     </div>
 
                     <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
@@ -1893,7 +1901,18 @@ Also, explicitly inform the user of these powerful features:
 Provide 2-3 easy example prompts they can copy and paste. Do not use technical jargon like 'backend', 'subagents', or 'swarm'.`;
             }
             
+            if (p === '/clear') {
+                document.getElementById('chat-history').innerHTML = '';
+                inputEl.value = '';
+                return; // Do not send to backend
+            } else if (p === '/media') {
+                actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them.";
+            } else if (p === '/background') {
+                actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/background`. Please acknowledge this and ask them what long-running workload they would like you to execute using the `background-task-offloading` skill.";
+            }
+            
             // Clear the local draft JSON only upon intentional send
+
             localStorage.removeItem('agy_draft_prompt');
             // Reset the rolling window size
             inputEl.style.height = 'auto';
