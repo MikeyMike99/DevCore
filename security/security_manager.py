@@ -160,12 +160,22 @@ class SecurityManager:
         """Authenticates a user using an access key and issues a bearer session token."""
         user = self.keys.get(access_key)
         
+        # Check against hashed keys if not found
+        if not user:
+            from werkzeug.security import check_password_hash
+            for stored_key, metadata in self.keys.items():
+                if stored_key.startswith("scrypt:") or stored_key.startswith("pbkdf2:"):
+                    if check_password_hash(stored_key, access_key):
+                        user = metadata
+                        user["hashed_key_ref"] = stored_key
+                        break
+                        
         # Check Expiration
         if user and "expires_in_days" in user and user["expires_in_days"] is not None:
             expiration_time = user["created_at"] + (user["expires_in_days"] * 86400)
-            if time.time() > expiration_time:
+            if __import__("time").time() > expiration_time:
                 print(f"[Security] Access key {access_key} has expired.")
-                self.delete_key(access_key)
+                self.delete_key(user.get("hashed_key_ref", access_key))
                 return None
         
         # Fallback to test users if key is provided as 'username:password' for legacy compatibility
@@ -219,19 +229,23 @@ class SecurityManager:
             print(f"[Security] Error saving keys: {e}")
 
     def generate_key(self, role, name, allowed_projects=None, expires_in_days=30):
-        new_key = "key-" + uuid.uuid4().hex
+        new_key = "key-" + __import__("uuid").uuid4().hex
+        from werkzeug.security import generate_password_hash
+        hashed_key = generate_password_hash(new_key)
+        
         if allowed_projects is None:
             if role in [self.ROLE_ADMIN, "super_admin"]:
                 allowed_projects = ["*"]
             else:
                 allowed_projects = []
                 
-        self.keys[new_key] = {
+        self.keys[hashed_key] = {
             "role": role,
             "name": name,
             "allowed_projects": allowed_projects,
-            "created_at": time.time(),
-            "expires_in_days": expires_in_days
+            "created_at": __import__("time").time(),
+            "expires_in_days": expires_in_days,
+            "hashed_key_ref": hashed_key
         }
         self._save_keys()
         return new_key
@@ -247,13 +261,20 @@ class SecurityManager:
         return self.keys
 
     def get_user_from_token(self, token):
-        """Validates token and returns user details. Returns None if no token provided."""
         if not token:
             return None
-        return self.sessions.get(token)
+        hashed_session = __import__("hashlib").sha256(token.encode()).hexdigest()
+        user = self.sessions.get(hashed_session)
+        if not user:
+            user = self.sessions.get(token)
+        return user
 
     def logout(self, token):
-        if token in self.sessions:
+        hashed_session = __import__("hashlib").sha256(token.encode()).hexdigest()
+        if hashed_session in self.sessions:
+            del self.sessions[hashed_session]
+            self._save_sessions()
+        elif token in self.sessions:
             del self.sessions[token]
             self._save_sessions()
             return True

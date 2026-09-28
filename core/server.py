@@ -1000,7 +1000,24 @@ if __name__ == '__main__':
         os._exit(0)
     signal.signal(signal.SIGINT, force_shutdown)
     print('Starting Antigravity Backend Engine on port 5000...')
-    import asyncio; from hypercorn.config import Config; from hypercorn.asyncio import serve; config = Config(); config.bind = ['0.0.0.0:5000']; asyncio.run(serve(app, config))
+    import asyncio
+    from hypercorn.config import Config
+    from hypercorn.asyncio import serve
+    config = Config()
+    
+    # Check for TLS certificates
+    import os
+    cert_path = os.path.join(os.getcwd(), "cert.pem")
+    key_path = os.path.join(os.getcwd(), "key.pem")
+    if os.path.exists(cert_path) and os.path.exists(key_path):
+        config.certfile = cert_path
+        config.keyfile = key_path
+        config.bind = ['0.0.0.0:5001']
+        config.insecure_bind = ['127.0.0.1:5000']
+    else:
+        config.bind = ['0.0.0.0:5000']
+        
+    asyncio.run(serve(app, config))
 
 # =====================================================================
 # CWE-214: Secure Proxy Server for Agent LLM Egress
