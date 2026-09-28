@@ -1899,6 +1899,8 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
                 document.getElementById('chat-history').innerHTML = '';
                 inputEl.value = '';
                 return; // Do not send to backend
+            } else if (p === 'help') {
+                actualPromptToSend = "SYSTEM TRIGGER [Help Menu]: The user pressed Alt+H or typed 'help'. Please provide a concise, readable Help Menu detailing the available features: 1. The Custom Exam Builder (type 'help exam'). 2. The DevCore Media Player (type '/media'). 3. Background Task Offloading (type 'help background'). 4. Clearing the screen (type '/clear'). Keep it friendly and accessible!";
             } else if (p.startsWith('/media')) {
                 let context = prompt.substring(6).trim();
                 actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them. " + (context ? "User context: " + context : "");
@@ -2321,12 +2323,16 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
     <script>
     // Global shortcut to trigger Help (Alt+H)
     document.addEventListener('keydown', function(e) {
-        if (e.altKey && (e.key === 'h' || e.key === 'H')) {
+        if (e.altKey && (e.key === 'h' || e.key === 'H' || e.code === 'KeyH')) {
             e.preventDefault();
             var inputEl = document.getElementById('prompt');
             if (inputEl) {
-                inputEl.value = 'help ';
-                inputEl.focus();
+                inputEl.value = 'help';
+                if (typeof sendPrompt === 'function') {
+                    sendPrompt();
+                } else {
+                    document.querySelector('form').dispatchEvent(new Event('submit', {cancelable: true}));
+                }
                 var liveRegion = document.getElementById('aria-announcer');
                 if (!liveRegion) {
                     liveRegion = document.createElement('div');
@@ -2335,7 +2341,7 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
                     liveRegion.className = 'sr-only';
                     document.body.appendChild(liveRegion);
                 }
-                liveRegion.textContent = "Help Menu activated. Type the topic you need help with, such as 'exam' or 'background', and press Enter.";
+                liveRegion.textContent = "Loading Help Menu...";
             }
             return;
         }
