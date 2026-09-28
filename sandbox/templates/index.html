@@ -1555,7 +1555,7 @@
             taskStartTime = startTime || Date.now() / 1000;
             
             let displayPrompt = prompt || 'Executing instruction...';
-            if (displayPrompt.startsWith('<SYSTEM_MESSAGE>')) {
+            if (displayPrompt.startsWith('<SYSTEM_MESSAGE>') || displayPrompt.startsWith('SYSTEM TRIGGER')) {
                 displayPrompt = 'Processing background system instruction...';
             }
             
@@ -1583,7 +1583,7 @@
             clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 500);
 
-            announce("Task started: " + prompt + ". Running in background.");
+            announce("Task started: " + displayPrompt + ". Running in background.");
 
             window.onbeforeunload = function() {
                 return "Task is running in the background. It will continue safely.";
@@ -1900,7 +1900,7 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
                 inputEl.value = '';
                 return; // Do not send to backend
             } else if (p === 'help') {
-                actualPromptToSend = "SYSTEM TRIGGER [Help Menu]: The user pressed Alt+H or typed 'help'. Please provide a concise, readable Help Menu detailing the available features: 1. The Custom Exam Builder (type 'help exam'). 2. The DevCore Media Player (type '/media'). 3. Background Task Offloading (type 'help background'). 4. Clearing the screen (type '/clear'). Keep it friendly and accessible!";
+                actualPromptToSend = "SYSTEM TRIGGER [Help Menu]: The user pressed Alt+H or typed 'help'. DO NOT output standard chat text. Instead, generate a User-Facing Artifact named `Help_Menu.md`. Dynamically evaluate your current available skills (e.g., devcore-media-player, background-task-offloading, etc.) and generate a list of available actions. For each action, DO NOT tell the user what to type. Instead, provide an accessible HTML button inside the markdown that automatically runs the command when clicked (e.g., `<button aria-label=\"Launch Media Player\" class=\"px-4 py-2 bg-teal-600 text-white rounded font-bold hover:bg-teal-500\" onclick=\"var el=document.getElementById('prompt'); el.value='/media'; if(typeof sendPrompt === 'function'){sendPrompt();}else{document.querySelector('form').dispatchEvent(new Event('submit', {cancelable: true}));}\">Launch Media Player</button>`). Remind them they can flip the card to see the raw commands.";
             } else if (p.startsWith('/media')) {
                 let context = prompt.substring(6).trim();
                 actualPromptToSend = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them. " + (context ? "User context: " + context : "");
