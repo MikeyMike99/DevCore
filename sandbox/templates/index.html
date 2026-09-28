@@ -532,7 +532,7 @@
                     if (flipBack) flipBack.removeAttribute('aria-hidden');
                 
                 try {
-                    var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url));
+                    var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url), { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') } });
                     var data = await res.json();
                     if (data.content) {
                         rawEditor.value = data.content;
@@ -585,7 +585,7 @@
                             // Save via the dedicated HTTP route
                             await fetch('/api/artifacts/save', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
+                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') },
                                 body: JSON.stringify({ path: url, content: rawEditor.value })
                             });
                             
@@ -1140,7 +1140,7 @@
 
         async function initProjects() {
             try {
-                var res = await fetch('/api/projects');
+                var res = await fetch('/api/projects', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') } });
                 var data = await res.json();
                 if (projSelector && data.projects) {
                     var rootName = data.root_name || 'Root';
@@ -1163,7 +1163,7 @@
             try {
                 var res = await fetch('/api/projects/active', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')},
                     body: JSON.stringify({name: val})
                 });
                 var data = await res.json();
@@ -1182,7 +1182,7 @@
             try {
                 var res = await fetch('/api/projects', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
+                    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')},
                     body: JSON.stringify({name: name})
                 });
                 var data = await res.json();
@@ -1200,7 +1200,7 @@
 
         async function reloadBackend() {
             try {
-                var res = await fetch('/api/reload', {method: 'POST'});
+                var res = await fetch('/api/reload', {method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }});
                 var data = await res.json();
                 if (data.success) {
                     announce('Backend modules reloaded successfully.');
@@ -1215,7 +1215,7 @@
 
         async function simulateHotPatch() {
             try {
-                var res = await fetch('/api/simulate-patch', {method: 'POST'});
+                var res = await fetch('/api/simulate-patch', {method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }});
                 var data = await res.json();
                 if (data.success) {
                     announce('Auto-patch sequence initiated.');
