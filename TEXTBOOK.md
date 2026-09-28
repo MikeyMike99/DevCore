@@ -144,3 +144,28 @@ When embedding external plugins (e.g., YouTube IFrames) inside a secure environm
 1. **CSP Blind Spots**: If your `security_headers.py` lacks a `report-uri`, the browser will silently kill unauthorized scripts, leaving no backend logs. Always configure a telemetry pipeline to catch silent blocks.
 2. **Iframe `postMessage` Blocking**: HTML buttons in a parent wrapper cannot programmatically command a child iframe unless the child API verifies the parent's origin (e.g., passing `origin: window.location.origin` to YouTube).
 3. **Gesture Delegation**: A user clicking a button in a parent wrapper does not unlock unmuted media in a child iframe unless the parent explicitly delegates the gesture via `allow="autoplay"`.
+
+## Enterprise Key Management System (KMS) & Encryption Architecture
+
+DevCore implements a highly robust, dual-layer Zero-Trust encryption model designed to protect data at rest and data in transit without sacrificing backend readability or breaking UI integrations.
+
+### 1. Data in Transit (Dual-Binding TLS)
+The Hypercorn ASGI server (`desktop_app.py` & `server.py`) is configured with a custom Dual-Binding strategy:
+- **`https://0.0.0.0:5001`**: Binds to all interfaces and is fully encrypted via a self-generated RSA-2048 TLS Certificate (`cert.pem`). This port is strictly used for external/network access.
+- **`http://127.0.0.1:5000` (Insecure Bind)**: Binds exclusively to the localhost loopback. The native PyWebview desktop UI connects solely via this port to prevent "Invalid Certificate" blocks from the Edge Chromium engine while maintaining physical isolation from the network.
+
+### 2. Token Hashing (At Rest)
+Instead of storing plaintext credentials in JSON files, DevCore hashes all security tokens before they touch the disk:
+- **API Keys (`.devcore_keys.json`)**: Uses `werkzeug.security` (scrypt/pbkdf2) for high-latency hashing against brute-force attacks.
+- **Session Tokens (`sessions.json`)**: Uses fast `SHA-256` digests, ensuring high-frequency API authorization requests are processed instantly without lagging the server.
+- **Backward Compatibility**: The authenticator automatically checks if a stored key begins with `scrypt:` to gracefully bridge legacy plaintext keys alongside new hashes, ensuring zero user lockout.
+
+### 3. The `KeychainManager` (KMS)
+The system leverages a dynamic, rotatable Key Management System located in `security/keychain.py`:
+- **Hardware KEK**: The master hardware key (`.devcore_master.key`) acts as the root seed. PBKDF2 (100,000 iterations) derives a massive Key Encryption Key (KEK) from it.
+- **Rotatable DEKs**: The KMS generates Fernet Data Encryption Keys (DEKs) wrapped by the KEK and stores them in `.devcore_keychain.json`. The active key can be rotated at any time.
+
+### 4. Cold Storage Architecture
+To protect the AI's Brain Transcripts (`transcript.jsonl`) without breaking the native Google Antigravity JSON parser, DevCore employs lifecycle "Cold Storage" hooks (`security/cold_storage.py`):
+- **Lock (Shutdown)**: When the DevCore UI is closed, a background hook sweeps the `.gemini/antigravity-cli/brain/` directory and encrypts all transcripts into unreadable AES-128 ciphertext.
+- **Unlock (Boot)**: When DevCore starts up, a pre-boot hook pulls the entire historical keychain to attempt decryption. If an old key unlocks a file, it is rewritten as plaintext. Upon the next shutdown, it is automatically re-encrypted using the *newest active key*, conferring immunity to cryptographic shredding during key rotations.
