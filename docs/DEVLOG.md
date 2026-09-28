@@ -839,3 +839,33 @@ I wired up a deep telemetry hook into the YouTube API's `onError` callback and f
 There is no bypassing the strict `X-Frame-Options` sandbox of a web browser. So, I embraced graceful degradation. I coded an elegant fallback interceptor: the moment the API throws a 150 error, the UI dynamically spawns a high-contrast "Watch on YouTube" button and quietly shifts the screen reader's focus to a "Content Restricted" warning, allowing the user to safely open the blocked music video in a new tab without breaking their experience.
 
 The media player is finally bulletproof.
+
+## Chapter 53: The Cryptographic Edge
+
+With the media player complete, we were preparing to transition to the Cinematic TTS Narrator architecture. But while reviewing the system architecture, the admin raised a terrifyingly simple question: *"Is our data encrypted at rest?"*
+
+The honest answer was no. We had built a custom AES-128 binary stamper to digitally sign executables, but we had completely ignored the foundation. Our active session tokens, our API keys, and the AI's internal brain transcripts were all sitting on the hard drive as plaintext JSON. 
+
+We were standing in a digital fortress with a titanium vault door, but all the windows were wide open.
+
+I initiated an immediate architectural lockdown. First, I patched `security_manager.py` to cryptographically hash all access tokens using `werkzeug.security` (scrypt) and `SHA-256`. I built a backward-compatibility bridge so legacy plaintext keys would still work without logging the admin out, but all future keys would be mathematically uncrackable. Next, I wired up a dual-binding TLS architecture in Hypercorn. The server now automatically generates an RSA-2048 certificate on boot, serving encrypted HTTPS to the external network on port 5001, while preserving an insecure HTTP bind on localhost to keep the native PyWebview UI from crashing.
+
+But the biggest challenge was encrypting the AI's brain. If we encrypted `transcript.jsonl`, the native Google Antigravity engine would crash because it didn't know how to decrypt its own memory.
+
+I engineered a "Cold Storage" lifecycle hook. When the DevCore server shuts down, `cold_storage.py` sweeps the system and AES-encrypts every transcript. When the server boots back up, it decrypts them before the engine wakes up. The AI gets its memory, but when the server is powered off, the data is locked down. 
+
+To manage the keys, we built an Enterprise Key Management System (KMS) in `security/keychain.py`. We used PBKDF2 to derive a massive Key Encryption Key from the physical `.devcore_master.key` file, allowing us to dynamically rotate Data Encryption Keys. The boot-up hook was designed to iteratively test all historical keys, seamlessly upgrading older files to the newest active key and rendering the system immune to cryptographic shredding.
+
+## Chapter 54: The Phantom Vulnerabilities
+
+The admin's paranoia was contagious. As I tested the Cold Storage script, the admin pointed out a glaring flaw: writing decrypted data to a predictable `.tmp` file left us wide open to CWE-377 symlink attacks. If an attacker hijacked the temp file and pointed it to `/etc/passwd`, our own script would overwrite the OS. I immediately ripped out the predictable strings and replaced them with randomized `tempfile.mkstemp()` allocations wrapped in rigid detonation hooks that delete the temp files if the atomic swap fails.
+
+I decided to dig deeper into the core `server.py` routes. What I found was horrifying.
+
+I uncovered three massive Zero-Day vulnerabilities. First, the `/api/artifacts/save` route was pulling file paths straight from the frontend and blindly interpolating them into a WSL `bash` command. It was a textbook Command Injection (CWE-78) vulnerability. A malicious user could have sent `'; rm -rf /;'` and wiped the entire system. Second, that exact same route lacked any authorization checks, allowing anyone to overwrite artifacts. Finally, the `/api/reload` endpoint was also unauthenticated, exposing the engine to a catastrophic Denial of Service (DoS) loop.
+
+I ruthlessly patched all three. I locked the endpoints behind strict Bearer token enforcement. I wrapped the bash paths in `shlex.quote()` and explicitly anchored the OS execution strictly to the `/home/` and `/mnt/` directories. 
+
+When it was all over, I tested the frontend UI and realized my security lockdown had broken the semantic buttons! The "Proceed" and "Reload" buttons were failing silently with `401 Unauthorized` errors. I jumped into `index.html` and surgically injected the Bearer tokens into the Javascript payloads. 
+
+The API was hardened. The Raugus Resolver mapped the boundaries. The encryption was airtight. We were finally secure.
