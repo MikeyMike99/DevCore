@@ -118,3 +118,29 @@ Throughout the DevCore and Antigravity server backend, file paths are manipulate
 
 - **The Danger of `pathlib`**: `pathlib` objects are highly OS-aware. If the Python backend running natively on Windows receives a raw Linux path (e.g., `/home/michael/.gemini/...`) from the frontend WebSocket, `pathlib` will automatically attempt to normalize it into a Windows format (converting forward slashes to backslashes and injecting drive letters like `C:\`). This instantly destroys the payload before it can be passed to the `wsl.exe` subsystem.
 - **The Safety of `os.path`**: `os.path` treats file routes as "dumb strings". It allows the Windows Python backend to safely hold, concatenate, and evaluate raw Linux strings without mutating them. This ensures that logic like `path.startswith("/")` remains reliable for detecting WSL-bound payloads and routing them securely across the OS boundary.
+
+## Swarm Orchestration Engine
+
+When passing gigabytes of code, transcripts, or logs to a single Pro model, the token window will inevitably throttle or crash. To solve this, the \gents/swarm_orchestrator.py\ intercepts massive files and chunks them into ~7,000 token blocks.
+
+**Under the Hood**: 
+Instead of querying sequentially, the Swarm Orchestrator spawns an asynchronous fleet of 'Flash Sub-Agents' (\gemini-3.8-flash-low\). Each sub-agent compresses its designated chunk into a chronological summary. The Orchestrator stitches these distilled summaries back together, achieving 90%+ compression before passing the final payload to the Main Agent.
+
+**How Developers Can Use & Test It**: 
+The orchestrator handles this automatically when large payloads are detected by the Agent Manager. To test it, developers can manually instantiate \SwarmOrchestrator()\ in a script and pass it a massive text payload using \wait orchestrator.distill_massive_file(path)\. The terminal will log the parallel sub-agent deployment.
+
+## Autonomous Self-Healing Loop
+
+The \self_heal.py\ module is the fail-safe wrapper around the main engine to prevent the application from dropping the user into a broken state.
+
+**Under the Hood**: 
+When the core application catches a fatal exception (like an \AttributeError\ or \SyntaxError\ during a hot-patch), the crash traceback is caught by \heal_crash()\. This function makes a direct API call to Gemini, bypassing the standard agent architecture, and requests a raw Python patch script to fix the bug. It executes the patch via \subprocess\, and if successful, uses \os.execv()\ to completely reload the running Python process in-place.
+
+**How Developers Can Use & Test It**: 
+To test the self-heal loop, a developer can intentionally inject a syntax error into a non-critical module (e.g., \core/server.py\) and trigger a reload. Watch the console: the traceback will fire, the AI will generate the \	emp_repair.py\ script, execute it, and seamlessly restart the server without the process ever dying.
+
+## Chapter X: Troubleshooting Cross-Origin Security in Zero-Trust
+When embedding external plugins (e.g., YouTube IFrames) inside a secure environment:
+1. **CSP Blind Spots**: If your `security_headers.py` lacks a `report-uri`, the browser will silently kill unauthorized scripts, leaving no backend logs. Always configure a telemetry pipeline to catch silent blocks.
+2. **Iframe `postMessage` Blocking**: HTML buttons in a parent wrapper cannot programmatically command a child iframe unless the child API verifies the parent's origin (e.g., passing `origin: window.location.origin` to YouTube).
+3. **Gesture Delegation**: A user clicking a button in a parent wrapper does not unlock unmuted media in a child iframe unless the parent explicitly delegates the gesture via `allow="autoplay"`.

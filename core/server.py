@@ -311,13 +311,16 @@ async def save_artifacts():
     data = await request.get_json()
     path = data.get('path', '')
     content = data.get('content', '')
+    append_mode = data.get('append', False)
+    
     if path.startswith('file://'):
         path = path[7:]
         
     if sys.platform == "win32" and path.startswith("/"):
         try:
+            redirect_op = ">>" if append_mode else ">"
             process = subprocess.Popen(
-                ["wsl.exe", "-e", "bash", "-c", f"cat > '{path}'"],
+                ["wsl.exe", "-e", "bash", "-c", f"cat {redirect_op} '{path}'"],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
             stdout, stderr = process.communicate(input=content)
@@ -329,7 +332,8 @@ async def save_artifacts():
             return jsonify({"error": str(e)}), 500
 
     try:
-        with open(path, 'w', encoding='utf-8') as f:
+        mode = 'a' if append_mode else 'w'
+        with open(path, mode, encoding='utf-8') as f:
             f.write(content)
         return jsonify({"success": True})
     except Exception as e:
@@ -886,6 +890,24 @@ async def get_log_content(log_name):
         return jsonify(data)
     except Exception as e:
         return jsonify({"error": str(e)}), 403
+
+# CSP Reporting Endpoint
+@app.route('/api/security/csp-report', methods=['POST'])
+async def csp_report():
+    import json
+    from datetime import datetime
+    try:
+        report = await request.get_json(force=True)
+        log_entry = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "report": report.get("csp-report", report)
+        }
+        with open("csp_violations.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry) + "\n")
+        print("[Security] CSP Violation Logged")
+    except Exception as e:
+        print(f"[Security] Failed to log CSP violation: {e}")
+    return jsonify({"success": True}), 204
 
 # Authentication endpoints
 

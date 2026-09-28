@@ -9,7 +9,7 @@
     document.addEventListener("keydown", function(e) {
         if (e.altKey && (e.key === "n" || e.key === "N")) {
             e.preventDefault();
-            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
             if (iframes.length > 0) {
                 var latestIframe = iframes[iframes.length - 1];
                 latestIframe.focus();
@@ -30,7 +30,7 @@
     document.addEventListener("keydown", function(e) {
         if (e.altKey && (e.key === "n" || e.key === "N")) {
             e.preventDefault();
-            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
             if (iframes.length > 0) {
                 var latestIframe = iframes[iframes.length - 1];
                 latestIframe.focus();
@@ -589,11 +589,14 @@
                                 body: JSON.stringify({ path: url, content: rawEditor.value })
                             });
                             
-                            btn.innerHTML = originalBtnHtml;
-                            btn.disabled = false;
+                            // Expire the button to prevent accidental double-clicks or phantom Alt+P triggers
+                            btn.innerHTML = '<i class="fas fa-check"></i> Expired';
+                            btn.disabled = true;
+                            btn.classList.add('opacity-50', 'cursor-not-allowed');
+                            btn.classList.remove('hover:bg-teal-500');
                         } catch (e) {
                             console.error("Failed to auto-save artifact before proceeding:", e);
-                            btn.disabled = false;
+                            btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Error';
                         }
                     }
                 }
@@ -951,17 +954,7 @@
             }
 
             // Shortcut for Proceed (Alt+P)
-            if (e.altKey && e.key.toLowerCase() === 'p') {
-                e.preventDefault();
-                var btns = document.querySelectorAll('.artifact-proceed-btn');
-                if (btns.length > 0) {
-                    btns[btns.length - 1].click();
-                } else {
-                    if (typeof announce === 'function') {
-                        announce("No proceedable artifact found.");
-                    }
-                }
-            }
+
         });
 
         var ws = null;
@@ -2246,7 +2239,7 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
     document.addEventListener("keydown", function(e) {
         if (e.altKey && (e.key === "n" || e.key === "N")) {
             e.preventDefault();
-            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
             if (iframes.length > 0) {
                 var latestIframe = iframes[iframes.length - 1];
                 latestIframe.focus();
@@ -2344,7 +2337,7 @@ Provide 2-3 easy example prompts they can copy and paste. Do not use technical j
     document.addEventListener("keydown", function(e) {
         if (e.altKey && (e.key === "n" || e.key === "N")) {
             e.preventDefault();
-            var iframes = document.querySelectorAll("iframe[src*=\"video_temp\"]");
+            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
             if (iframes.length > 0) {
                 var latestIframe = iframes[iframes.length - 1];
                 latestIframe.focus();

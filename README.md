@@ -188,3 +188,7 @@ To ensure lower-tier users can understand technical implementations and system c
 **Action**: 
 The system employs a dynamic, fully-decoupled Jinja2 frontend powered by a centralized `ui_config.json`. The chat interface features 3D Flip Cards for artifact inspection and universal Code Copy buttons. 
 To enforce zero-trust security on the frontend, the system relies on **Agentic Sanitization**. Instead of hardcoded regex filters, lower-tier users requesting access to implementation plans trigger automated background prompts. These prompts force the AI to dynamically downgrade, redact, and summarize the document to match the user's specific clearance tier, while completely blocking raw code access for Guest accounts.
+
+## Security Update: CSP Telemetry & Accessible Video Player
+The Zero-Trust Architecture has been enhanced with a **CSP Telemetry Pipeline**. All cross-origin blocks enforced by `security_headers.py` are now automatically reported by the browser and logged to `csp_violations.log`. 
+Additionally, the cross-origin sandboxing issues blocking the Accessible Video Player inside the chat feed have been fully resolved by fixing the CSP whitelist and injecting parent-origin delegation mechanisms (`allow="autoplay"`, `origin: window.location.origin`).
