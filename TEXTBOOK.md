@@ -207,3 +207,16 @@ Instead of exposing raw absolute filesystem paths to the frontend or network, th
 - **Alias Abstraction**: Critical system files are registered under an alias (e.g., `devcore.core.server.py`). 
 - **Tier Verification**: When the frontend requests a file, it asks for the alias. The Raugus Resolver checks the map, verifies if the user's RBAC Tier is high enough to access that alias, and only then resolves it to a physical path internally. 
 - **Traversal Immunity**: By abstracting the paths, attackers cannot use `../../../etc/passwd` because the resolver strictly matches hardcoded dictionary keys rather than traversing the OS filesystem.
+
+## Option 2: Background Task Webhook
+We added \/api/webhooks/agent_callback\ to \server.py\ to support long-running agent tasks without hitting timeouts. Agents can launch tasks via \
+ohup\ and trigger the webhook using 
+## Background Task Offloading (Asynchronous Webhooks)
+
+To bypass standard API timeout limits and avoid blocking the AI Agent's execution thread during massive workloads (like heavy compilation, DAST vulnerability scans, or generating Cinematic TTS Audio), DevCore implements an **Asynchronous Webhook Callback** architecture.
+
+### How It Works:
+1. **Detached Execution (`nohup`)**: Instead of blocking, the agent executes long-running shell scripts detached in the background using `nohup bash -c "..." &`.
+2. **Immediate Yield**: The agent immediately yields its turn back to the user, freeing up the system and preventing context-window timeouts.
+3. **The Webhook Ping**: At the very end of the detached background script, a hardcoded `curl` payload executes, sending a POST request to `/api/webhooks/agent_callback` on the DevCore backend.
+4. **Agent Wakeup**: The DevCore server intercepts this webhook and broadcasts a high-priority system message into the chat stream (`**Background Task Finished**`), physically waking the AI agent back up to analyze the log files and continue its work.
