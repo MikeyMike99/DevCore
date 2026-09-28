@@ -169,3 +169,16 @@ The system leverages a dynamic, rotatable Key Management System located in `secu
 To protect the AI's Brain Transcripts (`transcript.jsonl`) without breaking the native Google Antigravity JSON parser, DevCore employs lifecycle "Cold Storage" hooks (`security/cold_storage.py`):
 - **Lock (Shutdown)**: When the DevCore UI is closed, a background hook sweeps the `.gemini/antigravity-cli/brain/` directory and encrypts all transcripts into unreadable AES-128 ciphertext.
 - **Unlock (Boot)**: When DevCore starts up, a pre-boot hook pulls the entire historical keychain to attempt decryption. If an old key unlocks a file, it is rewritten as plaintext. Upon the next shutdown, it is automatically re-encrypted using the *newest active key*, conferring immunity to cryptographic shredding during key rotations.
+
+### 5. Risk Analysis: Benefits vs. Dangers
+Encrypting internal system data (like AI transcripts and access tokens) introduces a sharp double-edged sword:
+
+**The Security Benefits:**
+- **Zero-Trust Hardening:** If an attacker compromises the host OS or physically steals the hard drive, they cannot read the agent's historical memory or hijack active sessions. 
+- **Data Exfiltration Defense:** Ransomware or malware that attempts to silently exfiltrate `~/.gemini/` directories will only upload useless AES ciphertext.
+- **Access Control Enforcement:** Even developers with physical file access cannot inject prompt-injection attacks into the AI's past memory or forge RBAC tokens, enforcing strict application-layer access controls.
+
+**The Dangers (Self-Sabotage):**
+- **Cryptographic Shredding:** If the hardware `.devcore_master.key` is accidentally deleted, corrupted, or regenerated, the KEK is permanently lost. Every single encrypted transcript in the system instantly becomes unrecoverable digital confetti, causing irreversible amnesia for the AI.
+- **Process Crash Corruption:** If the DevCore Python process is forcefully killed (e.g., `SIGKILL` or power loss) *during* the `lock_brain` encryption sweep, the JSONL files may be left in a partially encrypted/corrupted state, fatally crashing the Antigravity JSON parser on the next boot.
+- **Debugging Blindness:** Because the logs are locked into ciphertext when the server is powered down, system administrators cannot easily use native terminal tools (like `grep` or `tail`) to audit the AI's logs or debug crashes offline unless they manually invoke the `unlock_brain()` Python script first.
