@@ -1,26 +1,22 @@
 import os
 import glob
-from cryptography.fernet import Fernet
-
-# Use the same AES key as our binary stamper
-STAMP_KEY = b'A4l7KaUtSVz1kvIS0SPXP2olNkyY6XVLNOhrEtTvkrc='
-
-def get_cipher():
-    return Fernet(STAMP_KEY)
+from cryptography.fernet import InvalidToken
 
 def get_brain_dir():
-    # Resolves to ~/.gemini/antigravity-cli/brain
     home = os.path.expanduser("~")
     return os.path.join(home, ".gemini", "antigravity-cli", "brain")
 
 def lock_brain():
-    """Encrypts all transcript files in the brain for Cold Storage."""
+    """Encrypts all transcript files in the brain using the Active DEK."""
     brain_dir = get_brain_dir()
     if not os.path.exists(brain_dir):
         return
 
-    cipher = get_cipher()
-    # Find all transcript files
+    # Delay import so it doesn't break if run standalone without context
+    from security.keychain import KeychainManager
+    km = KeychainManager()
+    cipher = km.get_active_cipher()
+
     search_pattern = os.path.join(brain_dir, "**", "transcript*.jsonl")
     for file_path in glob.glob(search_pattern, recursive=True):
         try:
@@ -39,21 +35,35 @@ def lock_brain():
             print(f"[Cold Storage Error] Failed to lock {file_path}: {e}")
 
 def unlock_brain():
-    """Decrypts all transcript files in the brain for Active Use."""
+    """Decrypts all transcript files using the Keychain (tries all historical keys)."""
     brain_dir = get_brain_dir()
     if not os.path.exists(brain_dir):
         return
 
-    cipher = get_cipher()
+    from security.keychain import KeychainManager
+    km = KeychainManager()
+    ciphers = km.get_all_ciphers()
+
     search_pattern = os.path.join(brain_dir, "**", "transcript*.jsonl")
     for file_path in glob.glob(search_pattern, recursive=True):
         try:
             with open(file_path, 'rb') as f:
                 data = f.read()
             
-            # Only decrypt if it is encrypted (Fernet tokens start with gAAAAA)
             if data.startswith(b'gAAAAA'):
-                decrypted = cipher.decrypt(data)
+                decrypted = None
+                # Try all keys in the keychain
+                for cipher in ciphers:
+                    try:
+                        decrypted = cipher.decrypt(data)
+                        break
+                    except InvalidToken:
+                        continue
+                
+                if decrypted is None:
+                    print(f"[Cold Storage Error] FATAL: No valid key found in keychain to decrypt {file_path}!")
+                    continue
+                    
                 with open(file_path, 'wb') as f:
                     f.write(decrypted)
                 print(f"[Cold Storage] Unlocked: {file_path}")
