@@ -31,6 +31,13 @@ security_mgr = sec_m.SecurityManager()
 async def reload_system():
     global project_mgr, session_mgr, agent_mgr, security_mgr, sm, pm, am, sec_m
     
+    # 1. Enforce Authentication & Admin Role
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+    user = security_mgr.get_user_from_token(token)
+    if not user or not security_mgr.can_reload_engine(user):
+        return jsonify({"error": "Unauthorized"}), 401
+    
     try:
         # Preserve active WebSocket connections (CWE-200)
         active_clients = dict(agent_mgr.connected_clients)
@@ -303,10 +310,19 @@ async def get_artifact():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
         
+
 @app.route('/api/artifacts/save', methods=['POST'])
 async def save_artifacts():
     import sys
     import subprocess
+    import shlex
+    
+    # 1. Enforce Authentication
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+    user = security_mgr.get_user_from_token(token)
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
     
     data = await request.get_json()
     path = data.get('path', '')
@@ -316,11 +332,17 @@ async def save_artifacts():
     if path.startswith('file://'):
         path = path[7:]
         
+    # 2. Path Traversal & Command Injection Defense
+    if not path.startswith("/home/") and not path.startswith("/mnt/"):
+        return jsonify({"error": "Path traversal blocked"}), 403
+        
+    safe_path = shlex.quote(path)
+    
     if sys.platform == "win32" and path.startswith("/"):
         try:
             redirect_op = ">>" if append_mode else ">"
             process = subprocess.Popen(
-                ["wsl.exe", "-e", "bash", "-c", f"cat {redirect_op} '{path}'"],
+                ["wsl.exe", "-e", "bash", "-c", f"cat {redirect_op} {safe_path}"],
                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
             stdout, stderr = process.communicate(input=content)
@@ -330,14 +352,16 @@ async def save_artifacts():
                 return jsonify({"error": f"WSL Artifact write failed: {stderr}"}), 500
         except Exception as e:
             return jsonify({"error": str(e)}), 500
+    else:
+        # Native save for Linux
+        try:
+            mode = "a" if append_mode else "w"
+            with open(path, mode, encoding="utf-8") as f:
+                f.write(content)
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
-    try:
-        mode = 'a' if append_mode else 'w'
-        with open(path, mode, encoding='utf-8') as f:
-            f.write(content)
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/prompt/massive', methods=['POST'])
 async def handle_massive_prompt():
