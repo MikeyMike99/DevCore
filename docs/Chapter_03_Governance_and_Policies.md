@@ -9,7 +9,7 @@ If behavior that violates this policy is detected on the Zero-Trust grid—wheth
 To govern a hostile environment effectively, the architecture must enforce several guiding mandates, as listed below:
 
 ### 1. Framework Policies (Company Policies)
-In a traditional business, company policies dictate human responsibilities (e.g., dress code, privacy, and corporate ethics). In Siraugga, Framework Policies establish the absolute rules of conduct and the responsibilities of both the human operators and the autonomous swarm. 
+In a traditional business, company policies dictate human responsibilities (e.g., dress code, privacy, and corporate ethics). In Siraugga, Framework Policies establish the absolute rules of conduct and the responsibilities of both the human operators and the integrated game plugin architecture. 
 * They protect the intellectual property of the core engine while simultaneously guaranteeing the functional rights of Tier 2 Modders operating within their designated sandboxes.
 * These policies define exactly what constitutes acceptable system interaction, dictating data privacy standards and strict terms of engagement for any entity generating or executing code on the platform.
 
@@ -32,7 +32,7 @@ In Siraugga, a comprehensive security policy is not a bureaucratic checklist; it
 * **The Authority of Tier 5**: It grants Tier 5 SysAdmins the absolute, unquestionable architectural backing to sever WebSocket connections, purge telemetry, or permanently isolate exploited workspaces during an active crisis.
 
 ### The Architecture of a Security Policy
-In the Siraugga framework, Security Policies are not passive documents; they are active architectural contracts. They are used to rigidly inform human operators, autonomous swarms, and Tier 5 SysAdmins of the exact mathematical requirements for protecting the backend infrastructure and intellectual property assets. 
+In the Siraugga framework, Security Policies are not passive documents; they are active architectural contracts. They are used to rigidly inform human operators, third-party modders, and Tier 5 SysAdmins of the exact mathematical requirements for protecting the backend infrastructure and intellectual property assets. 
 
 Furthermore, these policies explicitly specify the *mechanisms* required to enforce those requirements—such as the Raugus Resolver and the Semantic Firewall. They establish the absolute baseline from which all virtual environments are acquired, configured, and audited for cryptographic compliance.
 
@@ -56,16 +56,16 @@ For example, the Siraugga AUP explicitly lists the exact Bash commands (e.g., `r
 
 Rather than relying on a physical signature, every AI subagent "signs" the AUP instantly upon initialization by inheriting it as its core System Prompt. This immutable, cryptographic signature is retained in the `transcript.jsonl` for the absolute lifetime of the session. This guarantees that if the agent attempts to violate the policy, the Semantic Firewall has the full architectural mandate to instantly terminate the process.
 
-### The Bring Your Own Device/Agent (BYOD/A) Policy
-Modern organizations must support flexibility. In legacy IT, this is known as Bring Your Own Device (BYOD). In the DevCore ecosystem, this translates to **Bring Your Own Device & Agent (BYOD/A)**. This policy enables Tier 2 Modders and Tier 3 Developers to connect to the Siraugga backend using their own unmanaged physical hardware (via the Port 5001 TLS Proxy) and to deploy their own custom, untested AI sub-agents into the swarm.
+### The Bring Your Own Device (BYOD) Policy
+Modern organizations must support flexibility. In legacy IT, this is known as Bring Your Own Device (BYOD). Because Siraugga is designed as an accessible web portal plugin for in-game development environments, BYOD is a foundational requirement. This policy enables Tier 2 Modders and Tier 3 Game Developers to connect to the Siraugga plugin backend using their own unmanaged physical hardware (via the Port 5001 TLS Proxy). 
 
-While BYOD/A drastically increases development velocity, reduces operating costs, and encourages third-party modding, it introduces severe information security risks. An unmanaged remote device or a rogue third-party agent can introduce hostile payloads, prompt injections, and catastrophic data breaches.
+While BYOD drastically increases development velocity and encourages a thriving third-party modding community, it introduces severe information security risks. An unmanaged remote device connecting to a game server's internal plugin can introduce hostile payloads, path traversal attempts, and catastrophic data breaches into the core game engine.
 
-To mitigate this liability, the Siraugga BYOD/A Security Policy rigidly mandates the following:
-* **Program Goals**: Specify the exact development boundaries and objectives the custom agent or remote device is expected to operate within.
-* **Tier Eligibility**: Mathematically identify which RBAC Tiers are permitted to initiate a BYOD/A connection (e.g., restricting experimental sub-agents to Tier 3 Developers only).
-* **Architecture Support**: Identify the strict payload formats and API structures the custom agent must conform to (e.g., structured JSON streams).
-* **Granular Access Levels**: Identify the exact level of File I/O access granted to the unmanaged device via the Raugus Resolver (usually confined strictly to a `TIER_SAFE_WORKSPACE`).
-* **Tier 5 Overwatch**: Describe the absolute right of Tier 5 SysAdmins to monitor, intercept, and decrypt the telemetry of the personal device or custom agent without warning.
+To mitigate this liability, the Siraugga BYOD Security Policy rigidly mandates the following:
+* **Program Goals**: Specify the exact development boundaries and objectives the remote Modder's device is expected to operate within (e.g., building NPC dialogue scripts).
+* **Tier Eligibility**: Mathematically identify which RBAC Tiers are permitted to initiate a BYOD connection to the game server.
+* **Architecture Support**: Identify the strict payload formats and API structures the remote client must conform to (e.g., structured JSON streams over WebSockets).
+* **Granular Access Levels**: Identify the exact level of File I/O access granted to the unmanaged device via the Raugus Resolver (confining them strictly to their assigned game project folder / `TIER_SAFE_WORKSPACE`).
+* **Tier 5 Overwatch**: Describe the absolute right of Tier 5 Admins to monitor, intercept, and decrypt the telemetry of the remote connection without warning.
 * **Cryptographic Compliance**: Identify which network regulations (such as CSP whitelisting and Token hashing) the unmanaged device must adhere to while connected.
-* **The Kill Switch (Compromise Safeguards)**: Identify the automated safeguards (such as immediate `SIGKILL` and RAM-disk freezing) that will be triggered the moment the BYOD/A entity is suspected of being compromised.
+* **The Kill Switch (Compromise Safeguards)**: Identify the automated safeguards (such as immediate WebSocket termination and RAM-disk freezing) that will be triggered the moment a BYOD connection attempts to traverse outside its assigned sandbox.
