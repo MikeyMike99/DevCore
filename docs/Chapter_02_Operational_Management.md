@@ -123,3 +123,5 @@ In traditional cybersecurity, protocol analyzers (often called packet sniffers) 
 In the Siraugga framework, we do not monitor physical ethernet cables. Our "network traffic" consists entirely of structured JSON payloads transmitted over WebSockets, rapid inter-agent communication, and isolated I/O system calls. To monitor this environment, Siraugga deploys an advanced **Semantic Sniffer**.
 
 Rather than capturing legacy network packets, the Semantic Sniffer intercepts, decrypts, and recursively parses the raw JSON objects moving between the frontend client, the core orchestration engine, and the sandboxed AI swarm. This internal protocol analyzer performs the following critical functions:
+
+1. **Semantic Traffic Logging**: The sniffer acts as the primary data ingress for all logging operations. It continuously captures every JSON payload moving across the WebSocket and routes the raw data to the correct telemetry vault (e.g., Application Security Logs, CSP Pipelines) before it is encrypted into Cold Storage.
