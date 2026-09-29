@@ -41,4 +41,12 @@ An orphaned asset is an invitation for disaster. Siraugga enforces strict, unyie
 * **Identify the Data Custodian**: Every environment variable, JSON payload, and database table must have an assigned owner. If the data leaks, we know exactly whose neck is on the line.
 * **Identify the Execution Master**: Every script, binary, and automation module must be cryptographically bound to an operator. If a script goes rogue or attempts a privilege escalation, the system knows precisely who authorized the weapon.
 
+**Step 3: Determine the Classification Criteria**
+You cannot defend an asset without measuring its weight in blood. Siraugga runs every identified asset through a ruthless, five-point classification gauntlet:
+* **Confidentiality**: How devastating would a leak be? Is exposing this file a mild operational glitch, or an extinction-level event for the network?
+* **Value**: What is the intrinsic operational worth of the asset? 
+* **Time**: What is the lifespan of this data? Is it a permanent core dependency, or an ephemeral token that must be aggressively purged after a ten-minute window?
+* **Access Rights**: Who (or what autonomous agent) is explicitly authorized to interact with this asset? This dictates its final RBAC tier and sandbox level.
+* **Destruction**: What is the protocol for termination? When an asset outlives its usefulness, it cannot simply be deleted; it must be cryptographically shredded, leaving zero forensic trace.
+
 It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
