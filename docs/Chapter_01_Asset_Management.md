@@ -141,4 +141,11 @@ To mathematically enforce this limitation, Siraugga utilizes a rigid, 5-Tier RBA
 
 By slicing the organization into these five definitive tiers, we ensure that a compromised Tier 2 modder can never shatter the host environment, because they fundamentally lack the authority to even see it.
 
+#### Strategy 3: Cryptographic Diversity
+A wall built of identical bricks falls to a single sledgehammer. If all defense layers share the same fundamental architecture, an adversary who discovers a single exploit will effortlessly shatter the entire system. The layers must be fundamentally different so that a compromised outer perimeter does not guarantee the fall of the inner sanctum.
+
+In Siraugga, we enforce absolute **Cryptographic Diversity**. If an attacker uses a sophisticated prompt injection to bypass the Semantic Edge Router, that same technique is completely useless against the low-level Path Resolver, which doesn't parse semantics—it parses mathematical directory boundaries. 
+
+Furthermore, we do not rely on a monolithic security stack. To accomplish true diversity in defenses, Siraugga utilizes varied, heterogeneous security mechanisms: dynamic bearer tokens for WebSocket sessions, JIT (Just-In-Time) key rotation for active payloads, and strict, time-delayed cryptographic locks on the backend. By forcing the adversary to constantly switch tactics, tools, and paradigms at every single layer, we exhaust their resources and trigger our telemetry alarms long before they can reach the core.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
