@@ -56,16 +56,18 @@ For example, the Siraugga AUP explicitly lists the exact Bash commands (e.g., `r
 
 Rather than relying on a physical signature, every AI subagent "signs" the AUP instantly upon initialization by inheriting it as its core System Prompt. This immutable, cryptographic signature is retained in the `transcript.jsonl` for the absolute lifetime of the session. This guarantees that if the agent attempts to violate the policy, the Semantic Firewall has the full architectural mandate to instantly terminate the process.
 
-### The Bring Your Own Device (BYOD) Policy
-Modern organizations must support flexibility. In legacy IT, this is known as Bring Your Own Device (BYOD). Because Siraugga is designed as an accessible web portal plugin for in-game development environments, BYOD is a foundational requirement. This policy enables Tier 2 Modders and Tier 3 Game Developers to connect to the Siraugga plugin backend using their own unmanaged physical hardware (via the Port 5001 TLS Proxy). 
+### The Bring Your Own Device & Code (BYOD/C) Policy
+Modern organizations must support flexibility. Because Siraugga is designed as an accessible web portal plugin for in-game development environments, this concept takes on a critical dual meaning: **Bring Your Own Device (BYOD)** and **Bring Your Own Code (BYOC)**. 
 
-While BYOD drastically increases development velocity and encourages a thriving third-party modding community, it introduces severe information security risks. An unmanaged remote device connecting to a game server's internal plugin can introduce hostile payloads, path traversal attempts, and catastrophic data breaches into the core game engine.
+This policy enables Tier 2 Modders and Tier 3 Game Developers to connect to the Siraugga plugin using their own unmanaged physical hardware. More importantly, it allows them to bring their own custom game projects, third-party code, and experimental agent scripts directly into the Siraugga playground.
+
+While BYOD/C drastically increases development velocity and encourages a thriving third-party modding community, it introduces severe information security risks. An unmanaged remote device—or an untested, imported third-party playground script—can introduce hostile payloads, path traversal attempts, and catastrophic data breaches into the core game engine.
 
 To mitigate this liability, the Siraugga BYOD Security Policy rigidly mandates the following:
-* **Program Goals**: Specify the exact development boundaries and objectives the remote Modder's device is expected to operate within (e.g., building NPC dialogue scripts).
+* **Program Goals**: Specify the exact development boundaries the remote Modder's device and imported playground code are expected to operate within (e.g., building NPC dialogue scripts).
 * **Tier Eligibility**: Mathematically identify which RBAC Tiers are permitted to initiate a BYOD connection to the game server.
 * **Architecture Support**: Identify the strict payload formats and API structures the remote client must conform to (e.g., structured JSON streams over WebSockets).
 * **Granular Access Levels**: Identify the exact level of File I/O access granted to the unmanaged device via the Raugus Resolver (confining them strictly to their assigned game project folder / `TIER_SAFE_WORKSPACE`).
 * **Tier 5 Overwatch**: Describe the absolute right of Tier 5 Admins to monitor, intercept, and decrypt the telemetry of the remote connection without warning.
 * **Cryptographic Compliance**: Identify which network regulations (such as CSP whitelisting and Token hashing) the unmanaged device must adhere to while connected.
-* **The Kill Switch (Compromise Safeguards)**: Identify the automated safeguards (such as immediate WebSocket termination and RAM-disk freezing) that will be triggered the moment a BYOD connection attempts to traverse outside its assigned sandbox.
+* **The Kill Switch (Compromise Safeguards)**: Identify the automated safeguards (such as immediate WebSocket termination and RAM-disk freezing) that will be triggered the moment a remote connection or imported script attempts to traverse outside its assigned sandbox.
