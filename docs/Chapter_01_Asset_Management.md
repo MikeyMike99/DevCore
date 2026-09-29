@@ -106,6 +106,10 @@ The Siraugga architecture displays a highly structured topology of this defense-
 
 The Semantic Edge Router and Raugus Checkpoint are not the only mechanisms used in this defense-in-depth approach. Other security mechanisms in Siraugga include Agentic Intrusion Prevention Systems (IPS), Active Sandbox Protection (ASP), cryptographic token security systems, identity role services, strict Workspace Access Controls (WAC), and more.
 
+There are two common analogies used to describe this defense-in-depth approach:
+* **The Security Onion**: A system built with concentric layers of defense. An attacker must painstakingly peel through the Semantic Firewall, bypass the Raugus Checkpoint, and defeat the Path Resolver sequentially to reach the core.
+* **The Security Artichoke**: A system where individual "leaves" (sandboxed workspaces or edge nodes) can be attacked and plucked off by an adversary, but the "heart" (the Core Engine) remains heavily armored and structurally isolated. Siraugga leans heavily into the Artichoke model: if a Tier 1 sandbox is violently compromised by a rogue agent, we simply sever that leaf. The rest of the system remains untouched.
+
 In the layered defense-in-depth security approach, the different layers work together to create a security architecture in which the failure of one safeguard does not affect the effectiveness of the other safeguards. For example, if a highly sophisticated prompt injection successfully bypasses the Semantic Edge Router, the attack does not automatically succeed. The rogue agent still cannot execute the payload because the Raugus Checkpoint will refuse to acknowledge any unmapped target assets. And even if the attacker somehow manages to spoof the map, the final Path Resolver will still intercept and sever the raw I/O attempt before it touches the disk. This is the definition of true Zero-Trust: no single layer assumes the previous layer did its job perfectly.
 
 ### The Burden of Knowledge (Conclusion)
