@@ -95,6 +95,17 @@ To make this concrete, here is a practical threat identification matrix mapped s
 * **Agent Hallucinations & Syntax Errors**: An AI agent hallucinates an incorrect shell command or executes a catastrophic `rm -rf` operation due to poor context framing or conflicting system prompts.
 * **Workspace Obliteration**: A catastrophic algorithmic loop or malicious script recursively deletes the root project directory, permanently destroying all sandboxed development progress.
 
+### Defense-in-Depth Architecture
+To survive this threat matrix, organizations must abandon single-point security. Siraugga employs a brutal **Defense-in-Depth** approach to identify threats and secure vulnerable assets. This architecture utilizes multiple, overlapping layers of security at the network edge, within the orchestration logic, and at the low-level endpoints.
+
+In a traditional network, this would look like an Edge Router, a hardware Firewall, and an Internal Router working in tandem. In the Siraugga framework, our defense-in-depth topology is built natively into the code:
+
+* **The Semantic Firewall (First Line of Defense)**: The outermost perimeter. When a user or agent submits a request via WebSocket, it hits the Semantic Firewall. This layer authenticates the Bearer token, verifies RBAC clearance, and scans the raw intent for prompt injections. If it detects a malicious payload, the traffic is dropped before the orchestration engine even boots.
+* **The Dynamic Asset Mapper / Raugus Map (The Checkpoint)**: The second line of defense. If a command passes the firewall, the agent attempts execution. However, before it can touch any file, it must consult the cryptographically signed Raugus Map. The Map tracks the state of all connections and assets. It denies the initiation of any interaction with an unmapped, untrusted file, acting as a strict whitelist for the agent's reality.
+* **The Path Resolver (The Final Filter)**: The absolute last line of defense. Even if an authorized agent attempts to modify a mapped asset, the raw I/O request must pass through `resolve_safe_path()`. This internal router applies the final filtering rules on the traffic before it hits the disk. If it detects path traversal attempts (e.g., trying to escape to `../../.env`), it instantly severs the connection and quarantines the process.
+
+In the layered defense-in-depth security approach, the different layers work together to create a security architecture in which the failure of one safeguard does not affect the effectiveness of the other safeguards.
+
 ### The Burden of Knowledge (Conclusion)
 Identifying vulnerabilities on a network is not a passive exercise. It requires an intimate, granular understanding of every critical application, orchestration script, and hardware node in the grid. You cannot secure a system if you do not understand its inherent weaknesses. This burden of knowledge demands relentless research, constant auditing, and absolute paranoia on the part of the System Administrator. 
 
