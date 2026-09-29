@@ -22,4 +22,6 @@ To protect this mapped attack surface, Siraugga enforces strict, non-negotiable 
 
 By combining these four File Classification Tiers with a rigid, 5-level **Role-Based Access Control (RBAC)** hierarchy, Siraugga shrinks the Attack Surface down to a microscopic point. 
 
+This is the true essence of **Asset Classification**: ruthlessly categorizing your resources based on their inherent risk and common characteristics. You cannot treat a sandboxed JSON file with the same paranoia as a root orchestration script. The most critical information must receive the absolute highest level of protection, requiring cryptographic segregation and specialized handling to ensure that even if the outer perimeter is breached, the heart of the system remains impenetrable.
+
 It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
