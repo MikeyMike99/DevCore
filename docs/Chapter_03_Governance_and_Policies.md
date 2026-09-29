@@ -84,3 +84,12 @@ To mitigate the inherent vulnerabilities of importing third-party devices and cu
 | **The Reaper Protocol (Remote Wipe)** | If an imported script hallucinates or a remote BYOD connection is compromised, Tier 5 Admins utilize the Reaper Daemon to remotely execute a cryptographic `shred -u -z` wipe on the isolated `tmpfs` partition. |
 | **Semantic Firewalls (Antivirus)** | Traditional antivirus is useless against LLM logic bombs. Instead, all inbound BYOC scripts are routed through the Semantic Evaluator LLM to actively hunt for adversarial prompt injections. |
 | **Agentic Sandbox Management (MDM)** | Instead of legacy Mobile Device Management, Siraugga utilizes the Raugus Resolver as its Central Management suite. It forces all BYOD/C entities to inherit identical path traversal constraints before they touch the game engine. |
+
+*(Note: In the context of Siraugga, the **SDK (Software Development Kit)** refers to the standardized library of Python wrappers, cryptographic bridges, and API endpoints provided to Tier 3 Developers. It allows them to safely interact with the core game engine without ever touching raw backend files. Keeping custom BYOC scripts updated to the latest SDK ensures that all API calls are automatically routed through the newest Raugus security middleware.)*
+
+### Regulatory and Standards Compliance
+While internal governance is critical, a Zero-Trust architecture does not exist in a vacuum. There are external, real-world regulations regarding data security. Tier 5 SysAdmins and core DevCore engineers must be intimately familiar with the laws and codes of ethics that bind Information Systems Security (INFOSEC) professionals.
+
+Many enterprise game studios are legally mandated to develop and implement these security policies. Compliance regulations explicitly define what an organization is responsible for providing—such as encrypted transport layers (TLS) and immutable audit logs—and the catastrophic legal liability they face if a breach occurs and player data is leaked. 
+
+The specific compliance frameworks that a Siraugga instance is obligated to follow depend heavily on the nature of the studio and the type of telemetry (e.g., PII, payment pipelines) the backend handles. We will dissect these specific compliance regulations later in the doctrine.
