@@ -36,4 +36,9 @@ Before an asset is mapped and secured, it must be ruthlessly categorized into on
 * **Physical Assets**: The bare metal. The host servers, the hard drives, and the silicon that actually powers the ghost in the machine.
 * **Services**: The invisible threads. Background daemons, API endpoints, and WebSocket tunnels that expose the attack surface to the outside world.
 
+**Step 2: Establish Absolute Accountability**
+An orphaned asset is an invitation for disaster. Siraugga enforces strict, unyielding asset accountability. Every single information asset and every line of application software must be chained to a specific, verified owner.
+* **Identify the Data Custodian**: Every environment variable, JSON payload, and database table must have an assigned owner. If the data leaks, we know exactly whose neck is on the line.
+* **Identify the Execution Master**: Every script, binary, and automation module must be cryptographically bound to an operator. If a script goes rogue or attempts a privilege escalation, the system knows precisely who authorized the weapon.
+
 It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
