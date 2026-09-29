@@ -84,4 +84,15 @@ Because Siraugga is an AI-driven orchestration framework, our primary vulnerabil
 **3. What are the consequences if these vulnerabilities are exploited?**
 Total, catastrophic failure of the Zero-Trust architecture. If an attacker breaches the Tier 1 sandbox and infiltrates Tier 2 (The Core Engine), they could rewrite the security manager to permanently drop the RBAC firewall. If they manage to breach Tier 4 (The Forbidden Zone), they could extract master API keys, root environment variables, and Git credentials—leading to the total compromise of not just the host server, but the entire connected organization.
 
+### Example: The Siraugga Threat Matrix
+To make this concrete, here is a practical threat identification matrix mapped specifically to Siraugga's overarching goals and purpose:
+
+* **Host System Compromise**: An attacker uses the exposed Agent WebSocket connection to break out of the Tier 1 sandbox and gain raw, root-level shell access to the underlying host operating system.
+* **Stolen Proprietary Assets**: An attacker or rogue agent silently extracts unreleased game IP, proprietary Lua scripts, or encrypted models from the Tier 1 workspace.
+* **Malicious Agent Execution (Prompt Injection)**: An external attacker alters the AI prompt stream, forcing an autonomous AI agent to execute destructive terminal commands disguised as legitimate development tasks.
+* **Unauthorized Access via Stolen Tokens**: An attacker intercepts a legitimate developer's Web UI Bearer Token and completes malicious operations (like deleting artifacts or poisoning logs) while impersonating a verified user.
+* **Insider Attack on the Framework**: A third-party modder with limited `TIER_SAFE_WORKSPACE` access discovers a zero-day path-traversal flaw in the Python router to mount an attack on the Core Engine.
+* **Agent Hallucinations & Syntax Errors**: An AI agent hallucinates an incorrect shell command or executes a catastrophic `rm -rf` operation due to poor context framing or conflicting system prompts.
+* **Workspace Obliteration**: A catastrophic algorithmic loop or malicious script recursively deletes the root project directory, permanently destroying all sandboxed development progress.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
