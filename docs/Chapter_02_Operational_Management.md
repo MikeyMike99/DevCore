@@ -80,3 +80,11 @@ To fully comprehend this process, one must understand the exact chronological se
 4. **Session Termination**: The WebSocket connection drops, the agent is killed, or a security threshold is breached. The system triggers the Cold Storage Lifecycle Hook.
 5. **JIT Encryption**: The hook sweeps the `tmpfs` directory and AES-encrypts the raw log data using a dynamically derived Data Encryption Key (DEK). The resulting impenetrable ciphertext is written safely to the permanent Host archive.
 6. **The Ephemeral Purge**: Finally, the OS-level Reaper Daemon executes its payload. Using `O_NOFOLLOW` file descriptors and cryptographic shredding (`shred -u -z`), it annihilates the original plaintext files from the RAM-disk. The memory is scrubbed, the footprint is erased, and the cycle concludes.
+
+### The Telemetry Taxonomy (Types of Logs)
+A Zero-Trust framework generates an overwhelming amount of data. To make sense of the noise, Siraugga strictly categorizes telemetry into distinct taxonomies. The first and most foundational of these is the Operating System Log.
+
+**1. Operating System Logs (The Infrastructure Pulse)**
+Operating system logs record the absolute ground truth of the host machine. These logs bypass the application layer entirely, capturing raw events linked directly to the underlying OS. Key system telemetry includes:
+* **Client & Server Handshakes**: Mathematical verification of every raw WebSocket connection attempt, successful RBAC authentications, and violently severed TCP sockets.
+* **Resource Utilization Metrics**: Hard metrics detailing the number and size of active payload transactions in a given window. This ensures no sandboxed agent is attempting a resource exhaustion attack (such as Cryptojacking or a Denial-of-Wallet loop) against the CPU or RAM-disk.
