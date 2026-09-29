@@ -22,3 +22,13 @@ In our architecture, the established baselines are non-negotiable and are hardco
 2. **The Agent Execution Baseline**: Any autonomous AI invoked within the framework is forcefully injected with the `--sandbox` flag. The baseline explicitly blocks `--dangerously-skip-permissions` for all non-admin roles.
 3. **The RBAC Authorization Baseline**: Upon authentication, every session must map mathematically to an established tier: `admin` -> Tier 5, `dev` -> Tier 3, `mod` -> Tier 2. There is no gray area or default privilege.
 4. **The Network Continuity Baseline**: The WebSocket server enforces a brutal 4-second keep-alive heartbeat. If a client fails to ping the server within this baseline window, the connection is instantly severed to prevent orphaned, zombie execution loops.
+
+### Documented Configuration Resources
+In a legacy IT environment, documented configuration resources might include physical network maps, hardware cabling diagrams, standard naming conventions for hardware desktops, or static IP tracking schemas. 
+
+In the Siraugga framework, we have transcended physical constraints. Our documented configurations are strictly **Code, Infrastructure, and Data**. This is the true beauty of the Siraugga architecture: every single component of the system—from the orchestration engine to the RBAC sandbox parameters—is ultimately just a document. Because everything is text-based, an authorized autonomous agent is able to instantly read, debug, and recursively analyze the entire architecture on the fly. 
+
+Our core configuration resources include:
+* **The Dynamic Asset Map (Raugus Map)**: Replacing physical network maps with a cryptographic registry of all authorized paths and files.
+* **JSON State Configurations**: Replacing static IP schemas with dynamic, JSON-based connection tokens and state tracking for active agents.
+* **Semantic Artifacts**: Replacing legacy application specifications with AI-generated markdown blueprints and executable Infrastructure-as-Code (IaC) templates.
