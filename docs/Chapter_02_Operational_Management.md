@@ -39,3 +39,10 @@ Establishing a configuration baseline is only the first step; defending that bas
 In Siraugga, securing the OS involves far more than merely changing default passwords. It demands an aggressive, Zero-Trust lockdown of the host environment. This includes configuring immutable Daemon log files for absolute auditing accountability, aggressively revoking default system accounts, and enforcing our rigid, 5-tier file-level access control (RBAC). 
 
 Furthermore, true OS hardening in Siraugga relies on the **Immutable Host Doctrine**. The entire orchestration backend is designed to run inside heavily constrained, read-only containers. Even if an adversary or a hallucinating AI manages to execute an arbitrary command, they cannot permanently alter the underlying OS configuration, because the filesystem itself violently rejects the mutation.
+
+### The Anatomy of Telemetry (Log Files)
+A log is not just a text file; it is the absolute forensic record of every event as it occurs within the orchestration engine. Log entries form a complete telemetry stream, with each entry containing the exact mathematical footprint of a specific event. In Siraugga's Zero-Trust architecture, accurate, tamper-proof logs are the only difference between identifying a breach and flying blind. 
+
+For example, an **Authentication Audit Log** mathematically tracks every WebSocket connection attempt and RBAC verification, while the **Raugus Access Log** records every single low-level file I/O request processed by the Path Resolver. Monitoring these telemetry streams is the only way a SysAdmin can determine exactly how an attack vector materialized, which defense layers successfully mitigated the threat, and which layers critically failed.
+
+As the swarm of autonomous agents scales, the volume of generated telemetry explodes. To survive the noise, Siraugga demands a ruthless log management process. The management of this security data must dictate rigid procedures for the following:
