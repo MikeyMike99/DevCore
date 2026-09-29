@@ -135,3 +135,10 @@ A critical operational question arises: *where exactly does the Semantic Sniffer
 
 1. **The Ingress Node (The Semantic Firewall)**: We strictly manage what goes *into* the framework. Before an inbound WebSocket payload or untrusted user prompt ever reaches the Main AI Agent, it is intercepted by the Semantic Firewall (a rapid Evaluator LLM). If the ingress node detects adversarial intent, prompt injection signatures, or a jailbreak attempt, the packet is instantly dropped. The core engine never even registers the attack.
 2. **The Egress Node (The Raugus Resolver)**: We strictly manage what goes *out* of the framework. Even if an agent hallucinates or a malicious prompt somehow bypasses the ingress node, the agent cannot inflict damage. Every File I/O request, output write, or system command initiated by the agent must pass through the Raugus Path Resolver on egress. The Resolver mathematically verifies the action against the agent's RBAC tier and the cryptographic alias map. If an agent attempts to write a malicious payload or traverse outside its `TIER_SAFE_WORKSPACE`, the egress node destroys the operation, completely neutralizing the breakout attempt.
+
+### Conclusion: The Operational Vanguard
+You now possess a stark understanding of the Operational Vanguard: the ruthless enforcement of mathematical baselines, the lifecycle of forensic telemetry, and the dual-chokepoint architecture of the Semantic Sniffer. These are the virtual chains that keep the autonomous swarm from consuming its host. 
+
+However, the most sophisticated virtual architecture in the world can be defeated with a $5 crowbar. 
+
+As we progress deeper into the Siraugga defensive doctrines, we must pivot from the digital to the visceral. We will now move on to dissect **Physical Security Measures**. Do not dismiss this as beneath a software engineer. Physical constraints add the ultimate, un-hackable layer of defense to the Zero-Trust grid.
