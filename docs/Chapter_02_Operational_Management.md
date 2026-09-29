@@ -45,4 +45,11 @@ A log is not just a text file; it is the absolute forensic record of every event
 
 For example, an **Authentication Audit Log** mathematically tracks every WebSocket connection attempt and RBAC verification, while the **Raugus Access Log** records every single low-level file I/O request processed by the Path Resolver. Monitoring these telemetry streams is the only way a SysAdmin can determine exactly how an attack vector materialized, which defense layers successfully mitigated the threat, and which layers critically failed.
 
+### The Window to the Backend
+In traditional development, if something breaks, an engineer opens the source code. In the Siraugga framework, Tier 2 modders and sandboxed AI agents do not have access to the core source code. When you are blind to the engine, telemetry is your only weapon. The logs are the sole window to the backend, forming the absolute foundation of our debugging protocol (which we will dissect in later chapters).
+
+However, this window is a double-edged sword. Telemetry is inherently dangerous. Verbose error logs can inadvertently expose race conditions, absolute file paths, core architecture filenames, and the plaintext contents of highly sensitive payloads. If an adversary gains unauthorized access to the raw stdout stream, they possess the blueprint to the entire security matrix.
+
+Because of this extreme risk, **Logs are treated as highly classified assets.** The telemetry stream itself is strictly sandboxed. An entity cannot simply "tail" the server log; their access to historical telemetry is mathematically governed by the Path Resolver and the RBAC matrix. A Tier 2 user is only permitted to view sanitized logs relevant to their specific sandbox; if they attempt to pull a core Daemon log, the operation is instantly severed.
+
 As the swarm of autonomous agents scales, the volume of generated telemetry explodes. To survive the noise, Siraugga demands a ruthless log management process. The management of this security data must dictate rigid procedures for the following:
