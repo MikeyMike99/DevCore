@@ -1,18 +1,25 @@
-# Chapter 1: Asset Management & The Attack Surface
+# Chapter 1: Asset Management & The Siraugga Paradigm
 
 When an empire expands, its shadow grows with it. Look at any massive organization—every new acquisition, every shiny new merger, just adds more doors that can be kicked down. The terrifying reality? Most of these corporate giants only have a vague, blurry idea of what they actually own, leaving massive blind spots in their armor.
 
-Let's get one thing straight: every single device, script, database, and rogue laptop owned by the organization is an **asset**. And collectively, these assets form your **Attack Surface**. They are the bleeding targets that threat actors are constantly probing in the dark. You can't protect what you can't see. This means every piece of hardware and snippet of code must be relentlessly inventoried and assessed for vulnerability. 
+Let's get one thing straight: every single device, script, database, and rogue laptop owned by the organization is an **asset**. And collectively, these assets form your **Attack Surface**. They are the bleeding targets that threat actors—both human and algorithmic—are constantly probing in the dark. You can't protect what you can't see. This means every piece of hardware and snippet of code must be relentlessly inventoried and assessed for vulnerability. 
 
-### The Siraugga Approach: Absolute Visibility
+### The Core Problem: The Danger of Autonomous Agents
+As the industry pivots toward AI-driven development, a new, catastrophic vulnerability has emerged: the Agentic Execution flaw. When you give an AI Agent access to a terminal to write code or execute scripts, you are essentially handing root-level keys to a ghost. If a prompt injection attack succeeds, or if a third-party modder attempts a path-traversal attack, the Agent could be weaponized to format the server, steal environment variables, or rewrite the core engine.
 
-This is where true Asset Management comes in. It's not just about making a spreadsheet—it's about establishing an ironclad perimeter. 
+### What Siraugga Solves
+**Siraugga** was built to solve this exact crisis. It is a Zero-Trust, event-driven orchestration framework designed to allow third-party developers and autonomous AI Agents to safely interact with a host system without ever compromising the core infrastructure. 
 
-Within our internal infrastructure, we do not rely on static inventories. Instead, the Siraugga framework deploys a **Dynamic Asset Mapping** protocol. Every ghost in the machine—every configuration file, runtime script, and background daemon—is cryptographically indexed the moment it is brought online. If an asset is not on the map, it does not exist, and it cannot execute.
+It achieves this through a philosophy of **Absolute Visibility** and **Hostile Sandboxing**. Within the Siraugga infrastructure, we do not rely on static inventories. Instead, we deploy a **Dynamic Asset Mapping** protocol. Every configuration file, runtime script, and background daemon is cryptographically indexed the moment it is brought online. If an asset is not on the map, it does not exist, and it cannot execute.
 
-To protect this attack surface, we implement strict **Compartmentalized Security Tiers**:
-1. **Core Assets**: The beating heart of the system. These assets are entirely invisible and inaccessible to anyone without absolute administrative clearance.
-2. **Workspace Assets**: Operational files and data that assigned operators can interact with, strictly confined within heavily monitored sandboxes. 
-3. **Forbidden Zones**: System-level dependencies and hidden environments that are hard-locked against all user interaction.
+### The Four Pillars of Compartmentalization
+To protect this mapped attack surface, Siraugga enforces strict, non-negotiable File Classification Tiers. Before we delve deeply into the cryptographic mechanics in later chapters, you must understand the overarching boundaries:
 
-By continuously mapping the environment and enforcing rigid, role-based isolation, we shrink the Attack Surface down to a microscopic point. It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
+* **Tier 1 (The Safe Workspace)**: The playground. These are operational assets—game scripts, JSON configuration data, and localized documentation. Agents and developers are sandboxed here. They can read and edit these files, but they are physically incapable of looking beyond this directory.
+* **Tier 2 (The Core Engine)**: The beating heart of the system. These are the orchestration scripts, the security managers, and the server routers. These assets are entirely invisible and inaccessible to anyone without absolute administrative clearance.
+* **Tier 3 (The Admin Log)**: The paper trail. Daemon logs, upgrade histories, and system telemetry. These are tightly restricted, read-only assets reserved strictly for auditing and forensic analysis by the SysAdmin.
+* **Tier 4 (The Forbidden Zone)**: The kill switch. Virtual environments, Git internals, hidden directories, and credential `.env` files. These assets are hard-locked against all user interaction. If an entity attempts to access a Tier 4 asset, the connection is instantly severed.
+
+By combining these four File Classification Tiers with a rigid, 5-level **Role-Based Access Control (RBAC)** hierarchy, Siraugga shrinks the Attack Surface down to a microscopic point. 
+
+It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
