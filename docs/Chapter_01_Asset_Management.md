@@ -68,4 +68,20 @@ The lifecycle is broken down into rigid, uncompromising stages:
 * **Stage 2: Utilization (The Grind)**: This is the longest, most grueling stage of the cycle. Once an asset is live, it cannot be ignored. Its performance and security posture must be continuously interrogated by the Zero-Trust grid. Brutal compliance audits, mandatory patch injections, and relentless dependency upgrades are all executed during this stage. If an asset falls out of compliance during utilization, it is immediately quarantined.
 * **Stage 3: Maintenance (The Reforge)**: An asset left to rot will eventually become a liability. Maintenance is not just about keeping the lights on; it is about extending the productive life of the asset while surgically adapting it to new threat models. During this stage, authorized operators modify, upgrade, and harden the asset, ensuring it remains formidable against evolving network realities.
 
+### Threat Identification & The Adversary Profile
+Mapping your assets is only half the battle; the other half is knowing exactly what is coming to destroy them. Threat Identification provides us with a ruthless, prioritized list of likely adversaries for our specific environment. 
+
+When establishing the Siraugga threat matrix, we must answer three critical questions based entirely on our own infrastructure:
+
+**1. What are the possible vulnerabilities of the system?**
+Because Siraugga is an AI-driven orchestration framework, our primary vulnerability is not a traditional buffer overflow—it is **Prompt Injection** and **Semantic Manipulation**. If a malicious payload is ingested by an autonomous Agent, it could trick the AI into executing unauthorized terminal commands. The secondary vulnerability is **Path Traversal**, where a sandboxed entity attempts to break out of its designated workspace to read or overwrite core system files.
+
+**2. Who may want to exploit those vulnerabilities?**
+* **Rogue Modders & Third-Party Developers**: Given Tier 1 sandbox access, a malicious developer may attempt privilege escalation to steal proprietary game engine source code (Tier 2 assets).
+* **Compromised AI Agents**: An autonomous agent that ingests a poisoned dataset or hallucinates could attempt to rewrite the server routing logic to grant itself persistence.
+* **External Threat Actors**: Adversaries attempting to bypass the WebSocket authentication tokens to gain raw, unmitigated shell access to the host machine.
+
+**3. What are the consequences if these vulnerabilities are exploited?**
+Total, catastrophic failure of the Zero-Trust architecture. If an attacker breaches the Tier 1 sandbox and infiltrates Tier 2 (The Core Engine), they could rewrite the security manager to permanently drop the RBAC firewall. If they manage to breach Tier 4 (The Forbidden Zone), they could extract master API keys, root environment variables, and Git credentials—leading to the total compromise of not just the host server, but the entire connected organization.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
