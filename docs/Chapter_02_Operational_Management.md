@@ -32,3 +32,10 @@ Our core configuration resources include:
 * **The Dynamic Asset Map (Raugus Map)**: Replacing physical network maps with a cryptographic registry of all authorized paths and files.
 * **JSON State Configurations**: Replacing static IP schemas with dynamic, JSON-based connection tokens and state tracking for active agents.
 * **Semantic Artifacts**: Replacing legacy application specifications with AI-generated markdown blueprints and executable Infrastructure-as-Code (IaC) templates.
+
+### OS Hardening & The Containerized Fortress
+Establishing a configuration baseline is only the first step; defending that baseline requires ruthless OS hardening. Hardening the operating system ensures that the underlying host machine cannot be compromised by a rogue agent attempting to break out of its sandbox. 
+
+In Siraugga, securing the OS involves far more than merely changing default passwords. It demands an aggressive, Zero-Trust lockdown of the host environment. This includes configuring immutable Daemon log files for absolute auditing accountability, aggressively revoking default system accounts, and enforcing our rigid, 5-tier file-level access control (RBAC). 
+
+Furthermore, true OS hardening in Siraugga relies on the **Immutable Host Doctrine**. The entire orchestration backend is designed to run inside heavily constrained, read-only containers. Even if an adversary or a hallucinating AI manages to execute an arbitrary command, they cannot permanently alter the underlying OS configuration, because the filesystem itself violently rejects the mutation.
