@@ -189,8 +189,10 @@ To ensure lower-tier users can understand technical implementations and system c
 The system employs a dynamic, fully-decoupled Jinja2 frontend powered by a centralized `ui_config.json`. The chat interface features 3D Flip Cards for artifact inspection and universal Code Copy buttons. 
 To enforce zero-trust security on the frontend, the system relies on **Agentic Sanitization**. Instead of hardcoded regex filters, lower-tier users requesting access to implementation plans trigger automated background prompts. These prompts force the AI to dynamically downgrade, redact, and summarize the document to match the user's specific clearance tier, while completely blocking raw code access for Guest accounts.
 
-## The Siraugga Baseline Configurations
-In our architecture, the established baselines are non-negotiable and are hardcoded directly into the orchestration modules:
+## The Siraugga Baseline Configurations (Governance & Policy)
+A baseline is not just a technical setting; it is the very foundation of discipline and principles. Baselines form the absolute starting point of our governance and policies. Without a mathematical baseline, it is impossible to define discipline, and without discipline, you cannot govern security policies.
+
+In our architecture, the established baselines are non-negotiable and are hardcoded directly into the core orchestration engine and security routing logic:
 1. **The Working Directory Baseline (CWD)**: When a non-admin entity (Tier 1-3) connects, their execution baseline is anchored strictly to `/sandbox/projects/<assigned_project_id>`. 
 2. **The Agent Execution Baseline**: Any autonomous AI invoked within the framework is forcefully injected with the `--sandbox` flag.
 3. **The RBAC Authorization Baseline**: Every session maps mathematically to an established tier: `admin` -> Tier 5, `dev` -> Tier 3, `mod` -> Tier 2.
