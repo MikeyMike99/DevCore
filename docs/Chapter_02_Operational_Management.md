@@ -12,3 +12,11 @@ The **Baseline Configuration** is the DNA of the security architecture. It inclu
 For instance, in traditional IT, a baseline might define how a standard Windows workstation is provisioned for an intern. In the Siraugga framework, the baseline dictates exactly how a new `TIER_SAFE_WORKSPACE` is forged for a Tier 2 Modder or an autonomous AI Agent. Before the entity is ever granted a WebSocket connection, the system must rigidly assemble the workspace, inject the required JSON configurations, and lock the sandbox down according to the exact parameters of the documented baseline. 
 
 If a workspace environment deviates from this baseline by even a single unapproved byte, it is considered compromised and must be purged.
+
+### The Siraugga Baseline Configurations
+In our architecture, the established baselines are non-negotiable. They are hardcoded into the `agent_manager.py`, `security_manager.py`, and `project_manager.py` orchestration modules:
+
+1. **The Working Directory Baseline (CWD)**: When a non-admin entity (Tier 1-3) connects, their execution baseline is anchored strictly to `/sandbox/projects/<assigned_project_id>`. The OS-level environment is scrubbed of all external path context.
+2. **The Agent Execution Baseline**: Any autonomous AI invoked within the framework is forcefully injected with the `--sandbox` flag. The baseline explicitly blocks `--dangerously-skip-permissions` for all non-admin roles.
+3. **The RBAC Authorization Baseline**: Upon authentication, every session must map mathematically to an established tier: `admin` -> Tier 5, `dev` -> Tier 3, `mod` -> Tier 2. There is no gray area or default privilege.
+4. **The Network Continuity Baseline**: The WebSocket server enforces a brutal 4-second keep-alive heartbeat. If a client fails to ping the server within this baseline window, the connection is instantly severed to prevent orphaned, zombie execution loops.
