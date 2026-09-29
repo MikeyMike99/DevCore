@@ -30,3 +30,10 @@ In Siraugga, a comprehensive security policy is not a bureaucratic checklist; it
 * **Operational Consistency**: It ensures perfect consistency in backend system operations, strictly controlling how software dependencies are acquired, how virtual resources are allocated, and how the Raugus Resolver is maintained.
 * **The Consequence of Violation**: It defines the immediate, automated consequences of a breach—ranging from the instant `SIGKILL` of an offending process group to the permanent cryptographic blacklisting of a rogue developer's access token.
 * **The Authority of Tier 5**: It grants Tier 5 SysAdmins the absolute, unquestionable architectural backing to sever WebSocket connections, purge telemetry, or permanently isolate exploited workspaces during an active crisis.
+
+### The Architecture of a Security Policy
+In the Siraugga framework, Security Policies are not passive documents; they are active architectural contracts. They are used to rigidly inform human operators, autonomous swarms, and Tier 5 SysAdmins of the exact mathematical requirements for protecting the backend infrastructure and intellectual property assets. 
+
+Furthermore, these policies explicitly specify the *mechanisms* required to enforce those requirements—such as the Raugus Resolver and the Semantic Firewall. They establish the absolute baseline from which all virtual environments are acquired, configured, and audited for cryptographic compliance.
+
+The following sections detail the specific doctrines that must be included in a complete Zero-Trust Security Policy:
