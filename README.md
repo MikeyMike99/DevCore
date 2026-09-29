@@ -189,6 +189,13 @@ To ensure lower-tier users can understand technical implementations and system c
 The system employs a dynamic, fully-decoupled Jinja2 frontend powered by a centralized `ui_config.json`. The chat interface features 3D Flip Cards for artifact inspection and universal Code Copy buttons. 
 To enforce zero-trust security on the frontend, the system relies on **Agentic Sanitization**. Instead of hardcoded regex filters, lower-tier users requesting access to implementation plans trigger automated background prompts. These prompts force the AI to dynamically downgrade, redact, and summarize the document to match the user's specific clearance tier, while completely blocking raw code access for Guest accounts.
 
+## The Siraugga Baseline Configurations
+In our architecture, the established baselines are non-negotiable and are hardcoded directly into the orchestration modules:
+1. **The Working Directory Baseline (CWD)**: When a non-admin entity (Tier 1-3) connects, their execution baseline is anchored strictly to `/sandbox/projects/<assigned_project_id>`. 
+2. **The Agent Execution Baseline**: Any autonomous AI invoked within the framework is forcefully injected with the `--sandbox` flag.
+3. **The RBAC Authorization Baseline**: Every session maps mathematically to an established tier: `admin` -> Tier 5, `dev` -> Tier 3, `mod` -> Tier 2.
+4. **The Network Continuity Baseline**: The WebSocket server enforces a brutal 4-second keep-alive heartbeat to prevent orphaned execution loops.
+
 ## Security Update: CSP Telemetry & Accessible Video Player
 The Zero-Trust Architecture has been enhanced with a **CSP Telemetry Pipeline**. All cross-origin blocks enforced by `security_headers.py` are now automatically reported by the browser and logged to `csp_violations.log`. 
 Additionally, the cross-origin sandboxing issues blocking the Accessible Video Player inside the chat feed have been fully resolved by fixing the CSP whitelist and injecting parent-origin delegation mechanisms (`allow="autoplay"`, `origin: window.location.origin`).
