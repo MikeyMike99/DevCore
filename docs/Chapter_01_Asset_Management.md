@@ -62,4 +62,8 @@ Non-standard environments don't just drain capital through bloated maintenance c
 ### The Lifecycle Mandate
 This brings us to the ultimate directive of any true cybersecurity specialist—and the core function of the Siraugga framework: **Lifecycle Management**. It is not enough to secure an asset at its creation. From the millisecond a system is spun up, to the moment it is cryptographically shredded, Siraugga relentlessly monitors, manages, and defends every piece of information throughout its entire lifecycle.
 
+The lifecycle is broken down into rigid, uncompromising stages:
+
+* **Stage 1: Procurement (Inception)**: You do not blindly introduce foreign hardware or rogue dependencies into the environment. Every asset—whether it's a physical server blade or a massive open-source library—must be ruthlessly vetted and justified by hard operational data before it crosses the perimeter. Once procured, it is instantly cryptographically tagged and bound to the Dynamic Asset Mapper.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
