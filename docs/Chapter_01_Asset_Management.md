@@ -127,4 +127,9 @@ In the Siraugga digital ecosystem, this means if an adversary penetrates the Sem
 
 A layered approach provides the most comprehensive protection because the adversary is bled of resources, time, and stealth with every step. Crucially, each concentric layer must be exponentially more complex and hostile to overcome than the last. Defense in depth does not promise an impenetrable, mythical shield—any shield can eventually be broken. But hostile layering ensures you exhaust the attacker, mitigate the fallout, and remain one critical step ahead of a total breach.
 
+#### Strategy 2: Absolute Limitation (Least Privilege)
+In Siraugga, we do not operate on trust; we operate on restriction. Limiting access to data and execution privileges brutally reduces the possibility of a systemic threat. Siraugga enforces the Principle of Least Privilege: every autonomous agent and human operator is granted only the absolute microscopic sliver of access required to execute their immediate function, and nothing more.
+
+This requires unforgiving technical constraints, such as granular File Classification Tiers and strict Role-Based Access Control (RBAC), combined with ironclad procedural measures. In the physical world, a limiting procedure might require an employee to view a top-secret document only inside a CCTV-monitored SCIF (Sensitive Compartmented Information Facility) to guarantee it never leaves the premises. In the Siraugga framework, we achieve this by confining developers strictly to the `TIER_SAFE_WORKSPACE` via the Path Resolver, guaranteeing they can never view, copy, or execute the core engine logic that governs their very existence.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
