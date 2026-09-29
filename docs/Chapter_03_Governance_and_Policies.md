@@ -46,3 +46,12 @@ The following sections detail the specific doctrines that must be included in a 
 | **Remote Access Policy** | Dictates that all external Web UI access must pass through the dual-binding Hypercorn TLS proxy on Port 5001. Internal `localhost` debug access is restricted to the isolated Port 5000. |
 | **Maintenance & Patching Policy** | Specifies the exact procedures for updating the underlying host environment and the Raugus routing map (`system_aliases.json`) without breaking active agent sandboxes. |
 | **Incident Response Protocol** | Dictates the automated sequence of events when a breach occurs, including freezing `tmpfs` RAM-disks, triggering the Reaper Daemon, and escalating encrypted telemetry to Tier 5 Admins. |
+
+### The Acceptable Use Policy (AUP)
+One of the most critical components of the Siraugga governance model is the **Acceptable Use Policy (AUP)**. In legacy corporate systems, an AUP is a physical piece of paper signed by an employee stating they will not browse bandwidth-intensive websites while on the corporate network. 
+
+In a Zero-Trust orchestration environment, the AUP defines the absolute, explicit boundaries of what human operators and autonomous AI agents are allowed to execute on the backend. Because ambiguity in AI instructions can lead to catastrophic system damage (Agentic Drift), the AUP must be mathematically explicit to avoid any misunderstanding.
+
+For example, the Siraugga AUP explicitly lists the exact Bash commands (e.g., `rm -rf`, `chmod 777`), Python modules (e.g., `os.system()`, `subprocess`), and unauthorized outbound API endpoints that are strictly prohibited from being executed by a sandboxed agent. 
+
+Rather than relying on a physical signature, every AI subagent "signs" the AUP instantly upon initialization by inheriting it as its core System Prompt. This immutable, cryptographic signature is retained in the `transcript.jsonl` for the absolute lifetime of the session. This guarantees that if the agent attempts to violate the policy, the Semantic Firewall has the full architectural mandate to instantly terminate the process.
