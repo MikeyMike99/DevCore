@@ -141,6 +141,26 @@ class AgentTaskManager:
         self.connected_clients.pop(ws, None)
 
     async def start_task(self, prompt: str, model: str = "gemini-3.8-flash-low", conversation_id: str = None, user: dict = None, admin_override: bool = False):
+        # [SYSTEM TRIGGERS] Re-routed to the backend for RBAC & Zero-Trust security
+        if prompt:
+            lower_p = prompt.lower().strip()
+            is_help = lower_p in ['help exam', '/help exam', 'help quiz', '/help quiz', 'help test', '/help test', 'exam help', 'quiz help', 'test help', 'exam guide', 'quiz guide', 'test guide'] or lower_p.startswith('how to create exam') or 'how the exam works' in lower_p
+            
+            if is_help:
+                prompt = "SYSTEM TRIGGER [Help Exam/Quiz]: The user wants a simple, non-technical guide on how to launch a custom Exam Application. Make sure to EXPLICITLY state how to activate it (e.g., 'To launch the application, just type your request into the chat box and hit enter. The exam will instantly appear right here in the feed.'). Explain that they simply need to provide their study material (a folder path) and tell the AI exactly how they want their exam tailored. \n\nAlso, explicitly inform the user of these powerful features:\n1. They can request to activate 'Anti-Cheat' mode.\n2. They can ask to retake past exams or resume unfinished exams where they left off.\n3. They can dynamically change the interface (colors, timers, etc.) by sending follow-up prompts even while a test is currently active.\n4. To keep the chat clean, only one exam is allowed to be open in the feed at a time.\n\nProvide 2-3 easy example prompts they can copy and paste. Do not use technical jargon like 'backend', 'subagents', or 'swarm'."
+            elif lower_p == 'help':
+                prompt = "SYSTEM TRIGGER [Help Menu]: The user pressed Alt+H or typed 'help'. Please dynamically evaluate your current available skills and output a clean, accessible Help Menu directly in your chat response. DO NOT generate an artifact. For each action, instead of telling the user what to type, output an accessible HTML button directly in your chat response that auto-submits the command via javascript. Ensure the Media Player button submits 'help media' (e.g., `<button aria-label=\"Read Media Player Docs\" class=\"px-4 py-2 mt-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-500 transition-colors\" onclick=\"var el=document.getElementById('prompt'); el.value='help media'; if(typeof sendPrompt === 'function'){sendPrompt();}else{document.querySelector('form').dispatchEvent(new Event('submit', {cancelable: true}));}\">🎬 Media Player Guide</button>`). Fill the response out with whatever help instructions they need. IMPORTANT: Refer to all tools as 'Siraugga' features (e.g., Siraugga Media Player), NOT DevCore."
+            elif lower_p in ['help media', '/help media']:
+                prompt = "SYSTEM TRIGGER [Help Menu]: The user wants a simple, non-technical guide on how to use the Siraugga Media Player. Explain how they can type `/media` to spawn it, or `/media play [song]` to search for a specific video. Mention that the player syncs state so they can say 'resume my video', and that they can ask you to add or remove items from their playlist. Finally, explicitly warn them that some items in their playlist may require opening external sites due to strict copyright laws (e.g., blocking embedded iframe playback)."
+            elif lower_p.startswith('/media'):
+                context = prompt[6:].strip()
+                prompt = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them. " + ("User context: " + context if context else "")
+            elif lower_p in ['help background', '/help background']:
+                prompt = "SYSTEM TRIGGER [Help Menu]: The user is asking for help on how to use the `background-task-offloading` skill. Please explain to them that they do not need to execute slash commands. They just need to tell you to run a script (like 'run the TTS generator'), and you will automatically use the background skill to run it detached and wait for the webhook callback. Tell them to give you a workload to test!"
+            elif lower_p.startswith('/background'):
+                context = prompt[11:].strip()
+                prompt = "SYSTEM TRIGGER [Slash Command]: The user typed `/background`. Please acknowledge this and ask them what long-running workload they would like you to execute using the `background-task-offloading` skill. " + ("User context: " + context if context else "")
+
         if self.is_running():
             await self.broadcast({
                 "type": "system",
