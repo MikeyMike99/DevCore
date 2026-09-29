@@ -24,4 +24,6 @@ By combining these four File Classification Tiers with a rigid, 5-level **Role-B
 
 This is the true essence of **Asset Classification**: ruthlessly categorizing your resources based on their inherent risk and common characteristics. You cannot treat a sandboxed JSON file with the same paranoia as a root orchestration script. The most critical information must receive the absolute highest level of protection, requiring cryptographic segregation and specialized handling to ensure that even if the outer perimeter is breached, the heart of the system remains impenetrable.
 
+To enforce this segregation, Siraugga utilizes an unforgiving **Labeling System**—tagging every asset the millisecond it is created. This cryptographic metadata doesn't just tell us what the file is; it dictates exactly how valuable, how sensitive, and how devastatingly critical the information inside it is to the survival of the host.
+
 It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
