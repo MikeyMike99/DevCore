@@ -13,8 +13,10 @@ For instance, in traditional IT, a baseline might define how a standard Windows 
 
 If a workspace environment deviates from this baseline by even a single unapproved byte, it is considered compromised and must be purged.
 
-### The Siraugga Baseline Configurations
-In our architecture, the established baselines are non-negotiable. They are hardcoded into the `agent_manager.py`, `security_manager.py`, and `project_manager.py` orchestration modules:
+### The Siraugga Baseline Configurations (Governance & Policy)
+A baseline is not just a technical setting; it is the very foundation of discipline and principles. Baselines form the absolute starting point of our governance and policies. Without a mathematical baseline, it is impossible to define discipline, and without discipline, you cannot govern security policies.
+
+In our architecture, the established baselines are non-negotiable and are hardcoded directly into the orchestration engine and the security routing logic:
 
 1. **The Working Directory Baseline (CWD)**: When a non-admin entity (Tier 1-3) connects, their execution baseline is anchored strictly to `/sandbox/projects/<assigned_project_id>`. The OS-level environment is scrubbed of all external path context.
 2. **The Agent Execution Baseline**: Any autonomous AI invoked within the framework is forcefully injected with the `--sandbox` flag. The baseline explicitly blocks `--dangerously-skip-permissions` for all non-admin roles.
