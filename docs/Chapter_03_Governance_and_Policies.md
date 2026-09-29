@@ -71,3 +71,16 @@ To mitigate this liability, the Siraugga BYOD Security Policy rigidly mandates t
 * **Tier 5 Overwatch**: Describe the absolute right of Tier 5 Admins to monitor, intercept, and decrypt the telemetry of the remote connection without warning.
 * **Cryptographic Compliance**: Identify which network regulations (such as CSP whitelisting and Token hashing) the unmanaged device must adhere to while connected.
 * **The Kill Switch (Compromise Safeguards)**: Identify the automated safeguards (such as immediate WebSocket termination and RAM-disk freezing) that will be triggered the moment a remote connection or imported script attempts to traverse outside its assigned sandbox.
+
+### BYOD/C Security Best Practices
+To mitigate the inherent vulnerabilities of importing third-party devices and custom playground code, the Siraugga framework mathematically enforces the following best practices:
+
+| Best Practice | Architectural Enforcement |
+| :--- | :--- |
+| **Cryptographic Access (Passwords)** | Operators must utilize mathematically unique, high-entropy API tokens. Reusing authentication tokens across different game projects or sandboxes is explicitly denied by the backend. |
+| **Strict Socket Control (Wireless Management)** | The remote device or custom agent must manage its WebSockets explicitly. It is only permitted to connect to the verified Port 5001 TLS Proxy. Binding to unauthorized internal ports is instantly flagged as an intrusion. |
+| **Continuous Baseline Updates** | Imported playground scripts and custom agent environments must remain perfectly synchronized with the core engine's SDK baseline. Deprecated scripts lacking modern security headers will fail semantic evaluation. |
+| **Data Preservation (Backups)** | The `.devcore_master.key` and all assigned `system_aliases.json` configurations must be backed up securely in offline cold storage, completely isolated from the active sandbox. |
+| **The Reaper Protocol (Remote Wipe)** | If an imported script hallucinates or a remote BYOD connection is compromised, Tier 5 Admins utilize the Reaper Daemon to remotely execute a cryptographic `shred -u -z` wipe on the isolated `tmpfs` partition. |
+| **Semantic Firewalls (Antivirus)** | Traditional antivirus is useless against LLM logic bombs. Instead, all inbound BYOC scripts are routed through the Semantic Evaluator LLM to actively hunt for adversarial prompt injections. |
+| **Agentic Sandbox Management (MDM)** | Instead of legacy Mobile Device Management, Siraugga utilizes the Raugus Resolver as its Central Management suite. It forces all BYOD/C entities to inherit identical path traversal constraints before they touch the game engine. |
