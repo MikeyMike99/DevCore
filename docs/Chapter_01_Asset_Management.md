@@ -148,4 +148,11 @@ In Siraugga, we enforce absolute **Cryptographic Diversity**. If an attacker use
 
 Furthermore, we do not rely on a monolithic security stack. To accomplish true diversity in defenses, Siraugga utilizes varied, heterogeneous security mechanisms: dynamic bearer tokens for WebSocket sessions, JIT (Just-In-Time) key rotation for active payloads, and strict, time-delayed cryptographic locks on the backend. By forcing the adversary to constantly switch tactics, tools, and paradigms at every single layer, we exhaust their resources and trigger our telemetry alarms long before they can reach the core.
 
+#### Strategy 4: The Fallacy of Obscurity vs. True Cryptography
+Traditional security manuals will tell you that obscuring information protects data. They argue that an organization should aggressively mask its Operating System, spoof its hardware identity, and strip all error messages so cybercriminals cannot determine what vulnerabilities are present. 
+
+In the Siraugga framework, we reject this premise entirely. **Obfuscation is not security.** Relying on the fragile hope that an attacker simply won't "figure out" your stack is a coward's defense. 
+
+While we do strip verbose telemetry from unauthenticated error channels to prevent unnecessary reconnaissance, we never rely on obscurity as a defense layer. Instead, Siraugga relies on **True Cryptography**. Even if an adversary knows exactly what Operating System we are running, exactly what our Python backend looks like, and exactly where our target assets are stored, they still cannot breach the system because every asset is protected by impenetrable encryption and rigid mathematical RBAC verification. True security must reside in the math, not in hiding the blueprints.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
