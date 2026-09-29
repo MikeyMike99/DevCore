@@ -70,3 +70,13 @@ This solves both sides of the equation:
 2. **The Forensics are Preserved**: The physical, encrypted ciphertext remains safely archived on the host. If a catastrophic breach is detected, Tier 5 Admins can utilize the offline `.devcore_master.key` to derive the historical decryption keys, crack open the vault, and forensically trace the exact movements of the adversary.
 
 By locking the telemetry in cryptographic Cold Storage rather than executing a blind purge, Siraugga achieves perfect Zero-Trust containment without blinding its own incident responders.
+
+### The Telemetry Lifecycle Sequence
+To fully comprehend this process, one must understand the exact chronological sequence of logging from the millisecond an event occurs to its final cryptographic resting place:
+
+1. **Event Interception**: The Semantic Edge Router or the Path Resolver intercepts an action (e.g., a raw WebSocket prompt or a low-level file write attempt).
+2. **Volatile Generation**: The raw telemetry data is generated and written instantly to a volatile `tmpfs` RAM-disk, mathematically bound to that specific agent's sandbox. It is never written to a permanent disk sector in plaintext.
+3. **Active Auditing**: While the session remains alive, the logs grow ephemerally in the RAM-disk, allowing real-time Semantic Evaluators to monitor the stream for hostile intent.
+4. **Session Termination**: The WebSocket connection drops, the agent is killed, or a security threshold is breached. The system triggers the Cold Storage Lifecycle Hook.
+5. **JIT Encryption**: The hook sweeps the `tmpfs` directory and AES-encrypts the raw log data using a dynamically derived Data Encryption Key (DEK). The resulting impenetrable ciphertext is written safely to the permanent Host archive.
+6. **The Ephemeral Purge**: Finally, the OS-level Reaper Daemon executes its payload. Using `O_NOFOLLOW` file descriptors and cryptographic shredding (`shred -u -z`), it annihilates the original plaintext files from the RAM-disk. The memory is scrubbed, the footprint is erased, and the cycle concludes.
