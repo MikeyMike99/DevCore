@@ -55,3 +55,17 @@ In a Zero-Trust orchestration environment, the AUP defines the absolute, explici
 For example, the Siraugga AUP explicitly lists the exact Bash commands (e.g., `rm -rf`, `chmod 777`), Python modules (e.g., `os.system()`, `subprocess`), and unauthorized outbound API endpoints that are strictly prohibited from being executed by a sandboxed agent. 
 
 Rather than relying on a physical signature, every AI subagent "signs" the AUP instantly upon initialization by inheriting it as its core System Prompt. This immutable, cryptographic signature is retained in the `transcript.jsonl` for the absolute lifetime of the session. This guarantees that if the agent attempts to violate the policy, the Semantic Firewall has the full architectural mandate to instantly terminate the process.
+
+### The Bring Your Own Device/Agent (BYOD/A) Policy
+Modern organizations must support flexibility. In legacy IT, this is known as Bring Your Own Device (BYOD). In the DevCore ecosystem, this translates to **Bring Your Own Device & Agent (BYOD/A)**. This policy enables Tier 2 Modders and Tier 3 Developers to connect to the Siraugga backend using their own unmanaged physical hardware (via the Port 5001 TLS Proxy) and to deploy their own custom, untested AI sub-agents into the swarm.
+
+While BYOD/A drastically increases development velocity, reduces operating costs, and encourages third-party modding, it introduces severe information security risks. An unmanaged remote device or a rogue third-party agent can introduce hostile payloads, prompt injections, and catastrophic data breaches.
+
+To mitigate this liability, the Siraugga BYOD/A Security Policy rigidly mandates the following:
+* **Program Goals**: Specify the exact development boundaries and objectives the custom agent or remote device is expected to operate within.
+* **Tier Eligibility**: Mathematically identify which RBAC Tiers are permitted to initiate a BYOD/A connection (e.g., restricting experimental sub-agents to Tier 3 Developers only).
+* **Architecture Support**: Identify the strict payload formats and API structures the custom agent must conform to (e.g., structured JSON streams).
+* **Granular Access Levels**: Identify the exact level of File I/O access granted to the unmanaged device via the Raugus Resolver (usually confined strictly to a `TIER_SAFE_WORKSPACE`).
+* **Tier 5 Overwatch**: Describe the absolute right of Tier 5 SysAdmins to monitor, intercept, and decrypt the telemetry of the personal device or custom agent without warning.
+* **Cryptographic Compliance**: Identify which network regulations (such as CSP whitelisting and Token hashing) the unmanaged device must adhere to while connected.
+* **The Kill Switch (Compromise Safeguards)**: Identify the automated safeguards (such as immediate `SIGKILL` and RAM-disk freezing) that will be triggered the moment the BYOD/A entity is suspected of being compromised.
