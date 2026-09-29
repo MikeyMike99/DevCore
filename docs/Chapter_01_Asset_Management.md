@@ -26,4 +26,14 @@ This is the true essence of **Asset Classification**: ruthlessly categorizing yo
 
 To enforce this segregation, Siraugga utilizes an unforgiving **Labeling System**—tagging every asset the millisecond it is created. This cryptographic metadata doesn't just tell us what the file is; it dictates exactly how valuable, how sensitive, and how devastatingly critical the information inside it is to the survival of the host.
 
+### The Asset Identification Protocol
+You don't just blindly label things. You execute a rigid protocol. 
+
+**Step 1: Determine the Asset Category**
+Before an asset is mapped and secured, it must be ruthlessly categorized into one of four primary vectors:
+* **Information Assets**: The raw data. JSON configurations, user databases, and environment variables. If this leaks, the empire bleeds.
+* **Software Assets**: The execution layer. Orchestration scripts, application logic, and binary executables. These are the tools that can either defend the host or be weaponized against it.
+* **Physical Assets**: The bare metal. The host servers, the hard drives, and the silicon that actually powers the ghost in the machine.
+* **Services**: The invisible threads. Background daemons, API endpoints, and WebSocket tunnels that expose the attack surface to the outside world.
+
 It’s a brutal, never-ending war—but if you don't map and lock down your assets, the enemy will do it for you.
