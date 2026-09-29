@@ -37,3 +37,12 @@ In the Siraugga framework, Security Policies are not passive documents; they are
 Furthermore, these policies explicitly specify the *mechanisms* required to enforce those requirements—such as the Raugus Resolver and the Semantic Firewall. They establish the absolute baseline from which all virtual environments are acquired, configured, and audited for cryptographic compliance.
 
 The following sections detail the specific doctrines that must be included in a complete Zero-Trust Security Policy:
+
+| Core Doctrine | Architectural Enforcement |
+| :--- | :--- |
+| **Identification & Authentication Policy** | Governs the strict verification of identity. Specifies that all session tokens must be mathematically verified via `scrypt` hashing and SHA-256 before an entity is assigned its RBAC Tier. |
+| **Cryptographic Key (Password) Policies** | Ensures that cryptographic keys (such as the KMS Data Encryption Keys and the Master Key) meet extreme entropy requirements and are rotated automatically to defeat brute-force exhaustion. |
+| **Acceptable Use Policy (AUP)** | Enforced dynamically by the Semantic Firewall. It explicitly defines which commands and system calls are acceptable for a sandboxed agent. Violations result in immediate WebSocket termination. |
+| **Remote Access Policy** | Dictates that all external Web UI access must pass through the dual-binding Hypercorn TLS proxy on Port 5001. Internal `localhost` debug access is restricted to the isolated Port 5000. |
+| **Maintenance & Patching Policy** | Specifies the exact procedures for updating the underlying host environment and the Raugus routing map (`system_aliases.json`) without breaking active agent sandboxes. |
+| **Incident Response Protocol** | Dictates the automated sequence of events when a breach occurs, including freezing `tmpfs` RAM-disks, triggering the Reaper Daemon, and escalating encrypted telemetry to Tier 5 Admins. |
