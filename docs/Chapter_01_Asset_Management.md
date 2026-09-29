@@ -132,4 +132,13 @@ In Siraugga, we do not operate on trust; we operate on restriction. Limiting acc
 
 This requires unforgiving technical constraints, such as granular File Classification Tiers and strict Role-Based Access Control (RBAC), combined with ironclad procedural measures. In the physical world, a limiting procedure might require an employee to view a top-secret document only inside a CCTV-monitored SCIF (Sensitive Compartmented Information Facility) to guarantee it never leaves the premises. In the Siraugga framework, we achieve this by confining developers strictly to the `TIER_SAFE_WORKSPACE` via the Path Resolver, guaranteeing they can never view, copy, or execute the core engine logic that governs their very existence.
 
+To mathematically enforce this limitation, Siraugga utilizes a rigid, 5-Tier RBAC hierarchy:
+* **Tier 5 (SysAdmin)**: Absolute Power. Full orchestration control, IPC management, and sandbox definition.
+* **Tier 4 (Application Admin)**: The illusion of full access. They manage the application logic but are blocked from host-level resource modification.
+* **Tier 3 (The Dev Team)**: Scoped Contributors. They deploy ephemeral payloads and build features strictly within defined `TIER_SAFE_WORKSPACE` directories.
+* **Tier 2 (The Guest / Modder)**: Plugin Creators. They code "in the dark" through semantic abstraction, completely blind to the true backend architecture.
+* **Tier 1 (The End User)**: Least Privilege. The player or client interacting with the final application, possessing zero execution privileges outside of standard UI bounds.
+
+By slicing the organization into these five definitive tiers, we ensure that a compromised Tier 2 modder can never shatter the host environment, because they fundamentally lack the authority to even see it.
+
 It’s a brutal, never-ending war—but if you don't map, standardize, and manage your assets from birth to death, the enemy will do it for you.
