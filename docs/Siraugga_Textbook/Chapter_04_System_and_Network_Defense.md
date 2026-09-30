@@ -145,3 +145,8 @@ While the kinetic perimeter (biometrics, guards, and physical sandbox) protects 
 Because the Siraugga ecosystem relies on the **BYOD/C (Bring Your Own Device/Code)** policy—allowing third-party Tier 2 Modders and Tier 3 Developers to import arbitrary Python scripts and AI agents into the environment—security cannot be a reactive afterthought. It must be mathematically integrated into the very foundation of the development, testing, and deployment lifecycle. 
 
 If a rogue plugin or a hallucinating AI agent is deployed without rigorous Application Security protocols, it can instantly weaponize the engine against the host server.
+
+### Application Development (The Agentic Lifecycle)
+In a traditional IT environment, application development is a highly structured, slow-moving process. In the Siraugga ecosystem, development is rapid, chaotic, and heavily driven by autonomous AI agents writing logic on the fly. 
+
+To maintain absolute security at all stages of this highly dynamic application development, Tier 5 SysAdmins enforce a robust, mathematically rigid lifecycle process. Every custom plugin, third-party Python script, or custom AI system prompt created by a Tier 3 Developer must pass through strict validation gates before being deployed into the live game environment. This robust process prevents arbitrary code execution and ensures that all newly developed applications adhere strictly to the established **SDK Baseline** and inherited RBAC permissions.
