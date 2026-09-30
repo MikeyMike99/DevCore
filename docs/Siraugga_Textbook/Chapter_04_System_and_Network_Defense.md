@@ -139,3 +139,9 @@ Because Siraugga is built upon a rigid, defense-in-depth architecture, the failu
 Every single system call, file read, or network outbound request executed by the rogue agent must pass through the Path Resolver before reaching the host OS. If the attacker attempts to read proprietary telemetry or traverse the host disk (e.g., `cat ../../etc/passwd`), the Resolver mathematically verifies the path against the agent's constrained RBAC sandbox. The path-traversal attempt is instantly denied with a fatal `PermissionError`. 
 
 The attacker is trapped tightly inside the `TIER_SAFE_WORKSPACE`. The insider threat is completely neutralized at the point of egress, proving that true Zero-Trust does not rely on a single line of defense.
+## 2. Application Security (The Virtual Perimeter)
+While the kinetic perimeter (biometrics, guards, and physical sandbox) protects the host hardware, the ultimate prize for an adversary is the core orchestration engine itself. A key part of protecting the Siraugga framework involves securing the applications, untrusted plugins, WebSocket streams, and online services it develops and consumes.
+
+Because the Siraugga ecosystem relies on the **BYOD/C (Bring Your Own Device/Code)** policy—allowing third-party Tier 2 Modders and Tier 3 Developers to import arbitrary Python scripts and AI agents into the environment—security cannot be a reactive afterthought. It must be mathematically integrated into the very foundation of the development, testing, and deployment lifecycle. 
+
+If a rogue plugin or a hallucinating AI agent is deployed without rigorous Application Security protocols, it can instantly weaponize the engine against the host server.
