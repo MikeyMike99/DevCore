@@ -116,3 +116,15 @@ In a legacy environment, developers rely on the virtual equivalent of "barcodes"
 To solve this, the Siraugga framework utilizes **Cryptographic Watermarking**, acting as the virtual equivalent of invisible RFID asset tags. The core engine automatically injects these invisible cryptographic signatures into highly sensitive assets (e.g., master API tokens, core game logic, and proprietary AI system prompts). 
 
 The Raugus Resolver and Semantic Sniffer function as "invisible door frames" positioned across all virtual egress ports. The architectural advantage of these virtual RFID tags is that they do not require "line-of-sight" (plaintext visibility) to be scanned. If a malicious developer or a rogue agent attempts to exfiltrate a proprietary dataset by burying it deep inside a base64 encoded string, compressing it, or hiding it within a massive JSON array (the virtual equivalent of hiding a stolen laptop in a backpack), the Semantic Sniffer can read multiple hidden tags simultaneously. It instantly detects the cryptographic watermark passing through the egress node, silently logging and blocking the exfiltration attempt without the thief ever realizing their payload was scanned.
+
+### System Failure: Blinding the Surveillance (Fail-Closed)
+A critical exercise in any security architecture is determining what happens when the primary surveillance system fails. If the Semantic Sniffer (Deep Prompt Inspection) goes offline due to a memory crash, a targeted Denial of Service (DoS), or a catastrophic bug, the Siraugga framework is suddenly rendered "blind." It can no longer evaluate the intent of incoming prompts or outgoing system calls.
+
+In legacy systems, a failed firewall often fails "open," prioritizing availability and allowing traffic to continue flowing unmonitored. This is a fatal vulnerability in a Zero-Trust environment.
+
+Siraugga is mathematically engineered to **Fail-Closed**. If the core orchestration engine loses the continuous heartbeat of the virtual surveillance system, it assumes the network is under an active, coordinated attack. The engine immediately triggers the **Reaper Protocol**:
+1. **Network Severance:** All active WebSockets connecting Tier 2 and Tier 3 Developers to the engine are violently severed.
+2. **RBAC Lockdown:** All logical access is mathematically restricted to Tier 5 SysAdmins only.
+3. **Sandbox Shredding:** The `tmpfs` RAM-disks hosting active AI agents and untrusted developer workspaces are instantly shredded (`shred -u -z`), ensuring that no proprietary data can be exfiltrated while the surveillance grid is down.
+
+The Siraugga engine remains in this paralyzed, highly secure state until a Tier 5 SysAdmin can physically intervene, evaluate the logs, and manually restore the Deep Prompt Inspection grid.
