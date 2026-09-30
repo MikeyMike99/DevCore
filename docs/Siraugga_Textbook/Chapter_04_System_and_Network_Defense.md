@@ -27,3 +27,11 @@ When engineers design a Zero-Trust architecture, they obsess over virtual constr
 Kinetic barricades or fencing are often the first things that come to mind when thinking about physical security. In enterprise environments hosting the Siraugga plugin, these physical barriers serve as the literal outermost layer of defense in our Security Onion. They are the most visible deterrent to a kinetic breach. 
 
 Because Siraugga manages proprietary game source code, developer telemetry, and highly-sensitive AI orchestration models, the host servers cannot be left in open office spaces. All physical barriers surrounding the hardware must meet absolute design requirements and strict material specifications (e.g., steel-reinforced server cages, anti-ram bollards for data centers, and tamper-evident server chassis locks).
+### Barbed Wire & Top Guards
+For game studios hosting localized Siraugga servers in high-security environments, standard steel fencing is insufficient. These perimeters often demand a kinetic ‘top guard,’ such as razor wire or concertina wire. These guards act as a brutal physical deterrent, designed to delay an intruder by inflicting severe physical injury. 
+
+However, in the discipline of Zero-Trust, we assume that every defense possesses a critical exploit. A motivated threat actor can bypass a top guard using remarkably low-tech countermeasures—such as throwing a heavy blanket or mattress over the razor wire to completely neutralize the kinetic threat. 
+
+Furthermore, a physical perimeter is constantly subjected to environmental decay. Local zoning regulations may restrict the height of the fence, and the perimeter itself demands constant, physical maintenance. Earth erosion can compromise the foundation, or wildlife may burrow beneath the barricade, creating an undetected kinetic tunnel directly into the compound. To maintain the baseline, Tier 5 SysAdmins must ensure physical fencing systems are audited and inspected as rigorously as the virtual firewalls.
+
+Finally, the perimeter must enforce a strict "clear zone." Vehicles must never be parked adjacent to a security fence. An improperly parked vehicle acts as a physical step-ladder, instantly granting an attacker the elevation required to bypass the top guard and breach the facility.
