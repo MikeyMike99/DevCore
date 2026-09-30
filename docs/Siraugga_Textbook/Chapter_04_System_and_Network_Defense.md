@@ -187,3 +187,10 @@ However, in the Siraugga framework, we are not merely writing static software. W
 This involves writing mathematically explicit System Prompts that enforce the Acceptable Use Policy (AUP) as an inescapable law. It requires designing Black Box APIs that inherently abstract dangerous host-level system calls away from the agent's context. Above all, it demands aggressive, multi-layered input sanitization to detect and destroy adversarial Prompt Injections before they can be parsed by the LLM logic engine. 
 
 In Siraugga, secure coding means writing architecture that inherently distrusts the very artificial intelligence it empowers.
+
+### Normalization (Semantic Primitives)
+In a traditional database, normalization is the process of organizing data to reduce redundancy and maintain absolute data integrity by converting input strings to their simplest known forms. 
+
+In the Siraugga framework, normalization is the cornerstone of prompt security. When a Tier 2 Modder or Tier 1 Player inputs a natural language prompt, or when an AI agent attempts to execute a system command, the data is rarely safe in its raw state. Adversaries often attempt to bypass security filters by using Base64 encoding, Unicode homoglyphs, or directory path obfuscation (e.g., `../../etc/passwd`). 
+
+To defeat this, Siraugga enforces **Semantic Normalization**. Before any string, JSON payload, or WebSocket event is allowed to reach the LLM or the Raugus Resolver, the middleware forcefully decodes and converts the input into its simplest known form—a **Semantic Primitive**. By guaranteeing that all inputs have a single, unique binary representation, the Semantic Sniffer can mathematically identify malicious prompt injections and escape attempts instantly, regardless of how cleverly the attacker tried to obfuscate them.
