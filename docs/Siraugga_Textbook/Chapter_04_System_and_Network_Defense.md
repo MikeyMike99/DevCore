@@ -73,3 +73,17 @@ The rigid implementation of biometric authentication directly enforces the **CIA
 * **Confidentiality:** By ensuring only mathematically verified human operators can access the physical hardware, we guarantee that the proprietary game code, API tokens, and player telemetry remain strictly confidential.
 * **Integrity:** The biological hash ensures that the physical server environment cannot be tampered with by an unauthorized impostor, perfectly preserving the integrity of the core orchestration engine.
 * **Availability:** Despite their immense security, modern biometric systems are engineered for high throughput. A fast, accurate biological scan ensures that Tier 5 SysAdmins maintain immediate, unobstructed availability to the physical hardware during critical system failures or disaster recovery scenarios.
+
+
+### Badges and Access Logs (The Physical Handshake)
+While biometrics serve as the ultimate biological hash for Tier 5 SysAdmins, standard Tier 2 and Tier 3 Developers (Modders) operating within physical DevCore studios rely on cryptographic access badges to navigate automated entry points. 
+
+An access badge is not a simple corporate ID card; it is a physical manifestation of a developer's API token. Designing a resilient card reader system requires understanding the exact sequence of the physical handshake:
+
+1. **Presentation (The Request):** The developer presents their badge to the kinetic reader at the perimeter.
+2. **Extraction (The Payload):** The reader extracts the encrypted RFID or NFC payload from the badge.
+3. **Transmission (The Transport Layer):** The reader securely transmits the encrypted payload over an isolated internal VLAN to the central authentication server.
+4. **Authentication (The Resolver):** The central server validates the cryptographic signature and cross-references the developer's RBAC tier against the requested physical zone. (e.g., A Tier 3 Developer attempting to badge into a Tier 5 server cage will immediately trigger a denial and a security alert).
+5. **Authorization & Logging (The Verdict):** The server transmits a boolean signal back to the door mechanism (Grant or Deny). Simultaneously, the event is permanently written to the **Physical Access Logs**.
+
+Physical Access Logs are critical telemetry. Just as we monitor virtual WebSocket handshakes, Tier 5 SysAdmins must actively monitor kinetic access logs. If a developer's badge is recorded entering the physical studio at 02:00 AM, while their digital API token is simultaneously logging into the Siraugga Web Portal from another continent, the anomaly is instantly flagged. In such an event, the Reaper Protocol can instantly revoke all associated digital and physical access.
