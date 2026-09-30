@@ -53,3 +53,16 @@ In highly secure physical server facilities, human guards control access to sens
 In DevCore, static automated security systems (such as regex filters or strict IAM policies) are highly effective, but they struggle to adapt to novel, zero-day prompt injections. To solve this, Siraugga employs **Agentic Sentinels**—autonomous AI security guards stationed at the framework's network perimeter. 
 
 Unlike static firewalls, these Sentinel subagents can dynamically read and interpret the semantic intent behind incoming WSS payloads. If a compromised Modder `.exe` attempts a highly obfuscated prompt injection that perfectly bypasses the static regex filters, the Sentinel agent will adapt, recognize the underlying hostile intent, and make a real-time, on-the-spot decision to violently sever the connection, protecting the sensitive core engine.
+
+## 7. Swarm Clustering and Workspace Branching
+In high availability IT, clustering refers to grouping multiple hardware devices together so they provide a service that, to the end-user, appears to be a single cohesive entity. If one device in the cluster fails, the other devices remain available and seamlessly step in.
+
+**The Agentic Swarm as a Cluster**
+In the Siraugga framework, this concept defines the fundamental architecture of the **Agentic Swarm**. To a Tier 1 End User (a Player interacting with a dynamic NPC) or a Tier 2 Modder interacting with the dev tools, the AI appears as a singular, cohesive intelligence. In reality, it is a localized cluster of dozens of micro-swarmed subagents simultaneously passing semantic messages in the background.
+
+If a single subagent within the cluster fails (for example, the `Pathfinding` logic node suffers a Python exception), the overarching swarm does not crash. The other agents in the cluster (such as `Dialogue` or `Inventory`) remain fully available, and a hot stand-by agent seamlessly steps in to replace the failed logic node.
+
+**Complete System Failovers (Workspace Branching)**
+Occasionally, a failure is so catastrophic that individual subagent redundancy is insufficient—an entire system must stand in for the one that failed. In DevCore, if a Modder's remote `.exe` suffers a devastating Prompt Injection that severely corrupts their entire localized JSON state, the orchestrator executes a **Workspace Branch Failover**. 
+
+The compromised system is permanently purged via the Reaper Protocol, and the orchestrator dynamically deploys a fresh, clean Git branch of the workspace. This fresh branch completely stands in for the failed environment, allowing the framework to recover instantly and maintaining the illusion of uninterrupted availability.
