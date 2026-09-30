@@ -35,3 +35,9 @@ However, in the discipline of Zero-Trust, we assume that every defense possesses
 Furthermore, a physical perimeter is constantly subjected to environmental decay. Local zoning regulations may restrict the height of the fence, and the perimeter itself demands constant, physical maintenance. Earth erosion can compromise the foundation, or wildlife may burrow beneath the barricade, creating an undetected kinetic tunnel directly into the compound. To maintain the baseline, Tier 5 SysAdmins must ensure physical fencing systems are audited and inspected as rigorously as the virtual firewalls.
 
 Finally, the perimeter must enforce a strict "clear zone." Vehicles must never be parked adjacent to a security fence. An improperly parked vehicle acts as a physical step-ladder, instantly granting an attacker the elevation required to bypass the top guard and breach the facility.
+### Biometrics: The Biological Hash
+Once an entity bypasses the kinetic fencing, the next layer of physical defense is authentication. In legacy systems, physical access to the server room is granted via RFID keycards or PIN codes. These mechanisms are fundamentally flawed; a physical token can be stolen, and a PIN can be brute-forced.
+
+In the Siraugga architecture, Tier 5 SysAdmins enforce absolute certainty of identity using **Biometrics**. Biometrics rely on the unique physiological or behavioral characteristics of an individual (e.g., fingerprints, retinal topography, or facial geometry). In this context, biometrics act as a biological hash—an immutable physical signature that cannot be easily stolen, duplicated, or transferred. 
+
+Before physical access is granted to the server cage containing the active game engine and the `.devcore_master.key`, the identity of the human operator must be mathematically verified against their securely stored biometric profile. Only upon a successful, collision-free match will the physical barricade unlock.
