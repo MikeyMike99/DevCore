@@ -19,3 +19,11 @@ This module dissects the following defensive topics:
 | **Hardening Wireless & Mobile** | Configure strict cryptographic hardening and port management for unmanaged remote BYOD/C connections interacting with the game engine. |
 | **Cybersecurity Resilience** | Architect the system to ensure immediate disaster recovery, data preservation, and continuity even when a critical node is fundamentally compromised. |
 | **Embedded & Specialized Systems** | Implement Zero-Trust physical security integrations with IoT endpoints and specialized in-game hardware. |
+
+## 1. Physical Security: The Kinetic Layer
+When engineers design a Zero-Trust architecture, they obsess over virtual constraints—API tokens, Raugus sandboxes, and Semantic Firewalls. However, the most mathematically perfect virtual architecture in the world is completely useless if a threat actor can simply walk up to the host machine and extract the `.devcore_master.key` from the physical hard drive. 
+
+### Fencing and Physical Barriers
+Kinetic barricades or fencing are often the first things that come to mind when thinking about physical security. In enterprise environments hosting the Siraugga plugin, these physical barriers serve as the literal outermost layer of defense in our Security Onion. They are the most visible deterrent to a kinetic breach. 
+
+Because Siraugga manages proprietary game source code, developer telemetry, and highly-sensitive AI orchestration models, the host servers cannot be left in open office spaces. All physical barriers surrounding the hardware must meet absolute design requirements and strict material specifications (e.g., steel-reinforced server cages, anti-ram bollards for data centers, and tamper-evident server chassis locks).
