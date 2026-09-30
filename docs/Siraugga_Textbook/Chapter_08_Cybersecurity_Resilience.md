@@ -32,3 +32,12 @@ In Siraugga, active device monitoring is achieved via the **Orchestration Teleme
 To mitigate this volatility, the central Agent Orchestrator constantly streams live telemetry data from every active subagent across the entire swarm. The system rigorously monitors logic loops, API token consumption rates, and `wsl.exe` tool execution statuses. 
 
 If the Telemetry Pipeline detects that a Tier 3 subagent has repeatedly failed a specific tool call or is wildly exceeding its assigned token quota, it immediately flags the subagent as a "device failure." Crucially, this monitoring system is fully automated; the moment a critical failure is detected, the orchestrator automatically triggers the fallback mechanisms established in Principle 2. It seamlessly terminates the drifting agent and spins up a hot stand-by node to resume the execution thread before the end-user ever realizes a failure occurred.
+
+## 5. The Five Nines of Swarm Availability
+Every traditional organization wants its network to operate uninterrupted, even under extreme conditions such as a severe DDoS attack. In the Siraugga framework, the overarching goal is identical but mathematically far more complex: the central orchestrator must maintain continuous, logical uptime even when enduring a coordinated Prompt Injection campaign or a massive Semantic DoS attack.
+
+To quantify this resilience, Tier 5 Administrators aim for a metric known as the **Five Nines**. 
+
+The Five Nines metric dictates an operational availability rate of 99.999%. In a traditional hardware context, this translates to less than 5.26 minutes of physical server downtime per year. However, in the DevCore architecture, "downtime" is not merely physical server disconnection—it is defined as *Logic Processing Downtime*. 
+
+If the swarm enters a state of catastrophic token exhaustion, hallucination gridlock, or API rate-limiting where it cannot successfully execute tools or resolve JSON merges for more than 5.26 minutes a year, it fails the metric. To achieve the Five Nines, the Agent Orchestrator must ruthlessly execute the three High Availability design principles (Micro-swarming Redundancy, LLM Fallbacks, and Telemetry) to ensure that even during a catastrophic failure cascade, the underlying WSS stream and the AI's logical processing capabilities never halt.
