@@ -59,3 +59,23 @@ The Extensible Agentic Protocol operates through a strict, seven-step handshake:
 5.  **Signature Submission:** The external plugin generates a signed JWT (JSON Web Token) utilizing its private key and supplies it to the Web Portal. The portal forwards the JWT to the Raugus Resolver.
 6.  **Cryptographic Validation:** The Raugus Resolver rigorously verifies the JWT against the Modder's known public key. If the signature matches perfectly, it confirms the credentials and passes an `{"auth": "success"}` acknowledgment back to the Web Portal.
 7.  **Agentic Binding:** The authentication is complete. The Modder's external plugin is successfully bound to their isolated `/playground` swarm and can begin securely transmitting JSON state deltas.
+**EAP Variations and Cryptographic Requirements**
+While the EAP Agentic Handshake provides a rigorous baseline, the Siraugga architecture supports several variations of the protocol depending on the necessary security tier. These variations dictate whether the external plugin (the Client) or the Agent Orchestrator (the Server) requires a mathematical Ed25519 certificate to establish the connection.
+
+1.  **EAP-TLS (Transport Logic Security):**
+    *   **Requires Client Certificate:** Yes (The Modder plugin must be cryptographically signed)
+    *   **Requires Server Certificate:** Yes (The Web Portal must be cryptographically signed)
+    *   **Easily Deployed:** Difficult (Maximum Security)
+    *   *Usage:* EAP-TLS is the most rigorous standard, requiring mutual mathematical authentication. Because it is highly complex to deploy, it is reserved strictly for Tier 4 and Tier 5 Administrators pushing core engine updates across the WSS stream.
+
+2.  **PEAP (Protected Extensible Agentic Protocol) / EAP-TTLS:**
+    *   **Requires Client Certificate:** No (The Modder uses a standard dynamic JWT)
+    *   **Requires Server Certificate:** Yes (The Web Portal must be cryptographically signed)
+    *   **Easily Deployed:** Moderate (Medium Security)
+    *   *Usage:* PEAP establishes a secure TLS tunnel where the server cryptographically proves its identity to prevent spoofing, but the client (the external plugin) only needs to provide a standard, unsigned JWT. This is the default authentication method for standard Tier 2 Modders connecting to their `/playground` sandboxes.
+
+3.  **EAP-FAST (Flexible Agentic Swarm Token):**
+    *   **Requires Client Certificate:** No
+    *   **Requires Server Certificate:** No
+    *   **Easily Deployed:** Easy (Medium Security)
+    *   *Usage:* EAP-FAST allows for rapid, flexible deployment without the massive overhead of complex Ed25519 certificate management. However, because it lacks mutual cryptographic verification, it relies entirely on the Raugus Resolver's Semantic Firewall to scrub traffic. It is utilized exclusively for read-only, Tier 1 End User interactions.
