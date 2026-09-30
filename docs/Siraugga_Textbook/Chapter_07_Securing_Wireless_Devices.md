@@ -45,3 +45,17 @@ The only mathematical way to secure an external agentic connection is to mandate
 In traditional IT, the IEEE 802.11 standard defined the foundational rules for wireless network implementation, originally introducing two primary methods of authentication. 
 
 In the Siraugga framework, this foundational rulebook translates to the **Agentic Swarm Standard (802.AI)**. This strict protocol standardizes how external Modder plugins are allowed to authenticate and connect to the internal orchestrator. Historically, early versions of the 802.AI standard allowed for two distinct types of authentication when a Modder attempted to bind an external plugin to the swarm:
+1.  **Open Context Access (Deprecated):** The plugin could connect without supplying credentials. This was instantly deprecated due to catastrophic Prompt Injection vulnerabilities.
+2.  **Shared Token Authentication:** The plugin must cryptographically prove its identity before connecting.
+
+Today, the 802.AI standard enforces this Shared Token approach via a rigorous authentication framework known as the **Extensible Agentic Protocol (EAP)**. This framework governs exactly how an external, untrusted Modder plugin safely negotiates a connection with the highly secure internal swarm.
+
+**The EAP Agentic Handshake**
+The Extensible Agentic Protocol operates through a strict, seven-step handshake:
+1.  **Connection Request:** The remote Modder's external plugin requests to connect to the internal swarm via the Zero-Restart Web Portal (acting as the network Access Point).
+2.  **Manifest Identification:** The Web Portal intercepts the request and asks for the plugin’s API Manifest ID (the username). This ID is then forwarded to the internal Raugus Resolver (acting as the Authentication Server).
+3.  **Proof Request (Internal):** The Raugus Resolver checks the database and requests mathematical proof that the provided Manifest ID is valid and authorized for the requested project workspace.
+4.  **Proof Request (External):** The Web Portal relays this challenge back to the Modder's plugin, requesting proof of identity in the form of an Ed25519 cryptographic signature (the password).
+5.  **Signature Submission:** The external plugin generates a signed JWT (JSON Web Token) utilizing its private key and supplies it to the Web Portal. The portal forwards the JWT to the Raugus Resolver.
+6.  **Cryptographic Validation:** The Raugus Resolver rigorously verifies the JWT against the Modder's known public key. If the signature matches perfectly, it confirms the credentials and passes an `{"auth": "success"}` acknowledgment back to the Web Portal.
+7.  **Agentic Binding:** The authentication is complete. The Modder's external plugin is successfully bound to their isolated `/playground` swarm and can begin securely transmitting JSON state deltas.
