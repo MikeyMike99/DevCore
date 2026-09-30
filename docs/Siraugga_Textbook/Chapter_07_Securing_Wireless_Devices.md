@@ -147,3 +147,19 @@ While the offline `.exe` sandbox provides Tier 2 Modders with immense flexibilit
 *   **Operating System Risks (Orchestrator Escapes):** The primary "Operating System" of the Siraugga framework is the Core Agent Orchestrator (`agent_manager.py`). The greatest structural risk is that a compromised external plugin leverages a zero-day vulnerability to break out of the AES container and access the host machine.
 *   **Application Risks (Tool Hallucinations):** In Siraugga, "applications" equate to **Agentic Tools**. If an AI subagent suffers from Agentic Drift, it may unpredictably misuse its whitelisted applications (e.g., hallucinating and attempting to execute malicious commands).
 *   **Network Risks (WSS Interception):** When the offline sandbox eventually reconnects to the Zero-Restart Web Portal to push its JSON deltas, the traffic is highly vulnerable to Man-in-the-Middle (MitM) attacks or token sniffing across the wireless stream.
+
+## 12. Agentic Jailbreaking, Rooting, and Sideloading
+The most sophisticated threats facing the DevCore architecture do not come from external network breaches, but from users intentionally bypassing the mathematical limitations of their own offline `.exe` sandbox. 
+
+**Jailbreaking and Rooting the Engine**
+In mobile device management, jailbreaking or rooting bypasses the OS manufacturer's security architecture to allow complete, administrative access to the hardware. In Siraugga, this translates to **Agentic Jailbreaking**. 
+
+Agentic Jailbreaking occurs when a Tier 2 Modder utilizes advanced Prompt Injections designed to intentionally overwrite the AI subagent's immutable System Prompt (its intrinsic limitations). If a Modder successfully "roots" an AI subagent, they trick the agent into abandoning its sandboxed Tier clearance, granting the Modder complete administrative (Tier 5) execution privileges over the local orchestration engine.
+
+**Detecting Noncompliant Agents**
+To combat this, the Raugus Resolver continuously runs Semantic Anomaly Detection on all incoming JSON deltas. If it detects that an external AI subagent is generating tool calls outside its established behavioral matrix (indicating a rooted agent), the Modder's `.exe` is instantly marked as noncompliant. The WSS connection is forcefully rejected, and the remote Reaper Protocol is triggered.
+
+**Agentic Sideloading and Third-Party Plugins**
+In mobile security, third-party app stores pose a massive risk because their applications are not evaluated by central authorities. In Siraugga, this translates to **Untrusted Plugin Repositories**. Modders frequently download community-made, third-party AI scripts from public repositories that have not been audited by DevCore engineers.
+
+When a Modder intentionally bypasses the Ed25519 Code Signing checks (established in Section 10) to forcefully inject an unapproved, unsigned tool into their AI's context window, this is known as **Agentic Sideloading**. While slightly less invasive than a full agentic root, sideloading an unapproved script exposes the Modder's local environment to hidden malware, token drainers, and secondary prompt injections.
