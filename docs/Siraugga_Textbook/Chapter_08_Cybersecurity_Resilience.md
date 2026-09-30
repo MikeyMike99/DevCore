@@ -66,3 +66,25 @@ If a single subagent within the cluster fails (for example, the `Pathfinding` lo
 Occasionally, a failure is so catastrophic that individual subagent redundancy is insufficient—an entire system must stand in for the one that failed. In DevCore, if a Modder's remote `.exe` suffers a devastating Prompt Injection that severely corrupts their entire localized JSON state, the orchestrator executes a **Workspace Branch Failover**. 
 
 The compromised system is permanently purged via the Reaper Protocol, and the orchestrator dynamically deploys a fresh, clean Git branch of the workspace. This fresh branch completely stands in for the failed environment, allowing the framework to recover instantly and maintaining the illusion of uninterrupted availability.
+
+## 8. Identifying Single Points of Failure
+As established earlier, a single point of failure (SPOF) is any localized element whose failure causes the complete collapse of the entire framework. As cybersecurity specialists, Tier 5 Administrators must proactively identify these weak links and implement rigorous agentic resilience measures.
+
+In the Siraugga architecture, a single point of failure can manifest in several distinct forms:
+*   **A Specific Piece of Hardware:** The Core Agent Orchestrator (`agent_manager.py`) managing the overarching logic loops.
+*   **A Process:** The AI Semantic Merging protocol handling concurrent Modder edits.
+*   **A Specific Piece of Data:** The Master JSON state repository containing the core game's canonical logic.
+*   **An Essential Utility:** The primary WSS network stream or the API Token pipeline.
+
+To solve this, DevCore modifies critical operations so they do not rely on a single element, heavily utilizing a localized swarm concept known as **N+1 Redundancy**.
+
+## 9. N+1 Agentic Redundancy
+N+1 Redundancy is an architectural design that ensures system availability in the event of a component failure. It dictates that for every required set of components (N), there must be at least one independent backup component (+1) on hot standby.
+
+In a traditional data center, if a network requires servers, power supplies, switches, and routers (N), an N+1 design ensures there is exactly one backup server, one backup power supply, one backup switch, and one backup router (+1) standing by to come online if a primary component fails.
+
+In the Siraugga framework, **N+1 Redundancy applies directly to Agentic Archetypes**. 
+
+A Modder's `/playground` ecosystem requires a specific composition of AI subagents to function seamlessly: for example, a `Research` agent, a `Coding` agent, a `QA` agent, and a `Dialogue` agent (N). An N+1 redundant swarm ensures that the central orchestrator holds exactly one cloned backup (+1) in memory for *each* of those specific archetypes. 
+
+If the primary `QA` agent unexpectedly hallucinates or hits a rigid API rate limit, the backup `QA` agent instantly comes online to resume the execution thread. However, it is critical to note that N+1 is not a *fully* redundant system (unlike advanced 2N or 2N+1 architectures). It can only withstand the loss of *one* of each component type. If two `Coding` agents suffer from simultaneous Prompt Injection failures, the Modder's local environment will still crash.
