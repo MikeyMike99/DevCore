@@ -29,3 +29,14 @@ The DevCore engineering team is constantly vigilant about protecting sensitive c
 Rather than allowing a Tier 2 Modder to operate within the global file system, the Raugus Resolver mathematically segments the environment, confining the Modder and their AI subagents to a strictly isolated VLAN known as the `/playground` sandbox. Within this localized playground, the Modder has full read-and-write permissions to their specific project files (`TIER_SAFE_WORKSPACE`), but they remain entirely blind to the underlying server architecture. 
 
 By utilizing the Raugus Resolver to enforce these Virtual Logic Area Networks, Siraugga creates an airtight, secure area for sensitive data. It guarantees that even a highly sophisticated adversarial prompt injection cannot traverse across logical boundaries to compromise the core engine.
+**Agentic Grouping and Semantic Switches**
+In a physical network, VLANs provide a method to group devices (computers, printers) on individual switches based on logical connections rather than physical wiring. In Siraugga, Virtual Logic Area Networks are used to logically group our internal "devices"—the AI Subagents. 
+
+When a Tier 3 Developer initiates a complex task, the central Agent Orchestrator (acting as the network switch) spawns a swarm cluster of subagents (e.g., a `Research` agent, a `Coding` agent, and a `Testing` agent). These subagents are mathematically grouped into the same Virtual Logic Area Network within the `/playground` sandbox. 
+
+Because we have established that "ports" represent files and folders, the Agent Orchestrator can dynamically assign specific ports to specific subagents within the VLAN. For example, the `Coding` subagent may be assigned write-access to the `scripts/` folder (Port A), while the `Research` subagent is strictly assigned read-only access to the `docs/` folder (Port B).
+
+**Trunking (Cross-Sandbox APIs)**
+In traditional VLAN architecture, specific ports—called trunks—are used to physically interconnect switches, allowing data traffic to flow between multiple disparate VLANs. 
+
+In the Siraugga framework, different Modder workspaces (VLANs) are usually hermetically isolated. However, occasionally, an AI subagent in one sandbox (e.g., `/playground/mod_A`) needs to share JSON state telemetry with another environment (e.g., `/playground/global_state`). To facilitate this without breaking the isolation boundary, Siraugga utilizes **Semantic Trunks**. A Semantic Trunk is a heavily audited, precompiled API endpoint (or cross-workspace JSON pipe) that allows highly restricted, one-way traffic between two Virtual Logic Area Networks, ensuring that malicious code cannot traverse the trunk line.
