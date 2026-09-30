@@ -25,7 +25,7 @@ To ensure the Siraugga infrastructure remains impenetrable, we implemented five 
 
 ### Key Architectural Concepts:
 1. **Threat Identification:**
-   * **Internal Threats:** Rogue Modders attempting path traversal, or legitimate Tier 3 Agents suffering from "Agentic Drift" (hallucinations resulting in destructive system calls).
+   * **Internal Threats:** Rogue Tier 2 Modders attempting path traversal, or legitimate Tier 3 Agents suffering from "Agentic Drift" (hallucinations resulting in destructive system calls).
    * **External Threats:** Adversaries attempting prompt injections via the WebSocket stream to hijack the Main Agent.
 2. **Defense-in-Depth (The Onion Architecture):**
    * **The Semantic Firewall:** The outermost layer. An ultra-fast Evaluator LLM that intercepts prompts, filtering out hostile intent before the Main Agent ever sees the payload.
@@ -53,14 +53,14 @@ Traditional packet analyzers (packet sniffers) intercept and log network traffic
    * Absolute enforcement of system state, including sandboxed `cwd` paths, strict `O_NOFOLLOW` file descriptors, and the 4-second TCP keep-alive heartbeat.
 2. **The Forensic Paradox & Cold Storage:**
    * **The Paradox:** Cryptographically shredding logs protects against symlink attacks and data leaks, but destroys the forensic evidence needed by incident responders.
-   * **The Resolution (Cold Storage):** Before the Reaper Daemon shreds the physical plaintext logs, a Lifecycle Hook instantly AES-encrypts the telemetry using dynamically rotated keys (KMS), preserving the ciphertext exclusively for Admins.
+   * **The Resolution (Cold Storage):** Before the Reaper Daemon shreds the physical plaintext logs, a Lifecycle Hook instantly AES-encrypts the telemetry using dynamically rotated keys (KMS), preserving the ciphertext exclusively for Tier 5 Admins.
 3. **The Telemetry Taxonomy:**
-   * **OS Logs (Tier 3 - TIER_ADMIN_LOG):** Tracks WebSocket handshakes and resource utilization.
-   * **Application Security Logs (Tier 3 - TIER_ADMIN_LOG):** Tracks Semantic Firewall drops and prompt injection blocks.
-   * **Warning Logs (Tier 3 - TIER_ADMIN_LOG):** Captures non-fatal anomalies (e.g., deprecated API calls, minor semantic drift) for proactive heuristic analysis.
-   * **Error Logs (Tier 1 - TIER_SAFE_WORKSPACE):** Employs the *Secure Listener* pattern to trap stack traces internally while sending sanitized errors to the UI.
-   * **CSP Logs (Tier 3 - TIER_ADMIN_LOG):** Captures browser-level Cross-Site Scripting (XSS) blocks.
-   * **Chatlogs (Tier 1 to Tier 3):** The "Agentic Memory" of the swarm, protected by dynamic Agentic Sanitization.
+   * **OS Logs (Tier 4):** Tracks WebSocket handshakes and resource utilization.
+   * **Application Security Logs (Tier 4):** Tracks Semantic Firewall drops and prompt injection blocks.
+   * **Warning Logs (Tier 4):** Captures non-fatal anomalies (e.g., deprecated API calls, minor semantic drift) for proactive heuristic analysis.
+   * **Error Logs (Tier 3):** Employs the *Secure Listener* pattern to trap stack traces internally while sending sanitized errors to the UI.
+   * **CSP Logs (Tier 4):** Captures browser-level Cross-Site Scripting (XSS) blocks.
+   * **Chatlogs (Tier 1-5):** The "Agentic Memory" of the swarm, protected by dynamic Agentic Sanitization.
 4. **The Semantic Sniffer (Ingress & Egress):**
    * An active protocol analyzer that parses raw JSON traffic to detect architectural intrusions. It is decentralized into **Ingress** (Semantic Firewall) and **Egress** (Raugus Resolver). If a breach is detected, it triggers the Reaper Protocol to isolate the compromised process group.
 
@@ -80,7 +80,7 @@ The DevCore ecosystem is governed by Framework policies, Entity mandates, and Se
 Because Siraugga acts as a remote web portal plugin, Bring Your Own Device/Code (BYOD/C) policies are critical. They are comprised of mathematically enforced best practices: cryptographic access tokens, strict socket control, continuous SDK baseline updates, cold storage backups, remote wipe capabilities, Semantic Firewalls (acting as Antivirus against prompt injections), and Agentic Sandbox Management (via the Raugus Resolver mimicking legacy MDM).
 
 **Regulatory Compliance:**
-Finally, there are external regulations regarding network data security. Admins and DevCore engineers must be intimately familiar with the laws and codes of ethics that bind Information Systems Security (INFOSEC) professionals, ensuring the architecture remains compliant with global data privacy standards.
+Finally, there are external regulations regarding network data security. Tier 5 SysAdmins and DevCore engineers must be intimately familiar with the laws and codes of ethics that bind Information Systems Security (INFOSEC) professionals, ensuring the architecture remains compliant with global data privacy standards.
 
 ### Key Architectural Concepts:
 1. **The Three Pillars of Governance:**
@@ -91,7 +91,7 @@ Finally, there are external regulations regarding network data security. Admins 
    * A mathematically explicit list of forbidden commands (e.g., `rm -rf`). AI agents "sign" the AUP instantly upon boot by inheriting it into their System Prompt.
 3. **The BYOD/C Policy (Bring Your Own Device & Code):**
    * Specifically tailored for third-party Modders connecting to the in-game plugin. It governs the importation of untested playground scripts and physical device connections.
-   * It enforces strict socket control, Raugus path limits, Admin level Overwatch, and forces all imported code to synchronize with the core **SDK (Software Development Kit)** to guarantee security middleware routing.
+   * It enforces strict socket control, Raugus path limits, Tier 5 Overwatch, and forces all imported code to synchronize with the core **SDK (Software Development Kit)** to guarantee security middleware routing.
 4. **Regulatory Compliance:**
    * Acknowledges the legal liability of the game studio. Defines the architecture's obligation to protect Personally Identifiable Information (PII) and payment telemetry through immutable logs and encrypted transport layers.
 
@@ -108,6 +108,6 @@ Legacy AI assistants (such as general-purpose chatbots or standard coding copilo
 
 **Why is Siraugga a safer option?**
 * **The Raugus Resolver:** Siraugga never grants the AI raw filesystem access. Every action is intercepted and verified against cryptographic alias maps, neutralizing path traversal attacks natively.
-* **Mathematical RBAC:** Legacy tools execute blindly under the host user's privileges. Siraugga enforces strict Role-Based Access Control, locking Modders and their spawned agents tightly within their assigned `TIER_SAFE_WORKSPACE`.
+* **Mathematical RBAC:** Legacy tools execute blindly under the host user's privileges. Siraugga enforces strict Role-Based Access Control, locking Tier 2 Modders and their spawned agents tightly within their assigned `TIER_SAFE_WORKSPACE`.
 * **The Semantic Firewall:** Inbound adversarial prompt injections are mathematically detected and dropped at the WebSocket ingress layer before the core logic engine is even exposed.
 * **Absolute Data Sovereignty:** By maintaining authoritarian control over the Telemetry Lifecycle, Cold Storage encryption, and the internal SDK, Siraugga guarantees that proprietary game code, player PII, and core backend logic never leak to unmanaged external servers.
