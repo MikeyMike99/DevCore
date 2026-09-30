@@ -194,3 +194,12 @@ In a traditional database, normalization is the process of organizing data to re
 In the Siraugga framework, normalization is the cornerstone of prompt security. When a Tier 2 Modder or Tier 1 Player inputs a natural language prompt, or when an AI agent attempts to execute a system command, the data is rarely safe in its raw state. Adversaries often attempt to bypass security filters by using Base64 encoding, Unicode homoglyphs, or directory path obfuscation (e.g., `../../etc/passwd`). 
 
 To defeat this, Siraugga enforces **Semantic Normalization**. Before any string, JSON payload, or WebSocket event is allowed to reach the LLM or the Raugus Resolver, the middleware forcefully decodes and converts the input into its simplest known form—a **Semantic Primitive**. By guaranteeing that all inputs have a single, unique binary representation, the Semantic Sniffer can mathematically identify malicious prompt injections and escape attempts instantly, regardless of how cleverly the attacker tried to obfuscate them.
+
+### Stored Procedures (Precompiled SDK Macros)
+In a standard application, a stored procedure is a group of precompiled SQL statements stored in a database that execute a specific task. They accept predefined input parameters, execute safely on the server side, and reduce network traffic. 
+
+Although the Siraugga core engine does not currently rely on a monolithic SQL database, the *concept* of the stored procedure is paramount to our Application Security strategy. We translate this concept directly into **Precompiled SDK Macros**. 
+
+Rather than allowing an AI agent to dynamically hallucinate complex, multi-step system calls over the WebSocket (which is highly vulnerable to prompt injection and Agentic Drift), Tier 2 and Tier 3 Developers are required to use pre-approved, precompiled macros. For example, instead of an AI agent generating a raw file-read command using its own logic, it is forced to call the `resolve_safe_path(target)` macro and pass in a simple parameter. 
+
+By forcing the AI to execute tasks through these precompiled "stored procedures", Siraugga drastically reduces WebSocket token traffic, achieves faster LLM response times, and mathematically eliminates the possibility of the agent executing a rogue, unverified sequence of host commands.
