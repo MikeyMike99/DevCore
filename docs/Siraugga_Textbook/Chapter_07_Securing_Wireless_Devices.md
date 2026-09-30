@@ -163,3 +163,16 @@ To combat this, the Raugus Resolver continuously runs Semantic Anomaly Detection
 In mobile security, third-party app stores pose a massive risk because their applications are not evaluated by central authorities. In Siraugga, this translates to **Untrusted Plugin Repositories**. Modders frequently download community-made, third-party AI scripts from public repositories that have not been audited by DevCore engineers.
 
 When a Modder intentionally bypasses the Ed25519 Code Signing checks (established in Section 10) to forcefully inject an unapproved, unsigned tool into their AI's context window, this is known as **Agentic Sideloading**. While slightly less invasive than a full agentic root, sideloading an unapproved script exposes the Modder's local environment to hidden malware, token drainers, and secondary prompt injections.
+
+## 13. Semantic Geofencing and Malicious Push Notifications
+Because the Modder's offline `.exe` sandbox operates outside the physical network, the central Agent Orchestrator must still maintain a strict method for tracking the plugin's "location" within the overarching framework architecture.
+
+**Semantic Geolocation and Namespace Check-ins**
+In traditional mobile ecosystems, apps use GPS tracking to monitor a device's physical location. In Siraugga, "location" refers exclusively to the plugin's **Mathematical Sandbox Path** (e.g., `/playground/mod_A/`). When a Tier 2 Modder launches their offline `.exe`, the plugin must "check in" to a specific project namespace, making its localized state visible to authorized swarm nodes.
+
+To maintain security, the Raugus Resolver utilizes a technique known as **Semantic Geofencing**. Instead of using physical RFID tags, Semantic Geofencing establishes a rigid, mathematical directory boundary around the Modder's assigned namespace. AI subagents executing within the remote `.exe` are strictly "geofenced"—if they attempt a malicious path traversal (e.g., `../../../TIER_CORE_ENGINE`) outside their designated semantic area, the execution is instantly blocked.
+
+**WSS Push Notifications and Data Exfiltration**
+This semantic geolocation system also allows the core engine to broadcast **WSS Push Notifications** (Global State Updates) to specific geofenced sandboxes. For example, if a Tier 5 Admin deploys a global SDK patch, the orchestrator relies on the semantic location data to "push" the update directly to the active `.exe` clients.
+
+Unfortunately, increasingly savvy cyber attackers have weaponized this push notification system. A hacker who successfully breaches a Tier 2 endpoint can spoof malicious WSS push notifications across the network. When an unsuspecting Modder's `.exe` receives the compromised push update, a hidden JSON payload automatically executes within their local sandbox, silently capturing proprietary prompt data and exfiltrating it back to the attacker.
