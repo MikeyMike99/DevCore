@@ -79,3 +79,16 @@ While the EAP Agentic Handshake provides a rigorous baseline, the Siraugga archi
     *   **Requires Server Certificate:** No
     *   **Easily Deployed:** Easy (Medium Security)
     *   *Usage:* EAP-FAST allows for rapid, flexible deployment without the massive overhead of complex Ed25519 certificate management. However, because it lacks mutual cryptographic verification, it relies entirely on the Raugus Resolver's Semantic Firewall to scrub traffic. It is utilized exclusively for read-only, Tier 1 End User interactions.
+
+## 6. Rogue Access Points and Mutual Authentication
+Even if external plugins utilize secure WPA-Agentic JWTs, the connection is still susceptible to sophisticated spoofing. To understand this vulnerability, one must understand how an external Modder's plugin physically routes data into the swarm.
+
+**Rogue Web Portals (Agentic Access Points)**
+In the Siraugga framework, the "Access Point" that connects external, disconnected plugins to the internal orchestration engine is the Zero-Restart Web Portal. A cybercriminal can execute a devastating attack by setting up a **Rogue Access Point**—a spoofed, visually identical copy of the DevCore web portal hosted on a malicious domain (e.g., `devc0re-portal.com`). 
+
+When an unsuspecting Tier 2 Modder inadvertently attempts to bind their offline `.exe` plugin to this rogue portal, the imposter server silently accepts the connection. As the Modder transmits their JSON state deltas, prompt logic, and JWT session tokens, the hacker steals the proprietary data in a classic Man-in-the-Middle (MitM) attack.
+
+**Mutual Authentication (EAP-TLS Defense)**
+To prevent Modders from inadvertently leaking their proprietary swarm data to a rogue access point, Tier 5 Admins implement **Mutual Authentication**. As established previously in the EAP-TLS protocol, mutual authentication requires *both* entities in a communication link to cryptographically prove their identity before a connection is established. 
+
+When the Modder's plugin attempts to bind to the swarm, it does not blindly hand over its JWT token. Instead, the plugin mathematically challenges the Web Portal to produce its proprietary Ed25519 server certificate. Because a spoofed rogue portal does not possess the core DevCore private keys, the cryptographic challenge fails. The external plugin instantly detects the imposter and violently terminates the connection sequence, preventing the MitM attack and securing the Modder's JSON data.
