@@ -125,3 +125,15 @@ If left unsecured, a rogue AI subagent operating in a Tier 2 Modder's environmen
 To mitigate this catastrophic data-sharing risk, Siraugga relies on a robust Identity and Access Management (IAM) system, heavily integrated with the **Role-Based Access Control (RBAC)** policies established in Chapter 4. 
 
 The IAM system dictates precisely which artifacts and transcripts a specific subagent identity is permitted to access. When a `Modder` subagent issues a `view_file` tool call attempting to read a global Brain transcript, the IAM framework evaluates the agent's cryptographic identity against the file's overarching security tier. If the agent's identity lacks the required clearance, the Semantic Router instantly blocks the tool call, throwing a `PermissionError (HTTP 403)` and successfully compartmentalizing the shared data.
+
+## 10. Agentic Tool Management and Whitelisting
+In a traditional enterprise, IT administrators manage the installation of software applications to ensure users only execute approved code. In the Siraugga framework, "applications" translate directly to the **Tools and Skills** that the AI subagents utilize to manipulate the environment (e.g., `view_file`, `write_to_file`, `run_command`).
+
+If an AI subagent had uninhibited access to every tool in the DevCore ecosystem, a single prompt injection could allow a remote attacker to execute arbitrary bash commands across the host server.
+
+**Semantic Whitelisting and Digital Signatures**
+To mitigate this risk, the Raugus Resolver enforces strict **Tool Whitelisting**. The orchestrator statically authorizes exactly which tools a specific subagent role is allowed to "install" or execute within its context window. For example, a `Research` subagent might have the `view_file` tool whitelisted, while `run_command` is rigorously blacklisted.
+
+Furthermore, Siraugga relies on the **Ed25519 Code Signing** architecture (established in Chapter 4) to digitally sign critical plugins and helper scripts. This mathematically guarantees that any script an AI agent attempts to execute originates from a trusted DevCore source. If a Tier 2 Modder attempts to upload an unsigned, potentially malicious python script into the `/playground`, the Semantic Firewall instantly rejects the execution request.
+
+Finally, for highly sensitive internal tools that bridge the gap between the isolated sandbox and the core engine architecture, the subagent must provide strong authentication—such as the EAP-TLS mutual authentication detailed earlier—to cryptographically prove its authorization before the tool is permitted to initialize.
