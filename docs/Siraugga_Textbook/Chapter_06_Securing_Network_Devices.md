@@ -40,3 +40,14 @@ Because we have established that "ports" represent files and folders, the Agent 
 In traditional VLAN architecture, specific ports—called trunks—are used to physically interconnect switches, allowing data traffic to flow between multiple disparate VLANs. 
 
 In the Siraugga framework, different Modder workspaces (VLANs) are usually hermetically isolated. However, occasionally, an AI subagent in one sandbox (e.g., `/playground/mod_A`) needs to share JSON state telemetry with another environment (e.g., `/playground/global_state`). To facilitate this without breaking the isolation boundary, Siraugga utilizes **Semantic Trunks**. A Semantic Trunk is a heavily audited, precompiled API endpoint (or cross-workspace JSON pipe) that allows highly restricted, one-way traffic between two Virtual Logic Area Networks, ensuring that malicious code cannot traverse the trunk line.
+**Segmenting by Project and Function**
+Virtual Logic Area Networks allow Tier 5 Administrators to dynamically segment the Siraugga environment based on various factors, such as specific functions, project teams, or game applications. For example, the Raugus Resolver can segment a single host into `/playground/game_demo` (for Modder A) and `/playground/npc_quest` (for Modder B). 
+
+The AI subagents executing within `/playground/game_demo` operate as if they exist within their own independent, standalone mainframe. They are mathematically sandboxed, completely unaware that they are actively sharing the same underlying `tmpfs` RAM disk (the common infrastructure) with other VLANs on the same physical host. 
+
+**Isolating the Core Engine (The HR Department Equivalent)**
+In a corporate IT setting, a VLAN is frequently used to separate the HR department from the rest of the network to protect sensitive personnel data. In the Siraugga framework, this translates to isolating the **Core Engine Developers** and Tier 5 Admins. 
+
+The Raugus Resolver creates a dedicated, hyper-secure VLAN for the `TIER_CORE_ENGINE`. This mathematically separates the highly privileged AI subagents handling sensitive orchestration logic from the untrusted Tier 2 Modders, drastically decreasing the chances of a catastrophic architectural breach.
+
+Furthermore, Semantic Trunks allow Tier 5 Admins operating within this secure core VLAN to safely broadcast data—such as critical SDK hot-patches or telemetry updates—across multiple Modder environments simultaneously, ensuring the entire swarm receives updates without violating the strict sandbox isolation boundaries.
