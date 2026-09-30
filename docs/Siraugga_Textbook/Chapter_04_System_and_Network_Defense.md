@@ -324,3 +324,12 @@ This cryptographic signature performs two critical functions:
 2. **Immutability Assurance:** It provides absolute mathematical assurance that the underlying software code and the embedded SDK Baseline have not been altered, corrupted, or injected with malware since the exact moment the file was signed.
 
 Furthermore, this process operates in reverse during deployment. Before an agentic plugin can be merged into the live `TIER_SAFE_WORKSPACE`, the Tier 5 Admin must cryptographically sign the approved code. If the Raugus Resolver detects a plugin attempting to execute within the live game engine without a valid Ed25519 signature, the payload is violently rejected.
+
+### Secure Session Tokens (WSS and TLS 1.3)
+In traditional web architecture, secure cookies are utilized to protect authentication information stored in a user's browser from hackers. When a client interacts with a server, the server instructs the browser to create a cookie, which stores session data for future requests so the user does not have to constantly re-authenticate. 
+
+Because Siraugga's Zero-Restart Web Portal relies heavily on real-time, event-driven streaming, we upgrade the concept of a standard cookie to an **Encrypted Session Token** (such as a JWT). When a Tier 2 Modder authenticates with the central portal to download their offline `.exe` sandbox, or when an AI agent initiates a connection, the server issues a highly encrypted, time-limited token.
+
+It is absolutely critical that these tokens are never transmitted over unencrypted channels. If a session token is sent via plaintext HTTP, an adversary could intercept the packet, hijack the session, and impersonate the Modder to inject malicious plugins into the swarm. 
+
+To prevent session hijacking, Siraugga enforces strict cryptographic transport layers. All session tokens, agent telemetry, and JSON state deltas must be transmitted exclusively over HTTPS and **WSS (WebSocket Secure)** utilizing the TLS 1.3 protocol. If a client attempts to downgrade to an unencrypted connection, the edge router violently terminates the handshake.
