@@ -15,3 +15,11 @@ The first principle that defines high availability systems starts with identifyi
 In Siraugga, eliminating single points of failure translates directly into **Agentic Redundancy and Micro-Swarming**. 
 
 If Siraugga relied on a single, monolithic AI to manage a Modder's entire project, that AI would be a massive single point of failure. If it suffered from Prompt Injection or Token Exhaustion, the entire project would crash. To eliminate this, the Agent Orchestrator dynamically breaks down logic into multiple, redundant subagents. If one `Coding` subagent crashes or enters an infinite hallucination loop, a hot stand-by `QA` agent automatically takes over the execution thread, eliminating the failure point and preserving the project's continuous availability.
+
+
+## 3. Providing for Reliable Crossover
+The second design principle of High Availability is ensuring a highly reliable, seamless crossover when an initial failure occurs. In traditional hardware networks, this involves installing redundant power supplies, backup diesel generators, and secondary communication lines. 
+
+In the Siraugga framework, "power" equates directly to computational API access (LLM Tokens). Therefore, a **Redundant Power Supply** translates into a **Redundant Fallback Pipeline**. If the primary `pro` tier model API experiences an unexpected outage, quota rate-limiting, or severe network latency, the Raugus Resolver automatically crosses over execution to a secondary, pre-configured `flash` tier model (or a locally hosted, open-source equivalent). This crossover happens within milliseconds, ensuring the Modder experiences zero downtime in their generative workflows.
+
+Furthermore, traditional backup communications systems translate into Siraugga's **Asynchronous Trunk Cache**. If the primary WSS (WebSocket Secure) stream drops between a remote Tier 2 Modder and the central server, the system does not panic or crash. Instead, the generated JSON state deltas are temporarily spooled into a highly secure localized cache. Once the connection is organically re-established, the cache executes a reliable crossover, flushing the asynchronous queue back to the core orchestrator without a single byte of data loss.
