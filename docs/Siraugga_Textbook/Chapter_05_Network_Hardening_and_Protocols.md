@@ -31,3 +31,23 @@ Attackers can target the Workspace Provisioning module to deny access to legitim
 * **Monitor provisioning activity:** Continuously review the Tier 5 Admin logs for anomalous folder creation.
 * **Uninstall unused services:** Strip deprecated AI subagents and dead code from the SDK Baseline.
 * **Close unused ports:** Aggressively lock down and delete any unused or abandoned project folders to reduce the attack surface.
+
+## 4. Domain Name System (The Semantic Router)
+In traditional networking, the Domain Name System (DNS) translates a human-readable URL into a numerical IP address. In the Siraugga framework—where physical folders act as our IP addresses—the DNS translates directly into the **Semantic Router**. 
+
+The Semantic Router is the AI middleware that translates a human's natural language intent (the "URL", such as *'spawn a wolf in the forest'*) into a specific, mathematical directory path and tool call (the "IP address", such as `/game_demo/entities/wolf.json`). 
+
+Attackers can target the Semantic Router to redirect execution traffic to "rogue websites." In Siraugga, this equates to a **Prompt Injection** attack. A malicious Modder might input a payload designed to confuse the router, maliciously redirecting the AI's execution flow away from the safe project folder and into the `TIER_FORBIDDEN` engine directories.
+
+To protect against this, Siraugga utilizes **Semantic Security Extensions (SEMSEC)**—our mathematical equivalent of DNSSEC. SEMSEC uses Ed25519 digital signatures and strict Semantic Primitives to validate that the routing intent is authentic and unaltered.
+
+**A Security Checklist for the Semantic Router (DNS):**
+* **Keep software up to date:** Hot-patch the router logic continuously via the `/api/reload` endpoint.
+* **Prevent version strings from revealing information:** Disable verbose Python stack traces; never dump raw backend errors into the Modder's chat window, as this exposes engine architecture.
+* **Separate internal and external routing:** Physically isolate the core LLM logic engine from the public-facing WebSocket connection.
+* **Restrict transactions by client IP:** Restrict all AI agent tool calls strictly to the Modder's assigned project folder.
+* **Use transaction signatures:** Require Ed25519 cryptographic signatures for all major state delta merges.
+* **Disable or restrict zone transfers:** Mathematically disable recursive directory reading to prevent AI path traversal.
+* **Enable logging:** Continuously monitor the `TIER_ADMIN_LOG` for prompt injection attempts.
+* **Use Semantic Security Extensions (SEMSEC):** Enforce strict input validation (the Semantic Firewall) on all natural language payloads.
+* **Sign zones:** Cryptographically watermark the boundaries of the `TIER_SAFE_WORKSPACE`.
