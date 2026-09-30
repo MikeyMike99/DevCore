@@ -57,7 +57,8 @@ Traditional packet analyzers (packet sniffers) intercept and log network traffic
 3. **The Telemetry Taxonomy:**
    * **OS Logs (Tier 4):** Tracks WebSocket handshakes and resource utilization.
    * **Application Security Logs (Tier 4):** Tracks Semantic Firewall drops and prompt injection blocks.
-   * **Application Error Logs (Tier 3):** Employs the *Secure Listener* pattern to trap stack traces internally while sending sanitized errors to the UI.
+   * **Warning Logs (Tier 4):** Captures non-fatal anomalies (e.g., deprecated API calls, minor semantic drift) for proactive heuristic analysis.
+   * **Error Logs (Tier 3):** Employs the *Secure Listener* pattern to trap stack traces internally while sending sanitized errors to the UI.
    * **CSP Logs (Tier 4):** Captures browser-level Cross-Site Scripting (XSS) blocks.
    * **Chatlogs (Tier 1-5):** The "Agentic Memory" of the swarm, protected by dynamic Agentic Sanitization.
 4. **The Semantic Sniffer (Ingress & Egress):**
