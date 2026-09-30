@@ -161,3 +161,12 @@ When a developer is assigned a task, they download this offline `.exe` to their 
 * **Tier 2 (Modders):** They operate completely untethered via Semantic Abstraction. They are provided only with a `README.md` (the SDK baseline) detailing how their custom plugin will eventually hook into the main application.
 
 Once a developer finishes testing locally, the encrypted state delta is pushed back to the main server. Here, before it hits the live environment, a Tier 5 Admin executes intense Quality Assurance (QA) testing. Utilizing Dynamic Application Security Testing (DAST) and the Semantic Sniffer, the Admin evaluates exactly how the untrusted code interacts with the core engine. Only after passing this rigorous Admin inspection is the plugin finally deployed.
+
+### Staging and Production (The Shadow Node)
+In legacy development lifecycles, staging environments are constructed to closely match the production server, allowing developers to verify their code against live security settings before deployment. 
+
+In the Siraugga framework, the staging environment is a mathematically identical "Shadow Node"—a complete parallel replica of the live Core Engine. However, a critical architectural distinction must be made regarding RBAC: Tier 2 Modders and Tier 3 Developers **do not** interact with or execute tests within the staging environment. Allowing external contributors to map the staging server would completely shatter the isolation of the Black Box.
+
+Instead, when a developer pushes their encrypted state delta from their offline `.exe` back to the central server, a Tier 5 Admin takes absolute control. The Admin injects the untrusted plugin into the Shadow Node. Here, the Admin executes intense Overwatch protocols to verify that the software operates flawlessly under the rigid security settings of the Raugus Resolver. The plugin is intentionally subjected to adversarial conditions to ensure the AI agents do not hallucinate, drift from the SDK baseline, or attempt path traversal.
+
+Only after the Tier 5 Admin mathematically proves that the plugin is stable and secure is the payload cryptographically signed and formally deployed into the live Production environment.
