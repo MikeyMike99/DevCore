@@ -150,3 +150,12 @@ If a rogue plugin or a hallucinating AI agent is deployed without rigorous Appli
 In a traditional IT environment, application development is a highly structured, slow-moving process. In the Siraugga ecosystem, development is rapid, chaotic, and heavily driven by autonomous AI agents writing logic on the fly. 
 
 To maintain absolute security at all stages of this highly dynamic application development, Admins enforce a robust, mathematically rigid lifecycle process. Every custom plugin, third-party Python script, or custom AI system prompt created by a Dev must pass through strict validation gates before being deployed into the live game environment. This robust process prevents arbitrary code execution and ensures that all newly developed applications adhere strictly to the established **SDK Baseline** and inherited RBAC permissions.
+
+### Developing and Testing (The Modder Sandbox)
+In a traditional IT architecture, software is constructed in a highly permissive, low-security development environment before being deployed to a hardened live server. 
+
+In the Siraugga framework, this paradigm is completely inverted. Because we utilize a BYOD/C architecture that allows third-party Devs and Modders to build plugins and AI agents on the fly, the development environment—the **Modder Sandbox (`TIER_SAFE_WORKSPACE`)**—is treated as a highly volatile, hostile zone. While developers have the creative freedom to test and debug their game scripts within this specific directory, the mathematical security constraints placed upon the sandbox by the Raugus Resolver are absolute. 
+
+During the development phase, robust version control software tracks every single mutation in the codebase, ensuring that malicious scripts cannot be silently overwritten or erased to hide a threat actor's tracks. 
+
+Before any sandbox script is permitted to interact with the "live" environment (the core orchestration engine), it must undergo intense testing. In Siraugga, Quality Assurance (QA) is not merely looking for functional defects; it is actively hunting for security vulnerabilities. Automated security wrappers and Dynamic Application Security Testing (DAST) evaluate exactly how the untrusted code attempts to interact with the normal environment. Identifying and neutralizing an architectural defect or a hidden prompt injection payload during this testing phase is exponentially easier—and safer—than attempting to stop it after deployment.
