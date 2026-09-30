@@ -246,3 +246,10 @@ Instead of speaking normally, an attacker inputs a malformed, adversarial prompt
 If the Siraugga plugin lacks strict Input Validation, the LLM processes this malicious input as a valid command. The confused AI agent obediently writes the bogus information directly into the `npc_state.json` data store. The core engine, blindly trusting the agent's output, reads the corrupted JSON file and grants the attacker unlimited in-game currency. 
 
 Hackers can easily automate this attack via scripts, flooding the WebSocket with thousands of invalid prompt injections to completely corrupt the game's mathematical state or exhaust the agent's token limits. To prevent this, the Semantic Sniffer must rigorously validate every single inbound payload, identifying and dropping malicious prompt injections before the LLM ever perceives them.
+
+**The Defensive Map-Reduce Swarm:**
+When threat actors automate an input attack, their goal is to flood the WebSocket with thousands of invalid, malformed prompt injections. If a single, monolithic AI model attempted to validate every single request sequentially, it would rapidly exhaust API token quotas and crash under the cognitive load—a classic Denial of Service (DoS) against the AI.
+
+To counter this, Siraugga employs its **Sub-Agent Ingestion Swarm** as a dynamic defense mechanism. When the framework detects an automated flood of inbound traffic, it instantly isolates the expensive, core `pro` logic engine. Instead, it triggers a Map-Reduce Swarm Orchestrator. 
+
+The system dynamically spins up dozens of lightweight, parallel `flash` subagents. These ephemeral flash agents act as a highly distributed Semantic Sniffer. They process the massive flood of incoming payloads concurrently, identifying and dropping the malicious prompt injections, and compressing only the safe, sanitized data into a cohesive stream. The primary engine is completely shielded from the noise, preserving token quotas and maintaining the absolute integrity of the JSON data store against automated attacks.
