@@ -99,3 +99,12 @@ Attackers frequently penetrate an AI swarm's infrastructure through vulnerable b
 Legacy protocols were simply not designed to withstand the sheer speed, payload variability, and logic complexity of an autonomous swarm. Therefore, Tier 5 Administrators must continuously audit the environment to guarantee that only current, highly secure **Agentic Protocols** are being utilized. 
 
 By enforcing modern, cryptographically hardened standards—such as WSS (TLS 1.3), Ed25519 Cryptographic Signatures, Monotonic Transcript Sequencing, and the Semantic Copy Protocol—Siraugga mathematically closes the attack surface. This ensures that the swarm operates collaboratively at lightspeed, without falling victim to antiquated networking exploits.
+
+## 10. Simple Network Management Protocol (Agentic Telemetry)
+In traditional networking, the Simple Network Management Protocol (SNMP) collects statistics from TCP/IP devices to monitor the health of physical network equipment. 
+
+In the Siraugga framework, SNMP translates directly into **Agentic Telemetry**. The central Agent Orchestrator continuously collects statistics from the AI swarm—monitoring token consumption, tool execution failure rates, semantic inference speed, and active subagent threading. This telemetry is vital for Tier 5 Admins to monitor the operational health, efficiency, and financial cost of the AI ecosystem.
+
+Just as legacy networks upgraded to SNMPv3 to utilize modern cryptographic protections, Siraugga relies on a strictly encrypted telemetry pipeline. If agentic telemetry data is transmitted in plaintext, a malicious Tier 2 Modder could eavesdrop on the swarm's proprietary logic or mathematically tamper with their own AI's resource logs in an attempt to hide an ongoing Prompt Injection attack. 
+
+By wrapping all Agentic Telemetry within the mandatory WSS (TLS 1.3) protocol and signing it with Ed25519 signatures, Siraugga guarantees that statistical monitoring data cannot be intercepted, spoofed, or manipulated while in transit.
