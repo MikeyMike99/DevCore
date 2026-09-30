@@ -60,3 +60,16 @@ By physically isolating projects into separate Virtual Logic Area Networks (such
 Despite these isolation boundaries, malicious actors can still attack a specific VLAN’s performance and availability. A cybercriminal might launch a **Semantic Denial of Service (DoS)** attack—intentionally flooding a Modder's sandbox with infinitely recursive prompts or massive data structures designed to exhaust token limits and crash the local logic engine.
 
 To protect the VLAN from these performance attacks, Tier 5 Admins must utilize the Agent Orchestrator to monitor token telemetry in real-time. Furthermore, administrators must implement advanced structural configurations—such as strict **Token Quotas** and **Maximum Context Constraints** via the Raugus Resolver—while continuously deploying SDK hot-patches using the Zero-Restart in-memory reload API to instantly close newly discovered vulnerabilities.
+
+## 4. The Demilitarized Zone (DMZ) and Zones of Risk
+A Demilitarized Zone (DMZ) is a small network situated between a trusted private network and the untrusted Internet. Traditionally, web servers are placed within the DMZ to allow external users to access services without compromising the internal LAN.
+
+In the Siraugga framework, the **Zero-Restart Web Portal** acts as our DMZ. It serves as the strict intermediary boundary layer where the remote Tier 2 Modder interacts with the Quart HTTP/WSS backend, ensuring that their potentially malicious Prompt Injections or compromised JSON payloads never directly touch the internal Agent Orchestrator. 
+
+**Mapping the Zones of Risk**
+Traditional networks define risk across four distinct zones (LAN, Extranet, DMZ, and Internet). Siraugga maps this directly onto our established **File Classification Tiers**:
+
+*   **The Internet Zone (High Risk, Low Trust):** This maps to **Tier 1 (End Users/Players)**. They are completely untrusted and interact exclusively with the compiled, front-end game client. 
+*   **The DMZ (Medium-High Risk, Medium-Low Trust):** This maps to **Tier 2 (Modders)**. Modders utilize the Zero-Restart Web Portal (the DMZ) or their disconnected offline `.exe` sandboxes. They have limited access to specific game assets, and their JSON state deltas are heavily scrutinized by the Raugus Resolver before merging.
+*   **The Extranet Zone (Medium-Low Risk, Medium-High Trust):** This equates to the **Tier 3 (Dev Team)** operating within the `TIER_SAFE_WORKSPACE`. They are highly trusted to write code and manipulate project files, but they are mathematically sandboxed from the core engine architecture.
+*   **The Trusted LAN Zone (Low Risk, High Trust):** This maps to the **Tier 4 / Tier 5 Administrators** operating within the `TIER_CORE_ENGINE`. This is the most heavily fortified zone of the framework, containing the primary orchestration logic, root telemetry logs, and backend encryption keys.
