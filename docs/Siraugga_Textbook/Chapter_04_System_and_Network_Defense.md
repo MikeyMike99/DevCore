@@ -87,3 +87,8 @@ An access badge is not a simple corporate ID card; it is a physical manifestatio
 5. **Authorization & Logging (The Verdict):** The server transmits a boolean signal back to the door mechanism (Grant or Deny). Simultaneously, the event is permanently written to the **Physical Access Logs**.
 
 Physical Access Logs are critical telemetry. Just as we monitor virtual WebSocket handshakes, Tier 5 SysAdmins must actively monitor kinetic access logs. If a developer's badge is recorded entering the physical studio at 02:00 AM, while their digital API token is simultaneously logging into the Siraugga Web Portal from another continent, the anomaly is instantly flagged. In such an event, the Reaper Protocol can instantly revoke all associated digital and physical access.
+
+### Surveillance: The Human Failsafe
+While the Siraugga framework relies heavily on mathematical automation—such as the Raugus Resolver intercepting virtual paths, or the Reaper Protocol automatically severing compromised WebSockets—physical security possesses a fundamental limitation. Kinetic access controls, including biometric deterrents and physical access logs, are ultimately passive detection systems. 
+
+A tripped alarm on a server room door does not physically stop a motivated attacker. Therefore, kinetic surveillance systems (such as closed-circuit television (CCTV), motion detectors, and thermal imaging) must be continuously monitored. They rely entirely on human intervention. When a physical breach is verified via surveillance, Tier 5 SysAdmins and on-site security personnel act as the ultimate failsafe. They are required to physically intervene, neutralize the kinetic threat, and manually isolate the compromised DevCore server racks before data extraction can occur.
