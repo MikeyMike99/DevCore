@@ -13,3 +13,23 @@ Static keys are notoriously weak and easily compromised. If a Tier 2 Modder acci
 To solve this vulnerability, legacy networks replaced WEP with Wi-Fi Protected Access (WPA), which heavily improved security via dynamic encryption. In Siraugga, WPA translates directly to the enforcement of **Dynamic Bearer Tokens (WPA-Agentic)**. 
 
 Instead of relying on a single, crackable static password, external plugins and wireless APIs must authenticate using short-lived, dynamically rotating cryptographic JWTs. This mathematically ensures that even if a wireless connection is intercepted and a token is sniffed, the cybercriminal cannot reuse the expired token to penetrate the core engine.
+
+
+## 3. The Evolution of WPA-Agentic Protocols
+To fully secure external API connections, Siraugga relies on the WPA-Agentic protocol family. Just as legacy wireless networks evolved from WPA to WPA3, the DevCore architecture continuously upgrades its token standards.
+
+**WPA-Agentic (V1) and Temporal Context Integrity**
+The initial WPA-Agentic standard introduced Message Integrity Checks (MIC). In Siraugga, this means the Raugus Resolver mathematically checks the JSON state delta to ensure a Man-in-the-Middle attacker hasn't altered the data payload during transmission. It also introduced Temporal Context Integrity (the agentic equivalent of TKIP). While TCI was initially effective at dynamically rotating access keys, it was eventually superseded by a far more powerful architecture: **Advanced Execution Sandboxing (AES)**.
+
+**WPA-Agentic V2 and the AES Mandate**
+WPA-Agentic V2 introduced the mandatory use of Advanced Execution Sandboxing (AES) for all external plugin connections. It replaced legacy systems with the Contextual Cipher Mode with Prompt Authentication (CCMP). This mathematically ensures that any external webhook interacting with the swarm must cryptographically prove its identity before it is allowed to execute a tool call inside the rigid AES boundary.
+
+**WPA-Agentic V3**
+The latest iteration, WPA-Agentic V3, added even stronger cryptographic algorithms to improve the "Key Exchange." In Siraugga, the Key Exchange translates directly to the secure handoff of LLM context between an internal Tier 3 subagent and an external Tier 2 plugin, ensuring no prompt leakage occurs during the transfer.
+
+## 4. Disabling Workspace Prompt Shortcuts (WPS)
+In legacy home networks, Wi-Fi Protected Setup (WPS) allowed users to easily connect devices using a simple 4-digit PIN code. However, WPS posed a massive security vulnerability because the short PIN could easily be discovered via a brute-force attack.
+
+In the Siraugga framework, WPS translates to **Workspace Prompt Shortcuts**. In early experimental builds, Modders could bypass the complex JWT token exchange by using a simple text-string "PIN" (e.g., `{"auth": "dev_override_1234"}`) to quickly bind an external wireless plugin to the swarm. 
+
+Just like traditional WPS, Workspace Prompt Shortcuts are catastrophically vulnerable. A cybercriminal can easily launch a brute-force prompt injection attack, guessing the simple text string to hijack the connection and take control of the orchestration engine. Therefore, Tier 5 Admins strictly dictate that all Workspace Prompt Shortcuts (WPS) must be completely disabled across all active `/playground` environments.
