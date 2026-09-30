@@ -7,16 +7,29 @@
 ## Module 1: Asset Management & The Architecture of Paranoia
 **Core Theme:** Defining the threat landscape and engineering layered, immutable defenses to protect the host infrastructure from both external attackers and internal autonomous AI agents.
 
-### Key Concepts:
+### What Did I Learn in this Module? (Defense-in-Depth)
+To prepare for any type of attack, DevOps engineers and security technicians must first identify assets, vulnerabilities, and threats. 
+
+**Asset Classification & Lifecycle:**
+The collection of all devices, API keys, AI models, and game source code managed by the organization constitute the attack surface. In Siraugga, we secure this via four steps:
+1. **Determine the category** (e.g., Application Code, Core Engine, Telemetry).
+2. **Establish accountability** (e.g., tying every script strictly to a Modder's unique cryptographic token).
+3. **Determine classification criteria** (e.g., TIER_SAFE_WORKSPACE vs TIER_CORE_ENGINE).
+4. **Implement the schema** (e.g., using the Raugus Resolver to enforce these tiers).
+The stages of these assets' lifecycles are explicitly governed from procurement and deployment to utilization, maintenance, and cryptographic disposal (shredding).
+
+**The Defense-in-Depth Approach:**
+Identifying vulnerabilities requires a deep understanding of the game engine and the AI models in play. To secure vulnerable assets, Siraugga mandates a **Defense-in-Depth** approach (often compared to the Security Onion or Security Artichoke). This approach uses multiple layers of security at the network edge (Port 5001 proxy), within the network (Semantic Evaluator LLM), and on the endpoints (Sandboxed Workspaces).
+
+To ensure the Siraugga infrastructure remains impenetrable, we implemented five distinct layers of protection: **Layering, Limiting (RBAC), Cryptographic Diversity, Rejecting Obscurity, and Operational Simplicity.**
+
+### Key Architectural Concepts:
 1. **Threat Identification:**
    * **Internal Threats:** Rogue Tier 2 Modders attempting path traversal, or legitimate Tier 3 Agents suffering from "Agentic Drift" (hallucinations resulting in destructive system calls).
    * **External Threats:** Adversaries attempting prompt injections via the WebSocket stream to hijack the Main Agent.
 2. **Defense-in-Depth (The Onion Architecture):**
    * **The Semantic Firewall:** The outermost layer. An ultra-fast Evaluator LLM that intercepts prompts, filtering out hostile intent before the Main Agent ever sees the payload.
    * **The Raugus Checkpoint (Path Resolver):** The innermost layer. A rigid middleware that intercepts outbound File I/O requests, stripping absolute paths and mathematically confining agents to their assigned `TIER_SAFE_WORKSPACE`.
-3. **Strategic Doctrines:**
-   * **Hostile Layering:** Assuming every layer will eventually fail, requiring the next layer to operate independently.
-   * **True Cryptography vs. Obscurity:** Rejecting "security through obscurity" (e.g., hiding a file) in favor of mathematical certainty (AES-256 encryption and `.devcore_master.key` derivation).
 
 ---
 
