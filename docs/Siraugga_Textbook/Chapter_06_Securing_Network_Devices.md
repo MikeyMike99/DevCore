@@ -51,3 +51,12 @@ In a corporate IT setting, a VLAN is frequently used to separate the HR departme
 The Raugus Resolver creates a dedicated, hyper-secure VLAN for the `TIER_CORE_ENGINE`. This mathematically separates the highly privileged AI subagents handling sensitive orchestration logic from the untrusted Tier 2 Modders, drastically decreasing the chances of a catastrophic architectural breach.
 
 Furthermore, Semantic Trunks allow Tier 5 Admins operating within this secure core VLAN to safely broadcast data—such as critical SDK hot-patches or telemetry updates—across multiple Modder environments simultaneously, ensuring the entire swarm receives updates without violating the strict sandbox isolation boundaries.
+**Limiting Agentic Noise (Broadcast Traffic)**
+In a physical network, VLANs provide a way to limit broadcast traffic, preventing data packets from unnecessarily flooding every device on the network. In the Siraugga framework, broadcast traffic equates to **Agentic Noise**. If every AI subagent broadcasted its full context window and internal chain-of-thought to every other active agent, the swarm would instantly exhaust its API token quota and paralyze the system. 
+
+By physically isolating projects into separate Virtual Logic Area Networks (such as `/playground/game_demo`), Siraugga naturally limits this broadcast traffic. The AI agents working for Modder A are mathematically prevented from polluting the context windows of the AI agents working for Modder B.
+
+**Defending Against Semantic DoS Attacks**
+Despite these isolation boundaries, malicious actors can still attack a specific VLAN’s performance and availability. A cybercriminal might launch a **Semantic Denial of Service (DoS)** attack—intentionally flooding a Modder's sandbox with infinitely recursive prompts or massive data structures designed to exhaust token limits and crash the local logic engine.
+
+To protect the VLAN from these performance attacks, Tier 5 Admins must utilize the Agent Orchestrator to monitor token telemetry in real-time. Furthermore, administrators must implement advanced structural configurations—such as strict **Token Quotas** and **Maximum Context Constraints** via the Raugus Resolver—while continuously deploying SDK hot-patches using the Zero-Restart in-memory reload API to instantly close newly discovered vulnerabilities.
