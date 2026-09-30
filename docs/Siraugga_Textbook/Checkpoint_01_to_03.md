@@ -93,3 +93,20 @@ Finally, there are external regulations regarding network data security. Tier 5 
    * It enforces strict socket control, Raugus path limits, Tier 5 Overwatch, and forces all imported code to synchronize with the core **SDK (Software Development Kit)** to guarantee security middleware routing.
 4. **Regulatory Compliance:**
    * Acknowledges the legal liability of the game studio. Defines the architecture's obligation to protect Personally Identifiable Information (PII) and payment telemetry through immutable logs and encrypted transport layers.
+
+---
+
+### The Purpose of Siraugga (A Comparative Analysis)
+As we conclude this checkpoint, we must remind ourselves *why* this architecture exists. What is the purpose of Siraugga compared to other AI development tools on the market, and why is it definitively safer?
+
+Legacy AI assistants (such as general-purpose chatbots or standard coding copilots) inevitably fall into two dangerous operational extremes:
+1. **The Black Box (Too Restrictive):** They are isolated text interfaces that cannot actually execute code, manage environments, or interact directly with an active game server. They are merely theoretical advisors.
+2. **The Root Shell (Too Permissive):** They are terminal-based agentic tools that demand full, unmonitored user-level access to the host machine to operate. They expose the entire server to third-party supply-chain attacks, prompt injection exploits, and catastrophic data loss if the agent hallucinates.
+
+**Siraugga is fundamentally different.** Its purpose is to serve as an accessible, zero-restart Web Portal Plugin for in-game development environments. It allows game studios and modders to wield the immense autonomous power of agentic AI *without* sacrificing host security.
+
+**Why is Siraugga a safer option?**
+* **The Raugus Resolver:** Siraugga never grants the AI raw filesystem access. Every action is intercepted and verified against cryptographic alias maps, neutralizing path traversal attacks natively.
+* **Mathematical RBAC:** Legacy tools execute blindly under the host user's privileges. Siraugga enforces strict Role-Based Access Control, locking Tier 2 Modders and their spawned agents tightly within their assigned `TIER_SAFE_WORKSPACE`.
+* **The Semantic Firewall:** Inbound adversarial prompt injections are mathematically detected and dropped at the WebSocket ingress layer before the core logic engine is even exposed.
+* **Absolute Data Sovereignty:** By maintaining authoritarian control over the Telemetry Lifecycle, Cold Storage encryption, and the internal SDK, Siraugga guarantees that proprietary game code, player PII, and core backend logic never leak to unmanaged external servers.
