@@ -69,3 +69,12 @@ In the Siraugga framework, where folders act as our IP addresses, a "hop" transl
 Cybercriminals frequently target this traversal logic. A malicious Tier 2 Modder might utilize Prompt Injection to trick an AI agent into exceeding the maximum hop count (e.g., executing `cat ../../../../../server.py`), deliberately redirecting the execution traffic out of the isolated sandbox and into the forbidden core architecture. 
 
 To defend against these routing attacks, Siraugga relies on the `resolve_safe_path(target)` precompiled SDK macro. The Raugus Resolver intercepts every directory hop in real-time. If an AI agent attempts to route traffic beyond the predefined three-hop limit, the resolver instantly nullifies the path, trapping the payload within the project root and logging the redirection attempt to the Tier 5 Admin dashboard.
+
+## 7. Network Time Protocol (Monotonic Transcript Sequencing)
+Having absolute chronological accuracy within the swarm is mathematically critical. In a traditional network, correct timestamps accurately track security violations in syslog files. In the Siraugga framework, timestamps govern the structural integrity of the **Agentic Memory**. 
+
+Every single action an AI agent takes is appended to a localized JSONL transcript (`transcript.jsonl`), stamped with a rigid ISO 8601 `created_at` variable. If the chronological sequence of these transcripts is disrupted, the AI swarm will experience catastrophic context hallucination. Furthermore, precise clock synchronization is absolutely critical for the Zero-Restart Web Portal, which relies heavily on time-limited Encrypted Session Tokens (JWTs) and time-sensitive Ed25519 digital signatures. 
+
+The Network Time Protocol (NTP) synchronizes the clocks of the Tier 2 Modders' offline `.exe` sandboxes with the core DevCore server. Cybercriminals frequently attempt "Time Dilation Attacks," intentionally desynchronizing the local clock within their offline sandbox. By altering timestamps, an attacker can artificially extend the lifespan of an expired JWT session token, or bury a malicious prompt injection deep in the historical chatlogs to hide it from the Semantic Sniffer. 
+
+To defend against timeline manipulation, Siraugga relies on **Monotonic Transcript Sequencing** (the agentic equivalent of NTP Authentication). The Raugus Resolver mathematically forces the offline `.exe` to synchronize its timestamps exclusively with the trusted central server, instantly rejecting any encrypted state delta that contains desynchronized or manipulated chronological data.
