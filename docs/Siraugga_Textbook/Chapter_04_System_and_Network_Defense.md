@@ -203,3 +203,12 @@ Although the Siraugga core engine currently stores data in flat files (JSON, CSV
 Rather than allowing an AI agent to dynamically hallucinate complex, multi-step system calls over the WebSocket (which is highly vulnerable to prompt injection and Agentic Drift), Tier 2 and Tier 3 Developers are required to use pre-approved, precompiled macros. For example, instead of an AI agent generating a raw file-read command using its own logic, it is forced to call the `resolve_safe_path(target)` macro and pass in a simple parameter. 
 
 By forcing the AI to execute tasks through these precompiled "stored procedures", Siraugga drastically reduces WebSocket token traffic, achieves faster LLM response times, and mathematically eliminates the possibility of the agent executing a rogue, unverified sequence of host commands.
+
+### Obfuscation and Camouflage (Semantic Abstraction)
+In legacy development, programmers often attempt to use obfuscation and camouflage to prevent their software from being reverse-engineered. Obfuscation replaces original data with randomized characters, while camouflage swaps sensitive data for realistic fictional data.
+
+However, as we firmly established in Chapter 1: **Obfuscation is not security.** Relying on obfuscation to hide proprietary backend code from third-party developers or malicious AI agents is a fatal architectural flaw. An advanced threat actor can easily reverse-engineer obfuscated Python.
+
+To solve this, Siraugga utilizes absolute **Semantic Abstraction**. Instead of handing a Tier 2 Modder or an AI subagent the raw source code and attempting to obfuscate the variables, the Siraugga framework completely isolates the code. The agent is never granted read access to the underlying engine logic. Instead, the developer and the agent are provided strictly with a localized `README.md`—an API manifest containing semantic instructions detailing exactly which precompiled functions they are permitted to call and what variables they can pass.
+
+Because the AI is conceptually "camouflaged" within this Black Box, it cannot leak proprietary source code it never possessed. Furthermore, the Semantic Sniffer ruthlessly sanitizes *what goes in and what goes out* of the WebSocket, mathematically guaranteeing that the true backend architecture never leaks back to the Modder or the Tier 1 End User.
