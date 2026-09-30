@@ -137,3 +137,17 @@ However, utilizing Synchronous Replication introduces several strict constraints
 *   **Real-time Synchronization:** Both mathematical sandbox paths are perpetually synchronized; the backup directory acts as an exact, live clone of the primary state.
 *   **High Token Bandwidth:** Because the Semantic Router is aggressively duplicating every single write operation across the network, it effectively doubles the required Token Throughput (Agentic Bandwidth) of the API stream.
 *   **Structural Proximity:** The two mathematical sandbox paths must remain structurally "close together" (i.e., mounted on the exact same physical I/O disk volume). If the Agent Orchestrator attempts to synchronously replicate a local JSON file to a remote cloud volume, the resulting disk latency will cause the AI's `write_to_file` tool call to forcefully timeout, crashing the subagent.
+
+## 14. Asynchronous and Point-in-Time Replication
+Because Synchronous Replication physically limits sandbox placement and doubles API token consumption, Tier 5 Administrators often deploy two alternative replication strategies depending on the project's specific budget and availability requirements.
+
+**Asynchronous Replication (The Trunk Cache)**
+As established in Section 3, Siraugga heavily utilizes an **Asynchronous Trunk Cache**. Unlike strict synchronous replication, asynchronous replication is not perfectly real-time, but rather "close to it." 
+
+When an AI subagent executes a `write_to_file` command, the Semantic Router writes the JSON data to the primary path and immediately spools a copy into the localized Trunk Cache. This allows the subagent to continue its generative execution thread without waiting for a secondary write confirmation. The orchestrator then organically flushes the cache to the backup path milliseconds later. 
+Because the AI is no longer blocked by I/O latency, the backup sandbox path can be hosted "further apart" on a remote cloud volume rather than a local physical disk. This method also requires significantly less Token Bandwidth.
+
+**Point-in-Time Replication (Semantic Git Checkpoints)**
+For standard Tier 2 Modders operating in the `/playground`, the most highly efficient method is **Point-in-Time Replication**. Rather than utilizing AI tool calls to dynamically replicate individual edits, the Agent Orchestrator executes a **Semantic Git Checkpoint**. It periodically commits and pushes the entire master JSON state to a remote backup repository (e.g., every 15 minutes).
+
+Because Point-in-Time replication does not require a constant, real-time agentic connection or dual-write duplication, it is incredibly conservative on Token Bandwidth. Ultimately, the correct balance between financial cost (API Token limits) and strict framework availability will determine which replication architecture an administrator deploys.
