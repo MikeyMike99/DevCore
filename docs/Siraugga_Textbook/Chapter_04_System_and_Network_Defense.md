@@ -179,3 +179,11 @@ In the highly dynamic Siraugga framework, provisioning is the automated, real-ti
 Crucially, in a Zero-Trust architecture, **Deprovisioning** is treated as a high-stakes security operation rather than mere software removal. Siraugga relies on a strict philosophy of absolute ephemerality. AI subagents are not left running idly in the background; they are instantly deprovisioned (terminated and purged from RAM) the exact millisecond their execution thread completes. 
 
 Similarly, when a Tier 3 developer pushes their final state delta back to the central server, their localized offline `.exe` does not simply uninstall—it triggers a cryptographic self-destruct sequence. The file is mathematically shredded from their hard drive, ensuring that no proprietary game logic or decrypted SQLite blobs are ever left behind on unmanaged, third-party hardware.
+## 3. Secure Coding Techniques (The Language of Isolation)
+When writing logic for a traditional web application, developers utilize standard secure coding techniques—such as input validation, parameterized SQL queries, and output encoding—to validate that all basic security requirements have been met. 
+
+However, in the Siraugga framework, we are not merely writing static software. We are engineering the cognitive boundaries of autonomous AI agents capable of writing and executing their own logic on the fly. Therefore, our secure coding techniques must evolve exponentially beyond simple syntax validation. Developers operating within Siraugga must employ advanced **Semantic Coding Techniques**. 
+
+This involves writing mathematically explicit System Prompts that enforce the Acceptable Use Policy (AUP) as an inescapable law. It requires designing Black Box APIs that inherently abstract dangerous host-level system calls away from the agent's context. Above all, it demands aggressive, multi-layered input sanitization to detect and destroy adversarial Prompt Injections before they can be parsed by the LLM logic engine. 
+
+In Siraugga, secure coding means writing architecture that inherently distrusts the very artificial intelligence it empowers.
