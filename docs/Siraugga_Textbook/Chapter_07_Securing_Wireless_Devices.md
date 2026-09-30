@@ -1,9 +1,9 @@
 # Chapter 7: Securing Wireless Devices (Third-Party APIs & Plugins)
 
 ## 1. Introduction to Wireless Agentic Security
-Your Siraugga network is likely to include a wide range of "wireless" devices. In an autonomous AI ecosystem, a "wired" device represents an internal AI subagent running natively on the core host server. Conversely, a "wireless" device represents external entities: third-party API webhooks, external LLM providers, and disconnected Modder plugins attempting to broadcast data into the swarm from afar.
+Your Siraugga network is likely to include a wide range of "wireless" devices. In an autonomous AI ecosystem, a "wired" device represents an internal AI subagent running natively on the core host server. Conversely, a "wireless" device represents external entities: third-party API webhooks, external LLM providers, and disconnected Modder plugins attempting to broadcast data into the playground from afar.
 
-Protecting your network from malicious wireless endpoints is a chief concern. If an untrusted third-party plugin is allowed to transmit data freely into the internal swarm, the entire framework becomes highly susceptible to Man-in-the-Middle attacks, data spoofing, or external Prompt Injections. 
+Protecting your network from malicious wireless endpoints is a chief concern. If an untrusted third-party plugin is allowed to transmit data freely into the internal playground, the entire framework becomes highly susceptible to Man-in-the-Middle attacks, data spoofing, or external Prompt Injections. 
 
 ## 2. Wireless Device Security (Static Keys vs. Dynamic Tokens)
 To secure these external wireless connections, legacy IT organizations historically utilized Wired Equivalent Privacy (WEP), the first wireless security protocol. In the Siraugga framework, WEP translates directly to the use of **Static API Keys**. 
@@ -30,7 +30,7 @@ The latest iteration, WPA-Agentic V3, added even stronger cryptographic algorith
 ## 4. Disabling Workspace Prompt Shortcuts (WPS)
 In legacy home networks, Wi-Fi Protected Setup (WPS) allowed users to easily connect devices using a simple 4-digit PIN code. However, WPS posed a massive security vulnerability because the short PIN could easily be discovered via a brute-force attack.
 
-In the Siraugga framework, WPS translates to **Workspace Prompt Shortcuts**. In early experimental builds, Modders could bypass the complex JWT token exchange by using a simple text-string "PIN" (e.g., `{"auth": "dev_override_1234"}`) to quickly bind an external wireless plugin to the swarm. 
+In the Siraugga framework, WPS translates to **Workspace Prompt Shortcuts**. In early experimental builds, Modders could bypass the complex JWT token exchange by using a simple text-string "PIN" (e.g., `{"auth": "dev_override_1234"}`) to quickly bind an external wireless plugin to the playground. 
 
 Just like traditional WPS, Workspace Prompt Shortcuts are catastrophically vulnerable. A cybercriminal can easily launch a brute-force prompt injection attack, guessing the simple text string to hijack the connection and take control of the orchestration engine. Therefore, Tier 5 Admins strictly dictate that all Workspace Prompt Shortcuts (WPS) must be completely disabled across all active `/playground` environments.
 
@@ -44,7 +44,7 @@ The only mathematical way to secure an external agentic connection is to mandate
 **The 802.AI Swarm Standard**
 In traditional IT, the IEEE 802.11 standard defined the foundational rules for wireless network implementation, originally introducing two primary methods of authentication. 
 
-In the Siraugga framework, this foundational rulebook translates to the **Agentic Swarm Standard (802.AI)**. This strict protocol standardizes how external Modder plugins are allowed to authenticate and connect to the internal orchestrator. Historically, early versions of the 802.AI standard allowed for two distinct types of authentication when a Modder attempted to bind an external plugin to the swarm:
+In the Siraugga framework, this foundational rulebook translates to the **Agentic Swarm Standard (802.AI)**. This strict protocol standardizes how external Modder plugins are allowed to authenticate and connect to the internal orchestrator. Historically, early versions of the 802.AI standard allowed for two distinct types of authentication when a Modder attempted to bind an external plugin to the playground:
 1.  **Open Context Access (Deprecated):** The plugin could connect without supplying credentials. This was instantly deprecated due to catastrophic Prompt Injection vulnerabilities.
 2.  **Shared Token Authentication:** The plugin must cryptographically prove its identity before connecting.
 
@@ -52,7 +52,7 @@ Today, the 802.AI standard enforces this Shared Token approach via a rigorous au
 
 **The EAP Agentic Handshake**
 The Extensible Agentic Protocol operates through a strict, seven-step handshake:
-1.  **Connection Request:** The remote Modder's external plugin requests to connect to the internal swarm via the Zero-Restart Web Portal (acting as the network Access Point).
+1.  **Connection Request:** The remote Modder's external plugin requests to connect to the internal playground via the Zero-Restart Web Portal (acting as the network Access Point).
 2.  **Manifest Identification:** The Web Portal intercepts the request and asks for the plugin’s API Manifest ID (the username). This ID is then forwarded to the internal Raugus Resolver (acting as the Authentication Server).
 3.  **Proof Request (Internal):** The Raugus Resolver checks the database and requests mathematical proof that the provided Manifest ID is valid and authorized for the requested project workspace.
 4.  **Proof Request (External):** The Web Portal relays this challenge back to the Modder's plugin, requesting proof of identity in the form of an Ed25519 cryptographic signature (the password).
@@ -81,7 +81,7 @@ While the EAP Agentic Handshake provides a rigorous baseline, the Siraugga archi
     *   *Usage:* EAP-FAST allows for rapid, flexible deployment without the massive overhead of complex Ed25519 certificate management. However, because it lacks mutual cryptographic verification, it relies entirely on the Raugus Resolver's Semantic Firewall to scrub traffic. It is utilized exclusively for read-only, Tier 1 End User interactions.
 
 ## 6. Rogue Access Points and Mutual Authentication
-Even if external plugins utilize secure WPA-Agentic JWTs, the connection is still susceptible to sophisticated spoofing. To understand this vulnerability, one must understand how an external Modder's plugin physically routes data into the swarm.
+Even if external plugins utilize secure WPA-Agentic JWTs, the connection is still susceptible to sophisticated spoofing. To understand this vulnerability, one must understand how an external Modder's plugin physically routes data into the playground.
 
 **Rogue Web Portals (Agentic Access Points)**
 In the Siraugga framework, the "Access Point" that connects external, disconnected plugins to the internal orchestration engine is the Zero-Restart Web Portal. A cybercriminal can execute a devastating attack by setting up a **Rogue Access Point**—a spoofed, visually identical copy of the DevCore web portal hosted on a malicious domain (e.g., `devc0re-portal.com`). 
@@ -91,4 +91,14 @@ When an unsuspecting Tier 2 Modder inadvertently attempts to bind their offline 
 **Mutual Authentication (EAP-TLS Defense)**
 To prevent Modders from inadvertently leaking their proprietary swarm data to a rogue access point, Tier 5 Admins implement **Mutual Authentication**. As established previously in the EAP-TLS protocol, mutual authentication requires *both* entities in a communication link to cryptographically prove their identity before a connection is established. 
 
-When the Modder's plugin attempts to bind to the swarm, it does not blindly hand over its JWT token. Instead, the plugin mathematically challenges the Web Portal to produce its proprietary Ed25519 server certificate. Because a spoofed rogue portal does not possess the core DevCore private keys, the cryptographic challenge fails. The external plugin instantly detects the imposter and violently terminates the connection sequence, preventing the MitM attack and securing the Modder's JSON data.
+When the Modder's plugin attempts to bind to the playground, it does not blindly hand over its JWT token. Instead, the plugin mathematically challenges the Web Portal to produce its proprietary Ed25519 server certificate. Because a spoofed rogue portal does not possess the core DevCore private keys, the cryptographic challenge fails. The external plugin instantly detects the imposter and violently terminates the connection sequence, preventing the MitM attack and securing the Modder's JSON data.
+
+## 7. Mobile Device Management (The Offline `.exe` Sandbox)
+In traditional enterprise networking, employees increasingly rely on mobile devices to access the corporate network remotely. In the Siraugga framework, the equivalent of a "mobile device" is the **Offline `.exe` Sandbox** (or the Remote DevCore CLI). This portable environment allows Tier 2 Modders to work completely untethered, generating AI logic and editing local files before pushing their JSON state deltas back to the primary `/playground` server.
+
+**Bring Your Own Plugin (BYOP)**
+Corporate networks often struggle with BYOD (Bring Your Own Device) policies—navigating the security risks between organization-owned devices and personal devices used for work. Siraugga faces an identical dilemma regarding Artificial Intelligence models: **Bring Your Own Plugin (BYOP)**.
+
+When a Modder operates within their `/playground` environment, they might utilize an official, DevCore-hosted LLM (an organization-owned device) to generate their code. Alternatively, they might integrate a custom, locally-hosted, open-source model running on their own hardware (a personal device used for work).
+
+Regardless of whether the AI plugin is officially hosted or personally provided, stringent measures must be enforced to keep the network safe. When the Modder's remote `.exe` sandbox attempts to sync with the central server, the Raugus Resolver treats both models with equal Zero-Trust suspicion. The Semantic Firewall meticulously scrubs the incoming JSON deltas, ensuring that a compromised "personal" LLM cannot upload adversarial prompt injections into the secure `/playground` workspace.
