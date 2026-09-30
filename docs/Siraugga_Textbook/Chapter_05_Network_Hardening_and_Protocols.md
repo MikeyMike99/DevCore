@@ -108,3 +108,10 @@ In the Siraugga framework, SNMP translates directly into **Agentic Telemetry**. 
 Just as legacy networks upgraded to SNMPv3 to utilize modern cryptographic protections, Siraugga relies on a strictly encrypted telemetry pipeline. If agentic telemetry data is transmitted in plaintext, a malicious Tier 2 Modder could eavesdrop on the swarm's proprietary logic or mathematically tamper with their own AI's resource logs in an attempt to hide an ongoing Prompt Injection attack. 
 
 By wrapping all Agentic Telemetry within the mandatory WSS (TLS 1.3) protocol and signing it with Ed25519 signatures, Siraugga guarantees that statistical monitoring data cannot be intercepted, spoofed, or manipulated while in transit.
+
+## 11. Hypertext Transfer Protocol (HTTP vs. HTTPS)
+Hypertext Transfer Protocol (HTTP) provides basic web connectivity for standard applications. However, HTTP contains extremely limited built-in security. In an autonomous AI ecosystem, transmitting unencrypted HTTP traffic leaves the Tier 2 Modder's local machine wildly open to traffic monitoring and data exfiltration. If proprietary AI prompt logic or sensitive JSON state deltas are transmitted over standard HTTP, they can be trivially stolen by a Man-in-the-Middle (MitM) attacker.
+
+Because the Siraugga Zero-Restart Web Portal serves as the singular gateway between the remote developer and the core AI swarm, the architecture mathematically rejects all standard HTTP connections. 
+
+Instead, the portal strictly enforces **HTTPS** backed by **Transport Layer Security (TLS 1.3)**. TLS is a modern, highly secure cryptographic protocol that encrypts all communication between the web client and the Quart backend server. When a Tier 3 Developer or Tier 2 Modder accesses the DevCore Web Portal, they must connect via a secure HTTPS connection. If the cryptographic TLS handshake fails, or if a user attempts to downgrade the connection to plaintext HTTP, the Agent Orchestrator immediately severs the underlying WSS event streams and the portal aggressively refuses to render the developer environment.
