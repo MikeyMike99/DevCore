@@ -306,3 +306,10 @@ Authorization determines exactly who—or what AI entity—has access to an orga
 For example, sandbox file permissions and Zero-Trust Access Controls ensure that only highly specific entities can modify data. A Tier 3 Developer working within their ephemeral `.exe` sandbox may have full read-and-write permissions for their isolated `TIER_SAFE_WORKSPACE`, but the Raugus Resolver explicitly blocks them from traversing into `TIER_CORE_ENGINE` assets. 
 
 Furthermore, Tier 5 Admins can dynamically throttle authorization using the Zero-Restart Web Portal. An Admin can set the operational permissions of an active Tier 2 Modder—or an active AI subagent—to "read-only" in real-time. If an autonomous agent attempts to execute a file modification while confined to this read-only state, the middleware intercepts the tool call, dropping the action instantaneously and logging a security alert to the Admin dashboard. This guarantees that neither a rogue human developer nor a hallucinating AI can mutate resources beyond their mathematically assigned clearance.
+## 5. Other Application Security Practices (The Web Portal Perimeter)
+As the Siraugga framework scales, Tier 3 Developers, Tier 2 Modders, and Tier 1 Players will constantly be downloading offline `.exe` sandboxes, deploying custom AI plugins, and transmitting JSON state deltas across the web. This operational reality raises two critical architectural questions: 
+
+1. How can you be mathematically certain that an AI plugin or offline `.exe` you are installing is authentic and has not been maliciously altered by a third party?
+2. How can you ensure that the proprietary prompt logic and telemetry transmitted between a remote physical machine and the core DevCore server remains completely secure over the open Internet?
+
+To answer these questions, Siraugga relies on a combination of advanced transmission protocols and digital authenticity mechanisms to secure the Zero-Restart Web Portal Perimeter.
