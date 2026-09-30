@@ -112,3 +112,15 @@ The **Semantic Tree Protocol (STP)** addresses these critical vulnerabilities. I
 To achieve this, STP intentionally mutes (blocks) redundant subagents that could cause a loop. The backup subagents still physically exist in the server's memory to provide N+1 redundancy, but the Semantic Tree Protocol forcefully disables their ability to broadcast tool calls or messages into the overarching conversation. 
 
 If the primary subagent fails (e.g., experiences a rigid Python exception or exhausts its context window), the STP instantly recalculates the execution paths. It automatically un-mutes the necessary ports, allowing the hot stand-by subagent to actively broadcast its logic and complete the generative task.
+
+## 12. Semantic Router Redundancy
+In the DevCore architecture, the **Semantic Router** serves as the default gateway for the entire AI swarm. It provides isolated subagents with access to the core orchestration engine by validating and routing their API tool calls (such as `view_file` or `run_command`). However, if there is only one Semantic Router serving a Modder's entire workspace, it acts as a massive single point of failure.
+
+To avoid this, Tier 5 Administrators configure **First-Call Redundancy** by deploying an additional, hot-standby Semantic Router alongside the primary gateway.
+
+**Virtual Endpoints and Keep-Alive Pings**
+To facilitate a seamless failover, the orchestrator utilizes virtualized network identifiers. Each Semantic Router is configured with a localized "Physical" Conversation ID, as well as a shared **Virtual Endpoint UUID**. 
+
+Instead of subagents sending their JSON tool calls to a specific Physical ID, they transmit their logic to the shared Virtual Endpoint UUID. Meanwhile, the primary (forwarding) router and the standby router continuously exchange **WebSocket Keep-Alive Pings** (as established in Chapter 5) using their Physical IDs to guarantee both are still online and responsive.
+
+If the standby Semantic Router stops receiving periodic keep-alive pings from the primary router, it instantly recognizes that the primary gateway has crashed or stalled. The standby router autonomously assumes the forwarding role for itself. Because the AI subagents in the swarm are continually sending their tool calls to the static Virtual Endpoint UUID, their execution threads remain completely uninterrupted despite the primary router's crash, as the Virtual Endpoint now organically routes traffic to the standby gateway.
