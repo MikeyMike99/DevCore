@@ -11,8 +11,23 @@ First up, it’s all about securing Zero-Restart WebSocket services and cryptogr
 ## 2. Network and Routing Services
 Cybercriminals and malicious AI agents use vulnerable network services to attack a server or hijack an offline sandbox to use as part of a coordinated swarm attack. 
 
-In a traditional IT environment, administrators and attackers alike use port scanners to detect open ports on a device. A port scanner sends a message to each port and waits for a response, revealing the network topology and potential entry points. In the Siraugga framework, an advanced threat actor might deploy an **Agentic Port Scanner**—a specialized AI subagent instructed to aggressively probe the host's network interfaces, searching for an exposed protocol or an unprotected backend service.
+In a traditional IT environment, attackers use network port scanners to detect open vulnerabilities on a device. However, in the localized AI environment of the Siraugga framework, **files and folders serve as our logical "ports"**. 
 
-Because Siraugga's core architecture relies entirely on the Zero-Restart Web Portal (typically running a Quart HTTP/WebSocket server on Port 5000), securing these routing services is paramount. Securing the network ensures that Port 5000 is the *only* necessary port exposed to the swarm. 
+An advanced threat actor will deploy an **Agentic Port Scanner**—a specialized AI subagent instructed to aggressively probe the host's directory structure (using path traversal techniques), searching for exposed folders or unprotected backend script files. 
 
-Every other system port must be violently locked down by the host firewall. This aggressive port restriction mathematically prevents a compromised Tier 3 offline `.exe` sandbox from establishing a rogue reverse-shell or communicating with external command-and-control (C2) servers, forcing all traffic to flow exclusively through the heavily audited WebSocket layer.
+Because Siraugga's core architecture relies entirely on the Zero-Restart Web Portal, securing these directory "ports" is paramount. Securing the environment ensures that only the strictly necessary project folders (the `TIER_SAFE_WORKSPACE`) are exposed to the swarm. Every other system folder—especially those containing environment variables or hidden `.git` directories—must be violently locked down by the OS-level firewall. This aggressive folder restriction mathematically prevents a compromised Tier 3 offline `.exe` from probing outside its sandbox.
+
+## 3. Dynamic Host Configuration Protocol (Workspace Provisioning)
+In standard networking, Dynamic Host Configuration Protocol (DHCP) uses a server to assign an IP address and configuration data to devices. In effect, the device gets a "permission slip" from the DHCP server to use the network. 
+
+In the Siraugga framework, DHCP translates to **Workspace Provisioning**. When a Tier 2 Modder connects to the web portal, the `project_manager.py` (acting as the DHCP server) assigns them a localized game project folder (their IP address) and strictly confines them to that directory. 
+
+Attackers can target the Workspace Provisioning module to deny access to legitimate developers, or attempt to spawn a "rogue DHCP server" (an unauthorized AI agent assigning itself malicious directory paths). To prevent this, Siraugga utilizes **Path Snooping** (the equivalent of DHCP snooping), where the Raugus Resolver continuously validates that all workspace creation messages originate strictly from the trusted `project_manager.py` core file.
+
+**A Security Checklist for Workspace Provisioning (DHCP):**
+* **Physically secure the Provisioning Server:** Ensure `project_manager.py` is locked within the `TIER_CORE_ENGINE` classification, inaccessible to Modders.
+* **Apply any software patches:** Utilize the Zero-Restart in-memory reload API to hot-patch provisioning logic.
+* **Locate the server behind a firewall:** Protect the workspace logic behind the Semantic Firewall to block prompt injections.
+* **Monitor provisioning activity:** Continuously review the Tier 5 Admin logs for anomalous folder creation.
+* **Uninstall unused services:** Strip deprecated AI subagents and dead code from the SDK Baseline.
+* **Close unused ports:** Aggressively lock down and delete any unused or abandoned project folders to reduce the attack surface.
