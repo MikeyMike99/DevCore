@@ -12,7 +12,7 @@ This module dissects the following defensive topics:
 
 | Topic Title | Core Objective |
 | :--- | :--- |
-| **Physical Security** | Explain how physical hardware constraints, surveillance, and biometric controls are implemented to protect the core DevCore server equipment from kinetic attacks. |
+| **Physical Security** | Explain how physical hardware constraints, surveillance, and biometric controls are implemented to protect the core Siraugga server equipment from kinetic attacks. |
 | **Application Security** | Detail how to mathematically apply application security measures to shield the core engine from rogue plugins and Agentic Drift. |
 | **Network Hardening (Protocols)** | Explain how to ruthlessly harden inbound network services, WebSocket streams, and API protocols against injection and Denial of Service (DoS) attacks. |
 | **Network Segmentation** | Explain how absolute network segmentation (via Raugus VFS and containerized sandboxes) isolates catastrophic breaches from spreading to the host OS. |
