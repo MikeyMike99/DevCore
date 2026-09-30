@@ -101,3 +101,14 @@ The orchestrator utilizes the following three architectures to distribute comple
 *   **Agentic Mirroring:** The orchestrator duplicates an identical task across two identical subagents. Both process the data simultaneously. If one subagent experiences a catastrophic hallucination or token failure midway through execution, the second subagent seamlessly provides the fully generated context, preventing the loss of generative time.
 *   **Semantic Striping:** The orchestrator takes an overwhelmingly massive task (e.g., generating a massive 50-page game questline) and breaks it into consecutive semantic segments. It assigns these consecutive segments to multiple different subagents so they can generate the logic in parallel, exponentially increasing the execution speed of the overarching task.
 *   **Semantic Parity:** More precisely, *Striping with Parity*. After the subagents execute their striped logic, a third independent subagent (typically a `QA` Archetype) reviews the combined output. This QA agent generates mathematical and semantic "checksums" to rigidly verify that no hallucinations, syntax errors, or logic gaps exist within the striped data before it is merged into the master JSON repository.
+
+## 11. The Semantic Tree Protocol (STP)
+While N+1 Redundancy and Agentic Mirroring vastly increase the resilience of the DevCore infrastructure, building extreme redundancy into an AI network introduces a catastrophic risk: **Conversational Loops and Duplicate Prompts**.
+
+When multiple redundant subagents are spawned into the same orchestration channel to solve a single generative task, they run the massive risk of autonomously responding to each other's outputs. This creates a devastating infinite hallucination loop, resulting in duplicate JSON frames and severe API token exhaustion.
+
+The **Semantic Tree Protocol (STP)** addresses these critical vulnerabilities. Its core function is to strictly prevent infinite logic loops when dozens of redundant subagents interconnect within the same workspace. STP ensures that despite the physical presence of redundant stand-by subagents, the conversation remains entirely loop-free and only **one logical execution thread** runs at a given time. 
+
+To achieve this, STP intentionally mutes (blocks) redundant subagents that could cause a loop. The backup subagents still physically exist in the server's memory to provide N+1 redundancy, but the Semantic Tree Protocol forcefully disables their ability to broadcast tool calls or messages into the overarching conversation. 
+
+If the primary subagent fails (e.g., experiences a rigid Python exception or exhausts its context window), the STP instantly recalculates the execution paths. It automatically un-mutes the necessary ports, allowing the hot stand-by subagent to actively broadcast its logic and complete the generative task.
