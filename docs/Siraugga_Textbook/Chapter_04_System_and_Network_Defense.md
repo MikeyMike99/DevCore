@@ -290,3 +290,12 @@ In the Siraugga framework, we completely reject this limitation. The true power 
 Instead of Mutex locks, Siraugga utilizes **Semantic Merging**. When multiple entities—such as a Tier 3 Developer, a Tier 2 Modder, and a parallel AI subagent—attempt to modify the exact same `npc_state.json` file concurrently, the core orchestration engine intercepts the incoming state deltas. Rather than throwing a standard mathematical collision error, the AI evaluates the *intent* of the simultaneous changes. 
 
 It intelligently merges the overlapping logic in real-time, resolving conflicts contextually without ever forcing a developer or subagent into a read-only state. This allows the swarm to collaboratively build and modify architecture at lightspeed without stepping on its own toes, replacing standard version control with fluid AI conflict resolution.
+
+### Backups (Cold Storage and the Forensic Paradox)
+Accurate backups help maintain data integrity in the event that data becomes maliciously corrupted or accidentally overwritten by an errant AI agent. However, in the Siraugga framework, backups serve a much more critical security function regarding incident response.
+
+As established during the Reaper Protocol, if Siraugga detects a critical breach or path traversal attempt, it aggressively self-shreds the compromised sandboxes to prevent data exfiltration. This creates a terrifying **Forensic Paradox**: the very mechanism designed to protect the system simultaneously destroys the evidence needed by Tier 5 Admins to investigate the attack.
+
+To solve this, Siraugga utilizes an automated **Cold Storage Backup** process. Immediately before a Modder's offline `.exe` cryptographically self-destructs—or before a sandbox is violently purged by the Reaper Protocol—a highly privileged Lifecycle Hook intercepts the data. It takes a flawless, AES-encrypted snapshot of the agent's active memory, JSON state, and telemetry logs, transmitting it securely to an offline Cold Storage vault. 
+
+This guarantees that even if the active data is catastrophically corrupted or intentionally shredded, the organization maintains a pristine, cryptographically verifiable backup for forensic analysis.
