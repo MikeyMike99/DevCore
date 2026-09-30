@@ -151,3 +151,23 @@ Because the AI is no longer blocked by I/O latency, the backup sandbox path can 
 For standard Tier 2 Modders operating in the `/playground`, the most highly efficient method is **Point-in-Time Replication**. Rather than utilizing AI tool calls to dynamically replicate individual edits, the Agent Orchestrator executes a **Semantic Git Checkpoint**. It periodically commits and pushes the entire master JSON state to a remote backup repository (e.g., every 15 minutes).
 
 Because Point-in-Time replication does not require a constant, real-time agentic connection or dual-write duplication, it is incredibly conservative on Token Bandwidth. Ultimately, the correct balance between financial cost (API Token limits) and strict framework availability will determine which replication architecture an administrator deploys.
+
+## 15. Unified Resilient Design and Application Resilience
+Resiliency is the overarching name given to the combined methods and configurations used to make a complex system fundamentally tolerant of failure. As seen in the previous sections, resilient design is about much more than just blindly adding redundancy—it is about fine-tuning those redundancies so that Tier 1 Players and Tier 2 Modders never even notice a failure occurred. 
+
+For example, although the Semantic Tree Protocol (STP) provides an alternate execution path when a primary subagent fails, the logic switchover may not be immediate if the AI's generation parameters are not mathematically optimal. Fine-tuning the Semantic Router's configurations ensures that the fallback pipeline operates within milliseconds, preventing user disruption.
+
+**Application Resilience Solutions**
+Application resilience is the framework's ability to actively react to component problems (such as API rate limits or deep logic crashes) while continuing to function. Achieving true application resiliency means avoiding a loss of Modder morale, productivity, or data due to a sudden agentic failure. 
+
+To achieve this, Tier 5 Administrators synthesize three core availability solutions:
+1. **Fault-Tolerant Archetypes:** Building multiples of all critical AI components into the exact same localized workspace (e.g., N+1 Redundancy).
+2. **Swarm Clustering:** Deploying a localized group of interconnected subagents that seamlessly act as a singular, cohesive intelligence to the end-user.
+3. **Semantic Backup and Restore:** Executing Point-in-Time Semantic Git Checkpoints to copy master JSON files for instant recovery if severe state corruption occurs.
+
+**Antigravity Resilience (The Primary Bootset)**
+Finally, the overarching orchestrator itself—the **Antigravity CLI (`agy`)**—includes a native resilient configuration feature. 
+
+This architectural feature allows for immediate structural recovery if a Tier 2 Modder maliciously or unintentionally reformats their `/playground` flash memory or completely erases their local startup configuration. To guarantee recovery, the Antigravity engine maintains a secure, immutable working copy of the core `server.py` engine image and a highly secure, write-protected copy of the Master System Prompt. 
+
+Because of the framework's strict Zero Trust boundaries (as established in Chapter 6), a Tier 2 Modder explicitly lacks the operating system permissions to remove, edit, or interact with these core engine files. This unassailable fail-safe is known as the **Primary Agentic Bootset**, ensuring that no matter how severely a Modder corrupts their local workspace, the Antigravity engine can always instantly recover and redeploy the resilient swarm.
