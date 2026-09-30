@@ -99,3 +99,19 @@ Kinetic security guards and physical escorts provide the ultimate solution for p
 There are distinct architectural disadvantages to relying heavily on physical security guards. A human guard is incredibly expensive to deploy, physically incapable of continuously monitoring high volumes of access log traffic, and above all, introduces the fatal vulnerability of **human error** (such as falling victim to social engineering, bribery, or simply losing focus). 
 
 However, in highly secure DevCore facilities hosting the Siraugga master keys, purely automated systems are insufficient. The primary architectural benefit of deploying human guards is their adaptive intelligence. A biometric scanner cannot read a threat actor's body language; a card reader cannot distinguish between a legitimate developer and an intruder holding that developer hostage under duress. Kinetic guards possess the unique biological capability to learn, distinguish highly complex physical anomalies, and execute split-second, non-linear decisions on the spot that mathematical systems simply cannot replicate.
+## 2. Application Security & Network Hardening
+If Physical Security protects the kinetic perimeter, Application and Network Security protect the virtual perimeter. In the Siraugga framework, we do not blindly trust any traffic moving into or out of the core orchestration engine. We harden the network by strictly defining the Ingress (What Goes In) and Egress (What Goes Out) pipelines.
+
+### Ingress: Protecting the Mind (What Goes In)
+**The Mechanism:** The Semantic Firewall (Evaluator LLM)
+* **The Flow:** A Tier 2 Modder or remote client transmits a prompt, JSON payload, or script via the Port 5001 WebSocket.
+* **The Interception:** Before the core logic engine even processes the payload, it hits the Semantic Firewall.
+* **The Verdict:** The Evaluator LLM mathematically dissects the payload. If it detects a Prompt Injection, a jailbreak attempt, or an unauthorized command (violating the Acceptable Use Policy), it instantly drops the packet and logs the attempt to the Application Security Logs. If clean, the prompt is permitted into the engine.
+
+### Egress: Protecting the Body (What Goes Out)
+**The Mechanism:** The Raugus Path Resolver (The Sandbox)
+* **The Flow:** An authorized AI agent or Python script attempts to write a file, execute a terminal command, or output data back to the game engine.
+* **The Interception:** Before the host OS executes the System Call, the Raugus Resolver intercepts the payload.
+* **The Verdict:** It strips all absolute paths and checks the requested operation against the user's RBAC tier. If an agent tries to write to a forbidden directory (e.g., `../../etc/passwd`), the Raugus Resolver mathematically denies the escape, trapping the operation tightly within the assigned `TIER_SAFE_WORKSPACE`. If the path is valid, the egress is permitted.
+
+**The Conclusion:** Ingress hardening protects the *Mind* of the AI from being compromised. Egress hardening protects the *Body* of the Host Server from being destroyed.
