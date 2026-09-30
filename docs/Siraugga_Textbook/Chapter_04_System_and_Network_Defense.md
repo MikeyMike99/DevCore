@@ -281,3 +281,12 @@ The mechanics of the checksum rely entirely on cryptographic hash functions. A h
 While common legacy hash functions include MD5 and SHA-1, the Siraugga framework explicitly bans these outdated algorithms due to known collision vulnerabilities. To maintain absolute Zero-Trust, Siraugga mandates the use of highly secure algorithms such as **SHA-256**, **SHA-512**, and **scrypt**. 
 
 These cryptographic algorithms are vital during the provisioning phase. For example, after a Tier 2 Modder or Tier 3 Developer downloads their localized, offline `.exe` sandbox from the central web portal, the framework automatically verifies the integrity of the downloaded payload. It compares the SHA-256 hash value provided by the central server with the hash generated locally on the developer's host machine. If the values match, the developer knows with mathematical certainty that their isolated sandbox was not intercepted and injected with a backdoor payload by an adversary during the download.
+
+### Version Control (Mutex Locks and State Integrity)
+Organizations use version control to prevent authorized users from making accidental, catastrophic changes to the codebase. In a Siraugga swarm environment, where dozens of autonomous AI agents and remote developers may be interacting with the system simultaneously, the risk of a race condition or file collision is extraordinarily high.
+
+In the Siraugga framework, version control means mathematically ensuring that two entities—whether they are Tier 3 Developers, Tier 2 Modders, or parallel AI subagents—cannot update the same data object at the exact same time. If two independent AI agents attempt to modify the same `npc_state.json` file concurrently, the conflicting logic will instantly corrupt the game engine.
+
+To prevent this, Siraugga enforces strict **Mutex (Mutually Exclusive) Locks** on all local data blobs, scripts, and JSON states. When an AI agent executes a tool to modify a file, it acquires an absolute cryptographic lock on that object. The first agent to open the document is granted exclusive permission to change it. Any secondary agent or user that attempts to read or modify the file while the lock is active will automatically be downgraded to a read-only state by the Raugus Resolver. 
+
+This rigid version control mathematically eliminates asynchronous hallucination, ensuring that the swarm's memory and the physical game state remain flawless.
