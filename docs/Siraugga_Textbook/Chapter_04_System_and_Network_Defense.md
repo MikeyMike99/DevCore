@@ -333,3 +333,17 @@ Because Siraugga's Zero-Restart Web Portal relies heavily on real-time, event-dr
 It is absolutely critical that these tokens are never transmitted over unencrypted channels. If a session token is sent via plaintext HTTP, an adversary could intercept the packet, hijack the session, and impersonate the Modder to inject malicious plugins into the swarm. 
 
 To prevent session hijacking, Siraugga enforces strict cryptographic transport layers. All session tokens, agent telemetry, and JSON state deltas must be transmitted exclusively over HTTPS and **WSS (WebSocket Secure)** utilizing the TLS 1.3 protocol. If a client attempts to downgrade to an unencrypted connection, the edge router violently terminates the handshake.
+## 6. Managing Threats (Incident Response & Disaster Recovery)
+Even with strict Semantic Abstraction and mathematically enforced cryptographic boundaries, organizations must implement absolute fail-safe measures to manage critical threats to the application domain.
+
+**Unauthorized Access and Rogue Agents**
+To prevent unauthorized access to the core engine (analogous to physically breaching a data center), Tier 5 Admins must enforce rigid procedural policies for Tier 2 Modders and Tier 3 Developers. All third-party development must remain hermetically sealed within offline `.exe` sandboxes. If an AI agent or a Modder attempts unauthorized lateral movement (such as path traversal) outside their permitted File Classification Tier, the Raugus Resolver must immediately sever the WebSocket connection and cryptographically lock the user's account.
+
+**Server and System Downtime**
+In a swarm architecture, a cascading logic failure among multiple AI subagents can rapidly exhaust token quotas, consume server resources, and cause widespread system downtime. To maintain the continuous availability of operations, developers must implement a **Business Continuity Plan**. In Siraugga, this is achieved by strictly isolating all experimental AI plugins to the Shadow Node (Staging). If an experimental agent hallucinates an infinite loop or a destructive payload, it only crashes the disposable Shadow Node, leaving the live `TIER_SAFE_WORKSPACE` and the Tier 1 End Users completely unaffected.
+
+**Disaster Recovery (The Reaper Protocol)**
+Organizations must develop an absolute disaster recovery plan for critical AI applications and data stores. If an advanced zero-day exploit successfully bypasses the SDK Baseline and compromises the live engine, Siraugga instantly initiates its Disaster Recovery protocol:
+1. **Purge:** The Reaper Protocol is activated, violently shredding the corrupted `tmpfs` RAM disk to neutralize the active threat.
+2. **Recover:** The system automatically authenticates and retrieves the last known good, cryptographically verified JSON state from the AES-encrypted Cold Storage vault.
+3. **Restore:** The orchestration engine dynamically rebuilds the swarm environment from the clean snapshot, restoring full operational capability with zero permanent data loss.
