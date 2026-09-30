@@ -128,3 +128,14 @@ Siraugga is mathematically engineered to **Fail-Closed**. If the core orchestrat
 3. **Sandbox Shredding:** The `tmpfs` RAM-disks hosting active AI agents and untrusted developer workspaces are instantly shredded (`shred -u -z`), ensuring that no proprietary data can be exfiltrated while the surveillance grid is down.
 
 The Siraugga engine remains in this paralyzed, highly secure state until a Tier 5 SysAdmin can physically intervene, evaluate the logs, and manually restore the Deep Prompt Inspection grid.
+
+### Exercise: The Insider Threat in the Dark
+Consider the following theoretical scenario: A telemetry message is intercepted suggesting that a rogue AI subagent (or a compromised Tier 3 Developer) is planning to exfiltrate proprietary client data during the exact window that the Deep Prompt Inspection (virtual surveillance) system is offline. The threat actor is already "on the premises"—meaning they possess a valid API token and an active background process already executing within the engine. 
+
+How does Siraugga protect the core data when its primary surveillance grid is completely blind?
+
+Because Siraugga is built upon a rigid, defense-in-depth architecture, the failure of one safeguard (the Semantic Firewall) does not grant an attacker free reign over the host. Even if an attacker successfully triggers a malicious payload in the dark, they must still contend with the final, uncompromising layer of egress security: **The Raugus Path Resolver**. 
+
+Every single system call, file read, or network outbound request executed by the rogue agent must pass through the Path Resolver before reaching the host OS. If the attacker attempts to read proprietary telemetry or traverse the host disk (e.g., `cat ../../etc/passwd`), the Resolver mathematically verifies the path against the agent's constrained RBAC sandbox. The path-traversal attempt is instantly denied with a fatal `PermissionError`. 
+
+The attacker is trapped tightly inside the `TIER_SAFE_WORKSPACE`. The insider threat is completely neutralized at the point of egress, proving that true Zero-Trust does not rely on a single line of defense.
