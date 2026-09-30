@@ -299,3 +299,10 @@ As established during the Reaper Protocol, if Siraugga detects a critical breach
 To solve this, Siraugga utilizes an automated **Cold Storage Backup** process. Immediately before a Modder's offline `.exe` cryptographically self-destructs—or before a sandbox is violently purged by the Reaper Protocol—a highly privileged Lifecycle Hook intercepts the data. It takes a flawless, AES-encrypted snapshot of the agent's active memory, JSON state, and telemetry logs, transmitting it securely to an offline Cold Storage vault. 
 
 This guarantees that even if the active data is catastrophically corrupted or intentionally shredded, the organization maintains a pristine, cryptographically verifiable backup for forensic analysis.
+
+### Authorization (The Principle of Least Privilege)
+Authorization determines exactly who—or what AI entity—has access to an organization’s resources on a strict need-to-know basis. In the Siraugga framework, authorization is mathematically enforced through the synergy of the Five-Tier RBAC hierarchy and the internal File Classification Tiers.
+
+For example, sandbox file permissions and Zero-Trust Access Controls ensure that only highly specific entities can modify data. A Tier 3 Developer working within their ephemeral `.exe` sandbox may have full read-and-write permissions for their isolated `TIER_SAFE_WORKSPACE`, but the Raugus Resolver explicitly blocks them from traversing into `TIER_CORE_ENGINE` assets. 
+
+Furthermore, Tier 5 Admins can dynamically throttle authorization using the Zero-Restart Web Portal. An Admin can set the operational permissions of an active Tier 2 Modder—or an active AI subagent—to "read-only" in real-time. If an autonomous agent attempts to execute a file modification while confined to this read-only state, the middleware intercepts the tool call, dropping the action instantaneously and logging a security alert to the Admin dashboard. This guarantees that neither a rogue human developer nor a hallucinating AI can mutate resources beyond their mathematically assigned clearance.
