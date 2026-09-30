@@ -124,3 +124,16 @@ To facilitate a seamless failover, the orchestrator utilizes virtualized network
 Instead of subagents sending their JSON tool calls to a specific Physical ID, they transmit their logic to the shared Virtual Endpoint UUID. Meanwhile, the primary (forwarding) router and the standby router continuously exchange **WebSocket Keep-Alive Pings** (as established in Chapter 5) using their Physical IDs to guarantee both are still online and responsive.
 
 If the standby Semantic Router stops receiving periodic keep-alive pings from the primary router, it instantly recognizes that the primary gateway has crashed or stalled. The standby router autonomously assumes the forwarding role for itself. Because the AI subagents in the swarm are continually sending their tool calls to the static Virtual Endpoint UUID, their execution threads remain completely uninterrupted despite the primary router's crash, as the Virtual Endpoint now organically routes traffic to the standby gateway.
+
+## 13. Path Redundancy and Synchronous Replication
+Beyond router redundancy and agentic failovers, Tier 5 Administrators may also configure **Location Redundancy** to protect highly critical projects. As established in Chapter 7, an agent's "location" in Siraugga refers exclusively to its Mathematical Sandbox Path (e.g., `/playground/core_engine/`).
+
+Path Redundancy involves maintaining an identical, mirrored sandbox directory (e.g., `/playground/backup_engine/`) on standby in case the primary directory is hopelessly corrupted or maliciously encrypted.
+
+To maintain these dual environments, the DevCore architecture utilizes **Synchronous Replication**.
+Whenever an AI subagent executes a tool call to write a JSON state delta to the primary path, the Semantic Router simultaneously duplicates that exact write operation, committing the data to the backup path in real-time. 
+
+However, utilizing Synchronous Replication introduces several strict constraints on the overarching swarm:
+*   **Real-time Synchronization:** Both mathematical sandbox paths are perpetually synchronized; the backup directory acts as an exact, live clone of the primary state.
+*   **High Token Bandwidth:** Because the Semantic Router is aggressively duplicating every single write operation across the network, it effectively doubles the required Token Throughput (Agentic Bandwidth) of the API stream.
+*   **Structural Proximity:** The two mathematical sandbox paths must remain structurally "close together" (i.e., mounted on the exact same physical I/O disk volume). If the Agent Orchestrator attempts to synchronously replicate a local JSON file to a remote cloud volume, the resulting disk latency will cause the AI's `write_to_file` tool call to forcefully timeout, crashing the subagent.
