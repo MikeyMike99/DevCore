@@ -57,3 +57,14 @@ When Tier 5 SysAdmins select a biometric system to guard the physical perimeter,
 * **Reliability:** The physical sensor must perform flawlessly regardless of environmental degradation (such as dust, moisture, or extreme server room temperatures).
 * **Data Storage Requirements:** Raw biometric profiles are massive. They cannot be stored in plaintext; they must be hashed and stored in encrypted databases, demanding strict telemetry management.
 * **Enrollment Time & Intrusiveness:** The time required to register a developer's biometric signature must be minimized, and the physical scan itself must balance security with the physical autonomy of the human operator.
+
+### The Mathematics of Failure: Type I vs. Type II Errors
+When evaluating the accuracy of a biometric architecture, engineers must accept that no sensor is mathematically perfect. All systems will eventually produce one of two critical error states:
+
+**1. Type I Errors (False Rejection Rate / FRR)**
+A Type I error occurs when the system mathematically rejects the valid biological hash of an authorized, registered user. In a rigid Zero-Trust environment where the primary objective is to keep adversaries out, a False Rejection is technically the *safest* failure state (Fail-Closed). It simply means a legitimate Tier 5 Admin must scan their retina a second time. However, if Siraugga is deployed to govern in-game retail transactions or micro-payments, an excessively high Type I error rate will result in massive operational friction and lost revenue.
+
+**2. Type II Errors (False Acceptance Rate / FAR)**
+A Type II error is a catastrophic architectural failure. This occurs when the system falsely authenticates an unenrolled impostor, granting them the access privileges of a legitimate user. In the context of physical server security, a single Type II error means a hostile threat actor has bypassed the kinetic perimeter and gained direct, unimpeded access to the host hardware. Because a Type II error fundamentally shatters the Zero-Trust mandate, it is the most critical metric.
+
+The **Acceptance Rate** of a biometric sensor is expressed as a strict percentage. It measures the exact rate of Type II errors against the total number of authentication attempts. In the Siraugga framework, Tier 5 SysAdmins must calibrate their physical sensors to demand a Type II Acceptance Rate approaching absolute zero, even if it drastically increases the frequency of benign Type I rejections.
