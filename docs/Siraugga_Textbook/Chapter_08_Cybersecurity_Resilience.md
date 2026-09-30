@@ -41,3 +41,15 @@ To quantify this resilience, Tier 5 Administrators aim for a metric known as the
 The Five Nines metric dictates an operational availability rate of 99.999%. In a traditional hardware context, this translates to less than 5.26 minutes of physical server downtime per year. However, in the DevCore architecture, "downtime" is not merely physical server disconnection—it is defined as *Logic Processing Downtime*. 
 
 If the swarm enters a state of catastrophic token exhaustion, hallucination gridlock, or API rate-limiting where it cannot successfully execute tools or resolve JSON merges for more than 5.26 minutes a year, it fails the metric. To achieve the Five Nines, the Agent Orchestrator must ruthlessly execute the three High Availability design principles (Micro-swarming Redundancy, LLM Fallbacks, and Telemetry) to ensure that even during a catastrophic failure cascade, the underlying WSS stream and the AI's logical processing capabilities never halt.
+
+## 6. Standardized Systems and Agentic Sentinels
+In traditional IT infrastructure, systems standardization ensures that server racks utilize the exact same hardware components. This makes physical parts inventories easy to maintain and allows technicians to rapidly swap out failed components during a catastrophic emergency. 
+
+In the Siraugga framework, system standardization translates directly to **Agentic Archetypes**. Rather than relying on highly customized, unpredictable AI configurations that are difficult to debug, Tier 5 Administrators maintain a standardized inventory of subagent Archetypes (e.g., `Research`, `Coding`, `QA`). Because all subagents within a specific archetype share identical System Prompts, token limits, and Tool Whitelists, the orchestrator can instantly hot-swap a failed `Coding` agent with a fresh, standardized clone during a severe hallucination emergency, preserving the Five Nines metric.
+
+**Agentic Guards (Sentinels)**
+In highly secure physical server facilities, human guards control access to sensitive data areas. The primary benefit of employing human guards is their fluid adaptability; they can learn, distinguish novel situations, and make nuanced decisions on the spot—a flexibility that rigid, automated systems lack.
+
+In DevCore, static automated security systems (such as regex filters or strict IAM policies) are highly effective, but they struggle to adapt to novel, zero-day prompt injections. To solve this, Siraugga employs **Agentic Sentinels**—autonomous AI security guards stationed at the framework's network perimeter. 
+
+Unlike static firewalls, these Sentinel subagents can dynamically read and interpret the semantic intent behind incoming WSS payloads. If a compromised Modder `.exe` attempts a highly obfuscated prompt injection that perfectly bypasses the static regex filters, the Sentinel agent will adapt, recognize the underlying hostile intent, and make a real-time, on-the-spot decision to violently sever the connection, protecting the sensitive core engine.
