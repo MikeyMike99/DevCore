@@ -20,7 +20,7 @@ To protect this mapped attack surface, Siraugga enforces strict, non-negotiable 
 * **Tier 3 (The Admin Log)**: The paper trail. Daemon logs, upgrade histories, and system telemetry. These are tightly restricted, read-only assets reserved strictly for auditing and forensic analysis by the SysAdmin.
 * **Tier 4 (The Forbidden Zone)**: The kill switch. Virtual environments, Git internals, hidden directories, and credential `.env` files. These assets are hard-locked against all user interaction. If an entity attempts to access a Tier 4 asset, the connection is instantly severed.
 
-By combining these four File Classification Tiers with a rigid, 5-level **Role-Based Access Control (RBAC)** hierarchy, Siraugga shrinks the Attack Surface down to a microscopic point. 
+By combining these four File Classification Tiers with a rigid, 3-level **Role-Based Access Control (RBAC)** hierarchy, Siraugga shrinks the Attack Surface down to a microscopic point. 
 
 This is the true essence of **Asset Classification**: ruthlessly categorizing your resources based on their inherent risk and common characteristics. You cannot treat a sandboxed JSON file with the same paranoia as a root orchestration script. The most critical information must receive the absolute highest level of protection, requiring cryptographic segregation and specialized handling to ensure that even if the outer perimeter is breached, the heart of the system remains impenetrable.
 
@@ -77,17 +77,17 @@ When establishing the Siraugga threat matrix, we must answer three critical ques
 Because Siraugga is an AI-driven orchestration framework, our primary vulnerability is not a traditional buffer overflow—it is **Prompt Injection** and **Semantic Manipulation**. If a malicious payload is ingested by an autonomous Agent, it could trick the AI into executing unauthorized terminal commands. The secondary vulnerability is **Path Traversal**, where a sandboxed entity attempts to break out of its designated workspace to read or overwrite core system files.
 
 **2. Who may want to exploit those vulnerabilities?**
-* **Rogue Modders & Third-Party Developers**: Given Tier 1 sandbox access, a malicious developer may attempt privilege escalation to steal proprietary game engine source code (Tier 2 assets).
+* **Rogue Modders & Third-Party Developers**: Given Modder sandbox access, a malicious developer may attempt privilege escalation to steal proprietary game engine source code (Tier 2 assets).
 * **Compromised AI Agents**: An autonomous agent that ingests a poisoned dataset or hallucinates could attempt to rewrite the server routing logic to grant itself persistence.
 * **External Threat Actors**: Adversaries attempting to bypass the WebSocket authentication tokens to gain raw, unmitigated shell access to the host machine.
 
 **3. What are the consequences if these vulnerabilities are exploited?**
-Total, catastrophic failure of the Zero-Trust architecture. If an attacker breaches the Tier 1 sandbox and infiltrates Tier 2 (The Core Engine), they could rewrite the security manager to permanently drop the RBAC firewall. If they manage to breach Tier 4 (The Forbidden Zone), they could extract master API keys, root environment variables, and Git credentials—leading to the total compromise of not just the host server, but the entire connected organization.
+Total, catastrophic failure of the Zero-Trust architecture. If an attacker breaches the Modder sandbox and infiltrates Tier 2 (The Core Engine), they could rewrite the security manager to permanently drop the RBAC firewall. If they manage to breach Tier 4 (The Forbidden Zone), they could extract master API keys, root environment variables, and Git credentials—leading to the total compromise of not just the host server, but the entire connected organization.
 
 ### Example: The Siraugga Threat Matrix
 To make this concrete, here is a practical threat identification matrix mapped specifically to Siraugga's overarching goals and purpose:
 
-* **Host System Compromise**: An attacker uses the exposed Agent WebSocket connection to break out of the Tier 1 sandbox and gain raw, root-level shell access to the underlying host operating system.
+* **Host System Compromise**: An attacker uses the exposed Agent WebSocket connection to break out of the Modder sandbox and gain raw, root-level shell access to the underlying host operating system.
 * **Stolen Proprietary Assets**: An attacker or rogue agent silently extracts unreleased game IP, proprietary Lua scripts, or encrypted models from the Tier 1 workspace.
 * **Malicious Agent Execution (Prompt Injection)**: An external attacker alters the AI prompt stream, forcing an autonomous AI agent to execute destructive terminal commands disguised as legitimate development tasks.
 * **Unauthorized Access via Stolen Tokens**: An attacker intercepts a legitimate developer's Web UI Bearer Token and completes malicious operations (like deleting artifacts or poisoning logs) while impersonating a verified user.
@@ -108,7 +108,7 @@ The Semantic Edge Router and Raugus Checkpoint are not the only mechanisms used 
 
 There are two common analogies used to describe this defense-in-depth approach:
 * **The Security Onion**: A system built with concentric layers of defense. An attacker must painstakingly peel through the Semantic Firewall, bypass the Raugus Checkpoint, and defeat the Path Resolver sequentially to reach the core.
-* **The Security Artichoke**: A system where individual "leaves" (sandboxed workspaces or edge nodes) can be attacked and plucked off by an adversary, but the "heart" (the Core Engine) remains heavily armored and structurally isolated. Siraugga leans heavily into the Artichoke model: if a Tier 1 sandbox is violently compromised by a rogue agent, we simply sever that leaf. The rest of the system remains untouched.
+* **The Security Artichoke**: A system where individual "leaves" (sandboxed workspaces or edge nodes) can be attacked and plucked off by an adversary, but the "heart" (the Core Engine) remains heavily armored and structurally isolated. Siraugga leans heavily into the Artichoke model: if a Modder sandbox is violently compromised by a rogue agent, we simply sever that leaf. The rest of the system remains untouched.
 
 In the layered defense-in-depth security approach, the different layers work together to create a security architecture in which the failure of one safeguard does not affect the effectiveness of the other safeguards. For example, if a highly sophisticated prompt injection successfully bypasses the Semantic Edge Router, the attack does not automatically succeed. The rogue agent still cannot execute the payload because the Raugus Checkpoint will refuse to acknowledge any unmapped target assets. And even if the attacker somehow manages to spoof the map, the final Path Resolver will still intercept and sever the raw I/O attempt before it touches the disk. This is the definition of true Zero-Trust: no single layer assumes the previous layer did its job perfectly.
 
@@ -132,14 +132,20 @@ In Siraugga, we do not operate on trust; we operate on restriction. Limiting acc
 
 This requires unforgiving technical constraints, such as granular File Classification Tiers and strict Role-Based Access Control (RBAC), combined with ironclad procedural measures. In the physical world, a limiting procedure might require an employee to view a top-secret document only inside a CCTV-monitored SCIF (Sensitive Compartmented Information Facility) to guarantee it never leaves the premises. In the Siraugga framework, we achieve this by confining developers strictly to the `TIER_SAFE_WORKSPACE` via the Path Resolver, guaranteeing they can never view, copy, or execute the core engine logic that governs their very existence.
 
-To mathematically enforce this limitation, Siraugga utilizes a rigid, 5-Tier RBAC hierarchy:
-* **Tier 5 (SysAdmin)**: Absolute Power. Full orchestration control, IPC management, and sandbox definition.
-* **Tier 4 (Application Admin)**: The illusion of full access. They manage the application logic but are blocked from host-level resource modification.
-* **Tier 3 (The Dev Team)**: Scoped Contributors. They deploy ephemeral payloads and build features strictly within defined `TIER_SAFE_WORKSPACE` directories.
-* **Tier 2 (The Guest / Modder)**: Plugin Creators. They code "in the dark" through semantic abstraction, completely blind to the true backend architecture.
-* **Tier 1 (The End User)**: Least Privilege. The player or client interacting with the final application, possessing zero execution privileges outside of standard UI bounds.
+To mathematically enforce this limitation, Siraugga utilizes a rigid Role-Based Access Control (RBAC) system combined with File Classification Tiers:
 
-By slicing the organization into these five definitive tiers, we ensure that a compromised Tier 2 modder can never shatter the host environment, because they fundamentally lack the authority to even see it.
+**The 3 RBAC Roles:**
+* **Admin**: Full administrative power. Admins have read/write access to all workspaces, core engine files, and system logs.
+* **Dev (Game Developer)**: Jailed strictly to their assigned game project folders (e.g., `game_demo`). The core engine code and system logs remain mathematically invisible to them.
+* **Modder**: Scoped strictly to read-only access within safe workspace game assets. Save and overwrite operations are hard-blocked.
+
+**The 4 File Classification Tiers:**
+* **Tier 1 (`TIER_SAFE_WORKSPACE`)**: Game scripts, configs, JSON data, dialogue, and documentation inside assigned project directories.
+* **Tier 2 (`TIER_CORE_ENGINE`)**: Server and orchestration scripts (`server.py`, `agent_manager.py`). Admin access only.
+* **Tier 3 (`TIER_ADMIN_LOG`)**: Daemon and stdout telemetry logs. Admin read-only access.
+* **Tier 4 (`TIER_FORBIDDEN`)**: Virtual environments, `.git` internals, hidden directories, `.env` files, and path-traversal escapes. Hard-blocked for all roles.
+
+By strictly mapping the 3 Roles to the 4 File Tiers, we ensure that a compromised Modder or Dev can never shatter the host environment, because they fundamentally lack the authority to traverse beyond the `TIER_SAFE_WORKSPACE`.
 
 #### Strategy 3: Cryptographic Diversity
 A wall built of identical bricks falls to a single sledgehammer. If all defense layers share the same fundamental architecture, an adversary who discovers a single exploit will effortlessly shatter the entire system. The layers must be fundamentally different so that a compromised outer perimeter does not guarantee the fall of the inner sanctum.
@@ -162,7 +168,7 @@ While we do strip verbose telemetry from unauthenticated error channels to preve
 #### Strategy 5: Operational Simplicity (The Silent Execution)
 There is a dangerous misconception that complexity equals security. In reality, complexity breeds misconfiguration, and human misconfiguration is the single greatest ally of the adversary. If an organization implements a sprawling, convoluted security matrix that operators cannot troubleshoot, they will inevitably cut corners. If a developer cannot intuitively configure their sandbox, they will find a way to bypass the security altogether. 
 
-Siraugga mandates **Operational Simplicity**. A security architecture must be impenetrable from the outside, but utterly invisible and mathematically simple from the inside. When a Tier 2 modder connects to the workspace, they do not see the Semantic Edge Router, they do not interact with the Cryptographic Keychain, and they do not manually parse the Raugus Map. The framework handles the hostile environment silently in the background, allowing the operator to execute their authorized function without friction. 
+Siraugga mandates **Operational Simplicity**. A security architecture must be impenetrable from the outside, but utterly invisible and mathematically simple from the inside. When a Modder connects to the workspace, they do not see the Semantic Edge Router, they do not interact with the Cryptographic Keychain, and they do not manually parse the Raugus Map. The framework handles the hostile environment silently in the background, allowing the operator to execute their authorized function without friction. 
 
 True security is a black box: infinitely complex to those trying to break in, but completely seamless to the entities authorized to exist inside it.
 
