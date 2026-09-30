@@ -253,3 +253,13 @@ When threat actors automate an input attack, their goal is to flood the WebSocke
 To counter this, Siraugga employs its **Sub-Agent Ingestion Swarm** as a dynamic defense mechanism. When the framework detects an automated flood of inbound traffic, it instantly isolates the expensive, core `pro` logic engine. Instead, it triggers a Map-Reduce Swarm Orchestrator. 
 
 The system dynamically spins up dozens of lightweight, parallel `flash` subagents. These ephemeral flash agents act as a highly distributed Semantic Sniffer. They process the massive flood of incoming payloads concurrently, identifying and dropping the malicious prompt injections, and compressing only the safe, sanitized data into a cohesive stream. The primary engine is completely shielded from the noise, preserving token quotas and maintaining the absolute integrity of the JSON data store against automated attacks.
+
+### Validation Rules (The Mathematical Constraints)
+A validation rule checks that data falls precisely within the parameters defined by the architecture. In the Siraugga framework, validation rules are mathematically enforced by the Raugus Resolver and the Semantic Sniffer to ensure the completeness, accuracy, and consistency of the JSON state files and the Agentic Memory.
+
+The specific criteria used in Siraugga's validation rules include:
+* **Size (Token Limits):** Checks the absolute character and token count of an inbound prompt or payload. If an input exceeds the predefined limit, it is dropped immediately at the edge to prevent Context Exhaustion and AI Denial of Service attacks.
+* **Format (Schema Rigidity):** Checks that the data conforms strictly to the expected JSON schema or Semantic Primitive. This prevents arbitrary code execution, such as an attacker attempting to pass raw Python scripts into a natural language chat field.
+* **Consistency (Contextual State):** Cross-references the agent's internal memory against the true mathematical state of the game engine. If the agent hallucinates a contradiction (e.g., processing a quest for an item the player does not actually possess), the payload is rejected.
+* **Range (SDK Boundaries):** Checks that all variables lie within the minimum and maximum boundaries defined by the SDK (e.g., mathematically preventing a compromised Modder plugin from rewarding a player with 9,999,999 gold).
+* **Check Digit (Cryptographic Hashing):** Requires the system to perform an extra calculation to verify a cryptographic checksum (such as a JWT signature or a payload watermark). This mathematically guarantees that the data was not tampered with in transit between an offline `.exe` sandbox and the core server.
