@@ -313,3 +313,14 @@ As the Siraugga framework scales, Tier 3 Developers, Tier 2 Modders, and Tier 1 
 2. How can you ensure that the proprietary prompt logic and telemetry transmitted between a remote physical machine and the core DevCore server remains completely secure over the open Internet?
 
 To answer these questions, Siraugga relies on a combination of advanced transmission protocols and digital authenticity mechanisms to secure the Zero-Restart Web Portal Perimeter.
+
+### Code Signing (Ed25519 Cryptographic Signatures)
+In a Zero-Trust architecture, you cannot assume that an executable file is safe simply because it was downloaded from a known server. Code signing is the mathematical process used to prove that a piece of software, or an AI agent plugin, is unequivocally authentic.
+
+As established by the system's core architecture, Tier 5 Admins utilize asymmetric Ed25519 key pairs to generate digital signatures. When the Siraugga Web Portal dynamically compiles an offline `.exe` sandbox for a Tier 3 Developer or Tier 2 Modder, that executable is digitally signed using the Admin's private key. 
+
+This cryptographic signature performs two critical functions:
+1. **Identity Validation:** It proves to the developer's local operating system that the `.exe` was legitimately authored by the core DevCore server, and not swapped out by a Man-in-the-Middle attacker.
+2. **Immutability Assurance:** It provides absolute mathematical assurance that the underlying software code and the embedded SDK Baseline have not been altered, corrupted, or injected with malware since the exact moment the file was signed.
+
+Furthermore, this process operates in reverse during deployment. Before an agentic plugin can be merged into the live `TIER_SAFE_WORKSPACE`, the Tier 5 Admin must cryptographically sign the approved code. If the Raugus Resolver detects a plugin attempting to execute within the live game engine without a valid Ed25519 signature, the payload is violently rejected.
