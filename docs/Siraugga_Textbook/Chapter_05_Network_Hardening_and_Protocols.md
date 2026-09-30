@@ -127,3 +127,14 @@ In traditional networks, human users utilize Post Office Protocol (POP) and Inte
 In the Siraugga framework, AI agents do not use email; instead, they communicate collaboratively via the **Agentic Inbox Protocol**. When a primary orchestrator agent spawns a subagent, they exchange high-speed contextual messages. Furthermore, because Siraugga utilizes advanced Vision LLMs, agents frequently attach non-text data (such as image analysis arrays or video frame telemetry) to their inbox messages. This capability is governed by the **Multimodal Intent Protocol (MIP)** (the equivalent of MIME).
 
 To secure this internal swarm communication network, the Agentic Inbox is strictly encrypted via TLS. Additionally, Siraugga enforces the **Secure Multimodal Intent Protocol (S/MIP)**. Every time an AI agent sends a message containing a media attachment to another agent, the entire payload is digitally signed utilizing Ed25519 cryptography. This provides absolute authentication, message integrity, and nonrepudiation—mathematically proving that a specific AI agent generated the attachment, and ensuring a hacker did not maliciously inject an adversarial image into the swarm's visual processing stream.
+
+## 14. Chapter 5 Conclusion: The Hardened Perimeter
+As detailed throughout this chapter, traditional network protocols were designed for a human-operated era. When applied to an autonomous, high-speed AI swarm, legacy protocols—such as plaintext HTTP, unencrypted FTP, or standard network routing—create massive vulnerabilities that can be trivially exploited via Prompt Injections, Path Traversals, or Man-in-the-Middle attacks.
+
+By aggressively translating these legacy standards into mathematically enforced Agentic Protocols, the Siraugga framework achieves a fully hardened, Zero-Trust perimeter. 
+
+*   Building on **Chapter 3 (Cryptography)**, we utilized Ed25519 digital signatures to secure the Secure Multimodal Intent Protocol (S/MIP) and the Semantic Copy Protocol (SCP), ensuring absolute nonrepudiation for AI-generated attachments and sandbox payload transfers. 
+*   Integrating with **Chapter 4 (System and Network Defense)**, we utilized the strict File Classification Tiers to mathematically limit directory routing (RIP) and redefine exposed network "ports" as physical folder locations. 
+*   Finally, in this chapter, we synthesized these concepts into the **Zero-Restart Web Portal**, strictly enforcing WSS (TLS 1.3) and Monotonic Transcript Sequencing (NTP) for all telemetry and session management.
+
+Ultimately, by deprecating vulnerable legacy protocols and enforcing strict Semantic Security Extensions (SEMSEC), Tier 5 Administrators can confidently deploy the core Agent Orchestrator to the live environment, knowing the swarm is architecturally protected against both external threat actors and internal rogue AI subagents.
