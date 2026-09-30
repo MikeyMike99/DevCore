@@ -102,3 +102,14 @@ Corporate networks often struggle with BYOD (Bring Your Own Device) policies—n
 When a Modder operates within their `/playground` environment, they might utilize an official, DevCore-hosted LLM (an organization-owned device) to generate their code. Alternatively, they might integrate a custom, locally-hosted, open-source model running on their own hardware (a personal device used for work).
 
 Regardless of whether the AI plugin is officially hosted or personally provided, stringent measures must be enforced to keep the network safe. When the Modder's remote `.exe` sandbox attempts to sync with the central server, the Raugus Resolver treats both models with equal Zero-Trust suspicion. The Semantic Firewall meticulously scrubs the incoming JSON deltas, ensuring that a compromised "personal" LLM cannot upload adversarial prompt injections into the secure `/playground` workspace.
+
+## 8. Agentic Containerization and Storage Segmentation
+To safely facilitate Bring Your Own Plugin (BYOP) mechanics, the Modder's offline `.exe` cannot operate as a raw executable; it must deploy as a strictly managed **Containerized Agentic Sandbox**. 
+
+Storage segmentation allows the Siraugga framework to mathematically separate the Modder's local operating system files from the proprietary DevCore project logic. The AI subagents executing within the `.exe` are trapped within an authenticated, AES-encrypted container. They can seamlessly read and write to the isolated JSON project files, but they are physically prevented from traversing out of the sandbox to access the Modder's personal system directories. 
+
+This strict containerization architecture enables Tier 5 Administrators to centrally govern the remote sandbox. Specifically, agentic containerization allows the core engine to:
+*   **Isolate Subagents (Apps):** Ensure that individual logic nodes remain mathematically segregated from one another via Micro-Swarming.
+*   **Control Tool Execution:** Utilize the internal Semantic Router to explicitly restrict which mathematical functions and API calls a specific subagent is permitted to execute.
+*   **Purge Context Windows:** If a subagent exhausts its token quota or begins to hallucinate, the container can instantly delete the agent's localized memory buffer without affecting the overarching project state.
+*   **Trigger the Reaper Protocol (Remote Wipe):** If a Tier 5 Admin detects a catastrophic Prompt Injection or malicious spoofing attempt originating from a remote Modder's `.exe`, they can transmit a kill-signal across the WSS stream. This triggers the Reaper Protocol, remotely wiping the container's local JSON state files and permanently severing the connection to the `/playground`.
