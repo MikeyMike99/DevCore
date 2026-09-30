@@ -68,7 +68,20 @@ Traditional packet analyzers (packet sniffers) intercept and log network traffic
 ## Module 3: The Mandate of Governance (Business Policies)
 **Core Theme:** Establishing the absolute rules of engagement for both human operators and autonomous AI agents through rigid, mathematically enforced policies.
 
-### Key Concepts:
+### What Did I Learn in this Module? (Security Policies, Regulations, and Standards)
+**The Foundation of Governance:**
+Business policies define the absolute standards of correct behavior for the architecture and its operators. In Siraugga, policies mathematically define the activities that are allowed on the Zero-Trust network, setting a rigid baseline of acceptable use. If behavior that violates this policy is detected—such as an AI hallucinating an unauthorized script—it is treated instantly as an active security breach. 
+
+**The Three Pillars & Security Policies:**
+The DevCore ecosystem is governed by Framework policies, Entity mandates, and Security policies. Security policies are a compilation of strict operational laws, including: Identification and authentication (Token Hashing), Cryptographic Key policies (KMS), the Acceptable Use Policy (AUP enforced via system prompts), Remote access (Port 5001 TLS), Network maintenance (Resolver updates), and Incident handling (The Reaper Protocol).
+
+**BYOD/C Best Practices:**
+Because Siraugga acts as a remote web portal plugin, Bring Your Own Device/Code (BYOD/C) policies are critical. They are comprised of mathematically enforced best practices: cryptographic access tokens, strict socket control, continuous SDK baseline updates, cold storage backups, remote wipe capabilities, Semantic Firewalls (acting as Antivirus against prompt injections), and Agentic Sandbox Management (via the Raugus Resolver mimicking legacy MDM).
+
+**Regulatory Compliance:**
+Finally, there are external regulations regarding network data security. Tier 5 SysAdmins and DevCore engineers must be intimately familiar with the laws and codes of ethics that bind Information Systems Security (INFOSEC) professionals, ensuring the architecture remains compliant with global data privacy standards.
+
+### Key Architectural Concepts:
 1. **The Three Pillars of Governance:**
    * **Framework Policies (Company Policies):** Dictate acceptable system interaction and data privacy for the overall ecosystem.
    * **Entity Mandates (Employee Policies):** Define resource constraints. For AI agents, this means hardcoded API token budgets, CPU limits, and lifecycle timeouts.
