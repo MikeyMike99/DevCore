@@ -170,3 +170,12 @@ In the Siraugga framework, the staging environment is a mathematically identical
 Instead, when a developer pushes their encrypted state delta from their offline `.exe` back to the central server, a Tier 5 Admin takes absolute control. The Admin injects the untrusted plugin into the Shadow Node. Here, the Admin executes intense Overwatch protocols to verify that the software operates flawlessly under the rigid security settings of the Raugus Resolver. The plugin is intentionally subjected to adversarial conditions to ensure the AI agents do not hallucinate, drift from the SDK baseline, or attempt path traversal.
 
 Only after the Tier 5 Admin mathematically proves that the plugin is stable and secure is the payload cryptographically signed and formally deployed into the live Production environment.
+
+### Provisioning and Deprovisioning (The Ephemeral Lifecycle)
+In standard IT environments, provisioning simply refers to the creation or updating of software, while deprovisioning is its subsequent removal. 
+
+In the highly dynamic Siraugga framework, provisioning is the automated, real-time instantiation of AI subagents, the generation of secure WebSocket tunnels, and the dynamic compilation of offline `.exe` payloads for Tier 2 and Tier 3 Developers. Because manually managing hundreds of temporary sandboxes would overwhelm the Tier 5 Admins, Siraugga utilizes its internal **Zero-Restart Web Portal** to fully automate this lifecycle. When a developer accepts a task, the portal automatically provisions and delivers the encrypted `.exe` payload on demand.
+
+Crucially, in a Zero-Trust architecture, **Deprovisioning** is treated as a high-stakes security operation rather than mere software removal. Siraugga relies on a strict philosophy of absolute ephemerality. AI subagents are not left running idly in the background; they are instantly deprovisioned (terminated and purged from RAM) the exact millisecond their execution thread completes. 
+
+Similarly, when a Tier 3 developer pushes their final state delta back to the central server, their localized offline `.exe` does not simply uninstall—it triggers a cryptographic self-destruct sequence. The file is mathematically shredded from their hard drive, ensuring that no proprietary game logic or decrypted SQLite blobs are ever left behind on unmanaged, third-party hardware.
