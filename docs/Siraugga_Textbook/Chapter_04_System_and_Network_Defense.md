@@ -263,3 +263,12 @@ The specific criteria used in Siraugga's validation rules include:
 * **Consistency (Contextual State):** Cross-references the agent's internal memory against the true mathematical state of the game engine. If the agent hallucinates a contradiction (e.g., processing a quest for an item the player does not actually possess), the payload is rejected.
 * **Range (SDK Boundaries):** Checks that all variables lie within the minimum and maximum boundaries defined by the SDK (e.g., mathematically preventing a compromised Modder plugin from rewarding a player with 9,999,999 gold).
 * **Check Digit (Cryptographic Hashing):** Requires the system to perform an extra calculation to verify a cryptographic checksum (such as a JWT signature or a payload watermark). This mathematically guarantees that the data was not tampered with in transit between an offline `.exe` sandbox and the core server.
+
+### Integrity Checks (Hashing Agentic Memory)
+Compromised data can catastrophically threaten the security of the host engine. If an AI agent's internal memory or the game's JSON state files are silently manipulated, the swarm may execute highly destructive operations based on false contextual data.
+
+To combat this, Siraugga utilizes rigid **Integrity Checks**. An integrity check measures the consistency of the data—specifically JSON state files, localized SQLite blobs, and AI chatlogs—to ensure it has not been corrupted or tampered with. The framework performs a cryptographic hash function (such as SHA-256) to take a snapshot of the data, generating a unique mathematical checksum. 
+
+This process is absolutely critical during transmission. When a Tier 3 Developer transmits their encrypted state delta from their offline `.exe` back to the central Shadow Node, a checksum is calculated at egress and explicitly compared at ingress. If the checksums match mathematically, the data passes the integrity check. If the hashes differ, it indicates that the payload was corrupted or maliciously intercepted in transit (a Man-in-the-Middle attack), and the Raugus Resolver instantly drops the payload.
+
+Furthermore, Siraugga continuously calculates rolling checksums over the active Agentic Memory (the conversation transcripts). This ensures that a rogue agent or malicious player hasn't invisibly altered the chat history to trick the LLM into bypassing the SDK Baseline.
