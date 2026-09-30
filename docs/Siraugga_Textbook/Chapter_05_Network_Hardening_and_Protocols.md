@@ -78,3 +78,13 @@ Every single action an AI agent takes is appended to a localized JSONL transcrip
 The Network Time Protocol (NTP) synchronizes the clocks of the Tier 2 Modders' offline `.exe` sandboxes with the core DevCore server. Cybercriminals frequently attempt "Time Dilation Attacks," intentionally desynchronizing the local clock within their offline sandbox. By altering timestamps, an attacker can artificially extend the lifespan of an expired JWT session token, or bury a malicious prompt injection deep in the historical chatlogs to hide it from the Semantic Sniffer. 
 
 To defend against timeline manipulation, Siraugga relies on **Monotonic Transcript Sequencing** (the agentic equivalent of NTP Authentication). The Raugus Resolver mathematically forces the offline `.exe` to synchronize its timestamps exclusively with the trusted central server, instantly rejecting any encrypted state delta that contains desynchronized or manipulated chronological data.
+
+## 8. Telnet, SSH, and Semantic Copy Protocol (SCP)
+In legacy IT environments, Secure Shell (SSH) is a protocol that provides a secure, encrypted remote connection to a device. Conversely, Telnet is an antiquated protocol that uses unsecure plaintext when authenticating a device and transmitting data. 
+
+In the Siraugga framework, the concepts of SSH and Telnet map directly to our Zero-Restart transport layers. Siraugga strictly forbids the equivalent of Telnet—unencrypted HTTP or standard WS (WebSocket) connections. If a Modder attempts to authenticate using plaintext, the Raugus Resolver violently drops the connection. Instead, all remote connections must utilize the conceptual equivalent of SSH: **WSS (WebSocket Secure)** paired with strict TLS 1.3 encryption. This provides military-grade encryption for all agentic communications and swarm orchestration.
+
+**Semantic Copy Protocol (SCP)**
+In traditional networking, Secure Copy (SCP) securely transfers files between two remote systems using SSH. In Siraugga, SCP translates seamlessly into the **Semantic Copy Protocol**. 
+
+When a Tier 2 Modder finishes compiling an AI plugin within their offline `.exe` sandbox, they must push the updated JSON state deltas back to the DevCore mainframe. Rather than utilizing raw file transfers, Siraugga relies on the Semantic Copy Protocol. This protocol wraps the JSON payload within the WSS encrypted channel, utilizing Ed25519 digital signatures to guarantee the absolute confidentiality and authenticity of the data in transit. It ensures that the JSON state delta was not intercepted, read, or mutated by a Man-in-the-Middle (MitM) attack.
