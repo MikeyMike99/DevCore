@@ -198,7 +198,7 @@ To defeat this, Siraugga enforces **Semantic Normalization**. Before any string,
 ### Stored Procedures (Precompiled SDK Macros)
 In a standard application, a stored procedure is a group of precompiled SQL statements stored in a database that execute a specific task. They accept predefined input parameters, execute safely on the server side, and reduce network traffic. 
 
-Although the Siraugga core engine does not currently rely on a monolithic SQL database, the *concept* of the stored procedure is paramount to our Application Security strategy. We translate this concept directly into **Precompiled SDK Macros**. 
+Although the Siraugga core engine currently stores data in flat files (JSON, CSV, and SQLite) and does not yet rely on a monolithic SQL database, the *concept* of the stored procedure is paramount to our Application Security strategy—and will seamlessly scale when a formal database is implemented. We translate this concept directly into **Precompiled SDK Macros**. 
 
 Rather than allowing an AI agent to dynamically hallucinate complex, multi-step system calls over the WebSocket (which is highly vulnerable to prompt injection and Agentic Drift), Tier 2 and Tier 3 Developers are required to use pre-approved, precompiled macros. For example, instead of an AI agent generating a raw file-read command using its own logic, it is forced to call the `resolve_safe_path(target)` macro and pass in a simple parameter. 
 
