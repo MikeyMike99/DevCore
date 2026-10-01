@@ -10,7 +10,9 @@ When the Siraugga architecture was first developed, these core subagent controls
 ## 2. The Emergence of the IoP (Internet of Plugins)
 Just as the traditional Internet of Things (IoT) connected billions of physical devices (smart TVs, appliances, and sensors), the DevCore architecture relies heavily on the **Internet of Plugins (IoP)**. 
 
-Modders rapidly connect thousands of specialized third-party plugins (e.g., custom weapon APIs, dynamic weather systems, and unique NPCs) directly to their `/playground` workspaces. This exponential growth of interconnected plugins generates massive JSON datasets, creating an agentic equivalent of ‘Big Data.’ 
+ Modders rapidly connect thousands of specialized third-party plugins (e.g., custom weapon APIs, dynamic weather systems, and unique NPCs) directly to their `/playground` workspaces. This exponential growth of interconnected plugins generates massive JSON datasets, creating an agentic equivalent of ‘Big Data.’ 
+
+Furthermore, highly complex IoP plugins will often inject their own proprietary, isolated databases into the workspace (such as localized SQLite files or connections to external cloud data lakes). This introduces the severe risk of 'Shadow Data'—where third-party data structures operate entirely outside the visibility and IAM control of the central Agent Orchestrator. If a plugin's isolated database is maliciously poisoned, it can act as a hidden, persistent vector for delayed Prompt Injections. 
 
 However, IoP plugins dramatically expand the cyber attack surface. Malicious internet-connected plugins have been used to launch some of the largest Semantic DoS attacks in the swarm's history. To secure the IoP, all plugins must be continuously evaluated for security patches, and default administrator API keys must always be rotated to prevent unauthorized access.
 
