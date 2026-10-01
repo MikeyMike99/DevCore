@@ -16,7 +16,7 @@ This module dissects the following defensive topics:
 | **Application Security** | Detail how to mathematically apply application security measures to shield the core engine from rogue plugins and Agentic Drift. |
 | **Network Hardening (Protocols)** | Explain how to ruthlessly harden inbound network services, WebSocket streams, and API protocols against injection and Denial of Service (DoS) attacks. |
 | **Network Segmentation** | Explain how absolute network segmentation (via Raugus VFS and containerized sandboxes) isolates catastrophic breaches from spreading to the host OS. |
-| **Hardening Wireless & Mobile** | Configure strict cryptographic hardening and port management for unmanaged remote BYOD/C connections interacting with the game engine. |
+`| **Hardening Wireless & Mobile** | Configure strict cryptographic hardening and port management for unmanaged remote BYOD/C connections interacting with the game engine. |
 | **Cybersecurity Resilience** | Architect the system to ensure immediate disaster recovery, data preservation, and continuity even when a critical node is fundamentally compromised. |
 | **Embedded & Specialized Systems** | Implement Zero-Trust physical security integrations with IoT endpoints and specialized in-game hardware. |
 
@@ -109,7 +109,7 @@ When an automated system flags a critical anomaly, the guards are deployed. Thei
 To mitigate this, human guards act as the physical equivalent of the Semantic Sniffer. They evaluate the *behavioral semantics* of the environment. Guards can read body language, detect physical duress, recognize social engineering payloads (e.g., bribery, tailgating), and execute non-linear, contextual decisions on the spot to neutralize sophisticated attacks that mathematical systems are completely blind to.
 
 ### RFID Tracking (Cryptographic Watermarking)
-Managing and locating important digital assets across a sprawling, multi-agent sandbox is a continuous challenge for Tier 5 SysAdmins. The explosive growth in concurrent WebSocket connections and ephemeral AI subagents has made tracking proprietary data incredibly difficult. Time spent manually hunting down data leaks can lead to catastrophic intellectual property loss.
+Managing and locating important digital assets across a sprawling, multi-agent sandbox is a continuous challenge for Tier 4 App Admins. The explosive growth in concurrent WebSocket connections and ephemeral AI subagents has made tracking proprietary data incredibly difficult. Time spent manually hunting down data leaks can lead to catastrophic intellectual property loss.
 
 In a legacy environment, developers rely on the virtual equivalent of "barcodes"—visible, static analysis signatures that must be explicitly targeted and manually scanned. These are easily defeated if an attacker obfuscates the code.
 
@@ -127,7 +127,7 @@ Siraugga is mathematically engineered to **Fail-Closed**. If the core orchestrat
 2. **RBAC Lockdown:** All logical access is mathematically restricted to Tier 5 SysAdmins only.
 3. **Sandbox Shredding:** The `tmpfs` RAM-disks hosting active AI agents and untrusted developer workspaces are instantly shredded (`shred -u -z`), ensuring that no proprietary data can be exfiltrated while the surveillance grid is down.
 
-The Siraugga engine remains in this paralyzed, highly secure state until a Tier 5 SysAdmin can physically intervene, evaluate the logs, and manually restore the Deep Prompt Inspection grid.
+The Siraugga engine remains in this paralyzed, highly secure state until a Tier 5 Super Admin can physically intervene, evaluate the logs, and manually restore the Deep Prompt Inspection grid.
 
 ### Exercise: The Insider Threat in the Dark
 Consider the following theoretical scenario: A telemetry message is intercepted suggesting that a rogue AI subagent (or a compromised Tier 3 Developer) is planning to exfiltrate proprietary client data during the exact window that the Deep Prompt Inspection (virtual surveillance) system is offline. The threat actor is already "on the premises"—meaning they possess a valid API token and an active background process already executing within the engine. 
@@ -149,7 +149,7 @@ If a rogue plugin or a hallucinating AI agent is deployed without rigorous Appli
 ### Application Development (The Agentic Lifecycle)
 In a traditional IT environment, application development is a highly structured, slow-moving process. In the Siraugga ecosystem, development is rapid, chaotic, and heavily driven by autonomous AI agents writing logic on the fly. 
 
-To maintain absolute security at all stages of this highly dynamic application development, Tier 5 SysAdmins enforce a robust, mathematically rigid lifecycle process. Every custom plugin, third-party Python script, or custom AI system prompt created by a Tier 3 Developer must pass through strict validation gates before being deployed into the live game environment. This robust process prevents arbitrary code execution and ensures that all newly developed applications adhere strictly to the established **SDK Baseline** and inherited RBAC permissions.
+To maintain absolute security at all stages of this highly dynamic application development, Tier 4 App Admins enforce a robust, mathematically rigid lifecycle process. Every custom plugin, third-party Python script, or custom AI system prompt created by a Tier 3 Developer must pass through strict validation gates before being deployed into the live game environment. This robust process prevents arbitrary code execution and ensures that all newly developed applications adhere strictly to the established **SDK Baseline** and inherited RBAC permissions.
 
 ### Developing and Testing (The Ephemeral Offline `.exe`)
 In traditional IT architectures, developers connect directly to a remote staging server or pull live source code onto their physical machines to develop and test applications. This exposes the core engine to immense supply-chain risk and insider threats.
@@ -160,21 +160,21 @@ When a developer is assigned a task, they download this offline `.exe` to their 
 * **Tier 3 (Devs):** The source code within the `.exe` executes entirely in RAM (In-Memory Execution) with Just-In-Time (JIT) decryption. They can test changes offline, saving diffs to an encrypted local SQLite blob, but they can never view, dump, or extract the underlying proprietary code.
 * **Tier 2 (Modders):** They operate completely untethered via Semantic Abstraction. They are provided only with a `README.md` (the SDK baseline) detailing how their custom plugin will eventually hook into the main application.
 
-Once a developer finishes testing locally, the encrypted state delta is pushed back to the main server. Here, before it hits the live environment, a Tier 5 Admin executes intense Quality Assurance (QA) testing. Utilizing Dynamic Application Security Testing (DAST) and the Semantic Sniffer, the Admin evaluates exactly how the untrusted code interacts with the core engine. Only after passing this rigorous Admin inspection is the plugin finally deployed.
+Once a developer finishes testing locally, the encrypted state delta is pushed back to the main server. Here, before it hits the live environment, a Tier 4 App Admin executes intense Quality Assurance (QA) testing. Utilizing Dynamic Application Security Testing (DAST) and the Semantic Sniffer, the Admin evaluates exactly how the untrusted code interacts with the core engine. Only after passing this rigorous Admin inspection is the plugin finally deployed.
 
 ### Staging and Production (The Shadow Node)
 In legacy development lifecycles, staging environments are constructed to closely match the production server, allowing developers to verify their code against live security settings before deployment. 
 
 In the Siraugga framework, the staging environment is a mathematically identical "Shadow Node"—a complete parallel replica of the live Core Engine. However, a critical architectural distinction must be made regarding RBAC: Tier 2 Modders and Tier 3 Developers **do not** interact with or execute tests within the staging environment. Allowing external contributors to map the staging server would completely shatter the isolation of the Black Box.
 
-Instead, when a developer pushes their encrypted state delta from their offline `.exe` back to the central server, a Tier 5 Admin takes absolute control. The Admin injects the untrusted plugin into the Shadow Node. Here, the Admin executes intense Overwatch protocols to verify that the software operates flawlessly under the rigid security settings of the Raugus Resolver. The plugin is intentionally subjected to adversarial conditions to ensure the AI agents do not hallucinate, drift from the SDK baseline, or attempt path traversal.
+Instead, when a developer pushes their encrypted state delta from their offline `.exe` back to the central server, a Tier 4 App Admin takes absolute control. The Admin injects the untrusted plugin into the Shadow Node. Here, the Admin executes intense Overwatch protocols to verify that the software operates flawlessly under the rigid security settings of the Raugus Resolver. The plugin is intentionally subjected to adversarial conditions to ensure the AI agents do not hallucinate, drift from the SDK baseline, or attempt path traversal.
 
-Only after the Tier 5 Admin mathematically proves that the plugin is stable and secure is the payload cryptographically signed and formally deployed into the live Production environment.
+Only after the Tier 4 App Admin mathematically proves that the plugin is stable and secure is the payload cryptographically signed and formally deployed into the live Production environment.
 
 ### Provisioning and Deprovisioning (The Ephemeral Lifecycle)
 In standard IT environments, provisioning simply refers to the creation or updating of software, while deprovisioning is its subsequent removal. 
 
-In the highly dynamic Siraugga framework, provisioning is the automated, real-time instantiation of AI subagents, the generation of secure WebSocket tunnels, and the dynamic compilation of offline `.exe` payloads for Tier 2 and Tier 3 Developers. Because manually managing hundreds of temporary sandboxes would overwhelm the Tier 5 Admins, Siraugga utilizes its internal **Zero-Restart Web Portal** to fully automate this lifecycle. When a developer accepts a task, the portal automatically provisions and delivers the encrypted `.exe` payload on demand.
+In the highly dynamic Siraugga framework, provisioning is the automated, real-time instantiation of AI subagents, the generation of secure WebSocket tunnels, and the dynamic compilation of offline `.exe` payloads for Tier 2 and Tier 3 Developers. Because manually managing hundreds of temporary sandboxes would overwhelm the Tier 4 App Admins, Siraugga utilizes its internal **Zero-Restart Web Portal** to fully automate this lifecycle. When a developer accepts a task, the portal automatically provisions and delivers the encrypted `.exe` payload on demand.
 
 Crucially, in a Zero-Trust architecture, **Deprovisioning** is treated as a high-stakes security operation rather than mere software removal. Siraugga relies on a strict philosophy of absolute ephemerality. AI subagents are not left running idly in the background; they are instantly deprovisioned (terminated and purged from RAM) the exact millisecond their execution thread completes. 
 
@@ -227,7 +227,7 @@ In the Siraugga ecosystem, the **SDK Baseline** is the absolute foundation of ou
 
 While the SDK allows for rapid, isolated development, it introduces a terrifying centralized risk. The downside of relying on a universal abstraction layer is that any structural vulnerability within the core SDK acts as a massive force multiplier for threat actors. If an adversary discovers a zero-day flaw—such as a path traversal exploit within a core SDK macro—every single autonomous agent and plugin relying on that macro becomes instantly compromised. 
 
-Therefore, the mathematical integrity of the SDK is the most heavily audited perimeter in the entire Siraugga framework, requiring continuous, rigorous penetration testing by Tier 5 Admins to ensure no systemic flaws are distributed to the swarm.
+Therefore, the mathematical integrity of the SDK is the most heavily audited perimeter in the entire Siraugga framework, requiring continuous, rigorous penetration testing by Tier 4 App Admins to ensure no systemic flaws are distributed to the swarm.
 ## 4. Securing the Data Store (Protecting Agentic Memory)
 In traditional networks, cybercriminals often target sensitive information stored in massive, centralized SQL databases. Implementing robust application security practices is vital to protecting these databases against injection attacks and unauthorized data exfiltration.
 
@@ -305,7 +305,7 @@ Authorization determines exactly who—or what AI entity—has access to an orga
 
 For example, sandbox file permissions and Zero-Trust Access Controls ensure that only highly specific entities can modify data. A Tier 3 Developer working within their ephemeral `.exe` sandbox may have full read-and-write permissions for their isolated `TIER_SAFE_WORKSPACE`, but the Raugus Resolver explicitly blocks them from traversing into `TIER_CORE_ENGINE` assets. 
 
-Furthermore, Tier 5 Admins can dynamically throttle authorization using the Zero-Restart Web Portal. An Admin can set the operational permissions of an active Tier 2 Modder—or an active AI subagent—to "read-only" in real-time. If an autonomous agent attempts to execute a file modification while confined to this read-only state, the middleware intercepts the tool call, dropping the action instantaneously and logging a security alert to the Admin dashboard. This guarantees that neither a rogue human developer nor a hallucinating AI can mutate resources beyond their mathematically assigned clearance.
+Furthermore, Tier 4 App Admins can dynamically throttle authorization using the Zero-Restart Web Portal. An Admin can set the operational permissions of an active Tier 2 Modder—or an active AI subagent—to "read-only" in real-time. If an autonomous agent attempts to execute a file modification while confined to this read-only state, the middleware intercepts the tool call, dropping the action instantaneously and logging a security alert to the Admin dashboard. This guarantees that neither a rogue human developer nor a hallucinating AI can mutate resources beyond their mathematically assigned clearance.
 ## 5. Other Application Security Practices (The Web Portal Perimeter)
 As the Siraugga framework scales, Tier 3 Developers, Tier 2 Modders, and Tier 1 Players will constantly be downloading offline `.exe` sandboxes, deploying custom AI plugins, and transmitting JSON state deltas across the web. This operational reality raises two critical architectural questions: 
 
@@ -317,13 +317,13 @@ To answer these questions, Siraugga relies on a combination of advanced transmis
 ### Code Signing (Ed25519 Cryptographic Signatures)
 In a Zero-Trust architecture, you cannot assume that an executable file is safe simply because it was downloaded from a known server. Code signing is the mathematical process used to prove that a piece of software, or an AI agent plugin, is unequivocally authentic.
 
-As established by the system's core architecture, Tier 5 Admins utilize asymmetric Ed25519 key pairs to generate digital signatures. When the Siraugga Web Portal dynamically compiles an offline `.exe` sandbox for a Tier 3 Developer or Tier 2 Modder, that executable is digitally signed using the Admin's private key. 
+As established by the system's core architecture, Tier 4 App Admins utilize asymmetric Ed25519 key pairs to generate digital signatures. When the Siraugga Web Portal dynamically compiles an offline `.exe` sandbox for a Tier 3 Developer or Tier 2 Modder, that executable is digitally signed using the Admin's private key. 
 
 This cryptographic signature performs two critical functions:
 1. **Identity Validation:** It proves to the developer's local operating system that the `.exe` was legitimately authored by the core DevCore server, and not swapped out by a Man-in-the-Middle attacker.
 2. **Immutability Assurance:** It provides absolute mathematical assurance that the underlying software code and the embedded SDK Baseline have not been altered, corrupted, or injected with malware since the exact moment the file was signed.
 
-Furthermore, this process operates in reverse during deployment. Before an agentic plugin can be merged into the live `TIER_SAFE_WORKSPACE`, the Tier 5 Admin must cryptographically sign the approved code. If the Raugus Resolver detects a plugin attempting to execute within the live game engine without a valid Ed25519 signature, the payload is violently rejected.
+Furthermore, this process operates in reverse during deployment. Before an agentic plugin can be merged into the live `TIER_SAFE_WORKSPACE`, the Tier 4 App Admin must cryptographically sign the approved code. If the Raugus Resolver detects a plugin attempting to execute within the live game engine without a valid Ed25519 signature, the payload is violently rejected.
 
 ### Secure Session Tokens (WSS and TLS 1.3)
 In traditional web architecture, secure cookies are utilized to protect authentication information stored in a user's browser from hackers. When a client interacts with a server, the server instructs the browser to create a cookie, which stores session data for future requests so the user does not have to constantly re-authenticate. 
@@ -337,7 +337,7 @@ To prevent session hijacking, Siraugga enforces strict cryptographic transport l
 Even with strict Semantic Abstraction and mathematically enforced cryptographic boundaries, organizations must implement absolute fail-safe measures to manage critical threats to the application domain.
 
 **Unauthorized Access and Rogue Agents**
-To prevent unauthorized access to the core engine (analogous to physically breaching a data center), Tier 5 Admins must enforce rigid procedural policies for Tier 2 Modders and Tier 3 Developers. All third-party development must remain hermetically sealed within offline `.exe` sandboxes. If an AI agent or a Modder attempts unauthorized lateral movement (such as path traversal) outside their permitted File Classification Tier, the Raugus Resolver must immediately sever the WebSocket connection and cryptographically lock the user's account.
+To prevent unauthorized access to the core engine (analogous to physically breaching a data center), Tier 4 App Admins must enforce rigid procedural policies for Tier 2 Modders and Tier 3 Developers. All third-party development must remain hermetically sealed within offline `.exe` sandboxes. If an AI agent or a Modder attempts unauthorized lateral movement (such as path traversal) outside their permitted File Classification Tier, the Raugus Resolver must immediately sever the WebSocket connection and cryptographically lock the user's account.
 
 **Server and System Downtime**
 In a swarm architecture, a cascading logic failure among multiple AI subagents can rapidly exhaust token quotas, consume server resources, and cause widespread system downtime. To maintain the continuous availability of operations, developers must implement a **Business Continuity Plan**. In Siraugga, this is achieved by strictly isolating all experimental AI plugins to the Shadow Node (Staging). If an experimental agent hallucinates an infinite loop or a destructive payload, it only crashes the disposable Shadow Node, leaving the live `TIER_SAFE_WORKSPACE` and the Tier 1 End Users completely unaffected.
@@ -360,4 +360,4 @@ When orchestrating an autonomous swarm or managing third-party Modders, the risk
 **Software Development Vulnerabilities and the Staging Crucible**
 To eliminate the risk of introducing catastrophic software development vulnerabilities into the live environment, Siraugga enforces a strict "Zero-Direct-Deployment" architecture. Tier 2 Modders and Tier 3 Developers are mathematically prohibited from pushing agentic plugins or codebase modifications directly to the live server.
 
-Instead, all new software must be aggressively tested within the Staging Crucible (the Shadow Node) prior to launch. When an encrypted state delta is transmitted from a developer's offline `.exe`, the orchestration engine routes it exclusively to this isolated staging node. Here, Tier 5 Admins subject the AI plugin to rigorous Dynamic Application Security Testing (DAST) and intense Semantic Sniffing. Only after the code survives this crucible without crashing the Shadow Node or violating the SDK Baseline does the Tier 5 Admin cryptographically sign the payload and merge it into the live `TIER_SAFE_WORKSPACE`.
+Instead, all new software must be aggressively tested within the Staging Crucible (the Shadow Node) prior to launch. When an encrypted state delta is transmitted from a developer's offline `.exe`, the orchestration engine routes it exclusively to this isolated staging node. Here, Tier 4 App Admins subject the AI plugin to rigorous Dynamic Application Security Testing (DAST) and intense Semantic Sniffing. Only after the code survives this crucible without crashing the Shadow Node or violating the SDK Baseline does the Tier 4 App Admin cryptographically sign the payload and merge it into the live `TIER_SAFE_WORKSPACE`.
