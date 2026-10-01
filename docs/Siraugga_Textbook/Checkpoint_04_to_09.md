@@ -47,3 +47,15 @@ This document serves as the official Module 2 Checkpoint, summarizing the core a
 *   **The Semantic Tree Protocol (STP):** The architectural defense against infinite hallucination loops. STP systematically mutes redundant standby agents, mathematically preventing them from conversing with each other and crashing the logic engine.
 *   **Agentic Power Systems & Generative HVAC:** "Power" equates to API LLM Tokens; a blackout is a total API outage. Furthermore, "HVAC" equates to controlling generative Temperature and Context Humidity to prevent the AI from overheating and hallucinating.
 *   **Semantic Git Repositories (Point-in-Time Replication):** Ensuring application resilience by backing up JSON state deltas as Git checkpoints, allowing instantaneous branch failovers if the primary `.exe` sandbox becomes hopelessly corrupted.
+
+## Chapter 9: Embedded Subagents, the IoP, and Agentic Deception
+**Core Focus:** Securing the outer rims of the swarm, including third-party plugins, embedded subagents, and deploying deception technologies to trap attackers.
+*   **The IoP (Internet of Plugins):** Modders connecting thousands of external plugins to their workspace. These plugins often inject proprietary databases, creating **Shadow Data** that exists outside the orchestrator's visibility, acting as a hidden vector for delayed Prompt Injections.
+*   **RTOS (Real-Time Orchestration System):** A lightweight scheduler managing sensor telemetry. It is highly vulnerable to **Priority Inversion**, where a low-priority background task maliciously preempts a high-priority security agent.
+*   **Side-Channel Attacks:** Embedded agents are targeted via side-channels rather than direct software exploits. Attackers analyze **Power** (API token burn rate), **Electromagnetic Leaks** (sniffing unencrypted WSS payloads), and **Sound** (semantic echoes in logs).
+*   **Special-Purpose Agents:** 
+    *   *Diagnostic (Medical):* Monitoring token health.
+    *   *Traversal (Automotive):* Tracking pathfinding and speed.
+    *   *Overlords (Aviation/Drones):* Game Masters surveilling the narrative. Susceptible to GPS spoofing and hijacking.
+*   **Agentic over IP (AoIP):** The protocol for internal voice/logic communications. Highly vulnerable to **Call Hijacking** and **Registration Spoofing** if not protected by Semantic Firewalls.
+*   **Deception Technologies:** The ultimate proactive defense. Tier 5 Admins deploy **Agentic Honeynets** (fake decoy workspaces), **Honeyfiles** (dummy JSON files that trigger alarms when read), and **Semantic Sinkholes** to distract and trap attackers before they reach the core engine.
