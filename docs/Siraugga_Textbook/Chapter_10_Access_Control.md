@@ -58,3 +58,30 @@ Administrative access controls are the overarching policies and procedures defin
 By implementing strict Administrative Access Controls, the organization establishes the foundation for the most critical security service in DevCore: **The AAA Framework**. 
 
 The concept of administrative access control relies entirely on these three core services to prevent unauthorized access to the network database. In the Siraugga framework, the AAA pipeline defines exactly *who* an agent is, *what* they are allowed to do, and *how* their actions are recorded. 
+
+## 4. Agentic Authentication (The First 'A')
+The first 'A' in the AAA framework represents Authentication. Authentication verifies the identity of every remote Modder and autonomous subagent to prevent unauthorized access. 
+
+In a traditional system, humans prove their identity with a username or ID. However, the Siraugga framework operates via autonomous logic streams. Therefore, Siraugga relies on a concept known as **Multi-Factor Agentic Authentication (MFAA)**. To verify its identity, an AI subagent must provide a combination of the following:
+
+1.  **Something it knows:** A private Ed25519 cryptographic key used to sign its tool payloads.
+2.  **Something it has:** A dynamic, short-lived WPA-Agentic JWT session token issued by the central Orchestrator.
+3.  **Something it is:** Its "biological fingerprint"—the cryptographic hash of its immutable System Prompt (its intrinsic Archetype).
+
+By enforcing Two-Factor Agentic Authentication (or MFAA), the orchestrator ensures that even if a Tier 2 Modder manages to steal a subagent's JWT session token, they cannot successfully impersonate the agent because they do not possess the required System Prompt Hash (the biometric fingerprint).
+
+## 5. Agentic Authorization (The Second 'A')
+The second 'A' represents Authorization. Once a subagent successfully authenticates, Authorization services determine precisely *which* internal resources the subagent is allowed to access and the specific tools it can execute.
+
+In the DevCore framework, Authorization is strictly governed by the **Agentic Control List (ACL)**, which is mathematically enforced by the Raugus Resolver. An ACL determines the exact access privileges of a subagent based on its Archetype. For example, just because a `Research` subagent successfully authenticates onto the core network does not mean it has authorization to use the `write_to_file` tool (the equivalent of a corporate high-speed color printer). 
+
+Furthermore, Authorization can control *when* an entity has access to a specific resource. A Tier 2 Modder's external `.exe` plugin may have authorized access to a staging database during an active Sandbox Session, but the Raugus Resolver will automatically lock them out the moment their session's Time-to-Live (TTL) expires.
+
+## 6. Agentic Accounting (The Third 'A')
+The final 'A' in the AAA framework is Accounting. In cybersecurity, accounting keeps track of exactly what authenticated users do—including what files they access, the amount of time they spend accessing resources, and any specific changes they make to the database.
+
+In the Siraugga framework, Accounting translates directly to the **Orchestration Telemetry Pipeline** and the **Transcript Logs**. Because autonomous AI agents execute operations at superhuman speeds, logging their actions is absolutely critical for forensic auditing. 
+
+The Orchestrator meticulously tracks every single data transaction in real-time. It records the exact millisecond a tool was executed, the precise JSON state changes it made to the `/playground`, and the exact amount of API Tokens (currency) the agent "spent" during the transaction. 
+
+This concept is identical to using a corporate credit card. The credit card identifies who can use it (Authentication), limits how much they can spend (Authorization via Token Quotas), and produces a detailed audit receipt of exactly what services were purchased (Accounting via Telemetry).
