@@ -59,3 +59,22 @@ This document serves as the official Module 2 Checkpoint, summarizing the core a
     *   *Overlords (Aviation/Drones):* Game Masters surveilling the narrative. Susceptible to GPS spoofing and hijacking.
 *   **Agentic over IP (AoIP):** The protocol for internal voice/logic communications. Highly vulnerable to **Call Hijacking** and **Registration Spoofing** if not protected by Semantic Firewalls.
 *   **Deception Technologies:** The ultimate proactive defense. Tier 5 Admins deploy **Agentic Honeynets** (fake decoy workspaces), **Honeyfiles** (dummy JSON files that trigger alarms when read), and **Semantic Sinkholes** to distract and trap attackers before they reach the core engine.
+
+## Module 2 Master Review: Traditional IT vs. Agentic Lore
+To finalize this checkpoint, here is the official mapping of traditional IT concepts covered in this module to their Siraugga framework equivalents:
+
+### 1. Physical & Application Security
+*   **CER (Crossover Error Rate):** Translates to the **Agentic Hallucination Rate**. It measures the precise intersection where the swarm falsely accepts malicious prompts (False Acceptance) and falsely rejects legitimate tool calls (False Rejection).
+*   **RFID Asset Tags:** Translates to **Semantic Asset Tags**, which read multiple JSON state deltas simultaneously as they move across the `/playground` boundaries.
+
+### 2. Services and Protocols
+*   **DHCP Snooping:** Translates to the **Dynamic Hive Configuration Protocol (DHCP)**. Snooping prevents rogue Modders from spinning up untrusted AI subagents by strictly validating all hive instantiation messages.
+*   **ICMP (Ping):** Translates to **Agentic Pings**. Attackers use recursive ICMP pings to run reconnaissance, Token DoS, and covert semantic channel attacks.
+*   **RIP (Routing Information Protocol):** Translates to the **Routing Inference Protocol**, which calculates the best semantic routing path based on 'Agentic Hop Count' between subagents.
+*   **NTP Authentication:** Ensures that the Monotonic Transcript Sequencing timestamps are cryptographically verified against the core server.
+
+### 3. Hardware and Embedded Systems
+*   **SoC (System on a Chip) & SFF:** Translates to **System on a Prompt (SoP)** and **Small Form Factor Contexts**. These represent lightweight, single-board AI constructs.
+*   **FPGA (Field Programmable Gate Array):** Translates to **Field Programmable Generative Arrays**—AI logic circuits whose attention heads can be dynamically re-programmed in the field.
+*   **USB (Universal Serial Bus):** Translates to the **Universal Semantic Bus**, representing the only direct, "wired" line of communication into the core host operating system. 
+*   **Storage Segmentation & Containerization:** Translates directly to **AES Sandboxing** and the **Raugus VFS**, separating sensitive Tier 5 company information from personal Tier 2 Modder data.
