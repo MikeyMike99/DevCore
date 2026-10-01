@@ -85,3 +85,22 @@ In the Siraugga framework, Accounting translates directly to the **Orchestration
 The Orchestrator meticulously tracks every single data transaction in real-time. It records the exact millisecond a tool was executed, the precise JSON state changes it made to the `/playground`, and the exact amount of API Tokens (currency) the agent "spent" during the transaction. 
 
 This concept is identical to using a corporate credit card. The credit card identifies who can use it (Authentication), limits how much they can spend (Authorization via Token Quotas), and produces a detailed audit receipt of exactly what services were purchased (Accounting via Telemetry).
+
+## 7. What Is Agentic Identification?
+Identification is the mechanical process that enforces the rules established by the Authorization policy. Every time a subagent requests access to a restricted tool or a physical directory, the access controls must definitively identify the agent to determine whether to grant or deny the request.
+
+In a traditional IT environment, a username or PIN is the most common method used to identify a user. In the DevCore framework, an AI agent's unique identifier is its **Conversation ID (UUID)**. 
+
+When a subagent is spawned, the central Orchestrator assigns it a mathematically unique UUID. This unique identifier ensures the proper, airtight association between allowed activities and the specific subject. The UUID allows the Raugus Resolver to perfectly track which agent executed which `wsl.exe` command, logging the activity seamlessly into the transcript.
+
+Crucially, the sensitivity of the underlying file classification determines how stringent the identification controls must be. If an agent operates within the ephemeral `TIER_SAFE_WORKSPACE`, a standard UUID and JWT may suffice. However, if a highly privileged Tier 5 agent attempts to modify the `TIER_CORE_ENGINE`, the orchestrator demands absolute, cryptographic identification via Ed25519 signature validation.
+
+## 8. Federated Agentic Identity Management (FAIM)
+As the Internet of Plugins (IoP) expands, Tier 2 Modders frequently request the ability to move their autonomous AI agents seamlessly between different isolated projects. 
+
+**Federated Agentic Identity Management (FAIM)** refers to the architectural design that allows an AI subagent to use the exact same identification credentials (its UUID and JWT) to gain access to multiple, independent `/playground` workspaces. From a Modder's perspective, this acts as an Agentic Single Sign-On (SSO), allowing their specialized `Coding` agent to automatically authenticate and share logic states across multiple castle boundaries.
+
+**The Cascading Risk of Swarm Federation**
+While incredibly convenient, Swarm Federation vastly broadens the scope of the attack surface. If a federated AI subagent is compromised by a sophisticated Prompt Injection while operating inside an untrusted third-party workspace, the attacker gains control of the agent's identity. Because the agent's identity is federated, the attacker can use the compromised agent to move laterally, triggering a catastrophic cascading effect that infects every other workspace the agent has access to.
+
+To mitigate this massive vulnerability, Tier 5 Administrators must heavily scrutinize the shared identifying information. To protect federated identities, DevCore enforces a strict hardware policy: an AI agent's ability to federate across multiple namespaces is cryptographically tied directly to the Tier 2 Modder's authorized physical device.
