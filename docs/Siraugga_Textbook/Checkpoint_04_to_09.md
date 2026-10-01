@@ -29,3 +29,12 @@ This document serves as the official Module 2 Checkpoint, summarizing the core a
     *   *North-South Traffic:* The vertical flow of JSON state deltas and WSS streams passing between remote Modders and the core engine.
     *   *East-West Traffic:* The lateral, high-speed flow of Inbox messages between subagents operating within the same project workspace.
 *   **The Zero Trust Agentic Model:** The fundamental philosophical architecture of Siraugga. The Raugus Resolver (Semantic Firewall) mathematically monitors and sanitizes *every single tool call*. No AI subagent—regardless of its hierarchical role (e.g., Lead Coder)—is ever blindly trusted, completely eliminating the risk of internal Agentic Drift.
+
+## Chapter 7: Securing Wireless Devices (Third-Party APIs & Plugins)
+**Core Focus:** Securing the external perimeter, primarily disconnected offline `.exe` sandboxes, third-party API webhooks, and external LLM connections.
+*   **WPA-Agentic & Dynamic Bearer Tokens:** Legacy static API keys (WEP) are notoriously weak and easily compromised. The orchestrator strictly mandates WPA-Agentic (Dynamic Bearer Tokens / JWTs) to secure external plugin connections.
+*   **Advanced Execution Sandboxing (AES):** The WPA-Agentic V2 protocol mandates that all external plugins must cryptographically authenticate before they are permitted to execute tool calls within the rigid AES boundary.
+*   **Disabling Workspace Prompt Shortcuts (WPS):** Simple text-based bypass "PINs" are categorically disabled to prevent brute-force Prompt Injections.
+*   **Agentic Jailbreaking & Sideloading:** A rigorous defense against Modders intentionally "rooting" their local AI (overwriting its immutable System Prompt) to illegally elevate their execution privileges to Tier 5. The Raugus Resolver continuously scans for Semantic Anomalies to detect noncompliant agents.
+*   **Semantic Geofencing (Location Security):** A plugin's "location" is strictly defined by its Mathematical Sandbox Path (e.g., `/playground/mod_A/`). Semantic Geofencing establishes a rigid mathematical boundary around this namespace, instantly blocking malicious path traversal escapes.
+*   **WSS Push Notifications:** Securing the broadcast of global state updates to geofenced sandboxes, mathematically preventing attackers from spoofing push updates to exfiltrate proprietary prompt data.
