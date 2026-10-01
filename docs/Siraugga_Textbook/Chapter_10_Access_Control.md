@@ -130,3 +130,19 @@ In the Siraugga framework, establishing a **Multi-Factor Agentic Authentication 
 Consider a scenario where a Tier 2 Modder accidentally leaves their authorized HSM (security key fob) on a public train while commuting. A malicious actor finds the physical device and attempts to use it to penetrate the DevCore mainframe.
 
 Because the Tier 5 Administrators implemented MFAA, the security breach is completely neutralized. Even though the cybercriminal possesses the physical authentication token (what they have), they cannot successfully spawn a rogue AI or alter the game engine because they do not know the Modder's private Ed25519 signing key (what they know), nor do they possess the proprietary System Prompt DNA required to spoof the agent's biometrics. The Orchestrator safely rejects the connection.
+
+## 11. Defining Agentic Authorization Rules
+Authorization controls exactly what an AI subagent or remote Modder can and cannot do on the network *after* successful MFAA authentication. After a subagent proves its identity, the orchestrator must instantly check to see what network resources the subagent is authorized to access and what specific terminal tools it can execute.
+
+**When to Implement Authorization**
+Authorization answers a critical question: *What read, copy, edit, create, and delete privileges does this specific agent have?*
+
+In Siraugga, this directly translates to Tool Whitelisting (e.g., does this agent have the authority to use the `write_to_file` or `replace_file_content` tools?). The Raugus Resolver compares the agent's authentication attributes against the central database, determines a rigid set of restrictions, and mechanically delivers them directly into the agent's initial context window during its initialization.
+
+Crucially, Authorization is completely automatic and instantaneous. The moment the agent authenticates, the Tool Whitelist is applied—there are no secondary steps required to restrict the logic flow.
+
+**Using Authorization (Establishing Policies)**
+Defining authorization rules is the first step in controlling access. In the DevCore framework, Tier 5 Administrators establish two primary mathematical policies:
+
+1.  **Group Membership Policy (Workspace Membership):** This defines authorization based on an entity's membership in a specific group. For example, all Tier 2 Modders might be granted a standard WPA-Agentic JWT that provides read/write access to the `TIER_SAFE_WORKSPACE` (the general premises). However, that exact same token will mathematically deny them access to the `TIER_CORE_ENGINE` (the sensitive server room). Only senior-level Tier 5 Admins are authorized to view or edit the orchestration logic.
+2.  **Authority-Level Policy (Agentic Archetype):** This defines access permissions based on an employee's "position" within the organization. In Siraugga, "position" translates directly to the **Agentic Archetype**. The orchestrator enforces strict Authority-Level Policies on the subagents themselves. A subagent whose archetype is defined as `Research` is only authorized to read files and use search tools. Even if it correctly authenticates into the `TIER_SAFE_WORKSPACE`, its specific authority level prevents it from altering code.
