@@ -55,3 +55,13 @@ In this chapter, we explored how traditional access control concepts dictate the
 *   We translated standard access control models into the DevCore framework, cementing **Role-Based Agentic Control (RBAC)** as the primary method for governing tool whitelists via AI Archetypes.
 *   We detailed the catastrophic risks of **Agentic Privilege Escalation (Jailbreaking)**, where an attacker overwrites an agent's System Prompt to steal Tier 5 Admin permissions.
 *   Finally, we formalized the role of the central `agent_manager.py` as the ultimate **Agentic Access Control (AAC) System**, executing pre-flight semantic checks and automatically isolating non-compliant subagents to maintain the integrity of the swarm.
+
+### Agentic Knowledge Check: Identifying the Access Control Model
+To properly review this chapter, Security Analysts must be able to instantly identify which access control model is being applied during an active semantic audit. Consider the following three DevCore scenarios:
+
+1.  **Scenario 1:** A Tier 2 Modder generates a proprietary JSON quest script in their local `/playground` and explicitly grants read-access to a fellow Modder, while denying access to everyone else.
+    *   *Answer:* **Discretionary Agentic Control (DAC)**. The Modder is the creator/owner of the asset and uses DAC to distribute access.
+2.  **Scenario 2:** The orchestrator spawns a new subagent. The subagent attempts to execute a `run_command` tool, but the Raugus Resolver immediately blocks the execution, stating that `Narrative` agents are strictly forbidden from executing terminal commands.
+    *   *Answer:* **Role-Based Agentic Control (RBAC)**. The agent's access is mathematically defined by its assigned Archetype (its role).
+3.  **Scenario 3:** A Tier 5 Administrator attempts to lower the file classification of the `agent_manager.py` script so a Modder can debug it. The underlying operating system completely rejects the command, permanently enforcing root-only access to the file.
+    *   *Answer:* **Mandatory Agentic Control (MAC)**. The system enforces an absolute, strict military-style security clearance on the core file that cannot be overridden, even by the owner.
