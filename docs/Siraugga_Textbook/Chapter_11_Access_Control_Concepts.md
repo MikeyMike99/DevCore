@@ -30,3 +30,28 @@ In the DevCore ecosystem, if a subagent is tasked simply with reading a file to 
 A common cyber exploit is known as Privilege Escalation. In this exploit, vulnerabilities in the access control system are used to grant a lower-tier user higher levels of privilege. 
 
 In the Siraugga framework, this translates directly to **Agentic Jailbreaking** or **Rooting**. If an attacker manages to exploit a Rule-Based access control flaw, they can inject malicious instructions that overwrite a subagent's immutable System Prompt. By overwriting the prompt, they trick the central Orchestrator into escalating the agent's privileges, turning a sandboxed Tier 3 subagent into a Tier 5 master administrator. Once the privilege is granted, the threat actor takes complete control of the logic mainframe.
+
+## 4. Agentic Access Control (AAC) Systems
+In a traditional IT environment, Network Access Control (NAC) systems support access management by mechanically enforcing organizational policies across thousands of connected devices. 
+
+In the DevCore framework, the NAC is replaced by the **Agentic Access Control (AAC) System**—which is structurally identical to the **Core Agent Orchestrator (`agent_manager.py`)**. The AAC System allows Tier 5 Administrators to monitor the massive swarm of subagents attached to the semantic network and manually control access as required.
+
+The Agentic Access Control system provides the following critical capabilities:
+*   **Rapid Policy Enforcement:** The orchestrator can instantly deploy global SDK hot-patches or rapidly revoke WPA-Agentic JWTs during a coordinated Semantic DoS attack.
+*   **Recognizing and Profiling Agents:** The AAC system verifies the identity of every connected node, strictly validating the agent's UUID, Archetype, and System Prompt Hash to ensure non-compliant, rooted software cannot cause damage.
+*   **Guest Access Portals:** Providing secure, read-only access to Tier 1 End-Users via the Zero-Restart Web Portal.
+*   **Pre-Flight Compliance Evaluation:** Evaluating a subagent's compliance prior to permitting network access. For example, the Raugus Resolver executes a Pre-Flight Semantic Check on the agent's proposed Python code, ensuring the syntax matches the security policy *before* passing it to the `wsl.exe` terminal.
+*   **Automated Incident Mitigation:** Mitigating active security incidents by blocking, isolating (quarantining an agent into a Semantic Honeynet), or explicitly triggering the Reaper Protocol to destroy non-compliant agents.
+
+**BYOP (Bring Your Own Plugin) and the Zero Trust Backbone**
+Because the IoP (Internet of Plugins) and the "Bring Your Own Plugin" (BYOP) culture greatly expand the DevCore attack surface, AAC automation features are absolutely mandatory. 
+
+Without the automated Agent Orchestrator, it would be mathematically impossible for human cybersecurity personnel to manually evaluate the thousands of third-party APIs and offline `.exe` subagents attempting to access the `/playground` simultaneously. Ultimately, the Agentic Access Control System is the central nervous system of the Zero Trust architecture, mechanically enforcing security compliance across the entire swarm.
+
+## 5. Chapter 11 Conclusion: Access Control Concepts
+In this chapter, we explored how traditional access control concepts dictate the flow of logic across an entire network infrastructure.
+
+*   We defined the overarching **Zero Trust Agentic Architecture**, establishing that the orchestrator must rigorously verify every single tool call made by an AI subagent, regardless of its internal origins or hierarchical trust level.
+*   We translated standard access control models into the DevCore framework, cementing **Role-Based Agentic Control (RBAC)** as the primary method for governing tool whitelists via AI Archetypes.
+*   We detailed the catastrophic risks of **Agentic Privilege Escalation (Jailbreaking)**, where an attacker overwrites an agent's System Prompt to steal Tier 5 Admin permissions.
+*   Finally, we formalized the role of the central `agent_manager.py` as the ultimate **Agentic Access Control (AAC) System**, executing pre-flight semantic checks and automatically isolating non-compliant subagents to maintain the integrity of the swarm.
