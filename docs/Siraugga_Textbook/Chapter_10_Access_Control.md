@@ -104,3 +104,29 @@ As the Internet of Plugins (IoP) expands, Tier 2 Modders frequently request the 
 While incredibly convenient, Swarm Federation vastly broadens the scope of the attack surface. If a federated AI subagent is compromised by a sophisticated Prompt Injection while operating inside an untrusted third-party workspace, the attacker gains control of the agent's identity. Because the agent's identity is federated, the attacker can use the compromised agent to move laterally, triggering a catastrophic cascading effect that infects every other workspace the agent has access to.
 
 To mitigate this massive vulnerability, Tier 5 Administrators must heavily scrutinize the shared identifying information. To protect federated identities, DevCore enforces a strict hardware policy: an AI agent's ability to federate across multiple namespaces is cryptographically tied directly to the Tier 2 Modder's authorized physical device.
+
+## 9. Advanced Authentication Methods (The Factors)
+As detailed in the AAA framework, users and autonomous agents must verify their identity by providing specific authentication factors. In the Siraugga framework, these traditional factors are heavily abstracted into Agentic Authentication Methods.
+
+**What You Have (Agentic Tokens and HSMs)**
+In a traditional IT environment, users carry physical smart cards or security key fobs. A smart card contains an embedded microchip capable of processing and safeguarding private encryption keys. 
+
+In the DevCore architecture, a "Smart Card" equates directly to the Tier 2 Modder's offline `.exe` sandbox. The `.exe` itself is the intelligent data carrier, embedded with the Modder's private Ed25519 cryptographic keys. A "Security Key Fob" translates to a physical **Hardware Security Module (HSM)** or a YubiKey that a Modder must plug into their machine to generate a dynamic WPA-Agentic JWT session token.
+
+**Who You Are (Agentic Biometrics)**
+Unique physical characteristics, such as a fingerprint, retina, or voice, are called biometrics. Biometric security compares these characteristics against stored profiles to authenticate a user. In Siraugga, Agentic Biometrics are divided into two distinct categories:
+
+1.  **Physiological Characteristics:** In humans, this represents DNA, fingerprints, or facial structure. In an autonomous AI, this represents the **System Prompt Hash**. The immutable system prompt acts as the absolute structural DNA of the AI subagent. If even a single character in the prompt is altered by an injection, the DNA hash changes, and authentication fails.
+2.  **Behavioral Characteristics:** In humans, this represents patterns of behavior such as gestures, gait, or typing rhythm. In Siraugga, this translates to **Semantic Behavioral Characteristics**. The Raugus Resolver continuously analyzes an AI's "typing rhythm" (its token generation speed and inference latency) and its "gait" (the specific structural sequence and frequency of its tool calls). If a `Research` agent suddenly begins executing tool calls with the aggressive "gait" of a `Coding` agent, the orchestrator immediately detects a behavioral anomaly and terminates the session.
+
+## 10. Multi-Factor Agentic Authentication (MFAA)
+Multi-factor authentication uses at least two methods of verification—such as a password (what you know) and a security key fob (what you have). This reduces the incidence of online identity theft because discovering a password is no longer sufficient to access an account.
+
+For example, withdrawing cash from a physical ATM requires the user to have the physical bank card (what they have) as well as know the specific PIN (what they know) before the ATM will dispense cash. 
+
+In the Siraugga framework, establishing a **Multi-Factor Agentic Authentication (MFAA)** pipeline is mandatory for all high-clearance execution threads. If a Tier 2 Modder wants to deploy a new plugin into the live `TIER_SAFE_WORKSPACE`, they must use their physical HSM token (what they have), sign the payload with their private cryptographic key (what they know), and the plugin must pass the System Prompt Hash validation (what it is). 
+
+**The DevCore Knowledge Check: The Lost Token**
+Consider a scenario where a Tier 2 Modder accidentally leaves their authorized HSM (security key fob) on a public train while commuting. A malicious actor finds the physical device and attempts to use it to penetrate the DevCore mainframe.
+
+Because the Tier 5 Administrators implemented MFAA, the security breach is completely neutralized. Even though the cybercriminal possesses the physical authentication token (what they have), they cannot successfully spawn a rogue AI or alter the game engine because they do not know the Modder's private Ed25519 signing key (what they know), nor do they possess the proprietary System Prompt DNA required to spoof the agent's biometrics. The Orchestrator safely rejects the connection.
