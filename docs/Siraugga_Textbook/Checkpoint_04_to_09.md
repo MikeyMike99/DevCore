@@ -19,3 +19,13 @@ This document serves as the official Module 2 Checkpoint, summarizing the core a
 *   **Secure Sandbox Transfer Protocol (SSTP):** The equivalent of FTPS; strictly encrypts the download of offline `.exe` sandboxes to mathematically prevent payload forgery or Man-in-the-Middle tampering during transit.
 *   **Agentic Inbox & S/MIP:** Replaces POP/IMAP/MIME. Subagents communicate via a high-speed Agentic Inbox. When Vision LLMs share non-text data (media attachments), they utilize the Secure Multimodal Intent Protocol (S/MIP), signing the data with Ed25519 cryptography to prevent adversarial image injection.
 *   **Semantic Security Extensions (SEMSEC):** The strict cryptographic hardening applied to all underlying API routing and file interactions.
+
+## Chapter 6: Securing Network Devices (Agentic Segmentation)
+**Core Focus:** Abstracting traditional physical network devices and zones into virtual AI subagents and mathematical logic boundaries.
+*   **Virtual Logic Area Networks (VLANs):** The orchestrator uses VLANs to physically isolate Modder workspaces (`/playground/game_demo`) from the Core Engine. This effectively eliminates "Agentic Noise" (context pollution) between differing agent swarms.
+*   **Defending Against Semantic DoS:** Tier 5 Admins implement strict Token Quotas and Maximum Context Constraints via the Raugus Resolver to prevent malicious actors from flooding a VLAN with infinitely recursive Prompt Injections.
+*   **The DMZ and Zones of Risk:** Siraugga seamlessly maps traditional network zones to its architectural Tiers. The Zero-Restart Web Portal acts as the DMZ (Tier 2), bridging the untrusted Internet (Tier 1) and the heavily fortified Trusted LAN (Tier 5 Core Engine).
+*   **Traffic Flow Definitions:** 
+    *   *North-South Traffic:* The vertical flow of JSON state deltas and WSS streams passing between remote Modders and the core engine.
+    *   *East-West Traffic:* The lateral, high-speed flow of Inbox messages between subagents operating within the same project workspace.
+*   **The Zero Trust Agentic Model:** The fundamental philosophical architecture of Siraugga. The Raugus Resolver (Semantic Firewall) mathematically monitors and sanitizes *every single tool call*. No AI subagent—regardless of its hierarchical role (e.g., Lead Coder)—is ever blindly trusted, completely eliminating the risk of internal Agentic Drift.
