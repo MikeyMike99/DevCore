@@ -1,10 +1,10 @@
-# CHECKPOINT: The Siraugga Defensive Doctrine (Modules 1-3)
+# Module 1 Checkpoint Summary: Chapters 1 to 3
 
-*A comprehensive summary of the textbook modules constructed for the DevCore Siraugga Architecture.*
+This document serves as the official Module 1 Checkpoint, summarizing the core architectural security doctrines established across Chapters 1 through 3 of the DevCore framework.
 
 ---
 
-## Module 1: Asset Management & The Architecture of Paranoia
+## Chapter 1: Asset Management & The Architecture of Paranoia
 **Core Theme:** Defining the threat landscape and engineering layered, immutable defenses to protect the host infrastructure from both external attackers and internal autonomous AI agents.
 
 ### What Did I Learn in this Module? (Defense-in-Depth)
@@ -33,7 +33,7 @@ To ensure the Siraugga infrastructure remains impenetrable, we implemented five 
 
 ---
 
-## Module 2: Operational Management & The Forensic Paradox
+## Chapter 2: Operational Management & The Forensic Paradox
 **Core Theme:** Controlling the execution environment, managing volatile telemetry, and deploying active interception tools to monitor the Zero-Trust grid.
 
 ### What Did I Learn in this Module? (Cybersecurity Operations Management)
@@ -66,7 +66,7 @@ Traditional packet analyzers (packet sniffers) intercept and log network traffic
 
 ---
 
-## Module 3: The Mandate of Governance (Business Policies)
+## Chapter 3: The Mandate of Governance (Business Policies)
 **Core Theme:** Establishing the absolute rules of engagement for both human operators and autonomous AI agents through rigid, mathematically enforced policies.
 
 ### What Did I Learn in this Module? (Security Policies, Regulations, and Standards)
