@@ -59,3 +59,23 @@ In traditional networking, a physical topology maps out Server Room 2158 connect
 In DevCore, this physical topology maps directly to the **Sandbox Isolation Topology**:
 *   **The Server Room (Host OS):** The physical Linux machine running the master Quart `server.py` and maintaining the immutable accounting logs in `/home/michael/.gemini/antigravity-cli/brain/`.
 *   **The Remote Classrooms (Modder Workspaces):** The isolated `/playground/` directories where Tier 2 Modders and AI agents execute their logic. The accounting logs track exactly how much data crosses the "cables" (WebSockets) between the untrusted workspaces and the core Server Room, providing irrefutable evidence against any rogue agent or cybercriminal attempting malicious actions.
+
+---
+
+## Chapter 13 Conclusion and Master Review
+
+Chapter 13 codifies the operational mechanics of the Zero-Trust Architecture. It dictates exactly *how* the Siraugga framework manages its massive, decentralized swarm of Tier 2 Modders and autonomous AI subagents. By utilizing a Centralized AAA framework, the Orchestrator maintains absolute dominion over who enters the system, what tools they are permitted to wield, and exactly how many computational tokens they are allowed to burn. 
+
+The structural translation of traditional networking protocols into the agentic sphere (RADI vs TACAS+) provides Tier 5 Admins with the flexibility to prioritize low-latency for in-game NPCs while simultaneously enforcing military-grade encryption for critical core engine modifications. Finally, the Accounting logs—the immutable Agentic Transcripts—serve as the ultimate forensic ledger, ensuring that no AI action goes unrecorded.
+
+### Traditional IT vs. DevCore Agentic Lore (Chapter 13 Translation Guide)
+
+To maintain absolute clarity, here is the master translation of traditional cybersecurity terms into their DevCore Agentic equivalents established in this chapter:
+
+*   **The AAA Framework** $\rightarrow$ **The Agentic Triad:** The core operational philosophy governing AI behavior: Identity (Authentication), Tool Whitelists (Authorization), and Token/Action Tracking (Accounting).
+*   **Centralized AAA Server** $\rightarrow$ **The Siraugga Orchestrator (`server.py`):** The master backend that independently evaluates WebSocket connections and enforces access control across all isolated Sandbox nodes.
+*   **RADIUS** $\rightarrow$ **RADI (Rapid Agentic Data Interchange):** A lightweight, unencrypted protocol utilized exclusively for high-speed, low-latency NPC chatbot generation where granular terminal authorization is not required.
+*   **TACACS+** $\rightarrow$ **TACAS+ (Terminal Access Control Agentic System):** The fully encrypted, TCP-based protocol utilized for Tier 5 Admins and privileged `wsl.exe` subagents, requiring strict per-command authorization.
+*   **AAA Accounting Logs** $\rightarrow$ **Agentic Transcript Logs (`transcript.jsonl`):** The immutable ledger that collects every piece of usage data, start/stop events, and token burn rates from the swarm.
+*   **EXEC (Command) Accounting** $\rightarrow$ **Bash String Logging:** The meticulous tracking of every single `run_command` executed by an AI agent inside the Linux terminal, preserving forensic evidence of any malicious activity.
+*   **Physical Topology (Server Rooms vs Classrooms)** $\rightarrow$ **Sandbox Topology:** The Host OS (the central physical machine running Quart) acting as the Server Room, connected via WebSockets to the isolated Modder Workspaces (the remote Classrooms).
