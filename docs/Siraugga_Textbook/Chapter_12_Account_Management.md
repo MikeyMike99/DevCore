@@ -109,3 +109,38 @@ However, to maintain the absolute mathematical consistency of the database, the 
 
 **Answer:**
 The Admin must restrict the swarm to **Read-Only** access. By configuring the subagents' whitelist to strictly allow the `view_file` tool (and explicitly removing `write_to_file`, `replace_file_content`, and `run_command`), the orchestrator physically guarantees the AI can view the existing project documents without possessing the mechanical capability to alter the game state.
+
+## Agentic Security Policies & Hallucination Lockouts
+
+In a traditional IT environment, administrators configure Windows Active Directory and Local Security Policies (`secpol.msc`) to enforce password rules and lockouts. In the DevCore ecosystem, Tier 5 Admins configure the **Siraugga Swarm Directory**—the central security policy governed by `security_manager.py` that dictates the behavior of all connected Modders and autonomous subagents.
+
+Through the Zero-Restart Web Portal, Admins enforce three critical agentic policies:
+
+1.  **Cryptographic Token Policy (Password Policy):** Instead of requiring an 8-character password with a capital letter, DevCore enforces mathematically rigorous cryptographic standards. Tier 2 Modders and their spawned AIs must authenticate using asymmetric Ed25519 key pairs. These API keys and session tokens must be automatically rotated by the Orchestrator every 30 to 60 days to prevent token leakage.
+2.  **Agentic Lockout Policy (Hallucination Clipping Levels):** In traditional IT, typing a password wrong five times locks the user out for 30 minutes. In DevCore, this translates to the **Hallucination Lockout Policy**. If an AI agent attempts to execute an unauthorized tool or access a forbidden directory five times in a row, the Raugus Resolver assumes the agent is suffering from severe Prompt Injection or a recursive hallucination loop. The orchestrator immediately kills the subprocess and hard-locks the agent’s unique UUID for 30 minutes, protecting the server from Semantic Denial of Service (DoS) attacks.
+3.  **Orchestration Audit Policies:** DevCore creates comprehensive, immutable security logs (`transcript.jsonl`) to track specific swarming events, including:
+    *   **Agent Spawn/Despawn Events** (Account logon/logoff).
+    *   **Semantic Directory Access** (When an agent views or writes to a file).
+    *   **Policy Changes** (When a Tier 5 Admin hot-patches the `server.py` rules).
+    *   **Privilege Use** (Tracking exactly when an agent escalates to a `run_command` execution).
+
+## Federated Swarm Authentication (Authentication Management)
+
+Authentication and authorization issues—such as unencrypted API keys or incorrect JSON permissions—are the leading cause of agentic security breaches. Authentication management in Siraugga aims to ensure secure API connections while providing ease of use for Tier 2 Modders.
+
+*   **Federated Agentic Identity Management (FAIM):** The equivalent of a Single Sign-On (SSO) solution. FAIM allows a Modder to authenticate their physical hardware once, giving them the ability to spawn subagents across multiple allowed game projects without needing a unique API key for every single AI.
+*   **Third-Party AI Delegation (OAuth):** When a Modder wishes to connect external plugins—such as an Inworld AI NPC or a custom hugging-face model—they use delegated token standards. This grants the external AI temporary, limited access to the game state without handing over the Modder's master credentials.
+*   **The Encrypted State Vault (Password Vault):** Protects and stores all underlying API subscriptions and System Prompts required to run the headless LLMs, requiring only a single master cryptographic key from the Admin to unlock the swarm's memory.
+*   **System Prompt Validation (Knowledge-Based Authentication - KBA):** If an AI's behavior becomes erratic, the Orchestrator may challenge the agent with a highly specific contextual question (its Physiological DNA). If the agent fails to answer correctly based on its immutable System Prompt, the Orchestrator knows the agent’s memory has been wiped by an injection attack and instantly terminates it.
+
+## Semantic HMAC (Agentic Message Authentication)
+
+Because DevCore relies heavily on WebSocket (WSS) streaming to pass live JSON state deltas between the game server and the AI swarm, transmitting raw, unencrypted data is a catastrophic vulnerability. 
+
+To solve this, DevCore implements **Hash-Based Message Authentication Code (HMAC)** for its agentic pipelines. Using HMAC, when a Tier 3 subagent generates a JSON action (e.g., "Move NPC to coordinates X,Y"), the agent uses a private key identifier to hash the JSON payload. 
+
+When the central orchestrator receives the JSON packet via the WebSocket, it looks up the subagent's private key and calculates its own HMAC. If the hashes match exactly, the Orchestrator knows two things with absolute mathematical certainty:
+1.  **Origin Authentication:** The payload definitely came from the authorized subagent, not a rogue script spoofing a WebSocket connection.
+2.  **Data Integrity:** The payload was not maliciously altered or injected with hostile code during transmission.
+
+Just as highly secure VPNs use IPsec and HMAC to authenticate network packets, the DevCore architecture relies on Semantic HMAC to guarantee the integrity of every single thought and action generated by the AI swarm.
