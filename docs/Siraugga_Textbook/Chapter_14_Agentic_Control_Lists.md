@@ -70,3 +70,24 @@ When a JSON tool request hits an Inbound ACL, the Orchestrator follows a violent
 4. **The Implicit Deny:** If the AI's request drops through the entire list and does not match a single ACE, the request is automatically killed. 
 
 The most critical security feature in the entire DevCore architecture is the **Implicit Deny**. By default, an invisible `deny any any` ACE is hardcoded at the absolute bottom of every single Agentic ACL. If a Tier 5 Admin does not explicitly write at least one `permit` statement, the ACL will ruthless block 100% of all swarm traffic. In a Zero-Trust architecture, if you are not explicitly permitted, you are absolutely denied.
+
+---
+
+## Chapter 14 Conclusion and Master Review
+
+Chapter 14 introduces the primary structural filter that prevents a sprawling AI swarm from causing catastrophic damage to the core game state. While Authentication verifies an agent's identity, the Agentic Control List (ACL) enforces the physical boundaries of the Sandbox. By utilizing both Standard (Identity-based) and Extended (Intent-based) Semantic Filtering, the Orchestrator can perform surgical traffic control over hundreds of concurrent subagents. 
+
+Ultimately, the entire filtering architecture is underpinned by the Implicit Agentic Deny—the unshakeable Zero-Trust guarantee that if an AI's specific tool request is not explicitly permitted by a Tier 5 Admin, it is mathematically eradicated before it can ever execute.
+
+### Traditional IT vs. DevCore Agentic Lore (Chapter 14 Translation Guide)
+
+To maintain absolute clarity, here is the master translation of traditional routing terminology into their DevCore Agentic equivalents established in this chapter:
+
+*   **Packet Filtering (ACLs)** $\rightarrow$ **Semantic Filtering (Agentic ACLs):** The process executed by `agent_manager.py` to intercept and categorize incoming JSON WebSocket payloads as either `permit` or `deny`.
+*   **Access Control Entries (ACEs)** $\rightarrow$ **Agentic Control Entries (ACEs):** The sequential lines of code (rules) that make up a given list.
+*   **Layer 3 Filtering (Standard ACL)** $\rightarrow$ **Agent UUID Filtering (Standard Agentic ACL):** A basic security list that permits or denies an AI based strictly on its identity (e.g., "Allow Agent-104").
+*   **Layer 4 Filtering (Extended ACL)** $\rightarrow$ **Tool Intent Filtering (Extended Agentic ACL):** A hyper-specific security list that filters based on the Agent UUID *plus* the exact Tool it is requesting and its targeted Filepath (e.g., "Allow Agent-104 to use `write_to_file` on `/game_demo/`).
+*   **Numbered vs Named ACLs** $\rightarrow$ **Named Agentic ACLs:** The absolute standard for Tier 5 Admins, requiring uppercase, alphanumeric strings (e.g., `DENY-CORE-EXECUTION`) to manage swarm permissions legibly.
+*   **Inbound ACL** $\rightarrow$ **Inbound Agentic ACL:** Intercepting a malicious JSON thought *before* the system wastes resources spawning a `wsl.exe` terminal shell.
+*   **Outbound ACL** $\rightarrow$ **Outbound Agentic ACL:** Intercepting the `wsl.exe` terminal output *after* execution, allowing the Orchestrator to censor server stack-traces or secret `.env` variables before returning the text to the AI.
+*   **Implicit Deny** $\rightarrow$ **The Implicit Agentic Deny:** The invisible, hardcoded `deny any any` rule at the bottom of every list. In a Zero-Trust architecture, if you are not explicitly permitted, you are absolutely denied.
