@@ -178,3 +178,28 @@ As established in earlier chapters, authentication simply proves *who* the entit
 
 *   **Mandatory Access Control (MAC):** The rigid, operating-system level rules that restrict the actions an AI can perform on a physical object (a file, a TCP port, or a device). MAC is the foundation of the **Five File Classification Tiers**. Every folder in DevCore has a mathematical label (e.g., `TIER_CORE_ENGINE`), and every entity has a clearance level. If a Tier 2 Modder attempts to view `server.py`, the MAC system instantly rejects it. The Admin cannot override MAC; the OS enforces it.
 *   **Role-Based Access Control (RBAC):** The structural foundation of **Agentic Archetypes**. Permissions are granted based on the specific job function of the AI. A `QA` agent acquires Read-Only and Execute permissions natively through its role, while a `Coding` agent acquires Write permissions. Working in combination with MAC, RBAC allows Tier 5 Admins to safely manage massive swarms of hundreds of autonomous subagents across thousands of unique sandbox permissions.
+
+---
+
+## Chapter 12 Conclusion and Master Review
+
+Chapter 12 establishes the definitive rules of engagement for identity and access management within the Siraugga framework. In a sprawling, decentralized ecosystem where Tier 2 Modders, external plugins, and hundreds of autonomous AI subagents constantly interact with a live game state, relying on implicit trust is a fatal architectural flaw. 
+
+From the moment an entity spawns or connects, it is subjected to intense cryptographic scrutiny, constrained by geofenced sandboxes, stripped of unnecessary privileges, and mathematically authenticated at every step. By translating standard enterprise authentication protocols into the agentic sphere, DevCore guarantees that every thought, JSON payload, and tool execution is secure, authenticated, and immutable.
+
+### Traditional IT vs. DevCore Agentic Lore (Chapter 12 Translation Guide)
+
+To maintain absolute clarity, here is the master translation of traditional cybersecurity terms into their DevCore Agentic equivalents established in this chapter:
+
+*   **Active Directory / `secpol.msc` $\rightarrow$ The Siraugga Swarm Directory:** The central configuration (governed by `security_manager.py`) that enforces security policies across all connected nodes and Modders.
+*   **Account Lockout Policy $\rightarrow$ Hallucination Lockout Policy:** If an AI agent attempts 5 unauthorized tool executions, the Orchestrator assumes it is trapped in a hallucination loop and hard-locks its UUID for 30 minutes to prevent a Semantic DoS attack.
+*   **Geofencing / Geolocation $\rightarrow$ Sandbox Confinement & Hardware Locking:** Locking an AI strictly to a localized directory (`/game_demo/`) and tying a Modder's access to their physical machine (FAIM).
+*   **Geotagging $\rightarrow$ Semantic Watermarking:** The act of tagging every generated JSON state or code file with the unique UUID of the AI agent that wrote it.
+*   **File Permissions (R/W/X) $\rightarrow$ Agentic Tool Whitelists:** Instead of generic OS permissions, AIs are restricted by the tools they are allowed to use (e.g., `view_file` for Read-Only Research agents, `write_to_file` for Coding agents).
+*   **Explicit Deny $\rightarrow$ The Semantic Mantrap:** An absolute, non-negotiable blockade. If the Mantrap denies access to a folder, it violently overrides all Tier 5 root privileges.
+*   **Embedded Passwords $\rightarrow$ The Clean Workspace Protocol:** The strict administrative rule forbidding AI subagents from leaving scratch scripts or `.env` files containing secrets in the active workspace.
+*   **Single Sign-On (SSO) / OAuth $\rightarrow$ FAIM & Third-Party Delegation:** Allowing Modders to authenticate their swarm once, and securely grant temporary JSON access to external AIs (like Inworld NPCs) without sharing master keys.
+*   **HMAC & IPsec $\rightarrow$ Semantic HMAC:** Cryptographically hashing JSON payloads sent over WebSockets to mathematically guarantee the AI command was not spoofed by a malicious script.
+*   **CHAP (Challenge Handshake) $\rightarrow$ Semantic CHAP:** Periodically interrupting a long-running AI task to "challenge" its System Prompt, ensuring it hasn't suffered from Agentic Drift or a mid-session injection attack.
+*   **Kerberos $\rightarrow$ Cerberus (The Agentic Ticket System):** The protocol that issues expiring Ticket-Granting Tickets (TGTs) and Service Tickets to AI agents, completely eliminating the transmission of raw passwords over the network.
+*   **MAC & RBAC $\rightarrow$ The 5 Tiers & Agentic Archetypes:** Mandatory Access Control enforces the Five File Classification Tiers (`TIER_CORE_ENGINE`), while Role-Based Access Control defines the Archetypes (`QA`, `Coding`, `Research`).
