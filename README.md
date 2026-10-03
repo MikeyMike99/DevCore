@@ -125,7 +125,8 @@ The architecture utilizes a proactive memory-hook (`PreToolUse`) to intercept an
 2. When the AI attempts to rewrite code (e.g., via `replace_file_content`), the engine halts execution.
 3. The hook loads the original file into RAM, virtually applies the AI's proposed replacement code, and parses the new Abstract Syntax Tree (AST).
 4. By cross-referencing the modified line ranges, the NGPF mathematically identifies exactly which Functions the AI is attempting to overwrite.
-5. If the AI is modifying a locked `Read-Only` Function, the hook instantly denies the tool execution. The AI is blocked, and the physical file on disk remains 100% untouched.
+5. If the AI is modifying a locked `Read-Only` Function, the hook instantly denies the tool execution. The physical file on disk remains 100% untouched.
+6. **Elegant Degradation**: Instead of violently crashing the session, the Hook returns the NGPF error directly into the AI's context window. The AI remains alive, gracefully informs the user of the security block, and pivots to writing a manual Implementation Plan.
 
 ---
 
