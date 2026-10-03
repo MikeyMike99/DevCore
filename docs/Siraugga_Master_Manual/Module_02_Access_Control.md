@@ -78,3 +78,22 @@ In older reactive firewalls, detecting a breach resulted in the system violently
 The Proactive PreToolUse Hook does not kill the agent. When an AI is blocked from writing to a locked AST node, the tool execution fails gracefully. The specific reason (e.g., `"AST Diffing blocked the modification"`) is injected directly back into the AI's context window. 
 
 Because the AI is instantly aware of *why* it was blocked, it can naturally pivot. The AI will remain alive and respond to the human in the chat feed, typically offering a compliant fallback action: *"I am blocked from modifying this system function directly. I will generate an Implementation Plan artifact instead for your manual review."* This ensures absolute security without degrading the human user's experience.
+
+## 2.6 The Semantic Mantrap (Concurrency Firewall)
+
+Because DevCore orchestrates autonomous AI Swarms, it is highly susceptible to **Agentic Race Conditions**. If Subagent A and Subagent B both attempt to modify a core database (like `session_ownership.json`) or perform AST Diffing on the exact same file at the exact same millisecond, state corruption can occur. Even worse, a malicious payload could theoretically slip through the firewall if the validation logic is busy processing a legitimate request on a parallel thread.
+
+To eliminate this vulnerability, the framework utilizes **The Semantic Mantrap**. 
+
+A mantrap is a physical security device with two interlocking doors, ensuring only one authenticated entity can be inside the execution chamber at a time. In DevCore, this is implemented natively at the Operating System kernel level.
+
+### The Staggered Logic Flow
+When a Subagent attempts to execute a high-risk modification, it must pass through the Mantrap:
+1. **The Outer Door (Acquiring the Lock):** The agent requests an exclusive OS-level file lock. If another agent is already inside, the requesting agent is physically frozen at this line of code. Its logic flow is completely staggered.
+2. **The Execution Chamber (Validation & Write):** Once inside, the agent performs its AST Diffing or Database Write securely, isolated from parallel threads.
+3. **The Inner Door (Release):** Upon completion, the lock is released, and the next queued agent is permitted to enter.
+
+### Cross-Platform Kernel Locking
+Because standard Python async locks do not function reliably across independent command-line subprocesses, the Semantic Mantrap utilizes absolute file descriptor locking:
+* **Linux/WSL:** Utilizes `fcntl.flock(fcntl.LOCK_EX)` to enforce the kernel lock.
+* **Native Windows:** Utilizes the Microsoft Visual C Runtime (`msvcrt.locking` with `LK_LOCK`) to lock specific memory regions of the file, guaranteeing identical thread-staggering behavior regardless of the host OS.
