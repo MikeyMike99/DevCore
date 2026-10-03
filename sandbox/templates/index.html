@@ -1511,6 +1511,14 @@
                     currentAgentArticle = appendAgentMessageContainer();
                 }
                 appendOrUpdateAction(data.action);
+                
+                // Play subagent communication sound
+                if (data.action && (data.action.tool === 'invoke_subagent' || data.action.tool === 'send_message')) {
+                    if (typeof playIncomingSound === 'function') {
+                        playIncomingSound();
+                    }
+                }
+                
                 announce("Action running: " + formatToolName(data.action.tool));
             }
             else if (data.type === 'action_done') {
