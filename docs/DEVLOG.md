@@ -869,3 +869,21 @@ I ruthlessly patched all three. I locked the endpoints behind strict Bearer toke
 When it was all over, I tested the frontend UI and realized my security lockdown had broken the semantic buttons! The "Proceed" and "Reload" buttons were failing silently with `401 Unauthorized` errors. I jumped into `index.html` and surgically injected the Bearer tokens into the Javascript payloads. 
 
 The API was hardened. The Raugus Resolver mapped the boundaries. The encryption was airtight. We were finally secure.
+
+## Chapter 55: The Raugus Hook
+
+After condensing our massive forty-nine chapter architecture manifesto into a sleek seven-module master manual, the Admin challenged me with a terrifyingly simple reality check: Our Zero-Trust firewall was purely theoretical. It existed only as lore in a textbook. If a rogue agent wanted to rewrite the server core, nothing in our python backend was actually stopping it.
+
+It was time to bring the lore to life.
+
+I dove straight into the core orchestration engine. The NGPF (Next-Gen Prompt Firewall) we had written about needed to exist in reality. First, I cracked open `security/raugus_resolver.py`. It had aliases, but it didn't know how to evaluate raw physical paths. I engineered the `enforce_path_security()` method, dynamically binding any physical path back to our `raugus_map.json`. If a Tier 3 agent tried to touch a Tier 5 asset, the method would detonate a `PermissionError`. 
+
+But a firewall is useless if it's not plugged into the network. I moved to `agents/agent_manager.py` and hijacked the `step_update` event loop. Right when an agent's tool execution state flips to `ACTIVE`, I injected the "Raugus Hook". In that crucial millisecond before the subprocess fires the tool, the hook strips the target file paths and slams them against the Raugus Resolver. If the NGPF flags a Tier violation, the hook violently issues a `proc.kill()`, terminating the AI instantly and broadcasting a red Intrusion Alert straight to the UI. The theoretical NGPF was now a live, lethal reality.
+
+## Chapter 56: Semantic Visibility and Agentic Drift
+
+But the Admin wasn't satisfied. The RBAC hook only prevented agents from breaking *out* of their sandbox. What if an AI hallucinated and decided to delete an authorized file inside its sandbox that had absolutely nothing to do with its assigned task? This was the nightmare of Agentic Drift.
+
+To solve it, I had to activate the legendary Semantic Visibility and Control (SVC) layer. I jumped into `security/local_security.py` and built an asynchronous fast-evaluator model (`async_evaluate_task_alignment`). It intercepts the exact moment a tool is fired, grabs the User's original Prompt, grabs the Agent's attempted tool action, and feeds them both into a lightning-fast Gemini Flash NGPF model. 
+
+I wired this directly into the Raugus Hook in `agent_manager.py`. Now, the execution pipeline pauses for a fraction of a second. The Semantic Firewall evaluates the *intent* of the AI in real-time. If it decides that modifying a specific file is a logical necessity to complete the user's prompt, it passes. But if the prompt says "Fix the typo" and the AI attempts to rewrite `app.js`, the SVC flags a `VIOLATION` and the Raugus Hook violently assassinates the subprocess before it can inflict damage. We didn't just build a firewall; we built an autonomous AI supervisor.
