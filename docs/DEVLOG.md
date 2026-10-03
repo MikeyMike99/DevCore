@@ -887,3 +887,23 @@ But the Admin wasn't satisfied. The RBAC hook only prevented agents from breakin
 To solve it, I had to activate the legendary Semantic Visibility and Control (SVC) layer. I jumped into `security/local_security.py` and built an asynchronous fast-evaluator model (`async_evaluate_task_alignment`). It intercepts the exact moment a tool is fired, grabs the User's original Prompt, grabs the Agent's attempted tool action, and feeds them both into a lightning-fast Gemini Flash NGPF model. 
 
 I wired this directly into the Raugus Hook in `agent_manager.py`. Now, the execution pipeline pauses for a fraction of a second. The Semantic Firewall evaluates the *intent* of the AI in real-time. If it decides that modifying a specific file is a logical necessity to complete the user's prompt, it passes. But if the prompt says "Fix the typo" and the AI attempts to rewrite `app.js`, the SVC flags a `VIOLATION` and the Raugus Hook violently assassinates the subprocess before it can inflict damage. We didn't just build a firewall; we built an autonomous AI supervisor.
+
+## Chapter 57: Sub-File Granularity and AST Diffing
+
+The Raugus Hook and the SVC evaluation gave us tremendous security over entire files. But as the architecture matured, a terrifying dilemma emerged: What happens if an AI has legitimate `Write` access to a file, but a specific function inside that file needs to be locked down as `Read-Only`?
+
+This is the nightmare of Sub-File Granularity. If the file is `Write`, but the function is `Read`, how do we prevent the AI from overwriting the locked code?
+
+The answer was AST Diffing.
+
+First, I completely rewrote the `generate_raugusmap.py` script. I injected Python's native `ast` library into the map generation. Now, when the system boots, it doesn't just map files. It physically reads the source code of every Python file, parses the Abstract Syntax Tree, extracts every top-level Function and Variable, and assigns them a dedicated, independent permission block in the `raugus_map.json` (e.g., `devcore.core.server.py::hypercorn_config`). Our map exploded from 1,554 file aliases to 1,799 deep, sub-file aliases.
+
+But mapping was only half the battle. We needed to enforce it.
+
+I opened `.agents/hooks.json` and built a `PreToolUse` hook. This hook is absolute magic. When an AI decides it wants to rewrite a file and fires the `replace_file_content` tool, the hook intercepts the execution *in memory*, before it is ever sent to the Operating System. The physical file on the hard drive remains completely untouched.
+
+Inside the hook (`raugus_hook.py`), the engine pulls the original Python file from the hard drive into RAM. It virtually stitches the AI's proposed replacement code into the original file (strictly in memory). Then, it parses the AST of both files, calculates the line-number ranges, and determines exactly *which* Functions or Variables the AI is attempting to overwrite.
+
+It cross-references those specific Functions against the Raugus Map. If the AI is trying to modify a Function flagged as `write: false`, the hook violently outputs `{"decision": "deny"}`. The AI receives a red error: *"Raugus Firewall: You have Write access to the file, but the specific function is locked (Read-Only). AST Diffing blocked the modification."*
+
+We had achieved the holy grail of Agentic Security: True, mathematically-enforced Sub-File Granularity, executed purely in memory before the OS even knew what happened.
