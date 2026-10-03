@@ -1598,7 +1598,7 @@
 
         
         function playNotificationSound() {
-            var audio = new Audio('/static/sounds/notification.mp3');
+            var audio = new Audio('/api/sound/notification');
             audio.play().catch(err => {
                 // Fallback: If no MP3 is found, synthesize a soft, non-alarming UI pop
                 try {
@@ -1887,7 +1887,7 @@
 
         
         function playIncomingSound() {
-            var audio = new Audio('/static/sounds/incoming.wav');
+            var audio = new Audio('/api/sound/incoming');
             audio.play().catch(err => {
                 // Synthesizer fallback if file is missing (soft high pitched beep)
                 try {
