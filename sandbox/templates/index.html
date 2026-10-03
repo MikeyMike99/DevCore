@@ -1529,6 +1529,18 @@
                     currentAgentArticle = appendAgentMessageContainer();
                 }
                 appendOrUpdateAction(data.action);
+                
+                if (data.action && data.action.tool) {
+                    var tName = data.action.tool.toLowerCase();
+                    if (tName.includes('invoke_subagent') || tName.includes('send_message')) {
+                        if (typeof playIncomingSound === 'function') {
+                            playIncomingSound();
+                            console.log("🔊 SwarmFlow Audio Triggered on action_done!");
+                            appendSystemMessage("🔊 [Audio System] Swarm communication routed and played.", "info");
+                        }
+                    }
+                }
+                
                 announce("Action complete: " + formatToolName(data.action.tool));
             }
             else if (data.type === 'agent_chunk') {
