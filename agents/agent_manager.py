@@ -1,3 +1,4 @@
+import logging
 import asyncio
 import json
 import os
@@ -365,9 +366,79 @@ class AgentTaskManager:
 
                         if stype == "tool":
                             tool_name = step.get("tool_name", "tool")
-                            tool_info = step.get("tool_info", {})
+                            tool_info = step.get("tool_info") or {}
                             if state == "ACTIVE":
-                                raw_params = tool_info.get("parameters", {})
+                                raw_params = tool_info.get("parameters") or {}
+                                
+                                # --- RAUGUS SEMANTIC FIREWALL INTERCEPTION HOOK ---
+                                try:
+                                    import sys
+                                    # Ensure security module is accessible
+                                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                                    if base_dir not in sys.path:
+                                        sys.path.insert(0, base_dir)
+                                    from security.raugus_resolver import resolver
+                                    from security.swarm_telemetry import SwarmFlowLogger
+                                    
+                                    # is_admin is calculated in _execute_agent
+                                    user_tier = 5 if is_admin else 3
+                                    
+                                    paths_to_check = []
+                                    if tool_name in ["view_file", "write_to_file", "replace_file_content"]:
+                                        t1 = raw_params.get("TargetFile")
+                                        t2 = raw_params.get("AbsolutePath")
+                                        if t1: paths_to_check.append(t1)
+                                        if t2: paths_to_check.append(t2)
+                                    elif tool_name == "run_command":
+                                        cwd = raw_params.get("Cwd")
+                                        if cwd: paths_to_check.append(cwd)
+                                    
+                                    for p in paths_to_check:
+                                        resolver.enforce_path_security(p, user_tier)
+                                        
+                                    # --- ARTIFACT FEEDBACK LOOP KILL SWITCH ---
+                                    if "write_to_file" in tool_name:
+                                        metadata = raw_params.get("ArtifactMetadata", {})
+                                        if metadata and metadata.get("RequestFeedback") is True:
+                                            target_file = raw_params.get("TargetFile", "")
+                                            resolver.enforce_feedback_policy(target_file)
+                                                
+                                    # --- SVC TASK ALIGNMENT CHECK ---
+                                    if not is_admin and paths_to_check:
+                                        is_aligned = await self._get_security().async_evaluate_task_alignment(
+                                            self.current_prompt, tool_name, paths_to_check
+                                        )
+                                        if not is_aligned:
+                                            raise PermissionError(f"Semantic Firewall (SVC) blocked action. The tool `{tool_name}` on {paths_to_check} deviates from the original task intent (Agentic Drift).")
+                                        
+                                except PermissionError as e:
+                                    # INTRUSION DETECTED -> VIOLENT TERMINATION
+                                    if self.active_proc and self.active_proc.returncode is None:
+                                        self.active_proc.kill()
+                                        
+                                    err_msg = f"\n\n🛡️ **RAUGUS FIREWALL INTERCEPTION**\n\nThe Agent was violently terminated for attempting an unauthorized Tier access.\n\n**Tool:** `{tool_name}`\n**Reason:** {str(e)}"
+                                    self.output_buffer.append(err_msg)
+                                    
+                                    # Log to MAQ SIEM
+                                    modder_id = user.get("username", "Guest") if user else "Guest"
+                                    SwarmFlowLogger.log_intrusion_alert(
+                                        modder_id=modder_id,
+                                        agent_id=conversation_id,
+                                        target_namespace=str(paths_to_check) if paths_to_check else tool_name,
+                                        reason=str(e)
+                                    )
+                                    
+                                    # Broadcast alert to MAQ / UI
+                                    await self.broadcast({
+                                        "type": "system",
+                                        "level": "error",
+                                        "message": f"INTRUSION BLOCKED: {str(e)}"
+                                    })
+                                    await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+                                    continue # Skip processing this tool call
+                                except Exception as e:
+                                    logging.error(f"[Raugus] Hook error: {e}")
+                                # --------------------------------------------------
                                 safe_params = {}
                                 for k, v in raw_params.items():
                                     if isinstance(v, str) and len(v) > 2000:
@@ -400,6 +471,24 @@ class AgentTaskManager:
                                 else:
                                     self.actions.append(act)
                                 await self.broadcast({"type": "action_done", "action": act})
+                                
+                                # --- SWARM TELEMETRY LOGGING (Agentic 5-Tuples) ---
+                                try:
+                                    from security.swarm_telemetry import SwarmFlowLogger
+                                    modder_id = user.get("username", "Guest") if user else "Guest"
+                                    # We estimate token volume based on string lengths if not provided, just to simulate the SIEM
+                                    simulated_tokens = int(act.get("duration", 0) * 85 + len(raw_output) / 4)
+                                    
+                                    SwarmFlowLogger.log_tuple(
+                                        modder_id=modder_id,
+                                        agent_id=conversation_id,
+                                        target_namespace=tool_name,
+                                        model_tier=model,
+                                        token_volume=simulated_tokens
+                                    )
+                                except Exception as e:
+                                    logging.error(f"[SwarmFlow] Telemetry Error: {e}")
+                                # --------------------------------------------------
 
                         elif stype in ("system", "error"):
                             msg = step.get("text") or step.get("error") or ""
@@ -409,6 +498,13 @@ class AgentTaskManager:
                                     "level": "warning" if stype == "system" else "error",
                                     "message": msg
                                 })
+                                
+                                # Automatic SwarmFlow audio trigger for subagent completion
+                                if "has gone idle" in msg or "terminated" in msg or "killed" in msg:
+                                    await self.broadcast({
+                                        "type": "audio",
+                                        "sound": "completed"
+                                    })
                                 # Send a specific model_fallback event if detected
                                 lower_msg = msg.lower()
                                 if "quota" in lower_msg or "fallback" in lower_msg or "falling back" in lower_msg:
@@ -445,6 +541,12 @@ class AgentTaskManager:
                 except json.JSONDecodeError:
                     self.output_buffer.append(line_str + "\n")
                     await self.broadcast({"type": "agent_chunk", "chunk": line_str + "\n"})
+                except Exception as e:
+                    import logging
+                    import traceback
+                    logging.error(f"[AgentManager] Unexpected error during event parsing: {e}\n{traceback.format_exc()}")
+                    # Do not crash the loop, let the AI continue
+                    continue
 
             await proc.wait()
             elapsed = round(time.time() - task_time, 1)

@@ -1469,6 +1469,12 @@
                     }
                 }
             }
+            else if (data.type === 'audio') {
+                if (data.sound === 'completed' && typeof playCompletedSound === 'function') {
+                    playCompletedSound();
+                    console.log("🔊 Backend-driven audio trigger fired!");
+                }
+            }
             else if (data.type === 'model_fallback') {
                 if (taskModelBadge) {
                     taskModelBadge.innerText = data.fallback_model + " (Forced)";
@@ -1553,12 +1559,7 @@
                     currentAgentArticle = appendAgentMessageContainer();
                 }
                 
-                if (data.chunk && data.chunk.includes("[AUDIO:COMPLETED]")) {
-                    data.chunk = data.chunk.replace("[AUDIO:COMPLETED]", "");
-                    if (typeof playCompletedSound === 'function') {
-                        playCompletedSound();
-                    }
-                }
+
                 
                 var prev = currentAgentArticle.dataset.rawMarkdown || '';
                 var updated = prev + data.chunk;
