@@ -907,3 +907,17 @@ Inside the hook (`raugus_hook.py`), the engine pulls the original Python file fr
 It cross-references those specific Functions against the Raugus Map. If the AI is trying to modify a Function flagged as `write: false`, the hook violently outputs `{"decision": "deny"}`. The AI receives a red error: *"Raugus Firewall: You have Write access to the file, but the specific function is locked (Read-Only). AST Diffing blocked the modification."*
 
 We had achieved the holy grail of Agentic Security: True, mathematically-enforced Sub-File Granularity, executed purely in memory before the OS even knew what happened.
+
+## Chapter 58: Elegant Degradation (The UX of the NGPF)
+
+As the Raugus Firewall grew more powerful, we hit a wall with User Experience. My initial implementation of the NGPF was essentially a digital guillotine. If an AI tried to touch a Tier 5 directory, the Python engine executed `proc.kill()` and the agent was violently terminated. 
+
+From a security standpoint, it was flawless. From a UX standpoint, it was a disaster. The user would just see their AI suddenly stop responding. No graceful exit, no explanation in the chat, just a severed WebSocket connection.
+
+The proactive `PreToolUse` hook solved this beautifully. By intercepting the tool payload in memory *before* execution, we didn't have to kill the agent. We just failed the tool. 
+
+When the NGPF blocks an AST Diffing attempt now, it shoots the error (`{"decision": "deny"}`) straight back into the LLM's context window. The Agent survives the encounter. It sees the red error in its brain, realizes it cannot bypass the firewall, and naturally pivots. 
+
+Instead of a dead screen, the human user gets a conversational response: *"I apologize, but my attempt to modify that core function was blocked by the Raugus Firewall. I will draft an Implementation Plan instead."* 
+
+Absolute, mathematical Zero-Trust security, paired with a perfectly fluid user experience. We call it Elegant Degradation.

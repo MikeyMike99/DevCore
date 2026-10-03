@@ -69,3 +69,12 @@ Before the Operating System is notified of the write request, the Hook intercept
 4. It cross-references the modified nodes against the Deep Aliases in the Raugus Map.
 
 If the NGPF calculates that the AI is attempting to modify a function node explicitly flagged as `Read-Only`, the firewall instantly outputs a `deny` decision. The tool execution is violently aborted, and the file on the physical disk remains 100% untouched. 
+
+### 3. Elegant Degradation (Agent UX)
+A critical feature of the PreToolUse Hook architecture is **Elegant Degradation**. 
+
+In older reactive firewalls, detecting a breach resulted in the system violently terminating the AI process (`proc.kill()`). While secure, this severed the WebSocket connection, leaving the human user with a frozen UI or a meaningless drop-off. 
+
+The Proactive PreToolUse Hook does not kill the agent. When an AI is blocked from writing to a locked AST node, the tool execution fails gracefully. The specific reason (e.g., `"AST Diffing blocked the modification"`) is injected directly back into the AI's context window. 
+
+Because the AI is instantly aware of *why* it was blocked, it can naturally pivot. The AI will remain alive and respond to the human in the chat feed, typically offering a compliant fallback action: *"I am blocked from modifying this system function directly. I will generate an Implementation Plan artifact instead for your manual review."* This ensures absolute security without degrading the human user's experience.
