@@ -1661,11 +1661,6 @@
                         statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Completed ' + elapStr;
                     }
                     
-                    // Play the completion pop sound
-                    if (typeof playNotificationSound === 'function') {
-                        playNotificationSound();
-                    }
-                    
                     var responseText = currentAgentArticle.dataset.rawMarkdown || "No response provided.";
                     var cleanText = responseText.replace(/[#*`_]/g, '').replace(/<[^>]+>/g, ' ');
                     announce("Task completed successfully in " + elapStr + ". Response: " + cleanText);
