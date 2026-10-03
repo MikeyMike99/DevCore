@@ -1513,9 +1513,12 @@
                 appendOrUpdateAction(data.action);
                 
                 // Play subagent communication sound
-                if (data.action && (data.action.tool === 'invoke_subagent' || data.action.tool === 'send_message')) {
-                    if (typeof playIncomingSound === 'function') {
-                        playIncomingSound();
+                if (data.action && data.action.tool) {
+                    var tName = data.action.tool.toLowerCase();
+                    if (tName.includes('invoke_subagent') || tName.includes('send_message')) {
+                        if (typeof playIncomingSound === 'function') {
+                            playIncomingSound();
+                        }
                     }
                 }
                 
