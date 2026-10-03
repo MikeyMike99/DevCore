@@ -112,7 +112,24 @@ Even though Siraugga itself is securely sandboxed, any code it generates could b
 
 ---
 
-## 10. The Immutable Host Doctrine (Containerization)
+## 10. Sub-File Granularity & AST Diffing (The Raugus NGPF)
+
+**Methodology**: Next-Gen Prompt Firewall & Abstract Syntax Tree Parsing
+
+**Purpose in the Application**:
+To solve the dilemma of conflicting permissions where an AI has legitimate `Write` access to a file, but specific critical Functions or Variables inside that file must remain strictly `Read-Only`.
+
+**Action**:
+The architecture utilizes a proactive memory-hook (`PreToolUse`) to intercept any modification attempts before they reach the OS file system.
+1. The **Raugus Map Generator** uses Python's `ast` library to deep-scan source code, assigning independent read/write/execute permissions to every top-level Function and Variable.
+2. When the AI attempts to rewrite code (e.g., via `replace_file_content`), the engine halts execution.
+3. The hook loads the original file into RAM, virtually applies the AI's proposed replacement code, and parses the new Abstract Syntax Tree (AST).
+4. By cross-referencing the modified line ranges, the NGPF mathematically identifies exactly which Functions the AI is attempting to overwrite.
+5. If the AI is modifying a locked `Read-Only` Function, the hook instantly denies the tool execution. The AI is blocked, and the physical file on disk remains 100% untouched.
+
+---
+
+## 11. The Immutable Host Doctrine (Containerization)
 
 **Methodology**: Read-Only Filesystems & Ephemeral RAM-Disks (Docker)
 
