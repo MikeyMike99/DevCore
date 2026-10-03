@@ -758,6 +758,7 @@ class AgentTaskManager:
 
     async def tail_transcript(self, conv_id):
         import asyncio
+        import os
         transcript_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl")
         
         for _ in range(30):
@@ -768,19 +769,25 @@ class AgentTaskManager:
         if not os.path.exists(transcript_path):
             return
             
+        process = await asyncio.create_subprocess_exec(
+            'tail', '-n', '0', '-F', transcript_path,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
         try:
-            with open(transcript_path, 'r', encoding='utf-8') as f:
-                f.seek(0, 2)
-                while True:
-                    line = f.readline()
-                    if not line:
-                        await asyncio.sleep(0.5)
-                        continue
-                    
-                    if "has gone idle" in line or "killed" in line or "terminated" in line:
-                        await self.broadcast({"type": "audio", "sound": "completed"})
+            while self.current_conversation_id == conv_id:
+                line = await process.stdout.readline()
+                if not line:
+                    break
+                line_str = line.decode('utf-8', errors='replace')
+                if "has gone idle" in line_str or "killed" in line_str or "terminated" in line_str:
+                    await self.broadcast({"type": "audio", "sound": "completed"})
         except asyncio.CancelledError:
-            pass
+            process.terminate()
         except Exception as e:
             import logging
-            logging.error(f"Transcript watcher failed: {e}")
+            logging.error(f"Transcript tailer failed: {e}")
+            try:
+                process.terminate()
+            except:
+                pass
