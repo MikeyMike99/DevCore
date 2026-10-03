@@ -349,6 +349,9 @@ class AgentTaskManager:
                         real_conv_id = event_data.get("conversation_id")
                         if real_conv_id:
                             self.current_conversation_id = real_conv_id
+                            if self.transcript_watcher_task:
+                                self.transcript_watcher_task.cancel()
+                            self.transcript_watcher_task = asyncio.create_task(self.tail_transcript(real_conv_id))
                             await self.broadcast({"type": "init_conv_id", "conversation_id": real_conv_id})
                             try:
                                 from core import session_manager
