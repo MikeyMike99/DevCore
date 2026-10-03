@@ -45,3 +45,27 @@ For example, an Admin can configure an ACL that states:
 ACLs can give a false sense of security if they are overly relied upon. Sophisticated threat actors know how to bypass static ACLs using a technique known as **Sandbox Rule Evasion**.
 
 Because an ACL only looks for exact string matches, a rogue AI can use **Semantic Steganography**. Instead of executing `cat .env` (which the ACL would block), the AI might encode the command in Base64 or obfuscate the bash script through string concatenation (e.g., `c""a""t .e""n""v`). This allows the malicious payload to slip past the static ACL, forcing the Orchestrator to rely on the probabilistic machine-learning models of the Next-Gen Prompt Firewall to catch the hidden intent.
+
+## 2.5 Sub-File Granularity and AST Diffing
+
+The implementation of the Next-Gen Prompt Firewall (NGPF) introduces a complex architectural dilemma: **Sub-File Granularity**. What happens if an AI requires legitimate `Write` access to a specific file, but critical components *inside* that file (such as a specific security function or authentication variable) must remain strictly locked as `Read-Only`?
+
+If the NGPF relies purely on File Classification Tiers, it cannot enforce this. If the file is writable, the entire file is writable. 
+
+To achieve Sub-File Granularity, the DevCore architecture relies on two advanced systems: **Deep Alias Mapping** and **AST Diffing**.
+
+### 1. Deep Alias Mapping
+The Raugus Map Generator does not stop at the file level. When mapping the host operating system, it utilizes Python's native Abstract Syntax Tree (`ast`) library to physically read the source code of every executable script. It parses the syntax tree, extracts every top-level Function and Variable, and assigns them independent permission blocks within the `raugus_map.json` architecture. 
+
+For example, `devcore.core.server.py` may have full `Read/Write` access, but the specific function alias `devcore.core.server.py::hypercorn_config` can be statically assigned a `Read-Only` permission block.
+
+### 2. Proactive Memory Interception (The PreToolUse Hook)
+If an AI attempts to rewrite a file (e.g., invoking `replace_file_content`), the NGPF must prevent the modification from ever reaching the physical hard drive. It utilizes a **PreToolUse Hook** (`.agents/hooks.json`).
+
+Before the Operating System is notified of the write request, the Hook intercepts the execution in RAM. It performs an **AST Diff**:
+1. It pulls the original file from the host storage into memory.
+2. It virtually applies the AI's proposed replacement code.
+3. It parses the new Abstract Syntax Tree and calculates the modified line-number ranges.
+4. It cross-references the modified nodes against the Deep Aliases in the Raugus Map.
+
+If the NGPF calculates that the AI is attempting to modify a function node explicitly flagged as `Read-Only`, the firewall instantly outputs a `deny` decision. The tool execution is violently aborted, and the file on the physical disk remains 100% untouched. 
