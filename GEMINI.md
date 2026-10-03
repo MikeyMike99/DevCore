@@ -95,3 +95,11 @@ When agents generate `.md` artifacts (like Implementation Plans) and require use
 - **Fail Fast & Inform User**: If you hit a restriction, error, or sandbox boundary, immediately STOP. Output a summary of the error to the user and ask for guidance.
 - **Avoid Massive Directories**: Regardless of admin or sandbox status, DO NOT recursively search massive directories (like env or 
 ode_modules). Traversing these causes immediate quota exhaustion and API hammering.
+
+---
+
+## 8. Artifact Feedback Restrictions & Loop Prevention
+The Antigravity system intercepts artifacts generated with the `RequestFeedback: true` flag and may route them through an automated "auto-approve" review policy. This can trap the agent in an autonomous runaway loop where the human user is bypassed.
+- **NEVER** use `RequestFeedback: true` in the `ArtifactMetadata` when generating standard Markdown documents, Devlogs, Textbook Drafts, or simple text summaries. 
+- **ONLY** use `RequestFeedback: true` when explicitly requesting the user to execute a physical Implementation Plan script.
+- If the system ever fires a `Stop hook blocked termination: The user has automatically approved...` message unexpectedly, you MUST immediately halt, stop using `RequestFeedback`, and wait for manual text confirmation from the user to break the loop.
