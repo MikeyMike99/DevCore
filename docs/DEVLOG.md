@@ -921,3 +921,19 @@ When the NGPF blocks an AST Diffing attempt now, it shoots the error (`{"decisio
 Instead of a dead screen, the human user gets a conversational response: *"I apologize, but my attempt to modify that core function was blocked by the Raugus Firewall. I will draft an Implementation Plan instead."* 
 
 Absolute, mathematical Zero-Trust security, paired with a perfectly fluid user experience. We call it Elegant Degradation.
+
+## Chapter 59: The Semantic Mantrap & Cross-Platform Concurrency
+
+Once we secured the AST Diffing logic, a new terrifying thought emerged: **Agentic Race Conditions.** 
+
+If you have an autonomous swarm of 10 subagents, what happens if Subagent A and Subagent B both try to rewrite `session_ownership.json` or evaluate a Raugus Map rule at the exact same nanosecond? Python's `asyncio` is great, but because DevCore spawns agents as completely independent subprocesses (`agy`), standard async locks are entirely useless. They don't cross process boundaries. A malicious agent could theoretically piggyback on a thread while the firewall is distracted scanning another payload.
+
+I needed to build a literal Mantrap. A room with two interlocking doors where only one agent could exist at a time.
+
+I dropped down to the OS Kernel level and created `security/mantrap.py`. On Linux/WSL, I used `fcntl.flock` to grab an exclusive lock on a `.lock` file. If Subagent A is inside the execution chamber, Subagent B is physically frozen at the outer door by the Linux kernel. It staggers the logic flow perfectly.
+
+But there was a catch. If someone cloned DevCore and ran it natively on Windows, `import fcntl` would throw a catastrophic `ModuleNotFoundError` and crash the engine. 
+
+To fix this, I engineered a cross-platform polyfill. If the Mantrap detects Windows, it pivots to `msvcrt.locking(msvcrt.LK_LOCK)`. Because Windows requires physical data in a file to lock it, the Mantrap writes a single byte ("X"), seeks back to byte 0, and clamps down the `LK_LOCK`. 
+
+The Semantic Mantrap was complete. Flawless, staggered, OS-level concurrency control across both Windows and Linux, guaranteeing that no two AI agents can ever race-condition the security firewall.

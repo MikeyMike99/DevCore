@@ -130,7 +130,23 @@ The architecture utilizes a proactive memory-hook (`PreToolUse`) to intercept an
 
 ---
 
-## 11. The Immutable Host Doctrine (Containerization)
+## 11. The Semantic Mantrap (Concurrency Firewall)
+
+**Methodology**: Cross-Platform OS-Level File Locking (`fcntl` / `msvcrt`)
+
+**Purpose in the Application**:
+To prevent Agentic Race Conditions. When an autonomous AI swarm executes multiple subprocesses simultaneously, there is a risk that two agents might attempt to modify a core database or bypass the AST Diffing engine at the exact same nanosecond.
+
+**Action**:
+The architecture routes high-risk modifications through a "Semantic Mantrap." 
+1. The framework demands an exclusive OS-level lock on the target logic flow.
+2. If Subagent A is currently modifying a file, Subagent B's thread is physically frozen by the Operating System Kernel at the "Outer Door".
+3. This staggers the concurrency, forcing agents into a strict, one-by-one queue. 
+4. The Mantrap dynamically auto-detects the host OS, seamlessly pivoting between `fcntl.flock` (for Linux/WSL) and `msvcrt.locking` (for Native Windows) to ensure cross-platform thread safety without crashing.
+
+---
+
+## 12. The Immutable Host Doctrine (Containerization)
 
 **Methodology**: Read-Only Filesystems & Ephemeral RAM-Disks (Docker)
 
