@@ -1552,6 +1552,14 @@
                 if (!currentAgentArticle) {
                     currentAgentArticle = appendAgentMessageContainer();
                 }
+                
+                if (data.chunk && data.chunk.includes("[AUDIO:COMPLETED]")) {
+                    data.chunk = data.chunk.replace("[AUDIO:COMPLETED]", "");
+                    if (typeof playCompletedSound === 'function') {
+                        playCompletedSound();
+                    }
+                }
+                
                 var prev = currentAgentArticle.dataset.rawMarkdown || '';
                 var updated = prev + data.chunk;
                 currentAgentArticle.dataset.rawMarkdown = updated;
