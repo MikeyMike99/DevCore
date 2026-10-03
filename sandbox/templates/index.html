@@ -1535,8 +1535,6 @@
                     if (tName.includes('invoke_subagent') || tName.includes('send_message')) {
                         if (typeof playIncomingSound === 'function') {
                             playIncomingSound();
-                            console.log("🔊 SwarmFlow Audio Triggered on action_done!");
-                            appendSystemMessage("🔊 [Audio System] Swarm communication routed and played.", "info");
                         }
                     }
                 }
