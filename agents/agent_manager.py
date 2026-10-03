@@ -222,6 +222,10 @@ class AgentTaskManager:
             pass
 
     async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False):
+        if hasattr(self, 'transcript_watcher_task') and self.transcript_watcher_task:
+            self.transcript_watcher_task.cancel()
+        if conversation_id:
+            self.transcript_watcher_task = asyncio.create_task(self.tail_transcript(conversation_id))
         hb_task = asyncio.create_task(self._heartbeat_worker(task_time))
         try:
             workspace_dir = None
@@ -349,6 +353,9 @@ class AgentTaskManager:
                         real_conv_id = event_data.get("conversation_id")
                         if real_conv_id:
                             self.current_conversation_id = real_conv_id
+                            if hasattr(self, 'transcript_watcher_task') and self.transcript_watcher_task:
+                                self.transcript_watcher_task.cancel()
+                            self.transcript_watcher_task = asyncio.create_task(self.tail_transcript(real_conv_id))
                             if self.transcript_watcher_task:
                                 self.transcript_watcher_task.cancel()
                             self.transcript_watcher_task = asyncio.create_task(self.tail_transcript(real_conv_id))
@@ -747,3 +754,33 @@ class AgentTaskManager:
                 "type": "agent_done",
                 "cancelled": True
             })
+
+
+    async def tail_transcript(self, conv_id):
+        import asyncio
+        transcript_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl")
+        
+        for _ in range(30):
+            if os.path.exists(transcript_path):
+                break
+            await asyncio.sleep(1)
+            
+        if not os.path.exists(transcript_path):
+            return
+            
+        try:
+            with open(transcript_path, 'r', encoding='utf-8') as f:
+                f.seek(0, 2)
+                while True:
+                    line = f.readline()
+                    if not line:
+                        await asyncio.sleep(0.5)
+                        continue
+                    
+                    if "has gone idle" in line or "killed" in line or "terminated" in line:
+                        await self.broadcast({"type": "audio", "sound": "completed"})
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            import logging
+            logging.error(f"Transcript watcher failed: {e}")
