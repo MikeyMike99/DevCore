@@ -1869,6 +1869,12 @@
         }
 
         function appendSystemMessage(msg, level) {
+            // Check if this is an agent-to-agent message/alert
+            if (msg && (msg.includes("invoked subagent") || msg.includes("SwarmFlow") || msg.includes("message to another agent"))) {
+                if (typeof playIncomingSound === 'function') {
+                    playIncomingSound();
+                }
+            }
             var div = document.createElement('div');
             div.className = 'flex justify-center my-2';
             var pill = document.createElement('div');
@@ -1877,6 +1883,29 @@
             div.appendChild(pill);
             chatFeed.appendChild(div);
             chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+
+        
+        function playIncomingSound() {
+            var audio = new Audio('/static/sounds/incoming.wav');
+            audio.play().catch(err => {
+                // Synthesizer fallback if file is missing (soft high pitched beep)
+                try {
+                    var context = new (window.AudioContext || window.webkitAudioContext)();
+                    var osc = context.createOscillator();
+                    var gain = context.createGain();
+                    osc.connect(gain);
+                    gain.connect(context.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, context.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800, context.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0, context.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.05, context.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.1);
+                    osc.start(context.currentTime);
+                    osc.stop(context.currentTime + 0.1);
+                } catch(e) {}
+            });
         }
 
         async function sendPrompt(e) {
@@ -1901,6 +1930,11 @@
 
             appendUserMessage(prompt);
             inputEl.value = '';
+            
+            // Play sound when sending a message
+            if (typeof playIncomingSound === 'function') {
+                playIncomingSound();
+            }
             
             var actualPromptToSend = prompt;
             // Clear the local draft JSON only upon intentional send
