@@ -32,10 +32,20 @@ class SessionManager:
 
     def _save_ownership(self):
         try:
-            with open(self.meta_file, 'w', encoding='utf-8') as f:
-                json.dump(self.ownership, f, indent=2)
+            import sys
+            import os
+            sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+            from security.mantrap import SemanticMantrap
+            import logging
+            
+            # Utilize the Semantic Mantrap for database concurrency
+            with SemanticMantrap.execution_chamber(self.meta_file, "CoreEngine_SessionManager"):
+                with open(self.meta_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.ownership, f, indent=2)
+                    
         except Exception as e:
-            print(f"[SessionManager] Failed to save session ownership: {e}")
+            import logging
+            logging.error(f"[SessionManager] Failed to save session ownership: {e}")
 
     def register_session_owner(self, conv_id: str, username: str, project_name: str = None):
         if not conv_id or not username:
