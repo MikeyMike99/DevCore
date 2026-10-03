@@ -859,20 +859,20 @@ async def delete_key(key_id):
 
 @app.route('/api/sound/<sound_name>', methods=['GET'])
 async def get_sound(sound_name):
-    # Backend Design: The server dictates exactly which file to serve, hiding physical paths from the browser.
-    sound_config = {
-        "incoming": "/mnt/c/Users/michael/Documents/sfx/UIAlert_Short Incoming Message Popup 02_JSE_FI.wav"
-    }
+    import os
+    from quart import send_file
     
-    file_path = sound_config.get(sound_name)
-    if file_path:
-        import os
+    # Base directory for internal UI sounds
+    sounds_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static", "sounds")
+    
+    # Check for supported audio extensions dynamically
+    for ext in ['.wav', '.mp3', '.ogg']:
+        file_path = os.path.join(sounds_dir, f"{sound_name}{ext}")
         if os.path.exists(file_path):
-            from quart import send_file
             return await send_file(file_path)
     
-    # Return 404 if not found
-    return jsonify({"error": "Sound not found"}), 404
+    # Return 404 if the user hasn't placed a custom sound file yet
+    return jsonify({"error": f"No custom {sound_name} audio file found in {sounds_dir}"}), 404
 
 # File & Security Management API endpoints
 @app.route('/api/files', methods=['GET'])
