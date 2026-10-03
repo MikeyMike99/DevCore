@@ -1596,6 +1596,34 @@
             }
         }
 
+        
+        function playNotificationSound() {
+            var audio = new Audio('/static/sounds/notification.mp3');
+            audio.play().catch(err => {
+                // Fallback: If no MP3 is found, synthesize a soft, non-alarming UI pop
+                try {
+                    var context = new (window.AudioContext || window.webkitAudioContext)();
+                    var osc = context.createOscillator();
+                    var gain = context.createGain();
+                    osc.connect(gain);
+                    gain.connect(context.destination);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450, context.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(700, context.currentTime + 0.1);
+                    
+                    gain.gain.setValueAtTime(0, context.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.05, context.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.15);
+                    
+                    osc.start(context.currentTime);
+                    osc.stop(context.currentTime + 0.15);
+                } catch (e) {
+                    console.log('Sound playback failed completely', e);
+                }
+            });
+        }
+
         function finishTaskUI(cancelled, elapsed, status) {
             isTaskRunning = false;
             taskBanner.classList.add('hidden');
@@ -1632,6 +1660,12 @@
                         statusBadge.className = "text-[11px] text-emerald-400 font-mono flex items-center gap-1";
                         statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Completed ' + elapStr;
                     }
+                    
+                    // Play the completion pop sound
+                    if (typeof playNotificationSound === 'function') {
+                        playNotificationSound();
+                    }
+                    
                     var responseText = currentAgentArticle.dataset.rawMarkdown || "No response provided.";
                     var cleanText = responseText.replace(/[#*`_]/g, '').replace(/<[^>]+>/g, ' ');
                     announce("Task completed successfully in " + elapStr + ". Response: " + cleanText);
