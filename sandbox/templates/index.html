@@ -1461,6 +1461,13 @@
             else if (data.type === 'system') {
                 appendSystemMessage(data.message, data.level || 'info');
                 announce(data.message, data.level === 'warning');
+                
+                // Play completion sound when a subagent goes idle or is killed
+                if (data.message && (data.message.includes("has gone idle") || data.message.includes("terminated") || data.message.includes("killed"))) {
+                    if (typeof playCompletedSound === 'function') {
+                        playCompletedSound();
+                    }
+                }
             }
             else if (data.type === 'model_fallback') {
                 if (taskModelBadge) {
@@ -1680,6 +1687,10 @@
                     if (statusBadge) {
                         statusBadge.className = "text-[11px] text-emerald-400 font-mono flex items-center gap-1";
                         statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Completed ' + elapStr;
+                    }
+                    
+                    if (typeof playCompletedSound === 'function') {
+                        playCompletedSound();
                     }
                     
                     var responseText = currentAgentArticle.dataset.rawMarkdown || "No response provided.";
@@ -1920,6 +1931,28 @@
                     gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.1);
                     osc.start(context.currentTime);
                     osc.stop(context.currentTime + 0.1);
+                } catch(e) {}
+            });
+        }
+
+        function playCompletedSound() {
+            var audio = new Audio('/api/sound/completed');
+            audio.play().catch(err => {
+                // Synthesizer fallback (low bass drone)
+                try {
+                    var context = new (window.AudioContext || window.webkitAudioContext)();
+                    var osc = context.createOscillator();
+                    var gain = context.createGain();
+                    osc.connect(gain);
+                    gain.connect(context.destination);
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, context.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(150, context.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0, context.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.1, context.currentTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.2);
+                    osc.start(context.currentTime);
+                    osc.stop(context.currentTime + 0.25);
                 } catch(e) {}
             });
         }
