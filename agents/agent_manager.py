@@ -769,11 +769,19 @@ class AgentTaskManager:
         if not os.path.exists(transcript_path):
             return
             
-        process = await asyncio.create_subprocess_exec(
-            'tail', '-n', '0', '-F', transcript_path,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
+        import platform
+        if platform.system() == 'Windows':
+            process = await asyncio.create_subprocess_exec(
+                'powershell', '-NoProfile', '-Command', f'Get-Content -Path "{transcript_path}" -Wait -Tail 0',
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+        else:
+            process = await asyncio.create_subprocess_exec(
+                'tail', '-n', '0', '-F', transcript_path,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
         try:
             while self.current_conversation_id == conv_id:
                 line = await process.stdout.readline()
