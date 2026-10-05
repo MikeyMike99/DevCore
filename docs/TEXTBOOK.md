@@ -29,6 +29,12 @@ The vivid digital worlds I once loved suddenly faded into silence. I searched ev
 ## Part 4: Core Engine Mechanics
 - Quart & Asyncio: How the server handles asynchronous background tasks.
 - WebSocket State Management: How the UI stays perfectly synced with the backend.
+- Modular File Structure: Breaking down `core/`, `agents/`, `security/`, and `sandbox/`.
+
+## Part 5: Operational Manual
+- How to boot the server correctly (`python3 core/server.py`).
+- How to recover from suspended zombie states (`killall -9 python3`).
+- Troubleshooting guide.
 
 ## Siraugga.exe Startup Sequence & Architecture
 
