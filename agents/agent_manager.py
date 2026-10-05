@@ -421,13 +421,15 @@ class AgentTaskManager:
                                             raise PermissionError(f"Semantic Firewall (SVC) blocked action. The tool `{tool_name}` on {paths_to_check} deviates from the original task intent (Agentic Drift).")
                                         
                                 except PermissionError as e:
-                                    # INTRUSION DETECTED -> VIOLENT TERMINATION
+                                    # INTRUSION DETECTED -> Inform the agent and let it reply
                                     if self.active_proc and self.active_proc.returncode is None:
-                                        self.active_proc.kill()
+                                        msg = f"\n<USER_REQUEST>SYSTEM ERROR: Your tool call `{tool_name}` triggered a security firewall alert: {e}. Please analyze this error, provide constructive feedback, and suggest an alternative approach that is in-bounds.</USER_REQUEST>\n".encode('utf-8')
+                                        try:
+                                            self.active_proc.stdin.write(msg)
+                                            asyncio.create_task(self.active_proc.stdin.drain())
+                                        except Exception:
+                                            pass
                                         
-                                    err_msg = f"\n\n🛡️ **RAUGUS FIREWALL INTERCEPTION**\n\nThe Agent was violently terminated for attempting an unauthorized Tier access.\n\n**Tool:** `{tool_name}`\n**Reason:** {str(e)}"
-                                    self.output_buffer.append(err_msg)
-                                    
                                     # Log to MAQ SIEM
                                     modder_id = user.get("username", "Guest") if user else "Guest"
                                     SwarmFlowLogger.log_intrusion_alert(
@@ -437,14 +439,13 @@ class AgentTaskManager:
                                         reason=str(e)
                                     )
                                     
-                                    # Broadcast alert to MAQ / UI
+                                    # Broadcast alert to UI but DO NOT terminate
                                     await self.broadcast({
                                         "type": "system",
-                                        "level": "error",
-                                        "message": f"INTRUSION BLOCKED: {str(e)}"
+                                        "level": "warning",
+                                        "message": f"Firewall Alert (Agent Notified): {str(e)}"
                                     })
-                                    await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
-                                    continue # Skip processing this tool call
+                                    # We do not skip here, letting the tool state be broadcast to UI normally.
                                 except Exception as e:
                                     logging.error(f"[Raugus] Hook error: {e}")
                                 # --------------------------------------------------
