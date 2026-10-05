@@ -970,7 +970,7 @@ async def auth_login():
     data = await request.get_json() or {}
     username = data.get('username')
     password = data.get('password')
-    res = security_mgr.authenticate(username, password)
+    res = security_mgr.authenticate(f"{username}:{password}")
     if res:
         return jsonify(res)
     return jsonify({"error": "Invalid username or password"}), 401
