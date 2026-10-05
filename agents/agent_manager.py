@@ -578,6 +578,11 @@ class AgentTaskManager:
                 "timestamp": time.time()
             }
 
+            if proc.returncode != 0 and not self.output_buffer:
+                err_msg = f"⚠️ **Process Terminated**\n\nThe agent process exited unexpectedly (Code {proc.returncode}). This usually indicates a startup failure, a sandbox restriction, or a missing dependency."
+                self.output_buffer.append(err_msg)
+                await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+
             await self.broadcast({
                 "type": "agent_done",
                 "exit_code": proc.returncode,
@@ -593,8 +598,11 @@ class AgentTaskManager:
                     pass
             await self.broadcast({"type": "agent_done", "cancelled": True})
         except Exception as e:
+            err_msg = f"⚠️ **System Initialization Error**\n\nThe agent failed to start due to a system error: {str(e)}"
+            self.output_buffer.append(err_msg)
+            await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
             await self.broadcast({"type": "system", "level": "warning", "message": f"Execution error: {str(e)}"})
-            await self.broadcast({"type": "agent_done", "cancelled": True})
+            await self.broadcast({"type": "agent_done", "cancelled": False, "status": "ERROR"})
         finally:
             hb_task.cancel()
             if 'watchdog_task' in locals() and not watchdog_task.done():
