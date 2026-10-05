@@ -1611,9 +1611,9 @@
             }
             taskBanner.classList.remove('hidden');
 
-            sendBtn.disabled = true;
+            // sendBtn.disabled = true;
             sendBtnSpinner.classList.remove('hidden');
-            sendBtnText.innerText = "Running...";
+            sendBtnText.innerText = "Send Input";
 
             updateTimer();
             clearInterval(timerInterval);
@@ -1627,8 +1627,8 @@
         }
 
         function cancelActiveTask() {
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(JSON.stringify({ type: 'cancel' }));
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'cancel' }));
             }
         }
 
@@ -1964,7 +1964,16 @@
         async function sendPrompt(e) {
             if (e) e.preventDefault();
             var prompt = inputEl.value.trim();
-            if (!prompt || isTaskRunning) return;
+            if (!prompt) return;
+
+            if (isTaskRunning) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({ type: 'cli_input', input: prompt }));
+                    appendSystemMessage("Injected input: " + prompt, "info");
+                    inputEl.value = '';
+                }
+                return;
+            }
 
             var model = modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
 
@@ -2133,6 +2142,8 @@
                         art.querySelector('.agent-text').innerHTML = marked.parse(item.markdown);
                         var pulse = art.querySelector('.typing-indicator');
                         if (pulse) pulse.remove();
+                        var cancelBtn = art.querySelector('.cancel-btn');
+                        if (cancelBtn) cancelBtn.remove();
                         var badge = art.querySelector('.status-badge');
                         if (badge) {
                             badge.className = "text-[11px] text-slate-400 font-mono flex items-center gap-1";

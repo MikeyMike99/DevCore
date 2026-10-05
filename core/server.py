@@ -655,7 +655,7 @@ async def ws_endpoint():
                     continue
                 elif msg_type == "cli_input":
                     cli_in = data.get("input", "")
-                    await agent_mgr.submit_cli_input(cli_in)
+                    await agent_mgr.send_input(cli_in)
                     continue
                 elif msg_type == "ack":
                     seq = data.get("seq")
