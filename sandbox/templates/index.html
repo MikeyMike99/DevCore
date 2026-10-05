@@ -1472,7 +1472,10 @@
             else if (data.type === 'audio') {
                 if (data.sound === 'completed' && typeof playCompletedSound === 'function') {
                     playCompletedSound();
-                    console.log("🔊 Backend-driven audio trigger fired!");
+                    console.log("🔊 Backend-driven audio trigger fired (completed)!");
+                } else if (data.sound === 'incoming' && typeof playIncomingSound === 'function') {
+                    playIncomingSound();
+                    console.log("🔊 Backend-driven audio trigger fired (incoming)!");
                 }
             }
             else if (data.type === 'model_fallback') {
@@ -1545,11 +1548,7 @@
                 
                 if (data.action && data.action.tool) {
                     var tName = data.action.tool.toLowerCase();
-                    if (tName.includes('invoke_subagent') || tName.includes('send_message')) {
-                        if (typeof playIncomingSound === 'function') {
-                            playIncomingSound();
-                        }
-                    }
+                    // Audio is handled in action_start to prevent overlapping
                 }
                 
                 announce("Action complete: " + formatToolName(data.action.tool));
@@ -1932,8 +1931,8 @@
                     osc.frequency.setValueAtTime(600, context.currentTime);
                     osc.frequency.exponentialRampToValueAtTime(800, context.currentTime + 0.1);
                     gain.gain.setValueAtTime(0, context.currentTime);
-                    gain.gain.linearRampToValueAtTime(0.05, context.currentTime + 0.02);
-                    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.1);
+                    gain.gain.linearRampToValueAtTime(0.2, context.currentTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.1);
                     osc.start(context.currentTime);
                     osc.stop(context.currentTime + 0.1);
                 } catch(e) {}

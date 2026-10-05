@@ -804,6 +804,8 @@ class AgentTaskManager:
                 line_str = line.decode('utf-8', errors='replace')
                 if "has gone idle" in line_str or "killed" in line_str or "terminated" in line_str:
                     await self.broadcast({"type": "audio", "sound": "completed"})
+                elif "invoked subagent" in line_str or "message to another agent" in line_str:
+                    await self.broadcast({"type": "audio", "sound": "incoming"})
         except asyncio.CancelledError:
             process.terminate()
         except Exception as e:
