@@ -1062,7 +1062,7 @@ if __name__ == '__main__':
         config.certfile = cert_path
         config.keyfile = key_path
         config.bind = ['0.0.0.0:5001']
-        config.insecure_bind = ['127.0.0.1:5000']
+        config.insecure_bind = ['0.0.0.0:5000']
     else:
         config.bind = ['0.0.0.0:5000']
         

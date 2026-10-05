@@ -95,14 +95,6 @@ class AgentTaskManager:
     async def sync_client(self, client_queue, last_seq: int = 0):
         """Replays all buffered messages since last_seq to guarantee no message is dropped."""
         try:
-            # First send initial status
-            await client_queue.put(json.dumps({
-                "type": "init",
-                "connected": True,
-                "current_seq": self.current_seq,
-                "is_running": self.is_running()
-            }))
-
             # Find unacked messages since last_seq
             pending = [item["msg"] for item in self.message_queue if item["seq"] > last_seq]
             if pending:
@@ -127,6 +119,14 @@ class AgentTaskManager:
                         "task": self.last_completed_task,
                         "seq": self.current_seq
                     }))
+
+            # Finally send initial status so the UI knows we are done replaying chunks
+            await client_queue.put(json.dumps({
+                "type": "init",
+                "connected": True,
+                "current_seq": self.current_seq,
+                "is_running": self.is_running()
+            }))
         except Exception as e:
             print(f"[AgentTaskManager] Error syncing client: {e}")
 
@@ -251,22 +251,21 @@ class AgentTaskManager:
                 safe_env["PATH"] = local_bin
 
             # Determine if user is admin to grant skip permissions, else enforce sandbox (CWE-918)
-            is_admin = (user and user.get("role") == "admin") or admin_override
+            is_admin = (user and user.get("role") in ("admin", "super_admin", "super admin")) or admin_override
             if is_admin:
                 perm_flag = "--dangerously-skip-permissions"
             else:
                 perm_flag = "--sandbox"
             
             # Instruct Antigravity to avoid the sandbox when running as admin and prevent quota-exhausting loops
+            sys_msg = "<SYSTEM_MESSAGE>\n"
             if is_admin:
-                prompt = (
-                    "<SYSTEM_MESSAGE>\n"
-                    "1. You are running with ADMIN privileges.\n"
-                    "2. DO NOT execute stuff in the sandbox.\n"
-                    "3. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. "
-                    "Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
-                    "</SYSTEM_MESSAGE>\n\n"
-                ) + prompt
+                sys_msg += "1. You are running with ADMIN privileges.\n"
+                sys_msg += "2. DO NOT execute stuff in the sandbox.\n"
+            sys_msg += "3. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
+            sys_msg += "4. CRITICAL RULE: You MUST always output a final conversational text response to the user. Do NOT end your execution without giving a final summary or explanation in text.\n"
+            sys_msg += "</SYSTEM_MESSAGE>\n\n"
+            prompt = sys_msg + prompt
 
             # 1. Determine if a real agy executable is available (and NOT the 19-byte dummy)
             import shutil, sys
@@ -542,6 +541,12 @@ class AgentTaskManager:
                     elif event_type == "result":
                         res = event_data.get("result", {})
                         final_resp = res.get("response", "")
+                        
+                        denied = res.get("denied_actions", [])
+                        if denied:
+                            denials = ", ".join([d.get("display_name", d.get("action", "Unknown")) for d in denied])
+                            final_resp += f"\n\n⚠️ **Sandbox Permission Denied**: The agent attempted to use restricted tools ({denials}) which are blocked in sandbox mode. You must be an Admin to perform this action."
+
                         if not self.output_buffer and final_resp:
                             if not is_admin:
                                 final_resp = self._get_security().scrub_text(final_resp)

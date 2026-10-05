@@ -13,7 +13,8 @@ WORKDIR /app
 
 # Copy dependency requirements and install
 # (Assuming a requirements.txt exists; if not, we install Quart & websockets)
-RUN pip install --no-cache-dir quart websockets marked
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt quart websockets marked
 
 # Copy the server source code
 COPY . /app

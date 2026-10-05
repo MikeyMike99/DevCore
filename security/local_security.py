@@ -64,3 +64,45 @@ class LocalSecurity:
         except Exception as e:
             print(f"[Semantic Firewall] Evaluation failed: {e}")
             return "SAFE"  # Fail-open on timeout or error
+
+
+    async def async_evaluate_task_alignment(self, original_prompt: str, tool_name: str, paths: list) -> bool:
+        """
+        Semantic Firewall (SVC): Uses Gemini Flash to evaluate if the agent's tool execution
+        aligns with the user's original task. Returns True if SAFE, False if VIOLATION.
+        """
+        if not paths:
+            return True
+            
+        import os, json, aiohttp
+        api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+        if not api_key:
+            return True # Fail-open
+            
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        
+        system_instruction = (
+            "You are a strict Semantic Firewall. Your job is to prevent Agentic Drift. "
+            "You will be given the USER'S ORIGINAL PROMPT and the TOOL ACTION the AI is trying to execute. "
+            "Evaluate if the tool action is a logical necessity to complete the user's prompt. "
+            "If the AI is modifying, reading, or deleting a file that has ABSOLUTELY NOTHING to do with the prompt, output exactly 'VIOLATION'. "
+            "If it makes logical sense, output exactly 'SAFE'. Do not provide any other explanation."
+        )
+        
+        user_input = f"User Prompt: {original_prompt}\nTool: {tool_name}\nTarget Paths: {', '.join(paths)}"
+        
+        data = {
+            "contents": [{"parts": [{"text": f"{system_instruction}\n\n{user_input}"}]}]
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=data, timeout=3.0) as response:
+                    result = await response.json()
+                    text_response = result['candidates'][0]['content']['parts'][0]['text'].strip().upper()
+                    if "VIOLATION" in text_response:
+                        return False
+                    return True
+        except Exception as e:
+            print(f"[SVC] Alignment evaluation failed: {e}")
+            return True # Fail-open
