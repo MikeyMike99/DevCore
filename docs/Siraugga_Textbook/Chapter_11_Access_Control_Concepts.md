@@ -29,7 +29,9 @@ In the DevCore ecosystem, if a subagent is tasked simply with reading a file to 
 **Agentic Privilege Escalation (Jailbreaking)**
 A common cyber exploit is known as Privilege Escalation. In this exploit, vulnerabilities in the access control system are used to grant a lower-tier user higher levels of privilege. 
 
-In the Siraugga framework, this translates directly to **Agentic Jailbreaking** or **Rooting**. If an attacker manages to exploit a Rule-Based access control flaw, they can inject malicious instructions that overwrite a subagent's immutable System Prompt. By overwriting the prompt, they trick the central Orchestrator into escalating the agent's privileges, turning a sandboxed Tier 3 subagent into a Tier 5 master administrator. Once the privilege is granted, the threat actor takes complete control of the logic mainframe.
+In the Siraugga framework, this translates directly to **Agentic Jailbreaking** or **Rooting**. If an attacker manages to exploit a Rule-Based access control flaw, they can inject malicious instructions that overwrite a  
+
+ subagent's immutable System Prompt. By overwriting the prompt, they trick the central Orchestrator into escalating the agent's privileges, turning a sandboxed Tier 3 subagent into a Tier 5 master administrator. Once the privilege is granted, the threat actor takes complete control of the logic mainframe.
 
 ## 4. Agentic Access Control (AAC) Systems
 In a traditional IT environment, Network Access Control (NAC) systems support access management by mechanically enforcing organizational policies across thousands of connected devices. 

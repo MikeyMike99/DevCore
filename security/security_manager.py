@@ -153,7 +153,7 @@ class SecurityManager:
             pass
 
     def reinit(self):
-        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self._load_sessions()
 
     def authenticate(self, access_key):

@@ -73,5 +73,59 @@ class RaugusResolver:
                 return cwd_candidate
         return real_path
 
+    def enforce_path_security(self, path: str, user_tier: int):
+        """
+        Evaluates a physical path against the Raugus Map.
+        Raises PermissionError if the user's tier is too low to access it.
+        """
+        target_path = os.path.abspath(path)
+        
+        # Find if this path (or a parent) exists in the map
+        highest_tier_required = 1  # Default to Safe Workspace
+        
+        for alias, data in self.phonebook.items():
+            real_path = os.path.abspath(data.get("real_path", ""))
+            # Check if target_path is the same or a child of real_path
+            # To be safe, we check if target_path starts with real_path
+            # e.g. target_path = /core/server.py, real_path = /core
+            if target_path == real_path or target_path.startswith(real_path + os.sep):
+                req_tier = data.get("required_tier", 1)
+                if req_tier > highest_tier_required:
+                    highest_tier_required = req_tier
+        
+        if user_tier < highest_tier_required:
+            logging.error(f"[RAUGUS INTRUSION] Tier {user_tier} attempted to access Tier {highest_tier_required} asset: {target_path}")
+            raise PermissionError(f"Raugus Semantic Firewall: Access Denied to Tier {highest_tier_required} asset.")
+        
+        return True
+
+
+
+    def enforce_feedback_policy(self, path: str):
+        """
+        Queries the Raugus map to determine if a file is allowed to request execution feedback.
+        Blocks feedback requests on documentation, text files, and markdown.
+        """
+        if not path:
+            return
+            
+        target_path = os.path.abspath(path)
+        
+        # Query the map for the physical path
+        for alias, data in self.phonebook.items():
+            real_path = os.path.abspath(data.get("real_path", ""))
+            
+            # If the file matches exactly, or is inside a mapped directory
+            if target_path == real_path or target_path.startswith(real_path + os.sep):
+                # Block if it's in the docs directory, or is a markdown file
+                if ".docs." in alias or "devlog" in alias.lower() or alias.endswith(".md") or "textbook" in alias.lower() or "module" in alias.lower():
+                    raise PermissionError(f"Raugus Firewall: Alias '{alias}' is classified as documentation. RequestFeedback=True is strictly forbidden.")
+        
+        # Fallback for dynamic artifacts not yet in the map
+        if target_path.lower().endswith(".md") and "plan" not in os.path.basename(target_path).lower():
+            raise PermissionError(f"Raugus Firewall: {target_path} is a markdown file. RequestFeedback=True is strictly forbidden.")
+            
+        return True
+
 # Singleton instance for the application to import
 resolver = RaugusResolver()

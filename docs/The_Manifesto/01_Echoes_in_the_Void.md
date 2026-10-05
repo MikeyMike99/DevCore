@@ -1,4 +1,4 @@
-# Chapter 1: Echoes in the Dark (The True Origin)
+# Chapter 1: ECHOS_OF_THE_WORLD)(The True Origin)
 
 Every great technological ecosystem begins with a catalyst. For some, it is the pursuit of profit; for others, academic curiosity. But the foundation of my journey was forged in something much deeper: the uncompromising desire to reclaim a world that had faded into silence.
 
