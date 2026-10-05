@@ -37,7 +37,7 @@ class SecurityManager:
         """
         import hashlib
         # The key should be located in the same directory as the executable or the CWD (DevCore folder)
-        key_path = os.path.join(os.getcwd(), ".devcore_master.key")
+        key_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".devcore_master.key"))
         
         if not os.path.exists(key_path):
             return False
