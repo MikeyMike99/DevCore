@@ -4,7 +4,7 @@
 FROM python:3.11-slim
 
 # Install necessary system utilities (cron, shred)
-RUN apt-get update && apt-get install -y cron coreutils && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y cron coreutils zip fcrackzip && rm -rf /var/lib/apt/lists/*
 
 # Create a restricted non-root user (RBAC Enforcement)
 RUN useradd --create-home --shell /bin/bash agentuser
