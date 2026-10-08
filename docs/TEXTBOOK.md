@@ -668,6 +668,7 @@ The AI does not understand human intent; it parses context. To bypass these fals
 
 By shifting the context away from "penetration testing" and explicitly towards "asserting RBAC (Role-Based Access Control) boundaries," the AI's context window recognizes a legitimate administrative task. 
 
+
 ### Automated Auditing in Practice
 This framing allowed the creation of an automated `security_audit.py` script that programmatically verifies the boundaries of the Application-Layer Firewall. By injecting predefined payloads (like Path Traversal attempts and Second-Order Execution commands such as `os.execute`), the test harness systematically proves that the Zero-Trust architecture holds without triggering AI safety algorithms.
 
@@ -974,3 +975,17 @@ The sandbox has fallen away. The real game begins now.
 
 
 ---
+## Chapter 63: The In-Memory Virtual File System (VFS) & Native Compilation
+
+To ensure that no plaintext `.py` files or sensitive `.html`/`.json` UI assets ever drop to the physical host disk (preventing extraction via `%TEMP%`), DevCore utilizes a two-pronged dynamic compilation pipeline:
+
+### 1. Native C-Extension Compilation (`--include-package`)
+Historically, `remote_compiler.py` treated the `security/` and `plugins/` folders as raw data payloads (`--include-data-dir`). This forced Nuitka to extract the plaintext `.py` files to disk at runtime. 
+To achieve absolute Zero-Trust code protection, the pipeline has been upgraded to use the `--include-package` flag. This instructs Nuitka to mathematically destroy the Python source code and compile every single `.py` file into a native C-extension (`.pyd` / `.so`). The logic is statically linked directly into the binary, ensuring zero Python code is ever written to disk.
+
+### 2. Encrypted RAM-Disk VFS (Frontend Assets)
+Because frontend assets (HTML, JS, CSS, JSON) cannot be compiled into C-extensions, they are bundled using the **Encrypted VFS Protocol**.
+1. **The Packer (`pack_vfs.py`)**: Right before compilation, this script autonomously zips the entire `sandbox/` and `core/ui_config.json` directories in memory.
+2. **AES-256 Encryption**: It encrypts the byte-stream using `cryptography.fernet.Fernet` with the internal engine `STAMP_KEY` (the same key used to cryptographically stamp binaries), outputting a single `assets.bin` file.
+3. **The Payload Hook**: `remote_compiler.py` embeds ONLY `assets.bin` into the final `Siraugga.exe`.
+4. **RAM Decryption (`security.vfs.EncryptedVFS`)**: At runtime, `desktop_app.py` boots the `EncryptedVFS` module. It locates `assets.bin`, decrypts the AES payload directly into a volatile `io.BytesIO` buffer, and serves the Quart frontend templates entirely out of active RAM using the `zipfile` module. The plaintext HTML and JSON configuration never touch the physical hard drive, completely nullifying forensic disk-recovery attacks.

@@ -60,6 +60,10 @@ google_path = list(google.__path__)[0] if hasattr(google, '__path__') else os.pa
 pygments_path = os.path.dirname(pygments.__file__)
 pydantic_path = os.path.dirname(pydantic.__file__)
 
+
+print("[Build] Executing VFS Packer...")
+subprocess.run([sys.executable, "pack_vfs.py"], check=True)
+
 nuitka_args = [
     sys.executable, "-m", "nuitka",
     "--disable-ccache",
@@ -78,12 +82,10 @@ nuitka_args = [
     f"--include-data-dir={pygments_path}=pygments",
     f"--include-data-dir={pydantic_path}=pydantic",
     
-    "--include-data-dir=sandbox/templates=sandbox/templates",
-    "--include-data-dir=sandbox/static=sandbox/static",
-    "--include-data-file=core/ui_config.json=core/ui_config.json",
-    "--include-data-dir=security=security",
-    "--include-data-dir=plugins=plugins",
+    "--include-package=security",
+    "--include-package=plugins",
     f"--include-data-file={agy_path}={os.path.basename(agy_path)}",
+    "--include-data-file=assets.bin=assets.bin",
     "--output-filename=Siraugga.exe",
     "desktop_app.py"
 ]

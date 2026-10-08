@@ -999,3 +999,17 @@ Instead of asking the AI to "attack the API and try to break the sandbox," we in
 The AI instantly complied. It wrote a full harness that systematically launched Path Traversal payloads (LFI), Role-Based Access Control bypass attempts, and Second-Order Execution injections (`os.execute`) against the `localhost` endpoints. 
 
 This was a profound realization for our internal methodology. To effectively leverage AI for finding holes and poking at the system, we must disguise our offensive testing as defensive unit testing. By wrapping exploits in `assert(status == 403)`, the AI sees a legitimate administrative validation task. The output—a fully functional automated auditing script—was exactly what we needed to continuously measure the boundaries of our Zero-Trust architecture.
+
+## Chapter 63: Securing the Payload (In-Memory VFS & C-Extensions)
+
+During our architectural review of the `Siraugga.exe` compilation pipeline, we realized a fatal flaw in how Nuitka handles `--include-data-dir`. Because it was treating our `security/` and `plugins/` folders as raw data payloads to avoid MSVC memory limits, it was silently extracting the plaintext `.py` files into the host's `%TEMP%` folder at runtime. 
+
+Our core directive was absolute: **We do not allow plaintext or unencrypted .py files on the disk.**
+
+To solve this, we implemented a dynamic two-step pipeline in `remote_compiler.py`:
+
+First, we swapped the flags to `--include-package=security`. This forces Nuitka to natively compile the modules into C-extensions, destroying the original Python source code entirely.
+
+Second, we had to protect the frontend HTML and JSON files. We built `pack_vfs.py` and `security/vfs.py`. Now, right before Nuitka runs, the pipeline zips up the `sandbox/` and encrypts it using the same AES-128 `Fernet` logic (and `STAMP_KEY`) we use for binary stamping. The result is a single encrypted `assets.bin` file. 
+
+At runtime, the Python engine decrypts this binary blob directly into an `io.BytesIO` RAM buffer. The Quart server reads the templates directly from volatile memory. Nothing hits the disk. Not a single string. It is a completely hermetic execution environment.
