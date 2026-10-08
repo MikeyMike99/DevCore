@@ -989,3 +989,8 @@ Because frontend assets (HTML, JS, CSS, JSON) cannot be compiled into C-extensio
 2. **AES-256 Encryption**: It encrypts the byte-stream using `cryptography.fernet.Fernet` with the internal engine `STAMP_KEY` (the same key used to cryptographically stamp binaries), outputting a single `assets.bin` file.
 3. **The Payload Hook**: `remote_compiler.py` embeds ONLY `assets.bin` into the final `Siraugga.exe`.
 4. **RAM Decryption (`security.vfs.EncryptedVFS`)**: At runtime, `desktop_app.py` boots the `EncryptedVFS` module. It locates `assets.bin`, decrypts the AES payload directly into a volatile `io.BytesIO` buffer, and serves the Quart frontend templates entirely out of active RAM using the `zipfile` module. The plaintext HTML and JSON configuration never touch the physical hard drive, completely nullifying forensic disk-recovery attacks.
+
+### 3. Rigid Failure States & Centralized Auditing
+The VFS architecture strictly forbids falling back to an unencrypted state in a production build.
+- **Build-Time Halts**: If the `pack_vfs.py` script cannot locate the required frontend assets or outputs a suspiciously small archive, it throws a fatal error and immediately aborts the Nuitka compilation pipeline, preventing an empty binary from being shipped.
+- **Tampering & Missing Payloads**: At runtime, if `Siraugga.exe` cannot locate `assets.bin` or the decryption fails (e.g., due to cryptographic tampering), `security/vfs.py` interfaces directly with the `Central SIEM Logger`. It logs a `CRITICAL` security fault to `devcore_master.jsonl` and executes a hard `sys.exit(1)`. The application intentionally crashes rather than attempting to serve unencrypted files from the host disk.
