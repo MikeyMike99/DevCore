@@ -598,6 +598,12 @@ The system leverages a dynamic, rotatable Key Management System located in `secu
 - **Hardware KEK**: The master hardware key (`.devcore_master.key`) acts as the root seed. PBKDF2 (100,000 iterations) derives a massive Key Encryption Key (KEK) from it.
 - **Rotatable DEKs**: The KMS generates Fernet Data Encryption Keys (DEKs) wrapped by the KEK and stores them in `.devcore_keychain.json`. The active key can be rotated at any time.
 
+### Disaster Recovery (The "Seed Phrase" Master Backup)
+Because the `KeychainManager` uses deterministic derivation (PBKDF2), DevCore does not require complex double-vault Key Escrow systems or risky "Ghost Key" backdoors for data recovery.
+- **The Seed Phrase**: The string of text inside `.devcore_master.key` functions exactly like a 12-word cryptocurrency recovery seed.
+- **The Air-Gapped Backup**: System Administrators must copy the text inside `.devcore_master.key` and store it on a secure, air-gapped USB flash drive.
+- **The Restoration**: If a server suffers catastrophic failure (e.g., hardware burn-down) or the master key is accidentally deleted, all encrypted assets (VFS payloads, cold storage logs, DEKs) are technically locked. To recover the system, the Admin simply pastes the backup string into a new `.devcore_master.key` file. DevCore will deterministically regenerate the exact same AES Key Encryption Key (KEK) and seamlessly unlock the entire architecture.
+
 ### 4. Cold Storage Architecture
 To protect the AI's Brain Transcripts (`transcript.jsonl`) without breaking the native Google Antigravity JSON parser, DevCore employs lifecycle "Cold Storage" hooks (`security/cold_storage.py`):
 - **Lock (Shutdown)**: When the DevCore UI is closed, a background hook sweeps the `.gemini/antigravity-cli/brain/` directory and encrypts all transcripts into unreadable AES-128 ciphertext.
