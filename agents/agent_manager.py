@@ -515,7 +515,7 @@ class AgentTaskManager:
                                             deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
                                             deep_insight = re.sub(r'<planning_mode>.*?</planning_mode>', '', deep_insight, flags=re.DOTALL)
                                             deep_insight = re.sub(r'<bash_command_reminder>.*?</bash_command_reminder>', '', deep_insight, flags=re.DOTALL)
-                                            deep_insight = re.sub(r'[*`#_]', '', deep_insight)
+                                            deep_insight = re.sub(r'[*`#_"\']', '', deep_insight)
                                             paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
                                             if paras:
                                                 last_para = paras[-1]
