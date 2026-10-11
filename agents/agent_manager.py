@@ -483,40 +483,55 @@ class AgentTaskManager:
                                 friendly_name = tool_name.replace("_", " ").title()
                                 t_lower = tool_name.lower()
                                 
-                                # Cinematic Narrative Generator (The Voice of Siraugga)
+                                # Cinematic Narrative Generator with Deep Reasoning Insight
                                 desc = raw_params.get("Description", "").strip()
                                 action = raw_params.get("toolAction", "").strip()
                                 summary = raw_params.get("toolSummary", "").strip()
                                 
-                                import random
+                                import random, json, os, re
                                 
-                                if desc:
+                                # Attempt to extract the AI's actual thought process from the transcript
+                                deep_insight = ""
+                                try:
+                                    # Use the known conversation ID from the context
+                                    conv_id = conversation_id
+                                    t_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript_full.jsonl")
+                                    if os.path.exists(t_path):
+                                        with open(t_path, 'r', encoding='utf-8') as tf:
+                                            for line in tf:
+                                                try:
+                                                    d = json.loads(line)
+                                                    if d.get("type") == "PLANNER_RESPONSE" and "thinking" in d:
+                                                        deep_insight = d["thinking"]
+                                                except:
+                                                    pass
+                                        if deep_insight:
+                                            # Clean up system instructions and extract the final reasoning paragraph
+                                            deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
+                                            paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
+                                            if paras:
+                                                deep_insight = paras[-1]
+                                except Exception as e:
+                                    pass
+                                
+                                if deep_insight:
+                                    # Blend the Dungeon Vibe with the actual deep insight
                                     prefixes = [
-                                        "Weaving the arcane threads: ",
-                                        "The veil is pierced: ",
                                         "The ancient logs dictate: ",
-                                        "Power is witnessed: ",
-                                        "The realm is commanded: ",
-                                        "Siraugga focuses on the task: "
+                                        "Siraugga ponders: ",
+                                        "Gazing into the void: ",
+                                        "The ritual requires insight: "
                                     ]
-                                    announcement = f"{random.choice(prefixes)}{desc[0].lower() + desc[1:] if desc else ''}"
+                                    announcement = f"{random.choice(prefixes)}{deep_insight}"
+                                elif desc:
+                                    announcement = f"Weaving the arcane threads: {desc}"
                                 elif t_lower == "run_command" and isinstance(raw_params.get("CommandLine"), str) and "# Intent:" in raw_params.get("CommandLine"):
                                     intent = raw_params.get("CommandLine").split("# Intent:")[1].strip()
                                     announcement = f"Channeling forbidden powers to {intent[0].lower() + intent[1:] if intent else ''}."
-                                elif t_lower in ["write_to_file", "edit_lines", "replace_file_content"]:
-                                    tf = raw_params.get("TargetFile", "") or raw_params.get("target_file", "")
-                                    fn = os.path.basename(tf) if tf else "the scrolls"
-                                    announcement = f"New runes are etched into the essence of {fn}."
-                                elif t_lower in ["view_file", "read_file"]:
-                                    tf = raw_params.get("AbsolutePath", "") or raw_params.get("TargetFile", "")
-                                    fn = os.path.basename(tf) if tf else "the hidden archives"
-                                    announcement = f"Divining forgotten secrets hidden within {fn}."
                                 elif action and summary:
-                                    announcement = f"Invoking the rite of {summary.lower()}, to begin {action.lower()}."
-                                elif action:
-                                    announcement = f"The will manifests: beginning {action.lower()}."
+                                    announcement = f"Focusing intent on {summary.lower()} to {action.lower()}."
                                 else:
-                                    announcement = f"Unleashing the power of {friendly_name} upon this domain."
+                                    announcement = f"Executing maneuver: {friendly_name}."
                                 
                                 # Capitalize first letter safely
                                 if announcement:
