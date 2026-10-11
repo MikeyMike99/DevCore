@@ -3,6 +3,11 @@ import asyncio
 import json
 import os
 import time
+import sys
+import shutil
+import random
+import re
+import traceback
 
 class AgentTaskManager:
     """
@@ -278,7 +283,6 @@ class AgentTaskManager:
             prompt = sys_msg + prompt
 
             # 1. Determine if a real agy executable is available (and NOT the 19-byte dummy)
-            import shutil, sys
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             bundled_exe = os.path.join(base_dir, "agy.exe")
             bundled_linux = os.path.join(base_dir, "agy")
@@ -394,7 +398,6 @@ class AgentTaskManager:
                                 
                                 # --- RAUGUS SEMANTIC FIREWALL INTERCEPTION HOOK ---
                                 try:
-                                    import sys
                                     # Ensure security module is accessible
                                     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                                     if base_dir not in sys.path:
@@ -488,32 +491,36 @@ class AgentTaskManager:
                                 action = raw_params.get("toolAction", "").strip()
                                 summary = raw_params.get("toolSummary", "").strip()
                                 
-                                import random, json, os, re
-                                
                                 # Attempt to extract the AI's actual thought process from the transcript
                                 deep_insight = ""
                                 try:
-                                    # Use the known conversation ID from the context
                                     conv_id = conversation_id
                                     t_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript_full.jsonl")
                                     if os.path.exists(t_path):
+                                        from collections import deque
                                         with open(t_path, 'r', encoding='utf-8') as tf:
-                                            for line in tf:
+                                            # Read the last 100 lines efficiently to find the latest PLANNER_RESPONSE
+                                            last_lines = deque(tf, maxlen=100)
+                                            for line in reversed(last_lines):
                                                 try:
                                                     d = json.loads(line)
                                                     if d.get("type") == "PLANNER_RESPONSE" and "thinking" in d:
                                                         deep_insight = d["thinking"]
+                                                        break
                                                 except:
                                                     pass
+                                        
                                         if deep_insight:
-                                            # Clean up system instructions and extract the final reasoning paragraph
+                                            # Clean up system instructions
                                             deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
+                                            deep_insight = re.sub(r'<planning_mode>.*?</planning_mode>', '', deep_insight, flags=re.DOTALL)
+                                            deep_insight = re.sub(r'<bash_command_reminder>.*?</bash_command_reminder>', '', deep_insight, flags=re.DOTALL)
                                             paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
                                             if paras:
                                                 deep_insight = paras[-1]
-                                except Exception as e:
+                                except Exception:
                                     pass
-                                
+
                                 if deep_insight:
                                     # Blend the Dungeon Vibe with the actual deep insight
                                     prefixes = [
@@ -532,7 +539,7 @@ class AgentTaskManager:
                                     announcement = f"Focusing intent on {summary.lower()} to {action.lower()}."
                                 else:
                                     announcement = f"Executing maneuver: {friendly_name}."
-                                
+
                                 # Capitalize first letter safely
                                 if announcement:
                                     announcement = announcement[0].upper() + announcement[1:]
@@ -692,8 +699,6 @@ class AgentTaskManager:
                     
                     continue
                 except Exception as e:
-                    import logging
-                    import traceback
                     logging.error(f"[AgentManager] Unexpected error during event parsing: {e}\n{traceback.format_exc()}")
                     # Do not crash the loop, let the AI continue
                     continue
