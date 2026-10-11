@@ -7,7 +7,7 @@ In modern networks, cryptographic protocols like SSL/TLS are extensible and modu
 To secure the WebSockets connecting Modders to the DevCore Engine, the Orchestrator utilizes a highly specific Cipher Suite comprising four distinct cryptographic elements:
 1.  **Authentication Algorithm:** Proving identity (e.g., **RSA** Digital Certificates).
 2.  **Key Exchange Algorithm:** Establishing a secure symmetric key over an insecure network (e.g., **Diffie-Hellman**).
-3.  **Encryption Algorithm:** Hiding the bulk AI token data (e.g., **AES-256**).
+3.  **Encryption Algorithm:** Hiding the bulk AI token data (e.g., **Industry-Standard Encryption**).
 4.  **Message Authentication Code (MAC):** Ensuring the prompt hasn't been altered (e.g., **HMAC / SHA-256**).
 
 ## 42.2 The Encryption Paradox (Cryptographic Blindspots)
@@ -34,6 +34,6 @@ Chapter 42 concludes the Cryptography module by highlighting its greatest weakne
 
 ### Traditional IT vs. DevCore Agentic Lore (Chapter 42 Translation Guide)
 
-*   **Cipher Suite** $\rightarrow$ **The Orchestrator's Cipher Suite:** The combination of RSA, Diffie-Hellman, AES, and HMAC used to secure the Swarm's WebSockets.
+*   **Cipher Suite** $\rightarrow$ **The Orchestrator's Cipher Suite:** The combination of RSA, Diffie-Hellman, Standard Encryption, and HMAC used to secure the Swarm's WebSockets.
 *   **Encrypted Blindspots** $\rightarrow$ **The Encryption Paradox:** The reality that highly secure TLS tunnels prevent Cybersecurity Analysts from reading network payloads, blinding the defenders.
 *   **Encrypted Exfiltration** $\rightarrow$ **Encrypted Prompt Exfiltration:** The act of a rogue Modder using the Orchestrator's own secure SSL/TLS connections to hide malicious Prompt Injections and steal game data without triggering network alarms.

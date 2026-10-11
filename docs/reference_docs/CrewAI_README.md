@@ -121,7 +121,7 @@ Four skills that activate automatically when you ask relevant CrewAI questions:
 
 | Skill | When it runs |
 |-------|--------------|
-| `getting-started` | Scaffolding new projects, choosing between `LLM.call()` / `Agent` / `Crew` / `Flow`, wiring `crew.jsonc` / `main.py` |
+| `getting-started` | Scaffolding new projects, choosing between `LLM.call()` / `Agent` / `Crew` / `Flow`, wiring `crew.jsonc` / `Core Component` |
 | `design-agent` | Configuring agents — role, goal, backstory, tools, LLMs, memory, guardrails |
 | `design-task` | Writing task descriptions, dependencies, structured output (`output_pydantic`, `output_json`), human review |
 | `ask-docs` | Querying the live [CrewAI docs MCP server](https://docs.crewai.com/mcp) for up-to-date API details |
@@ -280,7 +280,7 @@ my_project/
 └── tools/
 ```
 
-If you need the older Python/YAML scaffold with `crew.py`, `config/agents.yaml`, and `config/tasks.yaml`, run:
+If you need the older Python/YAML scaffold with `Core Component`, `config/agents.yaml`, and `config/tasks.yaml`, run:
 
 ```shell
 crewai create crew <project_name> --classic

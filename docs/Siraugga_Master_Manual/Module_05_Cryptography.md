@@ -14,7 +14,7 @@ Because the DevCore engine allows third-party Modders to connect to the host ser
 
 The cipher suite utilizes a hybrid cryptographic approach:
 1.  **Asymmetric Encryption (RSA/Public Key):** Used purely for the initial handshake. The Modder's browser and the Orchestrator exchange public keys to securely establish their identities. This is highly secure but incredibly CPU-intensive.
-2.  **Symmetric Encryption (AES):** Once the asymmetric handshake is verified, the two parties agree on a single, shared "session key." All subsequent JSON telemetry and tool calls are encrypted symmetrically using this session key, allowing for blisteringly fast execution without burning CPU cycles.
+2.  **Symmetric Encryption (Standard Encryption):** Once the asymmetric handshake is verified, the two parties agree on a single, shared "session key." All subsequent JSON telemetry and tool calls are encrypted symmetrically using this session key, allowing for blisteringly fast execution without burning CPU cycles.
 
 ### The Encryption Paradox
 While the cipher suite guarantees that outside hackers cannot intercept the WebSockets, it introduces the **Encryption Paradox**. Because the tunnel is perfectly encrypted, standard perimeter firewalls cannot see the JSON payloads inside. The prompt injections are effectively cloaked in encryption. This is why the Next-Gen Prompt Firewall (NGPF) must sit *behind* the decryption layer on the host, where it can inspect the raw text before it hits the Subagent.

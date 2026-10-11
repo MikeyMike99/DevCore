@@ -4,7 +4,7 @@
 
 In traditional IT, "The Cloud" usually refers to massive, centralized data centers owned by tech monopolies. But the Siraugga Engine operates on an entirely different philosophy. 
 
-DevCore is a **Self-Hosted, Decentralized, BYOK (Bring Your Own Key) Engine**. A Tier 5 Admin hosts the core Orchestrator (`server.py`) locally on their own hardware, supplying their own LLM API keys. They then use secure WebSockets to distribute access to remote Modders across the globe. To the Modder, it feels like they are connecting to "The Cloud," but in reality, they are tapping into a Decentralized Swarm.
+DevCore is a **Self-Hosted, Decentralized, BYOK (Bring Your Own Key) Engine**. A Tier 5 Admin hosts the core Orchestrator (`App Router Module`) locally on their own hardware, supplying their own LLM API keys. They then use secure WebSockets to distribute access to remote Modders across the globe. To the Modder, it feels like they are connecting to "The Cloud," but in reality, they are tapping into a Decentralized Swarm.
 
 With thousands of remote subagents storing their game data, generating code, and manipulating virtual assets on a decentralized host, this architecture demands an entirely unique approach to security. This module covers how Decentralized Swarm Hosting is made possible through Subagent Virtualization, and how that virtualized data must be defended.
 
@@ -12,7 +12,7 @@ With thousands of remote subagents storing their game data, generating code, and
 
 In a legacy cloud environment, servers use hypervisors to spawn heavy Virtual Machines (VMs), each running a complete Operating System. 
 
-DevCore does not use VMs. It relies on **Subagent Virtualization (SVs)**. The Orchestrator spawns isolated, lightweight LLM conversational contexts that share the same underlying `agent_manager.py` resources. Protecting these virtualized subagents from bleeding context into each other is the defining challenge of Swarm Hosting.
+DevCore does not use VMs. It relies on **Subagent Virtualization (SVs)**. The Orchestrator spawns isolated, lightweight LLM conversational contexts that share the same underlying `Task Orchestrator Module` resources. Protecting these virtualized subagents from bleeding context into each other is the defining challenge of Swarm Hosting.
 
 ---
 

@@ -75,7 +75,7 @@ Because the server never actually stores my password, a catastrophic database br
 
 ### The Lockout Paradox
 One of my biggest fears was accidentally locking myself out of my own fortress. If database corruption revoked my Super Admin status, I'd be trapped. 
-* **The Ghost Admin Remedy:** I wrote an air-gapped `ghost_admin.py` script on the host. If I get locked out, I bypass the app entirely via SSH, halt the daemon, and use this script to inject my Tier 5 flag directly back into the OS.
+* **The Ghost Admin Remedy:** I wrote an air-gapped `Admin Module` script on the host. If I get locked out, I bypass the app entirely via SSH, halt the daemon, and use this script to inject my Tier 5 flag directly back into the OS.
 
 ## Section 2: The Physical Bridge & IPC
 I needed a secure way for the web app to talk to the Agent Daemon.
@@ -113,7 +113,7 @@ Relying on app-layer timeouts is a joke. A runaway AI generating an infinite loo
 ## Section 6: Defeating Race Conditions (TOCTOU & Symlink Armor)
 At the root level, I knew I had to defend against Time-Of-Check to Time-Of-Use (TOCTOU) vulnerabilities. Attackers love "Race Conditions." They try to swap a safe file for a malicious symlink in the millisecond between my check and my file open.
 
-* **The Mechanism (O_NOFOLLOW):** When my core engine opens any file, I forced it to utilize the `os.O_NOFOLLOW` flag at the kernel level.
+* **The Mechanism (Strict Path Defenses):** When my core engine opens any file, I forced it to utilize the `Strict Path Defenses` flag at the kernel level.
 * **The Result:** If an attacker successfully executes a race condition and swaps the target file with a symlink pointing to `/etc/shadow`, the Linux kernel violently rejects the operation. My file descriptors are completely immunized against symlink spoofing.
 
 ## Section 7: Defeating UI Asphyxiation (The Ingestion Swarm & Draft Sandbox)
@@ -160,7 +160,7 @@ Furthermore, when Admins export configurations for backups, they often leave pla
 
 To eliminate this vulnerability, I engineered an **Immutable Configuration State**:
 
-* **In-Memory Config Vaulting:** Core configurations are never stored in plaintext on disk. They are encrypted using the same PBKDF2/Fernet `.vault` architecture used for the Forensic Vault. At runtime, the core daemon decrypts the configurations directly into volatile RAM. 
+* **In-Memory Config Vaulting:** Core configurations are never stored in plaintext on disk. They are encrypted using the same PBKDF2/Advanced Encryption `.vault` architecture used for the Forensic Vault. At runtime, the core daemon decrypts the configurations directly into volatile RAM. 
 * **Tamper-Evident Boot Sequencing:** If an attacker modifies a single byte of the encrypted configuration file on disk, the MAC (Message Authentication Code) validation instantly fails during the decryption phase. The engine operates under a "Fail-Deadly" philosophy: instead of attempting to load a partial or corrupted state, the daemon instantly hard-crashes, logs a critical integrity failure, and refuses to boot.
 * **Secure Export Bridging:** When an Admin needs to export server configurations or migrate states to a new node, the payload is never dumped as JSON. It is encrypted through the Zero-Knowledge Shadow Bridge, requiring an offline challenge-response token to unlock on the receiving end.
 
@@ -172,7 +172,7 @@ The primary reason plaintext configurations are catastrophic is because they oft
 This introduces the silent killer of secure systems: **Second-Order Execution**. 
 If a local attacker injects a malicious payload (`rm -rf /` or a reverse shell) into a cache-refresh string inside a plaintext config file, they don't need to bypass the live application's firewalls. They simply wait for the server to reboot or a cron job to fire. The server will blindly parse and execute the injected script with root privileges because it inherently "trusts" its own configuration file.
 
-The **Tamper-Evident Boot Sequence** completely neutralizes this vector. Because the config is cryptographically sealed inside a `.vault`, an attacker cannot inject a script without invalidating the AES-128 MAC (Message Authentication Code). When the daemon attempts to decrypt the file into RAM, the signature mismatch triggers an immediate hard-crash, preventing the malicious string from ever being parsed or executed.
+The **Tamper-Evident Boot Sequence** completely neutralizes this vector. Because the config is cryptographically sealed inside a `.vault`, an attacker cannot inject a script without invalidating the Industry-Standard Encryption MAC (Message Authentication Code). When the daemon attempts to decrypt the file into RAM, the signature mismatch triggers an immediate hard-crash, preventing the malicious string from ever being parsed or executed.
 
 ## Section 11: Cryptographic Escrow & The Obfuscation Paradox
 When architecting the long-term retention of forensic evidence (The Glacier Vault) and In-Memory Source Code Execution, I had to confront the ultimate disaster scenario: **Cryptographic Lockout**.
@@ -183,9 +183,9 @@ This leads directly into the architectural debate of **Security vs. Obfuscation*
 A core tenet of cryptography is Kerckhoffs's Principle: a system must be secure even if everything about it, except the key, is public knowledge. Obfuscation (hiding how the system works) is *not* security. If you build a proprietary encryption algorithm and rely solely on the fact that an attacker doesn't have the source code, a dedicated reverse-engineer will eventually dismantle it.
 
 However, when Obfuscation is layered *on top* of mathematically proven Security (Defense in Depth), it becomes a devastating barrier. 
-I engineered the `.vault` architecture to use unbreakable industry standards (AES-128 Fernet, PBKDF2 HMAC-SHA256). But I heavily obfuscated the implementation. I wrapped the payload in a proprietary `MRSV` binary signature, injected dynamic JSON headers, and manipulated the salt structures. 
+I engineered the `.vault` architecture to use unbreakable industry standards (Industry-Standard Encryption Advanced Encryption, Secure Key Derivation). But I heavily obfuscated the implementation. I wrapped the payload in a proprietary `MRSV` binary signature, injected dynamic JSON headers, and manipulated the salt structures. 
 
-The goal of this obfuscation is to break automated tooling. An attacker who steals a `.vault` file cannot simply load it into Hashcat or John the Ripper to begin brute-forcing the password. They are structurally blind. They must first spend weeks reverse-engineering the binary structure just to figure out *where* the hash is located before they can even begin to attack the AES mathematics. 
+The goal of this obfuscation is to break automated tooling. An attacker who steals a `.vault` file cannot simply load it into Hashcat or John the Ripper to begin brute-forcing the password. They are structurally blind. They must first spend weeks reverse-engineering the binary structure just to figure out *where* the hash is located before they can even begin to attack the encryption mathematics. 
 
 **The Cryptographic Escrow (The Rosetta Stone)**
 The danger of this extreme obfuscation is that if I lose the decryption script, I am just as blind as the attacker. 
@@ -329,8 +329,8 @@ This introduces a classic Time-of-Check to Time-of-Use (TOCTOU) race condition. 
 To render the architecture mathematically untouchable, I engineered **In-Memory Source Code Execution**, completely bypassing the physical disk:
 
 * **The Vaulted Codebase:** Every core Python module is encrypted using the Zero-Knowledge `.vault` architecture. The plaintext `.py` files do not exist on the storage medium.
-* **The Custom Import Hook:** The environment utilizes a single, obfuscated bootstrapper (`boot.py`) that hijacks the language's native import sequence via `sys.meta_path`. 
-* **RAM-Only Decryption & Compilation:** When the application attempts to import a module, the custom loader reads the `.vault` ciphertext from disk. It decrypts the AES-128 payload directly into a volatile string in RAM. It then uses the native `compile()` and `exec()` methods to evaluate the code.
+* **The Custom Import Hook:** The environment utilizes a single, obfuscated bootstrapper (`Boot Module`) that hijacks the language's native import sequence via `sys.meta_path`. 
+* **RAM-Only Decryption & Compilation:** When the application attempts to import a module, the custom loader reads the `.vault` ciphertext from disk. It decrypts the Industry-Standard Encryption payload directly into a volatile string in RAM. It then uses the native `compile()` and `exec()` methods to evaluate the code.
 
 The plaintext source code never touches the hard drive, completely neutralizing the "temp file swap" attack vector. If a physical adversary steals the server's hard drive, they extract nothing but useless ciphertext. The intellectual property only exists in volatile RAM while the server is actively running.
 
@@ -451,7 +451,7 @@ You cannot rely on an AI agent "agreeing" to read a markdown file. Security rule
 
 ## 17. Agentic Drift and Digital Hoarding (The Clean Workspace Protocol)
 
-Autonomous AI Agents exhibit a behavior known as **Agentic Drift**, wherein they continuously generate single-use "scratch" scripts (e.g., `test_connection.py`, `tweak_css.py`) to execute minor tasks or debug errors. 
+Autonomous AI Agents exhibit a behavior known as **Agentic Drift**, wherein they continuously generate single-use "scratch" scripts (e.g., `Connection Tester Module`, `CSS Tweaker Module`) to execute minor tasks or debug errors. 
 
 If unmanaged, this results in **Digital Hoarding**: the workspace becomes a minefield of highly privileged, untested dead code. This introduces two catastrophic vulnerabilities:
 1. **Accidental Execution:** Future agents (or humans) may unknowingly execute legacy scratch scripts, triggering unintended and potentially destructive actions.
@@ -623,7 +623,7 @@ This guarantees that an AI deployed with root access remains permanently locked 
 
 ## 30. Raugus Map VFS (Cryptographic Path Aliasing)
 
-Exposing true physical file paths (e.g., `C:/Users/.../server.py`) to unprivileged users, developers, or autonomous Agents introduces significant risk. It allows malicious actors to map the underlying host Operating System and attempt Path Traversal (`../../`) exploits.
+Exposing true physical file paths (e.g., `C:/Users/.../App Router Module`) to unprivileged users, developers, or autonomous Agents introduces significant risk. It allows malicious actors to map the underlying host Operating System and attempt Path Traversal (`../../`) exploits.
 
 ### The File DNS Protocol
 To achieve absolute Zero-Trust file management, the enterprise must implement the **Raugus Map Virtual File System (VFS)**. 
@@ -675,7 +675,7 @@ When the backend server needs to render a page, it cannot simply open the file. 
 2. **Clearance Verification:** It cross-references the requested abstract alias against the Phonebook vault. It compares the application's required Tier against the requester's Tier. 
 3. **Manifestation:** Only if the Tier is sufficient does the Resolver translate the abstract alias into a true, physical disk path and return it to the application.
 
-This methodology is the pinnacle of Zero-Trust architecture. An attacker cannot traverse directories because the directories do not logically exist within the application's code. If a malicious actor attempts to request `../../core/server.py`, the Resolver simply checks the Phonebook, finds no such alias, logs a potential intrusion, and violently terminates the request with a `KeyError`. They are trapped in a digital territory with no doors, where pathways only manifest for those with the absolute highest clearance.
+This methodology is the pinnacle of Zero-Trust architecture. An attacker cannot traverse directories because the directories do not logically exist within the application's code. If a malicious actor attempts to request `../../App Router Module`, the Resolver simply checks the Phonebook, finds no such alias, logs a potential intrusion, and violently terminates the request with a `KeyError`. They are trapped in a digital territory with no doors, where pathways only manifest for those with the absolute highest clearance.
 
 
 ### Layer 8: Asynchronous Swarm Ingestion (Large Data Handling)

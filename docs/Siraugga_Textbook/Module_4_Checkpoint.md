@@ -8,7 +8,7 @@ Once the 4.8 Access Control Lists Summary is provided, this document will be cro
 
 ### Chapter 14: Introduction to Agentic Control Lists (ACLs)
 *   **Core Concept:** Translating traditional packet filtering into **Semantic Filtering**.
-*   **Mechanics:** The `agent_manager.py` uses Agentic Control Entries (ACEs) to instantly `permit` or `deny` JSON WebSocket payloads.
+*   **Mechanics:** The `Task Orchestrator Module` uses Agentic Control Entries (ACEs) to instantly `permit` or `deny` JSON WebSocket payloads.
 *   **Layer 3 vs Layer 4:** Standard ACLs (Layer 3) filter purely by Agent UUID. Extended ACLs (Layer 4) filter by UUID *and* Tool Intent.
 *   **The Implicit Agentic Deny:** The ultimate Zero-Trust fail-safe. If an AI is not explicitly permitted by a rule, the invisible `deny any any` rule at the bottom of the list destroys the request.
 

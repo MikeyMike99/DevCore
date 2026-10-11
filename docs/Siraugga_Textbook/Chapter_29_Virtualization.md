@@ -4,7 +4,7 @@
 
 To save compute time and optimize API token usage, the Siraugga Engine does not run distinct Operating Systems for every AI agent. Instead, it utilizes **Subagent Virtualization (SVs)**. 
 
-Just as a traditional Cloud uses a hypervisor to spawn Virtual Machines (VMs), DevCore uses its `agent_manager.py` (The Orchestrator) to spawn hundreds of independent, isolated LLM conversational contexts on a single physical host. 
+Just as a traditional Cloud uses a hypervisor to spawn Virtual Machines (VMs), DevCore uses its `Task Orchestrator Module` (The Orchestrator) to spawn hundreds of independent, isolated LLM conversational contexts on a single physical host. 
 
 There are two primary ways an Admin can deploy the Orchestrator:
 1.  **Bare-Metal Orchestrator (Type 1):** The DevCore engine runs directly on dedicated hardware. This provides massive performance, ideal for hosting millions of Modders.

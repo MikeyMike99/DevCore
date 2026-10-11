@@ -12,7 +12,7 @@ There are three common architectural topologies utilized in the Siraugga Engine:
 ## 23.2 The Binary Topology (Private and Public)
 
 The most basic topology divides the environment into exactly two domains:
-*   **The Trusted Domain (Inside):** The `/core_engine/` and internal `server.py` processes.
+*   **The Trusted Domain (Inside):** The `/core_engine/` and internal `App Router Module` processes.
 *   **The Untrusted Domain (Outside):** The public internet and Modder WebSockets.
 
 In a Binary Topology, traffic originating from the internal engine is permitted to travel out to the internet (e.g., to query an LLM API), and the returning data is trusted. However, any unprompted traffic originating from the outside and attempting to access the `core_engine` is violently blocked.
@@ -35,7 +35,7 @@ A "Zone" is a group of directories that share a similar security classification.
 *   **Intra-Zone Trust:** By default, AI subagents operating in directories within the *same* Zone can share files and JSON context completely freely. 
 *   **Inter-Zone Blocks:** By default, traffic attempting to cross from one Zone to another (e.g., from the Asset Zone to the NPC Script Zone) is blocked unless an explicit bulkhead permits it.
 
-**The Self Zone:** The only exception to the "deny all" zone rule is the **Self Zone**. In DevCore, the Self Zone is the Orchestrator itself (`server.py`). Traffic destined to or sourced from the Orchestrator (such as internal telemetry and transcript logging) requires highly specialized control plane policies.
+**The Self Zone:** The only exception to the "deny all" zone rule is the **Self Zone**. In DevCore, the Self Zone is the Orchestrator itself (`App Router Module`). Traffic destined to or sourced from the Orchestrator (such as internal telemetry and transcript logging) requires highly specialized control plane policies.
 
 ## 23.5 Defense-in-Depth Swarm Defense
 
@@ -61,5 +61,5 @@ To maintain absolute clarity, here is the master translation of traditional fire
 *   **Private and Public** $\rightarrow$ **The Binary Topology:** A basic 2-domain split between the internal `core_engine` (Private) and the Modder WebSockets (Public).
 *   **Demilitarized Zone (DMZ)** $\rightarrow$ **The Safe Workspace:** A semi-trusted 3rd domain (e.g., `/playground/`) where untrusted Modders and AI agents can safely execute code without touching the core engine.
 *   **Zone-Based Policy Firewalls (ZPF)** $\rightarrow$ **Role-Based Sandbox Zones:** Grouping similar directories together. Subagents within the same Zone can communicate freely.
-*   **The Self Zone** $\rightarrow$ **The Orchestrator (`server.py`):** The core routing process itself, which requires specialized control plane policies to handle telemetry.
+*   **The Self Zone** $\rightarrow$ **The Orchestrator (`App Router Module`):** The core routing process itself, which requires specialized control plane policies to handle telemetry.
 *   **Bastion Host / Screened Subnet** $\rightarrow$ **The Raugus Proxy / Defense-in-Depth:** A hardened proxy server located inside the Safe Workspace that scrubs semantic prompts before they reach the deeper interior network.

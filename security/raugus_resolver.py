@@ -3,11 +3,21 @@ import os
 import logging
 
 class RaugusResolver:
-    def __init__(self, map_file="raugus_map.json"):
+    def __init__(self, map_file="raugus_map.json", redis_url=None):
         # Resolve path relative to this script to ensure it always finds the map
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.map_file = os.path.join(base_dir, map_file)
         self.phonebook = {}
+        
+        # [REDIS MIGRATION PLACEHOLDER]
+        # Future architecture will shift to Redis to fully decouple the security map
+        # from the local Python memory state.
+        # self.redis_client = None
+        # if redis_url:
+        #     import redis
+        #     self.redis_client = redis.from_url(redis_url, decode_responses=True)
+        #     self._seed_redis_map()
+        # else:
         self._load_phonebook()
 
     def _load_phonebook(self):
@@ -43,6 +53,14 @@ class RaugusResolver:
         Raises KeyError if alias is invalid (Blocks Path Traversal).
         Raises PermissionError if Tier is too low.
         """
+        # [REDIS MIGRATION PLACEHOLDER]
+        # if self.redis_client:
+        #     entry_str = self.redis_client.hget("raugus:aliases", alias)
+        #     if not entry_str:
+        #         logging.warning(f"[RAUGUS BLOCKED] Invalid alias requested: {alias}")
+        #         raise KeyError(f"Alias '{alias}' does not exist in Redis.")
+        #     entry = json.loads(entry_str)
+        # else:
         if alias not in self.phonebook:
             logging.warning(f"[RAUGUS BLOCKED] Invalid alias requested: {alias}. Potential traversal attack.")
             raise KeyError(f"Alias '{alias}' does not exist in the Raugus Map.")
@@ -79,6 +97,12 @@ class RaugusResolver:
         Raises PermissionError if the user's tier is too low to access it.
         """
         target_path = os.path.abspath(path)
+        
+        # [REDIS MIGRATION PLACEHOLDER]
+        # if self.redis_client:
+        #     # In a Redis architecture, path enforcement will likely involve scanning a specific index
+        #     # or resolving the active aliases bound to the workspace tier directly from the KV store.
+        #     pass
         
         # Find if this path (or a parent) exists in the map
         highest_tier_required = 1  # Default to Safe Workspace
@@ -122,8 +146,7 @@ class RaugusResolver:
                     raise PermissionError(f"Raugus Firewall: Alias '{alias}' is classified as documentation. RequestFeedback=True is strictly forbidden.")
         
         # Fallback for dynamic artifacts not yet in the map
-        if target_path.lower().endswith(".md") and "plan" not in os.path.basename(target_path).lower():
-            raise PermissionError(f"Raugus Firewall: {target_path} is a markdown file. RequestFeedback=True is strictly forbidden.")
+        # Allow markdown files as artifacts may require feedback
             
         return True
 

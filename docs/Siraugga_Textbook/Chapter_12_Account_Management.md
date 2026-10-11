@@ -65,7 +65,7 @@ For example, a Tier 2 Modder should never be granted read/write access to the en
 In the Siraugga framework, File Access Control is violently enforced through the **Five File Classification Tiers**:
 
 1.  **`TIER_SAFE_WORKSPACE`:** The general premises. Game scripts, NPC JSON data, and local assets. Accessible to Tier 2 Modders and Tier 3 Agents.
-2.  **`TIER_CORE_ENGINE`:** The server and orchestration scripts (`server.py`, `agent_manager.py`). Highly sensitive. Restricted exclusively to Tier 5 Super Admins.
+2.  **`TIER_CORE_ENGINE`:** The server and orchestration scripts (`App Router Module`, `Task Orchestrator Module`). Highly sensitive. Restricted exclusively to Tier 5 Super Admins.
 3.  **`TIER_ADMIN_LOG`:** Daemon logs and transcripts. Read-only access for Admins to monitor the system without altering historical truth.
 4.  **`TIER_FORBIDDEN`:** The absolute void. Virtual environments (`venv/`), Git internals, and path-traversal escapes. Hard-blocked for all roles, including Admins, to prevent accidental system destruction.
 
@@ -112,7 +112,7 @@ The Admin must restrict the swarm to **Read-Only** access. By configuring the su
 
 ## Agentic Security Policies & Hallucination Lockouts
 
-In a traditional IT environment, administrators configure Windows Active Directory and Local Security Policies (`secpol.msc`) to enforce password rules and lockouts. In the DevCore ecosystem, Tier 5 Admins configure the **Siraugga Swarm Directory**—the central security policy governed by `security_manager.py` that dictates the behavior of all connected Modders and autonomous subagents.
+In a traditional IT environment, administrators configure Windows Active Directory and Local Security Policies (`secpol.msc`) to enforce password rules and lockouts. In the DevCore ecosystem, Tier 5 Admins configure the **Siraugga Swarm Directory**—the central security policy governed by `Access Control Module` that dictates the behavior of all connected Modders and autonomous subagents.
 
 Through the Zero-Restart Web Portal, Admins enforce three critical agentic policies:
 
@@ -121,7 +121,7 @@ Through the Zero-Restart Web Portal, Admins enforce three critical agentic polic
 3.  **Orchestration Audit Policies:** DevCore creates comprehensive, immutable security logs (`transcript.jsonl`) to track specific swarming events, including:
     *   **Agent Spawn/Despawn Events** (Account logon/logoff).
     *   **Semantic Directory Access** (When an agent views or writes to a file).
-    *   **Policy Changes** (When a Tier 5 Admin hot-patches the `server.py` rules).
+    *   **Policy Changes** (When a Tier 5 Admin hot-patches the `App Router Module` rules).
     *   **Privilege Use** (Tracking exactly when an agent escalates to a `run_command` execution).
 
 ## Federated Swarm Authentication (Authentication Management)
@@ -176,7 +176,7 @@ Because Cerberus tickets are mathematically timestamped and set to expire within
 
 As established in earlier chapters, authentication simply proves *who* the entity is. **Access Control** determines what that entity is allowed to do. The authentication protocols (TACACS+, Cerberus) directly enforce the two master models of the DevCore universe:
 
-*   **Mandatory Access Control (MAC):** The rigid, operating-system level rules that restrict the actions an AI can perform on a physical object (a file, a TCP port, or a device). MAC is the foundation of the **Five File Classification Tiers**. Every folder in DevCore has a mathematical label (e.g., `TIER_CORE_ENGINE`), and every entity has a clearance level. If a Tier 2 Modder attempts to view `server.py`, the MAC system instantly rejects it. The Admin cannot override MAC; the OS enforces it.
+*   **Mandatory Access Control (MAC):** The rigid, operating-system level rules that restrict the actions an AI can perform on a physical object (a file, a TCP port, or a device). MAC is the foundation of the **Five File Classification Tiers**. Every folder in DevCore has a mathematical label (e.g., `TIER_CORE_ENGINE`), and every entity has a clearance level. If a Tier 2 Modder attempts to view `App Router Module`, the MAC system instantly rejects it. The Admin cannot override MAC; the OS enforces it.
 *   **Role-Based Access Control (RBAC):** The structural foundation of **Agentic Archetypes**. Permissions are granted based on the specific job function of the AI. A `QA` agent acquires Read-Only and Execute permissions natively through its role, while a `Coding` agent acquires Write permissions. Working in combination with MAC, RBAC allows Tier 5 Admins to safely manage massive swarms of hundreds of autonomous subagents across thousands of unique sandbox permissions.
 
 ---
@@ -191,7 +191,7 @@ From the moment an entity spawns or connects, it is subjected to intense cryptog
 
 To maintain absolute clarity, here is the master translation of traditional cybersecurity terms into their DevCore Agentic equivalents established in this chapter:
 
-*   **Active Directory / `secpol.msc` $\rightarrow$ The Siraugga Swarm Directory:** The central configuration (governed by `security_manager.py`) that enforces security policies across all connected nodes and Modders.
+*   **Active Directory / `secpol.msc` $\rightarrow$ The Siraugga Swarm Directory:** The central configuration (governed by `Access Control Module`) that enforces security policies across all connected nodes and Modders.
 *   **Account Lockout Policy $\rightarrow$ Hallucination Lockout Policy:** If an AI agent attempts 5 unauthorized tool executions, the Orchestrator assumes it is trapped in a hallucination loop and hard-locks its UUID for 30 minutes to prevent a Semantic DoS attack.
 *   **Geofencing / Geolocation $\rightarrow$ Sandbox Confinement & Hardware Locking:** Locking an AI strictly to a localized directory (`/game_demo/`) and tying a Modder's access to their physical machine (FAIM).
 *   **Geotagging $\rightarrow$ Semantic Watermarking:** The act of tagging every generated JSON state or code file with the unique UUID of the AI agent that wrote it.

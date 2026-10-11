@@ -8,7 +8,7 @@ To protect a Subagent's conversational payload from network interceptors, DevCor
     *   **Mechanics:** Uses the exact same pre-shared key to both encrypt and decrypt data. 
     *   **Speed:** Blazing fast. Uses very short key lengths (128 to 256 bits).
     *   **Use Case in DevCore:** Used for encrypting massive bulk data, such as a Subagent's 100,000-token conversational history (Context at Rest). 
-    *   **Algorithms:** **AES** (Advanced Encryption Standard) is the heavily recommended gold standard. Legacy algorithms like DES, 3DES, and RC4 are highly vulnerable and strictly forbidden in the Siraugga Engine.
+    *   **Algorithms:** **Standard Encryption** (Advanced Encryption Standard) is the heavily recommended gold standard. Legacy algorithms like DES, 3DES, and RC4 are highly vulnerable and strictly forbidden in the Siraugga Engine.
 *   **Asymmetric Encryption (Decentralized Modder Encryption):**
     *   **Mechanics:** Uses a paired Public Key and Private Key. If one key encrypts the data, *only* the other key can decrypt it.
     *   **Speed:** Extremely slow and computationally taxing. Uses massive key lengths (512 to 4096 bits).
@@ -33,7 +33,7 @@ Here lies the ultimate architectural problem: Asymmetric encryption is perfectly
 
 To solve this, DevCore uses the **Diffie-Hellman (DH) Handshake**. 
 
-Diffie-Hellman is an asymmetric algorithm that allows a remote Modder and the central Orchestrator to mathematically generate an identical, secret Symmetric Key (AES) over the public internet, *without ever actually transmitting the secret key across the network*. 
+Diffie-Hellman is an asymmetric algorithm that allows a remote Modder and the central Orchestrator to mathematically generate an identical, secret Symmetric Key (Standard Encryption) over the public internet, *without ever actually transmitting the secret key across the network*. 
 
 **The Swarm Mixing Analogy:**
 1.  The Modder and Orchestrator publicly agree on a base "color" (a mathematical prime number). 
@@ -41,18 +41,18 @@ Diffie-Hellman is an asymmetric algorithm that allows a remote Modder and the ce
 3.  They mix the public color with their private color, and exchange the resulting "mixed color" across the internet. (Even if a hacker intercepts this, they cannot un-mix the colors to find the private key).
 4.  Finally, both parties mix the received color with their own original private color. The mathematical result on both sides is an identical, shared secret "brown" color. 
 
-This shared secret is now used as a 256-bit **AES Symmetric Key**. Once the DH Handshake is complete, the Orchestrator and the Modder abandon the slow asymmetric algorithms and use their new symmetric key to encrypt the massive bulk of LLM tokens at blazing speeds for the remainder of the session.
+This shared secret is now used as a 256-bit **Standard Encryption Symmetric Key**. Once the DH Handshake is complete, the Orchestrator and the Modder abandon the slow asymmetric algorithms and use their new symmetric key to encrypt the massive bulk of LLM tokens at blazing speeds for the remainder of the session.
 
 ---
 
 ## Chapter 36 Conclusion and Master Review
 
-Chapter 36 breaks down the cryptographic engine powering DevCore's WebSockets. Symmetric encryption (AES) is fast but requires a pre-shared key, while Asymmetric encryption (RSA) solves the key-sharing problem but is too slow for bulk AI tokens. By utilizing Diffie-Hellman, Tier 5 Admins achieve the best of both worlds: securely generating a symmetric key across an untrusted network, allowing the Swarm to operate at maximum speed.
+Chapter 36 breaks down the cryptographic engine powering DevCore's WebSockets. Symmetric encryption (Standard Encryption) is fast but requires a pre-shared key, while Asymmetric encryption (RSA) solves the key-sharing problem but is too slow for bulk AI tokens. By utilizing Diffie-Hellman, Tier 5 Admins achieve the best of both worlds: securely generating a symmetric key across an untrusted network, allowing the Swarm to operate at maximum speed.
 
 ### Traditional IT vs. DevCore Agentic Lore (Chapter 36 Translation Guide)
 
-*   **Symmetric Encryption (AES)** $\rightarrow$ **Internal Swarm Encryption:** A fast, single-key system used to encrypt bulk JSON contexts and transcripts.
+*   **Symmetric Encryption (Standard Encryption)** $\rightarrow$ **Internal Swarm Encryption:** A fast, single-key system used to encrypt bulk JSON contexts and transcripts.
 *   **Asymmetric Encryption (RSA, ECC)** $\rightarrow$ **Decentralized Modder Encryption:** A slow, dual-key system used to securely establish connections and authenticate users.
 *   **Confidentiality Formula** $\rightarrow$ **Prompt Confidentiality:** Public Key (Encrypt) + Private Key (Decrypt). Hiding the JSON payload.
 *   **Authentication Formula** $\rightarrow$ **Modder Authentication:** Private Key (Encrypt) + Public Key (Decrypt). Proving the Modder executed the tool.
-*   **Diffie-Hellman (DH)** $\rightarrow$ **The Diffie-Hellman Handshake:** The mathematical process where the Orchestrator and a remote Modder securely generate a temporary, shared Symmetric Key (AES) so they can encrypt massive streams of AI tokens without network lag.
+*   **Diffie-Hellman (DH)** $\rightarrow$ **The Diffie-Hellman Handshake:** The mathematical process where the Orchestrator and a remote Modder securely generate a temporary, shared Symmetric Key (Standard Encryption) so they can encrypt massive streams of AI tokens without network lag.

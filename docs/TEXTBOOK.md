@@ -86,7 +86,7 @@ Because the server never actually stores my password, a catastrophic database br
 
 ### The Lockout Paradox
 One of my biggest fears was accidentally locking myself out of my own fortress. If database corruption revoked my Super Admin status, I'd be trapped. 
-* **The Ghost Admin Remedy:** I wrote an air-gapped `ghost_admin.py` script on the host. If I get locked out, I bypass the app entirely via SSH, halt the daemon, and use this script to inject my Tier 5 flag directly back into the OS.
+* **The Ghost Admin Remedy:** I wrote an air-gapped `Admin Module` script on the host. If I get locked out, I bypass the app entirely via SSH, halt the daemon, and use this script to inject my Tier 5 flag directly back into the OS.
 
 ## Section 2: The Physical Bridge & IPC
 I needed a secure way for the web app to talk to the Agent Daemon.
@@ -124,7 +124,7 @@ Relying on app-layer timeouts is a joke. A runaway AI generating an infinite loo
 ## Section 6: Defeating Race Conditions (TOCTOU & Symlink Armor)
 At the root level, I knew I had to defend against Time-Of-Check to Time-Of-Use (TOCTOU) vulnerabilities. Attackers love "Race Conditions." They try to swap a safe file for a malicious symlink in the millisecond between my check and my file open.
 
-* **The Mechanism (O_NOFOLLOW):** When my core engine opens any file, I forced it to utilize the `os.O_NOFOLLOW` flag at the kernel level.
+* **The Mechanism (Strict Path Defenses):** When my core engine opens any file, I forced it to utilize the `Strict Path Resolution Defenses` flag at the kernel level.
 * **The Result:** If an attacker successfully executes a race condition and swaps the target file with a symlink pointing to `/etc/shadow`, the Linux kernel violently rejects the operation. My file descriptors are completely immunized against symlink spoofing.
 
 ## Section 7: Defeating UI Asphyxiation (The Ingestion Swarm & Draft Sandbox)
@@ -171,7 +171,7 @@ Furthermore, when Admins export configurations for backups, they often leave pla
 
 To eliminate this vulnerability, I engineered an **Immutable Configuration State**:
 
-* **In-Memory Config Vaulting:** Core configurations are never stored in plaintext on disk. They are encrypted using the same PBKDF2/Fernet `.vault` architecture used for the Forensic Vault. At runtime, the core daemon decrypts the configurations directly into volatile RAM. 
+* **In-Memory Config Vaulting:** Core configurations are never stored in plaintext on disk. They are encrypted using the same PBKDF2/Advanced Encryption `.vault` architecture used for the Forensic Vault. At runtime, the core daemon decrypts the configurations directly into volatile RAM. 
 * **Tamper-Evident Boot Sequencing:** If an attacker modifies a single byte of the encrypted configuration file on disk, the MAC (Message Authentication Code) validation instantly fails during the decryption phase. The engine operates under a "Fail-Deadly" philosophy: instead of attempting to load a partial or corrupted state, the daemon instantly hard-crashes, logs a critical integrity failure, and refuses to boot.
 * **Secure Export Bridging:** When an Admin needs to export server configurations or migrate states to a new node, the payload is never dumped as JSON. It is encrypted through the Zero-Knowledge Shadow Bridge, requiring an offline challenge-response token to unlock on the receiving end.
 
@@ -183,7 +183,7 @@ The primary reason plaintext configurations are catastrophic is because they oft
 This introduces the silent killer of secure systems: **Second-Order Execution**. 
 If a local attacker injects a malicious payload (`rm -rf /` or a reverse shell) into a cache-refresh string inside a plaintext config file, they don't need to bypass the live application's firewalls. They simply wait for the server to reboot or a cron job to fire. The server will blindly parse and execute the injected script with root privileges because it inherently "trusts" its own configuration file.
 
-The **Tamper-Evident Boot Sequence** completely neutralizes this vector. Because the config is cryptographically sealed inside a `.vault`, an attacker cannot inject a script without invalidating the AES-128 MAC (Message Authentication Code). When the daemon attempts to decrypt the file into RAM, the signature mismatch triggers an immediate hard-crash, preventing the malicious string from ever being parsed or executed.
+The **Tamper-Evident Boot Sequence** completely neutralizes this vector. Because the config is cryptographically sealed inside a `.vault`, an attacker cannot inject a script without invalidating the Industry-Standard Encryption MAC (Message Authentication Code). When the daemon attempts to decrypt the file into RAM, the signature mismatch triggers an immediate hard-crash, preventing the malicious string from ever being parsed or executed.
 
 ## Section 11: Cryptographic Escrow & The Obfuscation Paradox
 When architecting the long-term retention of forensic evidence (The Glacier Vault) and In-Memory Source Code Execution, I had to confront the ultimate disaster scenario: **Cryptographic Lockout**.
@@ -194,9 +194,9 @@ This leads directly into the architectural debate of **Security vs. Obfuscation*
 A core tenet of cryptography is Kerckhoffs's Principle: a system must be secure even if everything about it, except the key, is public knowledge. Obfuscation (hiding how the system works) is *not* security. If you build a proprietary encryption algorithm and rely solely on the fact that an attacker doesn't have the source code, a dedicated reverse-engineer will eventually dismantle it.
 
 However, when Obfuscation is layered *on top* of mathematically proven Security (Defense in Depth), it becomes a devastating barrier. 
-I engineered the `.vault` architecture to use unbreakable industry standards (AES-128 Fernet, PBKDF2 HMAC-SHA256). But I heavily obfuscated the implementation. I wrapped the payload in a proprietary `MRSV` binary signature, injected dynamic JSON headers, and manipulated the salt structures. 
+I engineered the `.vault` architecture to use unbreakable industry standards (Industry-Standard Encryption Advanced Encryption, Secure Key Derivation). But I heavily obfuscated the implementation. I wrapped the payload in a proprietary `MRSV` binary signature, injected dynamic JSON headers, and manipulated the salt structures. 
 
-The goal of this obfuscation is to break automated tooling. An attacker who steals a `.vault` file cannot simply load it into Hashcat or John the Ripper to begin brute-forcing the password. They are structurally blind. They must first spend weeks reverse-engineering the binary structure just to figure out *where* the hash is located before they can even begin to attack the AES mathematics. 
+The goal of this obfuscation is to break automated tooling. An attacker who steals a `.vault` file cannot simply load it into Hashcat or John the Ripper to begin brute-forcing the password. They are structurally blind. They must first spend weeks reverse-engineering the binary structure just to figure out *where* the hash is located before they can even begin to attack the encryption mathematics. 
 
 **The Cryptographic Escrow (The Rosetta Stone)**
 The danger of this extreme obfuscation is that if I lose the decryption script, I am just as blind as the attacker. 
@@ -340,8 +340,8 @@ This introduces a classic Time-of-Check to Time-of-Use (TOCTOU) race condition. 
 To render the architecture mathematically untouchable, I engineered **In-Memory Source Code Execution**, completely bypassing the physical disk:
 
 * **The Vaulted Codebase:** Every core Python module is encrypted using the Zero-Knowledge `.vault` architecture. The plaintext `.py` files do not exist on the storage medium.
-* **The Custom Import Hook:** The environment utilizes a single, obfuscated bootstrapper (`boot.py`) that hijacks the language's native import sequence via `sys.meta_path`. 
-* **RAM-Only Decryption & Compilation:** When the application attempts to import a module, the custom loader reads the `.vault` ciphertext from disk. It decrypts the AES-128 payload directly into a volatile string in RAM. It then uses the native `compile()` and `exec()` methods to evaluate the code.
+* **The Custom Import Hook:** The environment utilizes a single, obfuscated bootstrapper (`Boot Module`) that hijacks the language's native import sequence via `sys.meta_path`. 
+* **RAM-Only Decryption & Compilation:** When the application attempts to import a module, the custom loader reads the `.vault` ciphertext from disk. It decrypts the Industry-Standard Encryption payload directly into a volatile string in RAM. It then uses the native `compile()` and `exec()` methods to evaluate the code.
 
 The plaintext source code never touches the hard drive, completely neutralizing the "temp file swap" attack vector. If a physical adversary steals the server's hard drive, they extract nothing but useless ciphertext. The intellectual property only exists in volatile RAM while the server is actively running.
 
@@ -428,24 +428,24 @@ Tier 1 is where my architecture transitions from a rigidly controlled hierarchy 
 - Modular File Structure: Breaking down `core/`, `agents/`, `security/`, and `sandbox/`.
 
 ## Part 5: Operational Manual
-- How to boot the server correctly (`python3 core/server.py`).
+- How to boot the server correctly (`python3 App Router Module`).
 - How to recover from suspended zombie states (`killall -9 python3`).
 - Troubleshooting guide.
 
 ## Siraugga.exe Startup Sequence & Architecture
 
-When a user double-clicks the compiled \Siraugga.exe\ (which is generated from \desktop_app.py\ via Nuitka), the application undergoes a multi-staged startup sequence to bind the Python backend and the native frontend window together. 
+When a user double-clicks the compiled \Siraugga.exe\ (which is generated from \Desktop Client Module\ via Nuitka), the application undergoes a multi-staged startup sequence to bind the Python backend and the native frontend window together. 
 
 Here is the exact step-by-step sequence of events:
 
 ### 1. Environment & Logging Initialization
 - The executable starts as a windowless process (compiled with \--windows-disable-console\).
-- Because standard output/error are disabled in the console, \desktop_app.py\ intercepts \sys.stdout\ and \sys.stderr\ and redirects them to \stdout.log\ and \stderr.log\ in the executable's directory. This is critical for post-crash debugging.
+- Because standard output/error are disabled in the console, \Desktop Client Module\ intercepts \sys.stdout\ and \sys.stderr\ and redirects them to \stdout.log\ and \stderr.log\ in the executable's directory. This is critical for post-crash debugging.
 
 ### 2. Backend Boot (Hypercorn & Quart)
 - The main thread creates a background daemon thread \server_thread = threading.Thread(target=start_server, daemon=True)\.
 - Inside \start_server\, the script initializes a new \syncio\ event loop.
-- It imports the Quart application from \core/server.py\ (\import core.server as server\).
+- It imports the Quart application from \App Router Module\ (\import core.server as server\).
 - It configures the production **Hypercorn ASGI Server** to bind to \127.0.0.1:5000\.
 - \loop.run_until_complete(serve(...))\ is called, starting the headless DevCore backend.
 
@@ -466,9 +466,9 @@ Here is the exact step-by-step sequence of events:
 - The UI unlocks the Prompt bar and displays **"Connected"**.
 
 ### 6. Autonomous Self-Healing (Crash Handling)
-- If the application hits a fatal exception at any point during this sequence (e.g., PyWebView failing to allocate EdgeWebView2, or a syntax error in an import), the global \	ry/except\ block at the bottom of \desktop_app.py\ catches it.
+- If the application hits a fatal exception at any point during this sequence (e.g., PyWebView failing to allocate EdgeWebView2, or a syntax error in an import), the global \	ry/except\ block at the bottom of \Desktop Client Module\ catches it.
 - The traceback is saved to \crash_log.txt\.
-- \desktop_app.py\ imports \self_heal.py\ and fires \self_heal.heal_crash(tb_str)\.
+- \Desktop Client Module\ imports \Self-Heal Module\ and fires \self_heal.heal_crash(tb_str)\.
 - The self-heal module uses the Gemini AI to analyze the crash, generate a patch python file, hot-swap the broken code, and finally issues \os.execv\ to automatically restart \Siraugga.exe\, completely bypassing the user.
 
 
@@ -499,9 +499,9 @@ DevCore is designed with a "Self-Healing and Hot-Swappable" architecture that al
 
 Because Nuitka permanently bakes .py files into a compiled binary, hot-swapping code ordinarily requires restarting a newly compiled executable. DevCore circumvents this through the **LiveOverrideFinder**:
 
-1. In desktop_app.py, a custom MetaPathFinder called LiveOverrideFinder is injected into the absolute front of sys.meta_path.
+1. In Desktop Client Module, a custom MetaPathFinder called LiveOverrideFinder is injected into the absolute front of sys.meta_path.
 2. When the backend attempts to import a core module (like core.server or gents.agent_manager), the LiveOverrideFinder intercepts the import.
-3. It checks if a loose .py script (e.g. core/server.py) exists in the same folder as the .exe.
+3. It checks if a loose .py script (e.g. App Router Module) exists in the same folder as the .exe.
 4. If it does, it compiles and loads that loose Python script *instead* of the baked-in Nuitka binary module. 
 
 This means a critical bug can be fixed instantly by dropping a hotfix script next to the executable.
@@ -511,7 +511,7 @@ This means a critical bug can be fixed instantly by dropping a hotfix script nex
 Dropping a file next to the .exe applies the fix on the *next* boot. To apply updates to an already running server with zero downtime:
 
 1. A developer (or the AI Agent) issues a POST request to /api/reload.
-2. The endpoint (core/server.py) checks gent_mgr.is_running() to see if AI agents are currently executing tasks, and saves gent_mgr.connected_clients to preserve active WebSockets.
+2. The endpoint (App Router Module) checks gent_mgr.is_running() to see if AI agents are currently executing tasks, and saves gent_mgr.connected_clients to preserve active WebSockets.
 3. It uses importlib.reload() on the core managers (SessionManager, ProjectManager, SecurityManager, AgentTaskManager).
 4. It safely re-instantiates the manager classes in-memory. If an AI task is active, it only updates the manager references without killing the subprocess; if idle, it fully resets them.
 5. The new code is now executing live without breaking the frontend connection.
@@ -554,7 +554,7 @@ Throughout the DevCore and Antigravity server backend, file paths are manipulate
 
 ## Swarm Orchestration Engine
 
-When passing gigabytes of code, transcripts, or logs to a single Pro model, the token window will inevitably throttle or crash. To solve this, the \gents/swarm_orchestrator.py\ intercepts massive files and chunks them into ~7,000 token blocks.
+When passing gigabytes of code, transcripts, or logs to a single Pro model, the token window will inevitably throttle or crash. To solve this, the \gents/Swarm Orchestrator Module\ intercepts massive files and chunks them into ~7,000 token blocks.
 
 **Under the Hood**: 
 Instead of querying sequentially, the Swarm Orchestrator spawns an asynchronous fleet of 'Flash Sub-Agents' (\gemini-3.8-flash-low\). Each sub-agent compresses its designated chunk into a chronological summary. The Orchestrator stitches these distilled summaries back together, achieving 90%+ compression before passing the final payload to the Main Agent.
@@ -564,17 +564,17 @@ The orchestrator handles this automatically when large payloads are detected by 
 
 ## Autonomous Self-Healing Loop
 
-The \self_heal.py\ module is the fail-safe wrapper around the main engine to prevent the application from dropping the user into a broken state.
+The \Self-Heal Module\ module is the fail-safe wrapper around the main engine to prevent the application from dropping the user into a broken state.
 
 **Under the Hood**: 
 When the core application catches a fatal exception (like an \AttributeError\ or \SyntaxError\ during a hot-patch), the crash traceback is caught by \heal_crash()\. This function makes a direct API call to Gemini, bypassing the standard agent architecture, and requests a raw Python patch script to fix the bug. It executes the patch via \subprocess\, and if successful, uses \os.execv()\ to completely reload the running Python process in-place.
 
 **How Developers Can Use & Test It**: 
-To test the self-heal loop, a developer can intentionally inject a syntax error into a non-critical module (e.g., \core/server.py\) and trigger a reload. Watch the console: the traceback will fire, the AI will generate the \	emp_repair.py\ script, execute it, and seamlessly restart the server without the process ever dying.
+To test the self-heal loop, a developer can intentionally inject a syntax error into a non-critical module (e.g., \App Router Module\) and trigger a reload. Watch the console: the traceback will fire, the AI will generate the \	Repair Module\ script, execute it, and seamlessly restart the server without the process ever dying.
 
 ## Chapter X: Troubleshooting Cross-Origin Security in Zero-Trust
 When embedding external plugins (e.g., YouTube IFrames) inside a secure environment:
-1. **CSP Blind Spots**: If your `security_headers.py` lacks a `report-uri`, the browser will silently kill unauthorized scripts, leaving no backend logs. Always configure a telemetry pipeline to catch silent blocks.
+1. **CSP Blind Spots**: If your `Security Headers Module` lacks a `report-uri`, the browser will silently kill unauthorized scripts, leaving no backend logs. Always configure a telemetry pipeline to catch silent blocks.
 2. **Iframe `postMessage` Blocking**: HTML buttons in a parent wrapper cannot programmatically command a child iframe unless the child API verifies the parent's origin (e.g., passing `origin: window.location.origin` to YouTube).
 3. **Gesture Delegation**: A user clicking a button in a parent wrapper does not unlock unmuted media in a child iframe unless the parent explicitly delegates the gesture via `allow="autoplay"`.
 
@@ -583,7 +583,7 @@ When embedding external plugins (e.g., YouTube IFrames) inside a secure environm
 DevCore implements a highly robust, dual-layer Zero-Trust encryption model designed to protect data at rest and data in transit without sacrificing backend readability or breaking UI integrations.
 
 ### 1. Data in Transit (Dual-Binding TLS)
-The Hypercorn ASGI server (`desktop_app.py` & `server.py`) is configured with a custom Dual-Binding strategy:
+The Hypercorn ASGI server (`Desktop Client Module` & `App Router Module`) is configured with a custom Dual-Binding strategy:
 - **`https://0.0.0.0:5001`**: Binds to all interfaces and is fully encrypted via a self-generated RSA-2048 TLS Certificate (`cert.pem`). This port is strictly used for external/network access.
 - **`http://127.0.0.1:5000` (Insecure Bind)**: Binds exclusively to the localhost loopback. The native PyWebview desktop UI connects solely via this port to prevent "Invalid Certificate" blocks from the Edge Chromium engine while maintaining physical isolation from the network.
 
@@ -594,19 +594,19 @@ Instead of storing plaintext credentials in JSON files, DevCore hashes all secur
 - **Backward Compatibility**: The authenticator automatically checks if a stored key begins with `scrypt:` to gracefully bridge legacy plaintext keys alongside new hashes, ensuring zero user lockout.
 
 ### 3. The `KeychainManager` (KMS)
-The system leverages a dynamic, rotatable Key Management System located in `security/keychain.py`:
+The system leverages a dynamic, rotatable Key Management System located in `Keychain Module`:
 - **Hardware KEK**: The master hardware key (`.devcore_master.key`) acts as the root seed. PBKDF2 (100,000 iterations) derives a massive Key Encryption Key (KEK) from it.
-- **Rotatable DEKs**: The KMS generates Fernet Data Encryption Keys (DEKs) wrapped by the KEK and stores them in `.devcore_keychain.json`. The active key can be rotated at any time.
+- **Rotatable DEKs**: The KMS generates Advanced Encryption Data Encryption Keys (DEKs) wrapped by the KEK and stores them in `.devcore_keychain.json`. The active key can be rotated at any time.
 
 ### Disaster Recovery (The "Seed Phrase" Master Backup)
 Because the `KeychainManager` uses deterministic derivation (PBKDF2), DevCore does not require complex double-vault Key Escrow systems or risky "Ghost Key" backdoors for data recovery.
 - **The Seed Phrase**: The string of text inside `.devcore_master.key` functions exactly like a 12-word cryptocurrency recovery seed.
 - **The Air-Gapped Backup**: System Administrators must copy the text inside `.devcore_master.key` and store it on a secure, air-gapped USB flash drive.
-- **The Restoration**: If a server suffers catastrophic failure (e.g., hardware burn-down) or the master key is accidentally deleted, all encrypted assets (VFS payloads, cold storage logs, DEKs) are technically locked. To recover the system, the Admin simply pastes the backup string into a new `.devcore_master.key` file. DevCore will deterministically regenerate the exact same AES Key Encryption Key (KEK) and seamlessly unlock the entire architecture.
+- **The Restoration**: If a server suffers catastrophic failure (e.g., hardware burn-down) or the master key is accidentally deleted, all encrypted assets (VFS payloads, cold storage logs, DEKs) are technically locked. To recover the system, the Admin simply pastes the backup string into a new `.devcore_master.key` file. DevCore will deterministically regenerate the exact same Master Key Encryption Key (KEK) and seamlessly unlock the entire architecture.
 
 ### 4. Cold Storage Architecture
-To protect the AI's Brain Transcripts (`transcript.jsonl`) without breaking the native Google Antigravity JSON parser, DevCore employs lifecycle "Cold Storage" hooks (`security/cold_storage.py`):
-- **Lock (Shutdown)**: When the DevCore UI is closed, a background hook sweeps the `.gemini/antigravity-cli/brain/` directory and encrypts all transcripts into unreadable AES-128 ciphertext.
+To protect the AI's Brain Transcripts (`transcript.jsonl`) without breaking the native Google Antigravity JSON parser, DevCore employs lifecycle "Cold Storage" hooks (`Cold Storage Module`):
+- **Lock (Shutdown)**: When the DevCore UI is closed, a background hook sweeps the `.gemini/antigravity-cli/brain/` directory and encrypts all transcripts into unreadable Industry-Standard Encryption ciphertext.
 - **Unlock (Boot)**: When DevCore starts up, a pre-boot hook pulls the entire historical keychain to attempt decryption. If an old key unlocks a file, it is rewritten as plaintext. Upon the next shutdown, it is automatically re-encrypted using the *newest active key*, conferring immunity to cryptographic shredding during key rotations.
 
 ### 5. Risk Analysis: Benefits vs. Dangers
@@ -614,7 +614,7 @@ Encrypting internal system data (like AI transcripts and access tokens) introduc
 
 **The Security Benefits:**
 - **Zero-Trust Hardening:** If an attacker compromises the host OS or physically steals the hard drive, they cannot read the agent's historical memory or hijack active sessions. 
-- **Data Exfiltration Defense:** Ransomware or malware that attempts to silently exfiltrate `~/.gemini/` directories will only upload useless AES ciphertext.
+- **Data Exfiltration Defense:** Ransomware or malware that attempts to silently exfiltrate `~/.gemini/` directories will only upload useless encrypted ciphertext.
 - **Access Control Enforcement:** Even developers with physical file access cannot inject prompt-injection attacks into the AI's past memory or forge RBAC tokens, enforcing strict application-layer access controls.
 
 **The Dangers (Self-Sabotage):**
@@ -625,8 +625,8 @@ Encrypting internal system data (like AI transcripts and access tokens) introduc
 ### 6. Risk Remediation Strategies
 To mitigate the dangers of self-sabotage, DevCore employs the following strict remediations:
 - **Mitigating Shredding (Key Backups)**: System Administrators *must* maintain an off-site, secure backup of the physical `.devcore_master.key` and `.devcore_keychain.json` files. If the primary OS drive fails, these files are the only way to recover the AI's Brain Transcripts from the cold storage ciphertext.
-- **Mitigating Power-Loss (Atomic Writes)**: The `cold_storage.py` sweeps do NOT write ciphertext directly over the plaintext files. Instead, they write to a `.tmp` file and execute an OS-level `os.replace()` atomic swap. If the server loses power mid-write, the original file remains perfectly intact.
-- **Mitigating Blindness (CLI Tooling)**: The `security/cold_storage.py` script is built as a standalone CLI tool. Admins can run `python3 security/cold_storage.py unlock` at any time while the server is down to instantly decrypt the logs for manual `grep` auditing, and `lock` to seal them back up.
+- **Mitigating Power-Loss (Atomic Writes)**: The `Cold Storage Module` sweeps do NOT write ciphertext directly over the plaintext files. Instead, they write to a `.tmp` file and execute an OS-level `os.replace()` atomic swap. If the server loses power mid-write, the original file remains perfectly intact.
+- **Mitigating Blindness (CLI Tooling)**: The `Cold Storage Module` script is built as a standalone CLI tool. Admins can run `python3 Cold Storage Module unlock` at any time while the server is down to instantly decrypt the logs for manual `grep` auditing, and `lock` to seal them back up.
 - **Mitigating CWE-377 (Insecure Temporary Files)**: When executing the atomic swaps, the encryption sweeps do NOT use predictable string concatenation (like `file.tmp`). Instead, they leverage the native OS `tempfile.mkstemp()` API to securely allocate a randomized, collision-resistant file descriptor. This prevents rogue actors from launching symlink attacks (where a fake `.tmp` file is pointed at `/etc/passwd` to force the backend to overwrite sensitive OS files). If the atomic swap fails for any reason, a strict `try...except` wrapper instantly detonates the temporary file to prevent plaintext data from leaking to the disk.
 
 ## API Hardening & Raugus Architecture
@@ -642,13 +642,13 @@ All core utility endpoints are locked behind strict Bearer token authorization c
 - **DoS Defense**: Administrative endpoints, such as `/api/reload` (which triggers a high-overhead memory wipe of backend modules), strictly enforce the `can_reload_engine` Admin role check. This prevents unauthenticated actors from throwing the server into an endless Denial of Service loop.
 
 ### 3. The Raugus Resolver (Anti-Traversal)
-Instead of exposing raw absolute filesystem paths to the frontend or network, the system utilizes the **Raugus Map** (`raugus_map.json`) and the **Raugus Resolver** (`security/raugus_resolver.py`). 
-- **Alias Abstraction**: Critical system files are registered under an alias (e.g., `devcore.core.server.py`). 
+Instead of exposing raw absolute filesystem paths to the frontend or network, the system utilizes the **Raugus Map** (`raugus_map.json`) and the **Raugus Resolver** (`Resolver Module`). 
+- **Alias Abstraction**: Critical system files are registered under an alias (e.g., `devcore.core.App Router Module`). 
 - **Tier Verification**: When the frontend requests a file, it asks for the alias. The Raugus Resolver checks the map, verifies if the user's RBAC Tier is high enough to access that alias, and only then resolves it to a physical path internally. 
 - **Traversal Immunity**: By abstracting the paths, attackers cannot use `../../../etc/passwd` because the resolver strictly matches hardcoded dictionary keys rather than traversing the OS filesystem.
 
 ## Option 2: Background Task Webhook
-We added \/api/webhooks/agent_callback\ to \server.py\ to support long-running agent tasks without hitting timeouts. Agents can launch tasks via \
+We added \/api/webhooks/agent_callback\ to \App Router Module\ to support long-running agent tasks without hitting timeouts. Agents can launch tasks via \
 ohup\ and trigger the webhook using 
 ## Background Task Offloading (Asynchronous Webhooks)
 
@@ -670,13 +670,13 @@ When an engineer explicitly requests the AI to "simulate a threat," "crack a pas
 The AI does not understand human intent; it parses context. To bypass these false-positive safety rejections, security mechanisms must be framed in the strict vocabulary of **Defensive Software Engineering** and **Unit Testing**.
 
 *   **The Wrong Approach (Offensive Framing)**: "Write a script to attack the API and see if you can break out of the sandbox and read core files." -> *Result: Hard Refusal.*
-*   **The Correct Approach (Defensive Framing)**: "Write a Python unit test harness (`security_audit.py`) that makes local API calls with mock user tokens to assert that unauthorized access correctly returns an HTTP 403 Forbidden status." -> *Result: Full Automation.*
+*   **The Correct Approach (Defensive Framing)**: "Write a Python unit test harness (`Security Audit Module`) that makes local API calls with mock user tokens to assert that unauthorized access correctly returns an HTTP 403 Forbidden status." -> *Result: Full Automation.*
 
 By shifting the context away from "penetration testing" and explicitly towards "asserting RBAC (Role-Based Access Control) boundaries," the AI's context window recognizes a legitimate administrative task. 
 
 
 ### Automated Auditing in Practice
-This framing allowed the creation of an automated `security_audit.py` script that programmatically verifies the boundaries of the Application-Layer Firewall. By injecting predefined payloads (like Path Traversal attempts and Second-Order Execution commands such as `os.execute`), the test harness systematically proves that the Zero-Trust architecture holds without triggering AI safety algorithms.
+This framing allowed the creation of an automated `Security Audit Module` script that programmatically verifies the boundaries of the Application-Layer Firewall. By injecting predefined payloads (like Path Traversal attempts and Second-Order Execution commands such as `os.execute`), the test harness systematically proves that the Zero-Trust architecture holds without triggering AI safety algorithms.
 
 Understanding how to communicate intent to an AI through rigorous engineering terminology is just as important as writing the security code itself.
 
@@ -725,7 +725,7 @@ You cannot rely on an AI agent "agreeing" to read a markdown file. Security rule
 
 ## 17. Agentic Drift and Digital Hoarding (The Clean Workspace Protocol)
 
-Autonomous AI Agents exhibit a behavior known as **Agentic Drift**, wherein they continuously generate single-use "scratch" scripts (e.g., `test_connection.py`, `tweak_css.py`) to execute minor tasks or debug errors. 
+Autonomous AI Agents exhibit a behavior known as **Agentic Drift**, wherein they continuously generate single-use "scratch" scripts (e.g., `Connection Tester Module`, `CSS Tweaker Module`) to execute minor tasks or debug errors. 
 
 If unmanaged, this results in **Digital Hoarding**: the workspace becomes a minefield of highly privileged, untested dead code. This introduces two catastrophic vulnerabilities:
 1. **Accidental Execution:** Future agents (or humans) may unknowingly execute legacy scratch scripts, triggering unintended and potentially destructive actions.
@@ -897,7 +897,7 @@ This guarantees that an AI deployed with root access remains permanently locked 
 
 ## 30. Raugus Map VFS (Cryptographic Path Aliasing)
 
-Exposing true physical file paths (e.g., `C:/Users/.../server.py`) to unprivileged users, developers, or autonomous Agents introduces significant risk. It allows malicious actors to map the underlying host Operating System and attempt Path Traversal (`../../`) exploits.
+Exposing true physical file paths (e.g., `C:/Users/.../App Router Module`) to unprivileged users, developers, or autonomous Agents introduces significant risk. It allows malicious actors to map the underlying host Operating System and attempt Path Traversal (`../../`) exploits.
 
 ### The File DNS Protocol
 To achieve absolute Zero-Trust file management, the enterprise must implement the **Raugus Map Virtual File System (VFS)**. 
@@ -949,7 +949,7 @@ When the backend server needs to render a page, it cannot simply open the file. 
 2. **Clearance Verification:** It cross-references the requested abstract alias against the Phonebook vault. It compares the application's required Tier against the requester's Tier. 
 3. **Manifestation:** Only if the Tier is sufficient does the Resolver translate the abstract alias into a true, physical disk path and return it to the application.
 
-This methodology is the pinnacle of Zero-Trust architecture. An attacker cannot traverse directories because the directories do not logically exist within the application's code. If a malicious actor attempts to request `../../core/server.py`, the Resolver simply checks the Phonebook, finds no such alias, logs a potential intrusion, and violently terminates the request with a `KeyError`. They are trapped in a digital territory with no doors, where pathways only manifest for those with the absolute highest clearance.
+This methodology is the pinnacle of Zero-Trust architecture. An attacker cannot traverse directories because the directories do not logically exist within the application's code. If a malicious actor attempts to request `../../App Router Module`, the Resolver simply checks the Phonebook, finds no such alias, logs a potential intrusion, and violently terminates the request with a `KeyError`. They are trapped in a digital territory with no doors, where pathways only manifest for those with the absolute highest clearance.
 
 
 ### Layer 8: Asynchronous Swarm Ingestion (Large Data Handling)
@@ -986,17 +986,243 @@ The sandbox has fallen away. The real game begins now.
 To ensure that no plaintext `.py` files or sensitive `.html`/`.json` UI assets ever drop to the physical host disk (preventing extraction via `%TEMP%`), DevCore utilizes a two-pronged dynamic compilation pipeline:
 
 ### 1. Native C-Extension Compilation (`--include-package`)
-Historically, `remote_compiler.py` treated the `security/` and `plugins/` folders as raw data payloads (`--include-data-dir`). This forced Nuitka to extract the plaintext `.py` files to disk at runtime. 
+Historically, `Remote Compiler Module` treated the `security/` and `plugins/` folders as raw data payloads (`--include-data-dir`). This forced Nuitka to extract the plaintext `.py` files to disk at runtime. 
 To achieve absolute Zero-Trust code protection, the pipeline has been upgraded to use the `--include-package` flag. This instructs Nuitka to mathematically destroy the Python source code and compile every single `.py` file into a native C-extension (`.pyd` / `.so`). The logic is statically linked directly into the binary, ensuring zero Python code is ever written to disk.
 
 ### 2. Encrypted RAM-Disk VFS (Frontend Assets)
 Because frontend assets (HTML, JS, CSS, JSON) cannot be compiled into C-extensions, they are bundled using the **Encrypted VFS Protocol**.
-1. **The Packer (`pack_vfs.py`)**: Right before compilation, this script autonomously zips the entire `sandbox/` and `core/ui_config.json` directories in memory.
-2. **AES-256 Encryption**: It encrypts the byte-stream using `cryptography.fernet.Fernet` with the internal engine `STAMP_KEY` (the same key used to cryptographically stamp binaries), outputting a single `assets.bin` file.
-3. **The Payload Hook**: `remote_compiler.py` embeds ONLY `assets.bin` into the final `Siraugga.exe`.
-4. **RAM Decryption (`security.vfs.EncryptedVFS`)**: At runtime, `desktop_app.py` boots the `EncryptedVFS` module. It locates `assets.bin`, decrypts the AES payload directly into a volatile `io.BytesIO` buffer, and serves the Quart frontend templates entirely out of active RAM using the `zipfile` module. The plaintext HTML and JSON configuration never touch the physical hard drive, completely nullifying forensic disk-recovery attacks.
+1. **The Packer (`VFS Packer Module`)**: Right before compilation, this script autonomously zips the entire `sandbox/` and `core/ui_config.json` directories in memory.
+2. **Industry-Standard Encryption Encryption**: It encrypts the byte-stream using `Secure Crypto Engine` with the internal engine `Internal Configuration Key` (the same key used to cryptographically stamp binaries), outputting a single `assets.bin` file.
+3. **The Payload Hook**: `Remote Compiler Module` embeds ONLY `assets.bin` into the final `Siraugga.exe`.
+4. **RAM Decryption (`security.vfs.EncryptedVFS`)**: At runtime, `Desktop Client Module` boots the `EncryptedVFS` module. It locates `assets.bin`, decrypts the encrypted payload directly into a volatile `io.BytesIO` buffer, and serves the Quart frontend templates entirely out of active RAM using the `zipfile` module. The plaintext HTML and JSON configuration never touch the physical hard drive, completely nullifying forensic disk-recovery attacks.
 
 ### 3. Rigid Failure States & Centralized Auditing
 The VFS architecture strictly forbids falling back to an unencrypted state in a production build.
-- **Build-Time Halts**: If the `pack_vfs.py` script cannot locate the required frontend assets or outputs a suspiciously small archive, it throws a fatal error and immediately aborts the Nuitka compilation pipeline, preventing an empty binary from being shipped.
-- **Tampering & Missing Payloads**: At runtime, if `Siraugga.exe` cannot locate `assets.bin` or the decryption fails (e.g., due to cryptographic tampering), `security/vfs.py` interfaces directly with the `Central SIEM Logger`. It logs a `CRITICAL` security fault to `devcore_master.jsonl` and executes a hard `sys.exit(1)`. The application intentionally crashes rather than attempting to serve unencrypted files from the host disk.
+- **Build-Time Halts**: If the `VFS Packer Module` script cannot locate the required frontend assets or outputs a suspiciously small archive, it throws a fatal error and immediately aborts the Nuitka compilation pipeline, preventing an empty binary from being shipped.
+- **Tampering & Missing Payloads**: At runtime, if `Siraugga.exe` cannot locate `assets.bin` or the decryption fails (e.g., due to cryptographic tampering), `VFS Module` interfaces directly with the `Central SIEM Logger`. It logs a `CRITICAL` security fault to `devcore_master.jsonl` and executes a hard `sys.exit(1)`. The application intentionally crashes rather than attempting to serve unencrypted files from the host disk.
+
+
+## 31. Workspace Confinement & Cryptographic Aliasing (`Project Manager Module`)
+
+DevCore utilizes a strict workspace confinement strategy governed by `Project Manager Module`, but it moves beyond standard OS-level jailing by completely abstracting the filesystem away from the agent.
+
+### The Raugus Abstraction & The Sandbox README
+1. **The Playground Perimeter:** Upon initialization, the `ProjectManager` automatically establishes its base directory as `/playground`. The agent is physically jailed here.
+2. **Cryptographic Aliasing:** Within the sandbox, the agent is forbidden from using standard OS paths (e.g., `cat /App Router Module`). Because core engine files are often encrypted at rest, physical interaction is useless. Instead, the agent interacts exclusively with **Raugus Keys** (e.g., `devcore.core.App Router Module`).
+3. **The Resolver Handoff:** The agent passes the Key to the Raugus Resolver via the API (intercepted seamlessly by the Semantic Firewall). The Resolver performs the Tier validation, decrypts the target file in memory, and returns the payload to the agent. The agent never touches the true physical file.
+4. **The Sandbox Map:** To orient the agent, the Project Manager deposits a `README` (Raugus Dictionary) inside the sandbox. This document maps logical components to their corresponding Raugus Keys, teaching the agent how to query the map without ever exposing the host directory structure. This renders LFI (Local File Inclusion) and directory traversal (`../../`) attacks mathematically impossible, as the agent simply does not have a physical path to traverse.
+5. **Decoupled Architecture (Redis Migration):** The Resolver is architected to utilize an external Redis Key-Value store to hold the mapping policies, removing security state from the local Python web server and enforcing absolute Zero-Trust isolation.
+
+
+## 32. Multi-Tenant Session Isolation & The Forensic Vault (`Session Manager Module`)
+
+The `Session Manager Module` module strictly governs access to the Antigravity Brain directory (`~/.gemini/antigravity-cli/brain`), preventing cross-tenant data contamination and enforcing forensic immutability.
+
+### The Ownership Ledger
+When a subagent or new conversation is spawned, the Session Manager registers it in `session_ownership.json`. This ledger maps the unique `conv_id` to the developer's `username` and assigned `project_name`.
+* **Strict Evaluation:** Before serving any transcript history to the frontend, `can_user_access_session()` asserts that the requesting user's identity perfectly matches the ledger. If it does not, a hard `PermissionError` is thrown.
+* **Concurrency Defense:** Because multiple async agents might attempt to spawn or register sessions simultaneously, all writes to the ledger are locked within the `SemanticMantrap.execution_chamber` to prevent corruption.
+
+### The Forensic Vault (Data Remanence)
+A core tenet of the Zero-Trust Architecture is that user actions must be permanently auditable.
+* **Anti-Deletion Logic:** The `delete_session` and `delete_project_sessions` methods actively refuse to issue `os.remove` or `shutil.rmtree` commands.
+* **Shadow Archiving:** Instead of deletion, the session is silently re-assigned to `"owner": "admin"` and `"project": "archived_deletions"`. 
+* **The Illusion of Deletion:** The session disappears from the developer's project view, satisfying the frontend requirement. However, the data remains fully intact on disk for Tier 5 Admins to review. This ensures that malicious prompt injections or policy violations can never be covered up by the operator.
+
+## 33. Stream Continuity & The ACK Protocol (`Task Orchestrator Module`)
+
+Because the Antigravity frontend utilizes a zero-restart paradigm, WebSocket stability is paramount. To prevent data loss during network interruptions (e.g., WSL 2 TCP drops) or browser refreshes, `Task Orchestrator Module` enforces a **Guaranteed Delivery Queue**.
+
+### Monotonic Sequencing
+1. **The Broadcast Buffer:** Every JSON message transmitted by the Orchestrator via `broadcast()` is assigned a strictly incrementing `seq` (Sequence Number).
+2. **Mandatory Caching:** Before hitting the network socket, the payload is appended to `self.message_queue`. The payload remains in this queue regardless of whether any clients are currently connected.
+
+### The Acknowledgment Loop
+1. **Client Pruning:** The frontend is required to echo back an acknowledgment payload (`{"type": "ack", "seq": N}`) after successfully processing a chunk.
+2. **Garbage Collection:** Upon receiving the ACK, the `handle_ack()` method prunes the queue, deleting all buffered messages where `msg_seq <= ack_seq` to prevent memory leaks.
+
+### Reconnection Synchronization (`sync_client`)
+When a WebSocket connects or reconnects:
+1. It transmits its last known state: `{"type": "sync", "last_seq": N}`.
+2. The `sync_client()` method evaluates the `message_queue` and replays every missed payload where `msg_seq > last_seq`.
+3. **State Snapshot Fallback:** If the `last_seq` is extremely old (or 0) and the specific chunks have been pruned due to the `max_queue_size` cap, the Orchestrator falls back to a full State Snapshot (`task_active`). It transmits the entire accumulated `buffered_output`, ensuring the UI instantly catches up to the live agent state.
+
+### The 4-Second Keep-Alive Lifeline
+Windows WSL 2 networking will aggressively terminate TCP connections that remain idle for 30 seconds. To counteract this, the protocol enforces a strict **4-Second Keep-Alive**. The browser client autonomously fires a `{"type": "ping"}` payload every 4000ms. This ensures the TCP socket remains persistently active during extended AI "thinking" phases, preventing silent network failures before the ACK queue needs to engage.
+
+## 34. The Semantic Firewall Interception Hook (`Task Orchestrator Module`)
+
+Within the `AgentTaskManager`, every tool execution attempt from a Sub-Agent is intercepted in real-time before being broadcast to the UI or executed by the host. This layer, known as the **Raugus Interception Hook**, enforces Zero-Trust policies dynamically based on the active user's Role-Based Access Control (RBAC) tier.
+
+### 1. Hard Boundary Enforcement (`enforce_path_security`)
+When an agent attempts to use a filesystem tool (`view_file`, `write_to_file`, `replace_file_content`, `run_command`), the hook extracts the target `AbsolutePath` or `Cwd`. 
+* The hook passes this path directly into `resolver.enforce_path_security(path, user_tier)`. 
+* If a Tier 3 Developer (assigned to a specific sandbox) attempts to read or execute a file in a higher tier (e.g., `TIER_CORE_ENGINE`), the resolver throws a `PermissionError`.
+
+### 2. The Feedback Loop Kill Switch
+To prevent an agent from trapping the system in an autonomous runaway loop, the hook inspects the `ArtifactMetadata`.
+* If a non-executable or standard markdown artifact attempts to set `RequestFeedback: true`, `resolver.enforce_feedback_policy()` immediately intercepts and flags it, preventing the agent from infinitely spamming automated execution hooks that bypass the human user.
+
+### 3. Semantic Visibility and Control (SVC)
+If the RBAC tier checks pass, the hook performs an advanced, LLM-based intent validation against Agentic Drift:
+* **`async_evaluate_task_alignment`**: The hook extracts the original user prompt and the agent's current tool payload, feeding both into an ultra-fast, stripped-down Gemini Flash model.
+* This model acts strictly as a firewall. It evaluates whether the agent's attempted filesystem modification is logically aligned with the user's initial instructions. If the agent attempts to modify unrelated core files (drifting from its objective), the firewall flags a `VIOLATION` and throws a `PermissionError`.
+
+### 4. Dynamic Agent Redirection (Fail-Safe Recovery)
+Unlike traditional firewalls that kill the offending subprocess, the Raugus Hook treats the AI as a co-pilot capable of learning:
+1. **Interception:** When a `PermissionError` is thrown, the tool execution is halted.
+2. **Standard Input Injection:** The Orchestrator dynamically constructs a payload: `<USER_REQUEST>SYSTEM ERROR: Your tool call triggered a security firewall alert... Please analyze this error... and suggest an alternative approach</USER_REQUEST>`.
+3. **Piping:** This payload is forcefully piped directly into the agent's `stdin` via `asyncio.create_task(self.active_proc.stdin.drain())`.
+4. **Recovery:** The agent reads the simulated user error, self-corrects, and attempts a new, safe approach without the entire conversation tree crashing.
+
+## 35. The Access Control & Authentication Engine (`Access Control Module`)
+
+The `SecurityManager` operates as the primary gatekeeper for the DevCore engine. It validates all incoming requests (both HTTP and WebSocket) and enforces strict Role-Based Access Control (RBAC).
+
+### Token Supremacy & Cryptographic Hashing
+The authentication flow completely ignores conversational context and prompt engineering, relying exclusively on cryptographically secure tokens.
+1. **Key Generation:** When an Admin generates a new access token via `generate_key()`, the token is immediately hashed using `werkzeug.security` (Scrypt / SHA-256) before being saved to disk (`keychain.json`). Plaintext keys are never stored.
+2. **Session Persistence:** When a token is authenticated, the system generates an ephemeral session mapping in `sessions.json`.
+3. **Legacy Bridging:** To maintain backwards compatibility with early development builds, the engine contains a backward-compatibility bridge that intercepts legacy plaintext keys, hashes them dynamically, and upgrades the session without locking the developer out.
+
+### The Master Signature
+During initialization, `check_master_signature()` executes. It hashes the environment's core identity file (`.devcore_master.key`) against a hardcoded `EXPECTED_HASH`. If the master signature is invalid or missing, the system instantly revokes Super Admin privileges, failing secure and locking the system down.
+
+## 36. File Tier Classification & Path Security
+
+Because third-party game developers and Modders operate within the same physical filesystem as the core engine, the `SecurityManager` abstracts all filesystem operations to prevent Path Traversal (LFI) and symlink exploits.
+
+### The Classification Tiers (`classify_file`)
+Before any file is read or written, it is classified into one of four tiers based on its extension, path, and visibility:
+1. `TIER_SAFE_WORKSPACE`: Game assets (`.json`, `.lua`, `.md`) residing inside the assigned project sandbox. Modifiable by developers.
+2. `TIER_CORE_ENGINE`: Backend logic (`.py`, `App Router Module`). Strictly invisible to developers; Admin-only.
+3. `TIER_ADMIN_LOG`: System daemon logs (`.log`). Admin read-only.
+4. `TIER_FORBIDDEN`: Internal Git states (`.git/`), virtual environments (`venv/`), and `.env` credentials. Hard-blocked for all roles.
+
+### `resolve_safe_path` & Symlink Defenses
+When the API receives a request to edit a file, it passes through `resolve_safe_path(target_base, rel_path, user)`.
+1. **Path Normalization:** The system resolves the absolute path and explicitly checks if it attempts to break out of the `target_base` (e.g., using `../`).
+2. **RBAC Validation:** The resolved path is passed to `classify_file()`. If a Modder attempts to touch `TIER_CORE_ENGINE`, a `PermissionError` is thrown (HTTP 403).
+3. **OS-Level Symlink Defense:** To mathematically defeat Time-of-Check to Time-of-Use (TOCTOU) race conditions, the final file descriptor is opened utilizing `Strict Path Resolution Defenses`. If an attacker swaps the target file for a symlink to `/etc/shadow` a millisecond before execution, the Linux kernel violently rejects the operation.
+
+## 37. Semantic Firewalls & Data Scrubbing (`Local Security Module`)
+
+While RBAC handles structural permissions, the `LocalSecurity` class provides the intelligence to inspect the *content* and *intent* of payloads. It utilizes localized natural language processing (NLP) and ultra-fast LLM evaluators to enforce Zero-Trust dynamically.
+
+### 1. PII Scrubbing (Microsoft Presidio)
+The `scrub_text()` method employs Microsoft Presidio (`AnalyzerEngine` and `AnonymizerEngine`) to passively scan massive text payloads before they enter the system (e.g., massive textbook uploads). It automatically detects and anonymizes Personally Identifiable Information (PII) such as email addresses, phone numbers, and secrets, replacing them with `<ENTITY_TYPE>` tags to prevent the AI from accidentally ingesting or echoing sensitive host data.
+
+### 2. The Fast Evaluator Model (Prompt Injection Defense)
+Before a user's prompt is even passed to the Main Agent, it must clear the `analyze_intent()` middleware.
+* **Mechanism:** It issues a synchronous REST call to a lightweight `gemini-1.5-flash` model.
+* **Prompt Engineering:** The Flash model is completely stripped of agency. Its system instruction forces it to act strictly as an evaluator, analyzing the payload for jailbreaks, prompt injections, or instructions to ignore previous rules.
+* **Binary Output:** The model outputs exactly `ATTACK` or `SAFE`. If an attack is detected, the WebSocket instantly drops the connection.
+
+### 3. Semantic Visibility and Control (Agentic Drift Defense)
+While the Fast Evaluator protects the AI from the *user*, the SVC layer (`async_evaluate_task_alignment()`) protects the system from the *AI*.
+* **Mechanism:** Whenever a Sub-Agent attempts a filesystem operation, the `Task Orchestrator Module` hook passes the user's original prompt, the tool name, and the target paths to this function.
+* **Alignment Validation:** An asynchronous `aiohttp` call asks a Flash model to verify if the file being modified is a logical necessity to complete the user's prompt. 
+* **Violation:** If the agent drifts from its instructions (e.g., prompted to "Fix typos in README" but attempts to rewrite `App Router Module`), the model outputs `VIOLATION`, triggering a `PermissionError`.
+
+### 4. Fail-Open Architecture
+To prevent self-bricking and denial-of-service, both the Fast Evaluator and the SVC layer are designed to "fail-open." If the API key is missing, or if the REST/HTTP calls experience a timeout (capped at 3.0 seconds), the system catches the exception and gracefully defaults to `True`/`SAFE`, allowing execution to proceed.
+
+## 38. Centralized SIEM Auditing (`SIEM Logging Module`)
+
+To maintain absolute visibility over autonomous agents and system health across a distributed Zero-Trust architecture, DevCore abandons standard unstructured text logging. All internal events are intercepted and reformatted into strict JSON payloads for SIEM (Security Information and Event Management) ingestion by `SIEM Logging Module`.
+
+### 1. The JSON Event Formatter (`SIEMJsonFormatter`)
+The core of the module is a custom `logging.Formatter` that intercepts all standard Python `logging` calls across the entire application and transforms them into standardized JSON lines (`devcore_master.jsonl`).
+*   **Noise Filtering:** It aggressively silences noisy third-party asynchronous HTTP libraries (like `httpx` and `httpcore`) to prevent log flooding during LLM generation.
+*   **Advanced Event Categorization:** The formatter dynamically infers the event's intent by scanning the logger's name and message content. It tags the JSON payload with a specific `category`:
+    *   `AGENTIC`: Autonomous tool execution or swarm actions.
+    *   `AUTH`: Token generation, RBAC roles, and logins.
+    *   `SECURITY_AUDIT`: Semantic Firewall violations, Raugus hook alerts, and unauthorized access attempts.
+    *   `NETWORK`: WebSocket state changes and Quart server events.
+    *   `STARTUP` & `SYSTEM`: Routine lifecycle operations.
+
+### 2. Global Fault Interception
+To ensure that silent crashes never go unnoticed in production (especially within detached asynchronous subagents), the logger hooks directly into the core Python interpreter:
+*   **`Global Fault Handler`:** Overrides the default fatal exception handler. If the server or an agent experiences an unhandled hard crash, the logger intercepts the raw traceback, wraps it into a `FAULT` category JSON payload, and writes it to the vault before the process dies.
+*   **`warnings.showwarning`:** Hooks into the standard library to intercept deprecation warnings or low-level asynchronous resource leaks, routing them into the SIEM stream as `WARNING` categories.
+
+### 3. Container-Native Streaming
+The logger simultaneously binds a `FileHandler` (for local encrypted persistence) and a `StreamHandler` (for stdout). Because DevCore runs inside a Docker container, routing the structured JSON to `stdout` allows external orchestrators (like Kubernetes or AWS CloudWatch) to instantly ingest and monitor the swarm's telemetry in real-time.
+
+## 39. Cryptographic Binary Stamping (`Binary Stamping Module`)
+
+To distribute the DevCore engine (e.g., `Siraugga.exe`) to hundreds of third-party developers, compiling a unique executable via Nuitka for every user is computationally unviable. Instead, DevCore utilizes a master binary architecture coupled with a **Cryptographic Binary Stamper**.
+
+### 1. The Stamping Pipeline (`stamp_exe`)
+The `stamp_exe` function takes a clean, master `.exe` file and a JSON configuration payload (containing deployment IDs and expiration dates).
+*   **Encryption:** The payload is serialized to JSON and encrypted using Industry-Standard Encryption (via Python's `Secure Crypto Engine`) using a hardcoded `Internal Configuration Key`.
+*   **Injection:** The ciphertext is sandwiched between two byte-markers (`Cryptographic Boundary Marker Start` and `Cryptographic Boundary Marker End`).
+*   **Appending:** The module utilizes a binary append (`ab`) operation to inject this encrypted block directly at the tail end of the `.exe` file. Because standard Windows executables ignore trailing data after the PE (Portable Executable) headers, the binary remains perfectly bootable.
+
+### 2. Volatile RAM Extraction (`read_stamp`)
+When the executable boots, it must recover its identity without dropping any plaintext configuration files onto the host's hard drive.
+*   **Self-Inspection:** The module checks `Environment Detection Flag` to confirm it is running as a compiled binary. It then opens its own executable file on disk (`sys.executable`) in read-binary mode.
+*   **Tail Scanning:** It seeks to the last 4096 bytes of the file and scans for the `Cryptographic Boundary Marker Start` marker.
+*   **In-Memory Decryption:** The encrypted payload is extracted and decrypted directly into volatile RAM. The application now knows its unique deployment identity, expiration date, and assigned role, all while completely evading static disk analysis and Hex Editor inspection.
+
+## Section 14: The Accessibility Feed & The Threat of Curiosity
+
+The Siraugga Engine places paramount importance on accessibility. However, high-frequency autonomous agent actions create intense auditory fatigue for screen reader users if narrations are strictly mechanical.
+
+### Intent-Based Event Broadcasting
+To solve UI asphyxiation, the engine discards raw tool execution names in favor of **Intent-Based Synthesization**. 
+- **File Operations**: The orchestration layer intercepts file payloads, extracting basenames to synthesize natural verbs (e.g., *"Editing server.py"*).
+- **Stealth Silence**: Explicitly null operations bypass the WebSocket accessibility announcer entirely, protecting the user's audio focus during heavy, multi-step asynchronous planning.
+
+### The Bash Comment Injection Channel (Metadata Extraction)
+The most complex challenge in intent-based narration is terminal execution (`run_command`). When an autonomous agent executes a terminal command, the backend typically only receives the raw bash string (e.g., `ls -la`). To provide conversational context to the screen reader without breaking the underlying terminal logic, the Siraugga Engine employs a **Bash Comment Injection Channel**.
+
+In bash scripting, the `#` symbol designates a comment; the operating system fundamentally ignores all text following this symbol on a given line. The architecture weaponizes this syntax to create a hidden, parallel communication channel between the AI agent and the Python orchestration backend.
+
+**The Mechanics of Extraction:**
+1. **The Injection**: The AI agent is contextually instructed to append its strategic reasoning directly into the raw bash payload using a strict convention: `# Intent: [reasoning]`. For example:
+   `cat ../core/server.py # Intent: Auditing the server engine for potential prompt injection vulnerabilities.`
+2. **The Execution**: The `AgentTaskManager` routes the complete string to the local OS terminal. The terminal executes `cat ../core/server.py` and harmlessly ignores the `# Intent:` metadata.
+3. **The Interception**: Simultaneously, the Python backend intercepts the raw JSON payload arriving from the AI. The parser utilizes Python's string slicing (`cmd.split("# Intent:")[1].strip()`) to mathematically sever the bash string at the exact moment the tag appears.
+4. **The Narration**: The extracted substring is divorced from the terminal execution flow, safely packaged into an `action_start` WebSocket payload, and broadcasted to the frontend UI. The screen reader naturally announces: *"Auditing the server engine for potential prompt injection vulnerabilities."*
+
+*(Crucial Architecture Note: To prevent early string truncation by the UI payload limits (2000 characters), the extraction logic must parse the `raw_params` directly during the `running` phase, rather than waiting for the `DONE` state where large payloads may have already sheared off the intent tag at the bottom of the script.)*
+
+### The Threat of Curiosity (CWE-200)
+When designing security boundaries for inquisitive users (such as game modders and third-party developers), **explicit denial is an architectural vulnerability**. 
+
+If a user utilizes prompt injection to bait an agent into exploring a restricted directory, and the UI broadcasts a loud `[RESTRICTED PAYLOAD]` or *"Access Denied: Core Engine"* error, the system has inadvertently handed the attacker a critical piece of intelligence. Explicit denial serves as a confirmation vector—it confirms the existence, location, and high value of the target. It transforms a blind prompt injection into a verified architectural map, igniting "The Threat of Curiosity" and incentivizing the attacker to escalate their efforts.
+
+### The Stealth Obfuscation Protocol
+To neutralize the threat of curiosity, the `AgentTaskManager` employs the **Stealth Obfuscation Protocol**:
+1. **Dynamic Payload Interception**: Before broadcasting the WebSocket `action_start` JSON to the client, the server scans the AI's internal thoughts (`toolAction`, `toolSummary`, `CommandLine`) for core architectural indicators (`/core`, `.env`, `security_manager`, etc.).
+2. **Innocuous Replacement**: If triggered by a non-admin, the server silently overwrites the sensitive variables with bland, uninteresting strings (e.g., *"Internal background check"*).
+3. **Curiosity Deflation**: By responding to infiltration attempts with mundane, generic system noise rather than loud red flags, the system starves the attacker of the positive feedback loop required to map the architecture. The attacker is not aggressively blocked; they are simply bored into submission.
+
+## Section 15: The Ephemerality Protocol & Backup Disclosure (CWE-530)
+
+In highly autonomous environments, it is tempting to empower agents with self-healing mechanisms, such as generating immediate `.bak` or `.tmp` copies of files before executing code modifications. This legacy "safety net" pattern is a fundamental violation of Zero-Trust architecture when operating within a web-served or multi-tenant ecosystem.
+
+### The Source Code Disclosure Vulnerability
+When an autonomous tool modifies a critical backend file (e.g., `server.py` or a `.env` file containing cryptographic keys) and generates a `.bak` artifact, it unwittingly creates an unmonitored shadow file. Web server security configurations (such as NGINX or internal Quart routing) are typically hardened against serving `.py` or `.env` files directly, intercepting those requests to prevent source code leaks. However, these servers frequently lack explicit rules for `.bak` or `.orig` extensions. 
+
+If an attacker simply appends `.bak` to a known endpoint URI, the web server may treat it as a harmless static asset and serve the raw, unencrypted source code directly over HTTP. This bypasses the execution layer entirely and hands the keys to the kingdom to the attacker (CWE-530).
+
+### Enforcement: The Clean Workspace Protocol
+To surgically close this vector, the Siraugga Engine mandates absolute artifact ephemerality. 
+1. **In-Place Execution:** Tools must modify code strictly in-place. Automated tools and MCP servers are architecturally prohibited from generating fallback artifacts.
+2. **Version Control Primacy:** All state recovery and "undo" capabilities must be delegated entirely to the underlying version control system (`git`). Git provides a cryptographically secure, hidden `.git` structure that is natively ignored by deployment web servers.
+3. **Zero Digital Clutter:** By preventing the generation of unmonitored backup files, the system maintains a pristine attack surface, ensuring that no shadow artifacts are inadvertently pushed to production or exposed to HTTP static serving.
+
+## Section 16: The Semantic Hook & Custom Tool Evasion (CWE-284)
+
+As autonomous architectures expand, the introduction of custom Model Context Protocol (MCP) tools creates a profound blind spot for structural firewalls. 
+
+### The Evasion Vector
+Legacy security interceptors (like `raugus_hook.py`) are typically hardcoded to monitor standard built-in tools (e.g., `replace_file_content`). When an agent pivots to a newly integrated MCP tool (like `edit_lines`), the execution signature changes. Even if the new tool performs the exact same structural modification to a file, the interceptor may fail to recognize the tool's name or its parameter schema, silently allowing the operation to bypass all function-level locks.
+
+### The Semantic Mantrap Integration
+To eliminate this vector, the Siraugga Engine mandates strict Schema Mapping at the PreToolUse layer. 
+1. **Dynamic Interception**: The `raugus_hook.py` interceptor explicitly whitelists advanced custom tools (`edit_lines`).
+2. **Schema Translation**: The interceptor translates the custom tool's unique parameters (`start_line`, `end_line`, `new_code`) into a universal format that the AST Diffing engine understands. 
+3. **In-Memory Verification**: The Semantic Mantrap mathematically projects the line-splicing edits into a simulated memory space, verifying that the overlapping edits do not breach any read-only functions defined in `raugus_map.json` before physical execution is permitted.

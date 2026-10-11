@@ -19,10 +19,10 @@ Instead of relying on a single, crackable static password, external plugins and 
 To fully secure external API connections, Siraugga relies on the WPA-Agentic protocol family. Just as legacy wireless networks evolved from WPA to WPA3, the DevCore architecture continuously upgrades its token standards.
 
 **WPA-Agentic (V1) and Temporal Context Integrity**
-The initial WPA-Agentic standard introduced Message Integrity Checks (MIC). In Siraugga, this means the Raugus Resolver mathematically checks the JSON state delta to ensure a Man-in-the-Middle attacker hasn't altered the data payload during transmission. It also introduced Temporal Context Integrity (the agentic equivalent of TKIP). While TCI was initially effective at dynamically rotating access keys, it was eventually superseded by a far more powerful architecture: **Advanced Execution Sandboxing (AES)**.
+The initial WPA-Agentic standard introduced Message Integrity Checks (MIC). In Siraugga, this means the Raugus Resolver mathematically checks the JSON state delta to ensure a Man-in-the-Middle attacker hasn't altered the data payload during transmission. It also introduced Temporal Context Integrity (the agentic equivalent of TKIP). While TCI was initially effective at dynamically rotating access keys, it was eventually superseded by a far more powerful architecture: **Advanced Execution Sandboxing (Standard Encryption)**.
 
-**WPA-Agentic V2 and the AES Mandate**
-WPA-Agentic V2 introduced the mandatory use of Advanced Execution Sandboxing (AES) for all external plugin connections. It replaced legacy systems with the Contextual Cipher Mode with Prompt Authentication (CCMP). This mathematically ensures that any external webhook interacting with the swarm must cryptographically prove its identity before it is allowed to execute a tool call inside the rigid AES boundary.
+**WPA-Agentic V2 and the Standard Encryption Mandate**
+WPA-Agentic V2 introduced the mandatory use of Advanced Execution Sandboxing (Standard Encryption) for all external plugin connections. It replaced legacy systems with the Contextual Cipher Mode with Prompt Authentication (CCMP). This mathematically ensures that any external webhook interacting with the swarm must cryptographically prove its identity before it is allowed to execute a tool call inside the rigid Standard Encryption boundary.
 
 **WPA-Agentic V3**
 The latest iteration, WPA-Agentic V3, added even stronger cryptographic algorithms to improve the "Key Exchange." In Siraugga, the Key Exchange translates directly to the secure handoff of LLM context between an internal Tier 3 subagent and an external Tier 2 plugin, ensuring no prompt leakage occurs during the transfer.
@@ -106,7 +106,7 @@ Regardless of whether the AI plugin is officially hosted or personally provided,
 ## 8. Agentic Containerization and Storage Segmentation
 To safely facilitate Bring Your Own Plugin (BYOP) mechanics, the Modder's offline `.exe` cannot operate as a raw executable; it must deploy as a strictly managed **Containerized Agentic Sandbox**. 
 
-Storage segmentation allows the Siraugga framework to mathematically separate the Modder's local operating system files from the proprietary DevCore project logic. The AI subagents executing within the `.exe` are trapped within an authenticated, AES-encrypted container. They can seamlessly read and write to the isolated JSON project files, but they are physically prevented from traversing out of the sandbox to access the Modder's personal system directories. 
+Storage segmentation allows the Siraugga framework to mathematically separate the Modder's local operating system files from the proprietary DevCore project logic. The AI subagents executing within the `.exe` are trapped within an authenticated, Standard Encryption-encrypted container. They can seamlessly read and write to the isolated JSON project files, but they are physically prevented from traversing out of the sandbox to access the Modder's personal system directories. 
 
 This strict containerization architecture enables Tier 5 Administrators to centrally govern the remote sandbox. Specifically, agentic containerization allows the core engine to:
 *   **Isolate Subagents (Apps):** Ensure that individual logic nodes remain mathematically segregated from one another via Micro-Swarming.
@@ -144,7 +144,7 @@ While the offline `.exe` sandbox provides Tier 2 Modders with immense flexibilit
 *   **Theft (Data Exfiltration):** Cybercriminals may attempt to steal proprietary game assets, source code, or static API keys that are temporarily stored within the Modder's local `.exe` sandbox.
 *   **Loss (State Desynchronization):** A Modder could accidentally corrupt or delete their local JSON state deltas. Without a persistent connection to the central server's automated backup system, this localized data loss is irreversible.
 *   **Unauthorized Access (Local Prompt Injection):** A malicious actor might gain unauthorized access to the Modder's local hardware, silently injecting adversarial prompts into the offline swarm before the payload is synchronized with the core server.
-*   **Operating System Risks (Orchestrator Escapes):** The primary "Operating System" of the Siraugga framework is the Core Agent Orchestrator (`agent_manager.py`). The greatest structural risk is that a compromised external plugin leverages a zero-day vulnerability to break out of the AES container and access the host machine.
+*   **Operating System Risks (Orchestrator Escapes):** The primary "Operating System" of the Siraugga framework is the Core Agent Orchestrator (`Task Orchestrator Module`). The greatest structural risk is that a compromised external plugin leverages a zero-day vulnerability to break out of the Standard Encryption container and access the host machine.
 *   **Application Risks (Tool Hallucinations):** In Siraugga, "applications" equate to **Agentic Tools**. If an AI subagent suffers from Agentic Drift, it may unpredictably misuse its whitelisted applications (e.g., hallucinating and attempting to execute malicious commands).
 *   **Network Risks (WSS Interception):** When the offline sandbox eventually reconnects to the Zero-Restart Web Portal to push its JSON deltas, the traffic is highly vulnerable to Man-in-the-Middle (MitM) attacks or token sniffing across the wireless stream.
 

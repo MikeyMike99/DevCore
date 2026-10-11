@@ -1,6 +1,6 @@
 # Chapter 13: AAA Usage and Operation
 
-To maintain the absolute integrity of a live, multiplayer game state, the DevCore network must ruthlessly control who is allowed to connect and what they are mechanically capable of doing once inside. These design requirements form the backbone of the **Siraugga Network Security Policy**, governed dynamically by the `security_manager.py`. 
+To maintain the absolute integrity of a live, multiplayer game state, the DevCore network must ruthlessly control who is allowed to connect and what they are mechanically capable of doing once inside. These design requirements form the backbone of the **Siraugga Network Security Policy**, governed dynamically by the `Access Control Module`. 
 
 The policy specifies exactly how Tier 5 Admins, Tier 2 Modders, and autonomous AI subagents navigate the Sandboxes. Furthermore, it mandates the implementation of a rigid accounting system that tracks every login, every WebSocket JSON delta, and every terminal command executed by the AI swarm.
 
@@ -22,7 +22,7 @@ To understand AAA in the context of DevCore, we compare it to a corporate credit
 
 DevCore implements AAA services using a **Server-Based (Centralized) Authentication** model. 
 
-Instead of trusting local game clients, remote Tier 2 Modders and their spawned AIs connect directly to the central Siraugga Orchestrator (`server.py`). This central AAA system independently maintains databases for the three AAA functions. It evaluates incoming connections, verifies the cryptographic tokens, and dictates access. 
+Instead of trusting local game clients, remote Tier 2 Modders and their spawned AIs connect directly to the central Siraugga Orchestrator (`App Router Module`). This central AAA system independently maintains databases for the three AAA functions. It evaluates incoming connections, verifies the cryptographic tokens, and dictates access. 
 
 When a subagent needs to communicate with the central Orchestrator, it utilizes one of two primary agentic protocols, adapted from traditional IT frameworks:
 
@@ -57,7 +57,7 @@ Whenever a Modder or an AI subagent connects, the accounting process generates a
 In traditional networking, a physical topology maps out Server Room 2158 connecting via cables to IT Office 2159 and remote Classrooms. 
 
 In DevCore, this physical topology maps directly to the **Sandbox Isolation Topology**:
-*   **The Server Room (Host OS):** The physical Linux machine running the master Quart `server.py` and maintaining the immutable accounting logs in `/home/michael/.gemini/antigravity-cli/brain/`.
+*   **The Server Room (Host OS):** The physical Linux machine running the master Quart `App Router Module` and maintaining the immutable accounting logs in `/home/michael/.gemini/antigravity-cli/brain/`.
 *   **The Remote Classrooms (Modder Workspaces):** The isolated `/playground/` directories where Tier 2 Modders and AI agents execute their logic. The accounting logs track exactly how much data crosses the "cables" (WebSockets) between the untrusted workspaces and the core Server Room, providing irrefutable evidence against any rogue agent or cybercriminal attempting malicious actions.
 
 ---
@@ -73,7 +73,7 @@ The structural translation of traditional networking protocols into the agentic 
 To maintain absolute clarity, here is the master translation of traditional cybersecurity terms into their DevCore Agentic equivalents established in this chapter:
 
 *   **The AAA Framework** $\rightarrow$ **The Agentic Triad:** The core operational philosophy governing AI behavior: Identity (Authentication), Tool Whitelists (Authorization), and Token/Action Tracking (Accounting).
-*   **Centralized AAA Server** $\rightarrow$ **The Siraugga Orchestrator (`server.py`):** The master backend that independently evaluates WebSocket connections and enforces access control across all isolated Sandbox nodes.
+*   **Centralized AAA Server** $\rightarrow$ **The Siraugga Orchestrator (`App Router Module`):** The master backend that independently evaluates WebSocket connections and enforces access control across all isolated Sandbox nodes.
 *   **RADIUS** $\rightarrow$ **RADI (Rapid Agentic Data Interchange):** A lightweight, unencrypted protocol utilized exclusively for high-speed, low-latency NPC chatbot generation where granular terminal authorization is not required.
 *   **TACACS+** $\rightarrow$ **TACAS+ (Terminal Access Control Agentic System):** The fully encrypted, TCP-based protocol utilized for Tier 5 Admins and privileged `wsl.exe` subagents, requiring strict per-command authorization.
 *   **AAA Accounting Logs** $\rightarrow$ **Agentic Transcript Logs (`transcript.jsonl`):** The immutable ledger that collects every piece of usage data, start/stop events, and token burn rates from the swarm.

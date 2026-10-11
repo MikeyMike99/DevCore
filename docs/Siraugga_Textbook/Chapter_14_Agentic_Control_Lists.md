@@ -20,8 +20,8 @@ The following core topics dictate the architecture of DevCore's filtering engine
 
 1.  **Introduction to Agentic Control Lists:** The critical differences between Standard ACLs (filtering solely by Agent UUID) and Extended ACLs (filtering by UUID, Archetype, specific Tool, and exact filepath).
 2.  **Semantic Wildcard Masks:** Understanding how the Orchestrator uses regex and wildcard variables to blanket-approve or blanket-deny an AI’s access to a sprawling project directory (e.g., `allow: /game_demo/docs/*.md`).
-3.  **Configuring ACLs:** The exact syntax and hierarchy required to build airtight security rules in `agent_manager.py` without accidentally locking out the entire swarm.
-4.  **Modifying ACLs:** Utilizing Sequence Numbers to dynamically edit existing Agentic ACLs on the fly, without needing to reboot the `server.py` engine.
+3.  **Configuring ACLs:** The exact syntax and hierarchy required to build airtight security rules in `Task Orchestrator Module` without accidentally locking out the entire swarm.
+4.  **Modifying ACLs:** Utilizing Sequence Numbers to dynamically edit existing Agentic ACLs on the fly, without needing to reboot the `App Router Module` engine.
 5.  **Implementing ACLs:** Deploying the filters onto the live WebSocket interfaces and observing the resulting traffic flow.
 6.  **Mitigating Attacks with ACLs:** Deploying specifically tailored Extended ACLs to neutralize common adversarial threats, including rogue subagents attempting path-traversal attacks.
 7.  **Next-Gen Swarm ACLs (IPv6 Equivalent):** Configuring advanced, high-density ACLs via the CLI to handle massive swarms of thousands of concurrent AI subagents.
@@ -34,7 +34,7 @@ The survival of the core game state depends entirely on the mathematical perfect
 
 In traditional routing, decisions are made based on information in the packet header. The router compares the destination IP address with its routing table to find the best match. In DevCore, that exact same sequential process is used to filter AI traffic via an **Agentic Control List (ACL)**.
 
-An Agentic ACL is a strict series of Python rules configured within the `agent_manager.py` that filter JSON WebSockets based on the metadata in the payload. By default, the Orchestrator does not have any ACLs applied. However, when an ACL is activated on a specific Sandbox interface, the Orchestrator performs the heavy computational task of evaluating every single AI tool call before it is allowed to execute.
+An Agentic ACL is a strict series of Python rules configured within the `Task Orchestrator Module` that filter JSON WebSockets based on the metadata in the payload. By default, the Orchestrator does not have any ACLs applied. However, when an ACL is activated on a specific Sandbox interface, the Orchestrator performs the heavy computational task of evaluating every single AI tool call before it is allowed to execute.
 
 An ACL uses a sequential list of `permit` or `deny` statements, formally known as **Agentic Control Entries (ACEs)**. 
 
@@ -83,7 +83,7 @@ Ultimately, the entire filtering architecture is underpinned by the Implicit Age
 
 To maintain absolute clarity, here is the master translation of traditional routing terminology into their DevCore Agentic equivalents established in this chapter:
 
-*   **Packet Filtering (ACLs)** $\rightarrow$ **Semantic Filtering (Agentic ACLs):** The process executed by `agent_manager.py` to intercept and categorize incoming JSON WebSocket payloads as either `permit` or `deny`.
+*   **Packet Filtering (ACLs)** $\rightarrow$ **Semantic Filtering (Agentic ACLs):** The process executed by `Task Orchestrator Module` to intercept and categorize incoming JSON WebSocket payloads as either `permit` or `deny`.
 *   **Access Control Entries (ACEs)** $\rightarrow$ **Agentic Control Entries (ACEs):** The sequential lines of code (rules) that make up a given list.
 *   **Layer 3 Filtering (Standard ACL)** $\rightarrow$ **Agent UUID Filtering (Standard Agentic ACL):** A basic security list that permits or denies an AI based strictly on its identity (e.g., "Allow Agent-104").
 *   **Layer 4 Filtering (Extended ACL)** $\rightarrow$ **Tool Intent Filtering (Extended Agentic ACL):** A hyper-specific security list that filters based on the Agent UUID *plus* the exact Tool it is requesting and its targeted Filepath (e.g., "Allow Agent-104 to use `write_to_file` on `/game_demo/`).

@@ -50,10 +50,10 @@ Traditional packet analyzers (packet sniffers) intercept and log network traffic
 
 ### Key Architectural Concepts:
 1. **The Mathematical Baseline:**
-   * Absolute enforcement of system state, including sandboxed `cwd` paths, strict `O_NOFOLLOW` file descriptors, and the 4-second TCP keep-alive heartbeat.
+   * Absolute enforcement of system state, including sandboxed `cwd` paths, strict `Strict Path Defenses` file descriptors, and the 4-second TCP keep-alive heartbeat.
 2. **The Forensic Paradox & Cold Storage:**
    * **The Paradox:** Cryptographically shredding logs protects against symlink attacks and data leaks, but destroys the forensic evidence needed by incident responders.
-   * **The Resolution (Cold Storage):** Before the Reaper Daemon shreds the physical plaintext logs, a Lifecycle Hook instantly AES-encrypts the telemetry using dynamically rotated keys (KMS), preserving the ciphertext exclusively for Tier 5 Admins.
+   * **The Resolution (Cold Storage):** Before the Reaper Daemon shreds the physical plaintext logs, a Lifecycle Hook instantly encrypts the telemetry using dynamically rotated keys (KMS), preserving the ciphertext exclusively for Tier 5 Admins.
 3. **The Telemetry Taxonomy:**
    * **OS Logs (Tier 4):** Tracks WebSocket handshakes and resource utilization.
    * **Application Security Logs (Tier 4):** Tracks Semantic Firewall drops and prompt injection blocks.

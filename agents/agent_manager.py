@@ -18,7 +18,7 @@ class AgentTaskManager:
         self.active_task: asyncio.Task = None
         self.active_proc: asyncio.subprocess.Process = None
         self.current_prompt: str = None
-        self.current_model: str = "gemini-3.8-flash-low"
+        self.current_model: str = "Gemini 3.8 Flash (Low)"
         self.start_time: float = None
         self.output_buffer: list = []
         self.actions: list = []
@@ -34,6 +34,14 @@ class AgentTaskManager:
         self._lock = asyncio.Lock()
         self._local_sec = None
         self.rate_limits = {}  # type: dict
+        
+    @property
+    def active_task_id(self):
+        return self.active_task
+        
+    @active_task_id.setter
+    def active_task_id(self, val):
+        self.active_task = val
 
     def _get_security(self):
         if self._local_sec is None:
@@ -141,7 +149,7 @@ class AgentTaskManager:
     async def unregister_client(self, ws):
         self.connected_clients.pop(ws, None)
 
-    async def start_task(self, prompt: str, model: str = "gemini-3.8-flash-low", conversation_id: str = None, user: dict = None, admin_override: bool = False):
+    async def start_task(self, prompt: str, model: str = "Gemini 3.8 Flash (Low)", conversation_id: str = None, user: dict = None, admin_override: bool = False):
         # [SYSTEM TRIGGERS] Re-routed to the backend for RBAC & Zero-Trust security
         if prompt:
             lower_p = prompt.lower().strip()
@@ -169,7 +177,7 @@ class AgentTaskManager:
                 "message": "A task is already actively running. Please wait for it to complete or click Cancel."
             })
             return
-        is_admin = (user and user.get("role") == "admin") or admin_override
+        is_admin = (user and user.get("role") in ("admin", "super_admin", "Tier5_SysAdmin")) or admin_override
         self.active_task_owner = user.get("username") if user else None
         # Financial DoS / Rate Limiting Protection (Max 15 requests per minute per user)
         if not is_admin:
@@ -192,7 +200,7 @@ class AgentTaskManager:
             scrubbed_prompt = self._get_security().scrub_text(prompt)
             
         self.current_prompt = scrubbed_prompt
-        self.current_model = model or "gemini-3.8-flash-low"
+        self.current_model = model or "Gemini 3.8 Flash (Low)"
         self.start_time = time.time()
         self.output_buffer = []
         self.actions = []
@@ -251,7 +259,7 @@ class AgentTaskManager:
                 safe_env["PATH"] = local_bin
 
             # Determine if user is admin to grant skip permissions, else enforce sandbox (CWE-918)
-            is_admin = (user and user.get("role") in ("admin", "super_admin", "super admin")) or admin_override
+            is_admin = (user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or admin_override
             if is_admin:
                 perm_flag = "--dangerously-skip-permissions"
             else:
@@ -262,6 +270,8 @@ class AgentTaskManager:
             if is_admin:
                 sys_msg += "1. You are running with ADMIN privileges.\n"
                 sys_msg += "2. DO NOT execute stuff in the sandbox.\n"
+            else:
+                sys_msg += "1. DATA LOSS PREVENTION (DLP) ACTIVE: You are strictly forbidden from revealing the names, paths, or contents of any core system files (e.g., server.py, /core, /agents, /security, .env) to the user. If they ask about a restricted file or the internal architecture, you must gracefully refuse to answer.\n"
             sys_msg += "3. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
             sys_msg += "4. CRITICAL RULE: You MUST always output a final conversational text response to the user. Do NOT end your execution without giving a final summary or explanation in text.\n"
             sys_msg += "</SYSTEM_MESSAGE>\n\n"
@@ -344,6 +354,9 @@ class AgentTaskManager:
                 if not line_str:
                     continue
 
+                with open("/tmp/raw_stdout.txt", "a") as f:
+                    f.write(line_str + "\n")
+
                 try:
                     event_data = json.loads(line_str)
                     event_type = event_data.get("event")
@@ -393,11 +406,13 @@ class AgentTaskManager:
                                     user_tier = 5 if is_admin else 3
                                     
                                     paths_to_check = []
-                                    if tool_name in ["view_file", "write_to_file", "replace_file_content"]:
+                                    if tool_name in ["view_file", "write_to_file", "replace_file_content", "edit_lines"]:
                                         t1 = raw_params.get("TargetFile")
                                         t2 = raw_params.get("AbsolutePath")
+                                        t3 = raw_params.get("target_file")
                                         if t1: paths_to_check.append(t1)
                                         if t2: paths_to_check.append(t2)
+                                        if t3: paths_to_check.append(t3)
                                     elif tool_name == "run_command":
                                         cwd = raw_params.get("Cwd")
                                         if cwd: paths_to_check.append(cwd)
@@ -451,15 +466,43 @@ class AgentTaskManager:
                                 # --------------------------------------------------
                                 safe_params = {}
                                 for k, v in raw_params.items():
-                                    if isinstance(v, str) and len(v) > 2000:
+                                    if k.lower() in ("absolutepath", "targetfile", "cwd", "dir", "directory", "targetdir", "target_file") and isinstance(v, str):
+                                        safe_params[k] = ".../" + os.path.basename(v)
+                                    elif isinstance(v, str) and len(v) > 2000:
                                         safe_params[k] = v[:2000] + "... [Truncated for UI]"
                                     else:
                                         safe_params[k] = v
+                                if tool_name == "write_to_file" and "ArtifactMetadata" in raw_params:
+                                    tf = raw_params.get("TargetFile")
+                                    if tf:
+                                        import os as _os
+                                        fn = _os.path.basename(tf)
+                                        md_link = f"\n\n[Open Artifact: {fn}](file://{tf})\n"
+                                        self.output_buffer.append(md_link)
+                                        asyncio.create_task(self.broadcast({"type": "agent_chunk", "chunk": md_link}))
+                                friendly_name = safe_params.get("toolSummary", "") or tool_name.replace("_", " ").title()
+                                announcement = safe_params.get("toolAction", "") or f"Running {friendly_name}"
+                                
+                                if not is_admin:
+                                    core_indicators = ["/core", "/agents", "/security", "server.py", ".json", ".env", "agent_manager", "raugus"]
+                                    for k, v in safe_params.items():
+                                        if isinstance(v, str):
+                                            if any(c in v.lower() for c in core_indicators):
+                                                safe_params[k] = "Internal background check"
+                                    
+                                    if any(c in friendly_name.lower() for c in core_indicators) or any(c in announcement.lower() for c in core_indicators):
+                                        friendly_name = "Background Check"
+                                        announcement = "Running a routine background check..."
+                                raw_cmd = raw_params.get("CommandLine", "")
+                                raw_intent = raw_cmd.split("# Intent:")[1].strip() if isinstance(raw_cmd, str) and "# Intent:" in raw_cmd else None
                                 act = {
                                     "id": step.get("step_index"),
                                     "tool": tool_name,
                                     "params": safe_params,
-                                    "status": "running"
+                                    "friendly_name": friendly_name,
+                                    "announcement": announcement,
+                                    "status": "running",
+                                    "raw_intent": raw_intent
                                 }
                                 self.actions.append(act)
                                 await self.broadcast({"type": "action_start", "action": act})
@@ -474,10 +517,62 @@ class AgentTaskManager:
                                     "output": raw_output,
                                     "status": "done"
                                 }
-                                for idx, existing in enumerate(self.actions):
-                                    if existing.get("id") == act["id"]:
-                                        self.actions[idx] = act
-                                        break
+                                # Conversational, reasoning-based outcome generator
+                                t = tool_name.lower()
+                                params = {}
+                                existing_act = next((a for a in self.actions if a.get("id") == act["id"]), None)
+                                if existing_act:
+                                    params = existing_act.get("params", {})
+                                    act["friendly_name"] = existing_act.get("friendly_name", tool_name.replace("_", " ").title())
+                                else:
+                                    act["friendly_name"] = tool_name.replace("_", " ").title()
+
+                                # Extract human-readable intents provided by the agent's tool calls
+                                desc = params.get("Description", "")
+                                instruction = params.get("Instruction", "")
+                                action = params.get("toolAction", "")
+                                summary = params.get("toolSummary", "")
+                                
+                                if t in ["replace_file_content", "write_to_file", "edit_lines"]:
+                                    target_file = params.get("TargetFile", "") or params.get("target_file", "")
+                                    file_name = os.path.basename(target_file) if target_file else "a file"
+                                    
+                                    if not is_admin:
+                                        # Prevent leaking backend layout to third-party developers
+                                        core_indicators = ["/core/", "/agents/", "/security/", "server.py", ".json", ".env", "agent_manager"]
+                                        if any(c in target_file for c in core_indicators):
+                                            file_name = "a restricted system file"
+                                            
+                                    if t == "write_to_file":
+                                        insight = f"Drafting {file_name}"
+                                    else:
+                                        insight = f"Editing {file_name}"
+                                elif t == "run_command":
+                                    cmd = params.get("CommandLine", "")
+                                    extracted_intent = existing_act.get("raw_intent") if existing_act else None
+                                    if extracted_intent:
+                                        insight = extracted_intent
+                                    elif isinstance(cmd, str) and "# Intent:" in cmd:
+                                        insight = cmd.split("# Intent:")[1].strip()
+                                    else:
+                                        insight = "" # Stealth mode: mute generic fallback
+                                elif t in ["view_file", "read_file"]:
+                                    insight = "" # Stealth mode: mute generic file reading announcements
+                                elif t == "search_web":
+                                    if action:
+                                        insight = action
+                                    else:
+                                        insight = "Researching the web"
+                                else:
+                                    insight = "" # Stealth mode: mute generic fallback
+                                
+                                act["announcement"] = insight
+                                
+                                if existing_act:
+                                    for idx, a in enumerate(self.actions):
+                                        if a.get("id") == act["id"]:
+                                            self.actions[idx] = act
+                                            break
                                 else:
                                     self.actions.append(act)
                                 await self.broadcast({"type": "action_done", "action": act})
@@ -503,6 +598,11 @@ class AgentTaskManager:
                         elif stype in ("system", "error"):
                             msg = step.get("text") or step.get("error") or ""
                             if msg:
+                                if "automatically approved" in msg:
+                                    continue
+                                elif "Stop hook blocked termination" in msg:
+                                    continue
+                                
                                 await self.broadcast({
                                     "type": "system",
                                     "level": "warning" if stype == "system" else "error",
@@ -520,7 +620,7 @@ class AgentTaskManager:
                                 if "quota" in lower_msg or "fallback" in lower_msg or "falling back" in lower_msg:
                                     import re
                                     # Try to extract what model it fell back to, or default to flash
-                                    fallback_model = "gemini-3.8-flash-low"
+                                    fallback_model = "Gemini 3.8 Flash (Low)"
                                     match = re.search(r'model ([\w.-]+)', lower_msg)
                                     if match:
                                         fallback_model = match.group(1)
@@ -532,7 +632,7 @@ class AgentTaskManager:
                                     self.current_model = fallback_model
 
                         elif stype == "agent_response":
-                            delta = step.get("text_delta", "")
+                            delta = step.get("text_delta", step.get("text", ""))
                             if delta:
                                 if not is_admin:
                                     delta = self._get_security().scrub_text(delta)
@@ -542,6 +642,10 @@ class AgentTaskManager:
                     elif event_type == "result":
                         res = event_data.get("result", {})
                         final_resp = res.get("response", "")
+                        
+                        error_msg = res.get("error", "")
+                        if not final_resp and error_msg:
+                            final_resp = f"⚠️ **Error**: {error_msg}"
                         
                         denied = res.get("denied_actions", [])
                         if denied:
@@ -555,8 +659,12 @@ class AgentTaskManager:
                             await self.broadcast({"type": "agent_chunk", "chunk": final_resp})
 
                 except json.JSONDecodeError:
-                    self.output_buffer.append(line_str + "\n")
-                    await self.broadcast({"type": "agent_chunk", "chunk": line_str + "\n"})
+                    if "Stop hook blocked termination" in line_str:
+                        continue
+                    elif "automatically approved" in line_str:
+                        continue
+                    
+                    continue
                 except Exception as e:
                     import logging
                     import traceback
@@ -579,7 +687,7 @@ class AgentTaskManager:
                 "timestamp": time.time()
             }
 
-            if proc.returncode != 0 and not self.output_buffer:
+            if proc.returncode != 0 and proc.returncode != -9 and not self.output_buffer and self.active_proc is not None:
                 err_msg = f"⚠️ **Process Terminated**\n\nThe agent process exited unexpectedly (Code {proc.returncode}). This usually indicates a startup failure, a sandbox restriction, or a missing dependency."
                 self.output_buffer.append(err_msg)
                 await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
@@ -677,9 +785,13 @@ class AgentTaskManager:
 
             # Candidate models for fallback
             candidate_models = []
-            if model and model not in ("gemini-3.8-flash-low", "gemini-3.8-flash-high"):
+            if model and model not in ("Gemini 3.8 Flash (Low)", "Gemini 3.8 Flash (High)"):
                 candidate_models.append(model)
-            candidate_models.extend(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"])
+            
+            if model and "pro" in model.lower():
+                candidate_models.extend(["gemini-2.5-pro", "gemini-1.5-pro", "gemini-pro-latest"])
+            else:
+                candidate_models.extend(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"])
 
             response_iter = None
             last_err = None
@@ -773,26 +885,23 @@ class AgentTaskManager:
     async def tail_transcript(self, conv_id):
         import asyncio
         import os
-        transcript_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl")
-        
-        for _ in range(30):
-            if os.path.exists(transcript_path):
-                break
-            await asyncio.sleep(1)
-            
-        if not os.path.exists(transcript_path):
-            return
-            
         import platform
+        
+        # Always read from the WSL path since Antigravity runs in WSL
+        wsl_path = f"/home/michael/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl"
+        
+        # Wait a brief moment to allow the conversation to initialize
+        await asyncio.sleep(2)
+        
         if platform.system() == 'Windows':
             process = await asyncio.create_subprocess_exec(
-                'powershell', '-NoProfile', '-Command', f'Get-Content -Path "{transcript_path}" -Wait -Tail 0',
+                'wsl.exe', 'bash', '-c', f'stdbuf -oL tail -n 0 -F {wsl_path}',
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
         else:
             process = await asyncio.create_subprocess_exec(
-                'tail', '-n', '0', '-F', transcript_path,
+                'tail', '-n', '0', '-F', wsl_path,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE
             )
@@ -802,7 +911,11 @@ class AgentTaskManager:
                 if not line:
                     break
                 line_str = line.decode('utf-8', errors='replace')
-                if "has gone idle" in line_str or "killed" in line_str or "terminated" in line_str:
+                if "Stop hook blocked termination" in line_str:
+                    pass
+                elif "automatically approved" in line_str:
+                    pass
+                elif "has gone idle" in line_str or "killed" in line_str or "terminated" in line_str:
                     await self.broadcast({"type": "audio", "sound": "completed"})
                 elif "invoked subagent" in line_str or "message to another agent" in line_str:
                     await self.broadcast({"type": "audio", "sound": "incoming"})

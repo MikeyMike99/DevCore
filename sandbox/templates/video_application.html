@@ -227,6 +227,15 @@
 
     <!-- Load YouTube Iframe API Dynamically -->
     <script>
+        // --- MINIMAL MODE ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const isMinimal = urlParams.get('minimal') === 'true';
+        if (isMinimal) {
+            document.querySelector('.playlist-section').style.display = 'none';
+            document.querySelector('.description').style.display = 'none';
+            document.querySelector('#videoTitle').style.display = 'none';
+        }
+
         // --- TELEMETRY ---
         function logToAgent(msg) {
             const line = `[${new Date().toISOString()}] ${msg}`;
@@ -258,7 +267,6 @@
         let isPlaying = false;
         let scrubberInterval;
         
-        const urlParams = new URLSearchParams(window.location.search);
         const startParam = parseInt(urlParams.get('start')) || 0;
         
         let currentVideoId = VIDEO_ID;
@@ -463,7 +471,12 @@
         }
 
         function onPlayerReady(event) {
-            document.getElementById('videoTitle').focus();
+            try {
+                const titleEl = document.getElementById('videoTitle');
+                if (titleEl && titleEl.style.display !== 'none') {
+                    titleEl.focus();
+                }
+            } catch(e) { logToAgent('Focus failed: ' + e); }
             
             const btnPlayPause = document.getElementById('btnPlayPause');
             const btnRewind = document.getElementById('btnRewind');

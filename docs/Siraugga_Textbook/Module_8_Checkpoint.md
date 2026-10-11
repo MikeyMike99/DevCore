@@ -6,9 +6,9 @@ Module 8 translated traditional IT Cryptography, Hashing, and PKI into the **Age
 ## Core Concepts Translated
 
 ### 1. Context Confidentiality (Symmetric vs Asymmetric)
-*   **Internal Swarm Encryption (AES):** Symmetric encryption. Blazing fast. Used for encrypting bulk AI contexts and `transcript.jsonl` files at rest.
+*   **Internal Swarm Encryption (Standard Encryption):** Symmetric encryption. Blazing fast. Used for encrypting bulk AI contexts and `transcript.jsonl` files at rest.
 *   **Decentralized Modder Encryption (RSA/ECDSA):** Asymmetric encryption. Very slow, but secure for establishing initial WebSocket connections.
-*   **The Diffie-Hellman Handshake:** The mathematical process where the Orchestrator and a remote Modder securely generate a temporary, shared Symmetric Key (AES) over the public internet so they can encrypt massive streams of AI tokens without network lag.
+*   **The Diffie-Hellman Handshake:** The mathematical process where the Orchestrator and a remote Modder securely generate a temporary, shared Symmetric Key (Standard Encryption) over the public internet so they can encrypt massive streams of AI tokens without network lag.
 
 ### 2. Obscuring Thought Vectors
 *   **Prompt Masking (Data Masking):** Replacing sensitive API keys in transcripts with fake, syntactically correct data (Substitution, Shuffling, Nulling) so Admins can audit AI logic flows safely.

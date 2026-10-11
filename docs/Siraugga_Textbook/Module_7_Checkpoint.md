@@ -6,7 +6,7 @@ This checkpoint serves as the master structural review for Module 7, summarizing
 
 ### Chapter 28: Introduction to Decentralized Swarm Hosting
 *   **The Raugus Cloud:** "The Cloud" is not a centralized Amazon server. It is a Decentralized, BYOK (Bring Your Own Key) Engine where Tier 5 Admins host the core Orchestrator locally and distribute access globally via WebSockets.
-*   **Subagent Virtualization (SVs):** Instead of using hypervisors to spawn heavy Virtual Machines (VMs), DevCore spawns hyper-isolated, lightweight LLM conversational contexts that share the same `agent_manager.py` resources.
+*   **Subagent Virtualization (SVs):** Instead of using hypervisors to spawn heavy Virtual Machines (VMs), DevCore spawns hyper-isolated, lightweight LLM conversational contexts that share the same `Task Orchestrator Module` resources.
 
 ### Chapter 29: Decentralized Orchestration and Virtualization
 *   **Bare-Metal vs Hosted Orchestrators:** The difference between running the Engine directly on hardware (Type 1) versus running it as an application on top of a host OS (Type 2).
@@ -30,7 +30,7 @@ This checkpoint serves as the master structural review for Module 7, summarizing
 
 ### Chapter 33: Token Data Security (Context Cryptography)
 *   **States of Context:** Context at Rest (Transcripts saved on disk), Context in Transit (WebSockets), Context in Process (RAM/Edge GPUs).
-*   **Internal Swarm Encryption:** Using fast, single-key Symmetric Encryption (AES) to scramble internal transcripts.
+*   **Internal Swarm Encryption:** Using fast, single-key Symmetric Encryption (Standard Encryption) to scramble internal transcripts.
 *   **Decentralized Modder Encryption:** Using dual-key Asymmetric Encryption (RSA, ECC) to securely transmit Modder prompts across the public internet.
 *   **Semantic Hashing (History Verification):** The ultimate defense against *Gaslighting (Prompt Injection)*. The Orchestrator calculates a one-way SHA-256 hash of the AI's entire conversational history. If a hacker stealthily modifies an old message, the hash fails, and the Orchestrator violently drops the context.
 
@@ -47,5 +47,5 @@ Based on the expanded 7.7 Cloud Security Summary, here is the final validation p
 
 *   **Virtualization Summary Check:** The summary confirms Type 1 and Type 2 hypervisors, and XaaS models. **Validation: Passed.** This maps perfectly to Chapter 29 where we established Bare-Metal vs Hosted Orchestrators, and the Swarm-as-a-Service tiers.
 *   **Infrastructure Summary Check:** The summary confirms the Shared Responsibility Model (CSP vs Client) and Microsegmentation without physical hardware. **Validation: Passed.** This maps perfectly to Chapter 31's BYOK Responsibility Matrix (Admin vs Modder) and Software-Defined Swarm Networks (SDSN).
-*   **Data Security Summary Check:** The summary confirms Data States (rest, transit, process), Symmetric/Asymmetric encryption, and Hashing for integrity. **Validation: Passed.** This maps perfectly to Chapter 33's Context States, AES vs RSA deployment, and using SHA-256 to block Prompt Injections.
+*   **Data Security Summary Check:** The summary confirms Data States (rest, transit, process), Symmetric/Asymmetric encryption, and Hashing for integrity. **Validation: Passed.** This maps perfectly to Chapter 33's Context States, Standard Encryption vs RSA deployment, and using SHA-256 to block Prompt Injections.
 *   **Protecting VMs Summary Check:** The summary confirms subnet placement, disabling ports, antivirus/IDS, and the threat of VM Sprawl. **Validation: Passed.** This maps perfectly to Chapter 34's SV Hardening (VPS placement, Tool Revocation, Threat Hunters) and culling Swarm Sprawl (Ghost Agents).

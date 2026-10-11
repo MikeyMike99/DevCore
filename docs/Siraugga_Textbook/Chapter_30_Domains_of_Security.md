@@ -17,7 +17,7 @@ The DSA splits the defense of a DevCore Engine into 14 distinct disciplines. A s
 3.  **Legal Issues and Decentralized Contracts:** Managing the legal ramifications of BYOK (Bring Your Own Key) licensing, Modder Terms of Service, and decentralized code ownership.
 4.  **Compliance and Transcript Audit Management:** Ensuring the continuous integrity of `transcript.jsonl` to prove compliance during a security audit.
 5.  **Information Governance:** Classifying data assets strictly between the trusted `/core_engine/` and the untrusted `/playground/`.
-6.  **Management Plane and Swarm Continuity:** Protecting the Orchestrator (`server.py`) from crashing, ensuring the Swarm remains online even during a severe Prompt Escape.
+6.  **Management Plane and Swarm Continuity:** Protecting the Orchestrator (`App Router Module`) from crashing, ensuring the Swarm remains online even during a severe Prompt Escape.
 7.  **Security as a Service:** Deploying specialized automated subagents dedicated exclusively to hunting threats inside the Sandbox.
 8.  **Infrastructure Security:** Securing the physical bare-metal hardware and network routers hosting the Orchestrator.
 9.  **Subagent Virtualization and ATCs:** Defending the isolated LLM conversational contexts and the Agentic Tool Containers from bleeding into each other.

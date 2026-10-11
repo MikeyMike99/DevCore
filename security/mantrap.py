@@ -32,9 +32,10 @@ class SemanticMantrap:
         lock_path = os.path.join(MANTRAP_DIR, safe_name)
         
         # Windows msvcrt requires the file to have at least 1 byte to lock a region
-        if OS_TYPE == "windows" and not os.path.exists(lock_path):
+        if not os.path.exists(lock_path):
             with open(lock_path, 'w') as init_f:
-                init_f.write("X")
+                if OS_TYPE == "windows":
+                    init_f.write("X")
                 
         lock_fd = open(lock_path, 'r+')
         

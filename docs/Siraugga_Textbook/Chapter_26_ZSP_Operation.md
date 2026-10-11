@@ -23,7 +23,7 @@ The outcome depends entirely on whether the source and destination directories a
 
 The most critical exception to the Laws of Inter-Zone Routing is **The Self Zone**. 
 
-In DevCore, the Self Zone represents `server.py`—the core Orchestrator itself. Traffic destined to or sourced from the Self Zone is considered Control Plane traffic (e.g., Swarm Telemetry, WebSocket Keep-Alives, and direct Admin SSH commands). 
+In DevCore, the Self Zone represents `App Router Module`—the core Orchestrator itself. Traffic destined to or sourced from the Self Zone is considered Control Plane traffic (e.g., Swarm Telemetry, WebSocket Keep-Alives, and direct Admin SSH commands). 
 
 Because the Orchestrator must be able to manage the environment, the rules for the Self Zone are completely inverted:
 *   Standard Zone-to-Zone traffic defaults to `DROP`.
@@ -44,4 +44,4 @@ To maintain absolute clarity, here is the master translation of traditional ZPF 
 *   **ZPF Actions (Inspect, Drop, Pass)** $\rightarrow$ **ZSP Actions (Stateful Inspect, Violent Drop, Stateless Pass):** The three absolute states an Orchestrator can apply to a cross-zone JSON payload.
 *   **Rules for Transit Traffic** $\rightarrow$ **Laws of Inter-Zone Routing:** The hard-coded logic defining how traffic routes between grouped directories.
 *   **One interface zoned, one unzoned (DROP)** $\rightarrow$ **The Zone Vacuum Rule:** A critical security feature preventing a heavily secured Sandbox Zone from leaking into a legacy, unmonitored directory path.
-*   **The Self Zone** $\rightarrow$ **The Orchestrator (`server.py`):** The engine's control plane. Unlike standard zones which default to dropping traffic, the Self Zone inherently trusts its own control traffic and defaults to passing it.
+*   **The Self Zone** $\rightarrow$ **The Orchestrator (`App Router Module`):** The engine's control plane. Unlike standard zones which default to dropping traffic, the Self Zone inherently trusts its own control traffic and defaults to passing it.

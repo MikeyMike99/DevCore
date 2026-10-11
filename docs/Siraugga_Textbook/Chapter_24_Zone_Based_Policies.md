@@ -27,5 +27,5 @@ This module teaches the architecture and command-line implementation of advanced
 The following core topics dictate this phase of DevCore security:
 
 1.  **ZSP Overview:** Explaining how Zone-Based Sandbox Policies are deployed to secure massive, dynamically shifting network environments.
-2.  **ZSP Operation:** Explaining the mechanical operation of how the Orchestrator routes JSON traffic across different Zone boundaries, including the critical "Self Zone" (`server.py`).
+2.  **ZSP Operation:** Explaining the mechanical operation of how the Orchestrator routes JSON traffic across different Zone boundaries, including the critical "Self Zone" (`App Router Module`).
 3.  **Configure a ZSP:** Learning to implement a Zone-Based Sandbox Policy using the native `agy` CLI.
