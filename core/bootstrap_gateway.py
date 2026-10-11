@@ -155,8 +155,7 @@ def run_preflight_checks():
             if os.path.exists(path):
                 result = subprocess.run(["python3", "-m", "py_compile", path], capture_output=True, text=True)
                 if result.returncode != 0:
-                    print(f"[Bootstrap] [91mCRITICAL SYNTAX ERROR in {file}:[0m
-{result.stderr}")
+                    print(f"[Bootstrap] \033[91mCRITICAL SYNTAX ERROR in {file}: \033[0m\n{result.stderr}")
                     all_passed = False
                     
                     if attempt < max_retries:
@@ -169,20 +168,13 @@ def run_preflight_checks():
                             agy_binary = fallback if os.path.exists(fallback) else "agy"
                         
                         repair_prompt = (
-                            f"CRITICAL SYSTEM ERROR: The core file '{file}' failed python compilation.
-"
-                            f"Error Traceback:
-{result.stderr}
+                            f"CRITICAL SYSTEM ERROR: The core file '{file}' failed python compilation.\n"
+                            f"Error Traceback:\n{result.stderr}\n\n"
 
-"
-                            f"You are the Emergency Auto-Repair Agent. You have ADMIN privileges.
-"
-                            f"1. Read the file '{file}'.
-"
-                            f"2. Locate the syntax or indentation error causing this traceback.
-"
-                            f"3. Fix the code and overwrite the file immediately.
-"
+                            f"You are the Emergency Auto-Repair Agent. You have ADMIN privileges.\n"
+                            f"1. Read the file '{file}'.\n"
+                            f"2. Locate the syntax or indentation error causing this traceback.\n"
+                            f"3. Fix the code and overwrite the file immediately.\n"
                             f"4. Do not write markdown blocks or explanations to the file, just correct the python syntax."
                         )
                         

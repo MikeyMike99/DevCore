@@ -23,6 +23,6 @@ def crack_zip(filename, min_len, max_len):
                     return
                 except Exception:
                     pass
-    print("Password not found in the given length range.")
+    print("Password not found within the specified length range.")
 
 crack_zip('Zip-Files/file-3.zip', 3, 3)
