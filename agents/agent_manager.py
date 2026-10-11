@@ -515,9 +515,16 @@ class AgentTaskManager:
                                             deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
                                             deep_insight = re.sub(r'<planning_mode>.*?</planning_mode>', '', deep_insight, flags=re.DOTALL)
                                             deep_insight = re.sub(r'<bash_command_reminder>.*?</bash_command_reminder>', '', deep_insight, flags=re.DOTALL)
+                                            # Strip markdown formatting for TTS readability
+                                            deep_insight = re.sub(r'[*`#_]', '', deep_insight)
                                             paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
                                             if paras:
-                                                deep_insight = paras[-1]
+                                                last_para = paras[-1]
+                                                # Extract the first sentence to fix wordiness
+                                                first_sentence = re.split(r'(?<=[.!?])\s+', last_para)[0]
+                                                if len(first_sentence) > 120:
+                                                    first_sentence = first_sentence[:117] + "..."
+                                                deep_insight = first_sentence
                                 except Exception:
                                     pass
 
