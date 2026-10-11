@@ -491,42 +491,8 @@ class AgentTaskManager:
                                 action = raw_params.get("toolAction", "").strip()
                                 summary = raw_params.get("toolSummary", "").strip()
                                 
-                                # Attempt to extract the AI's actual thought process from the transcript
+                                # Rely entirely on synchronous tool parameters for TTS to fix the out-of-sync delay
                                 deep_insight = ""
-                                try:
-                                    conv_id = conversation_id
-                                    t_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript_full.jsonl")
-                                    if os.path.exists(t_path):
-                                        from collections import deque
-                                        with open(t_path, 'r', encoding='utf-8') as tf:
-                                            # Read the last 100 lines efficiently to find the latest PLANNER_RESPONSE
-                                            last_lines = deque(tf, maxlen=100)
-                                            for line in reversed(last_lines):
-                                                try:
-                                                    d = json.loads(line)
-                                                    if d.get("type") == "PLANNER_RESPONSE" and "thinking" in d:
-                                                        deep_insight = d["thinking"]
-                                                        break
-                                                except:
-                                                    pass
-                                        
-                                        if deep_insight:
-                                            # Clean up system instructions
-                                            deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
-                                            deep_insight = re.sub(r'<planning_mode>.*?</planning_mode>', '', deep_insight, flags=re.DOTALL)
-                                            deep_insight = re.sub(r'<bash_command_reminder>.*?</bash_command_reminder>', '', deep_insight, flags=re.DOTALL)
-                                            # Strip markdown formatting for TTS readability
-                                            deep_insight = re.sub(r'[*`#_]', '', deep_insight)
-                                            paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
-                                            if paras:
-                                                last_para = paras[-1]
-                                                # Extract the first sentence to fix wordiness
-                                                first_sentence = re.split(r'(?<=[.!?])\s+', last_para)[0]
-                                                if len(first_sentence) > 120:
-                                                    first_sentence = first_sentence[:117] + "..."
-                                                deep_insight = first_sentence
-                                except Exception:
-                                    pass
 
                                 if deep_insight:
                                     # Silent / Direct: No persona prefixes, just pure AI insight
