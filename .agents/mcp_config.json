@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "forensic_vault": {
+      "command": "python3",
+      "args": [
+        "/mnt/c/Users/michael/Documents/antigravity_test/mcp_vault_server.py"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "Next-Gen Line Editor (MCP)",
+  "description": "Provides an advanced line-based editing tool to defeat the exact-match exactness trap.",
+  "version": "1.0.0"
+}

@@ -1,0 +1,12 @@
+﻿import os, pty, subprocess, time
+master, slave = pty.openpty()
+env = os.environ.copy()
+proc = subprocess.Popen(['/home/michael/.local/bin/agy', '--print', 'ping'], stdin=slave, stdout=slave, stderr=slave, close_fds=True, env=env)
+os.close(slave)
+time.sleep(2)
+os.write(master, b"invalid_token\n")
+time.sleep(1)
+proc.kill()
+out = os.read(master, 4096).decode()
+print("OUTPUT:")
+print(repr(out))

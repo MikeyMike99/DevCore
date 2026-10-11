@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "line-editor": {
+      "command": "python3",
+      "args": [
+        "/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/line_editor/server.py"
+      ]
+    }
+  }
+}
