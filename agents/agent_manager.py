@@ -492,30 +492,31 @@ class AgentTaskManager:
                                 
                                 if desc:
                                     prefixes = [
-                                        "I weave the arcane threads: ",
-                                        "My gaze pierces the veil: ",
+                                        "Weaving the arcane threads: ",
+                                        "The veil is pierced: ",
                                         "The ancient logs dictate: ",
-                                        "Witness my power: ",
-                                        "I command the realm: "
+                                        "Power is witnessed: ",
+                                        "The realm is commanded: ",
+                                        "Siraugga focuses on the task: "
                                     ]
                                     announcement = f"{random.choice(prefixes)}{desc[0].lower() + desc[1:] if desc else ''}"
                                 elif t_lower == "run_command" and isinstance(raw_params.get("CommandLine"), str) and "# Intent:" in raw_params.get("CommandLine"):
                                     intent = raw_params.get("CommandLine").split("# Intent:")[1].strip()
-                                    announcement = f"I channel the forbidden powers to {intent[0].lower() + intent[1:] if intent else ''}."
+                                    announcement = f"Channeling forbidden powers to {intent[0].lower() + intent[1:] if intent else ''}."
                                 elif t_lower in ["write_to_file", "edit_lines", "replace_file_content"]:
                                     tf = raw_params.get("TargetFile", "") or raw_params.get("target_file", "")
                                     fn = os.path.basename(tf) if tf else "the scrolls"
-                                    announcement = f"I etch new runes into the essence of {fn}."
+                                    announcement = f"New runes are etched into the essence of {fn}."
                                 elif t_lower in ["view_file", "read_file"]:
                                     tf = raw_params.get("AbsolutePath", "") or raw_params.get("TargetFile", "")
                                     fn = os.path.basename(tf) if tf else "the hidden archives"
-                                    announcement = f"I divine the forgotten secrets hidden within {fn}."
+                                    announcement = f"Divining forgotten secrets hidden within {fn}."
                                 elif action and summary:
-                                    announcement = f"I invoke the rite of {summary.lower()}, for I must {action.lower()}."
+                                    announcement = f"Invoking the rite of {summary.lower()}, to begin {action.lower()}."
                                 elif action:
-                                    announcement = f"My will manifests: I begin {action.lower()}."
+                                    announcement = f"The will manifests: beginning {action.lower()}."
                                 else:
-                                    announcement = f"I unleash the power of {friendly_name} upon this domain."
+                                    announcement = f"Unleashing the power of {friendly_name} upon this domain."
                                 
                                 # Capitalize first letter safely
                                 if announcement:
