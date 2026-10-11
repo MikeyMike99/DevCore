@@ -483,21 +483,39 @@ class AgentTaskManager:
                                 friendly_name = tool_name.replace("_", " ").title()
                                 t_lower = tool_name.lower()
                                 
-                                # Cinematic Narrative Generator
+                                # Cinematic Narrative Generator (The Voice of Siraugga)
                                 desc = raw_params.get("Description", "").strip()
                                 action = raw_params.get("toolAction", "").strip()
                                 summary = raw_params.get("toolSummary", "").strip()
                                 
+                                import random
+                                
                                 if desc:
-                                    announcement = desc
+                                    prefixes = [
+                                        "I weave the arcane threads: ",
+                                        "My gaze pierces the veil: ",
+                                        "The ancient logs dictate: ",
+                                        "Witness my power: ",
+                                        "I command the realm: "
+                                    ]
+                                    announcement = f"{random.choice(prefixes)}{desc[0].lower() + desc[1:] if desc else ''}"
                                 elif t_lower == "run_command" and isinstance(raw_params.get("CommandLine"), str) and "# Intent:" in raw_params.get("CommandLine"):
-                                    announcement = raw_params.get("CommandLine").split("# Intent:")[1].strip()
+                                    intent = raw_params.get("CommandLine").split("# Intent:")[1].strip()
+                                    announcement = f"I channel the forbidden powers to {intent[0].lower() + intent[1:] if intent else ''}."
+                                elif t_lower in ["write_to_file", "edit_lines", "replace_file_content"]:
+                                    tf = raw_params.get("TargetFile", "") or raw_params.get("target_file", "")
+                                    fn = os.path.basename(tf) if tf else "the scrolls"
+                                    announcement = f"I etch new runes into the essence of {fn}."
+                                elif t_lower in ["view_file", "read_file"]:
+                                    tf = raw_params.get("AbsolutePath", "") or raw_params.get("TargetFile", "")
+                                    fn = os.path.basename(tf) if tf else "the hidden archives"
+                                    announcement = f"I divine the forgotten secrets hidden within {fn}."
                                 elif action and summary:
-                                    announcement = f"I am currently {action.lower()} in order to execute a {summary.lower()}."
+                                    announcement = f"I invoke the rite of {summary.lower()}, for I must {action.lower()}."
                                 elif action:
-                                    announcement = f"I am currently {action.lower()}."
+                                    announcement = f"My will manifests: I begin {action.lower()}."
                                 else:
-                                    announcement = f"Initiating {friendly_name} sequence..."
+                                    announcement = f"I unleash the power of {friendly_name} upon this domain."
                                 
                                 # Capitalize first letter safely
                                 if announcement:
@@ -556,7 +574,7 @@ class AgentTaskManager:
                                 if existing_act and existing_act.get("announcement"):
                                     insight = existing_act.get("announcement")
                                 else:
-                                    insight = "Processing task"
+                                    insight = "The ritual is complete."
                                 
                                 act["announcement"] = insight
                                 
