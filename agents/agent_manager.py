@@ -482,28 +482,26 @@ class AgentTaskManager:
                                         asyncio.create_task(self.broadcast({"type": "agent_chunk", "chunk": md_link}))
                                 friendly_name = tool_name.replace("_", " ").title()
                                 t_lower = tool_name.lower()
-                                if t_lower in ["replace_file_content", "write_to_file", "edit_lines"]:
-                                    tf = raw_params.get("TargetFile", "") or raw_params.get("target_file", "")
-                                    fn = os.path.basename(tf) if tf else "a file"
-                                    announcement = f"Drafting {fn}" if t_lower == "write_to_file" else f"Editing {fn}"
-                                elif t_lower in ["view_file", "read_file"]:
-                                    tf = raw_params.get("AbsolutePath", "") or raw_params.get("TargetFile", "")
-                                    fn = os.path.basename(tf) if tf else "a file"
-                                    announcement = f"Reviewing {fn}"
-                                elif t_lower == "run_command":
-                                    cmd = raw_params.get("CommandLine", "")
-                                    if isinstance(cmd, str) and "# Intent:" in cmd:
-                                        announcement = cmd.split("# Intent:")[1].strip()
-                                    else:
-                                        base_cmd = cmd.strip().split()[0] if isinstance(cmd, str) and cmd.strip() else "a command"
-                                        import re
-                                        base_cmd = re.sub(r'[^a-zA-Z0-9_-]', '', base_cmd)
-                                        if not base_cmd or len(base_cmd) > 15: base_cmd = "a command"
-                                        announcement = f"Executing {base_cmd}"
-                                elif t_lower == "search_web":
-                                    announcement = "Researching the web"
+                                
+                                # Cinematic Narrative Generator
+                                desc = raw_params.get("Description", "").strip()
+                                action = raw_params.get("toolAction", "").strip()
+                                summary = raw_params.get("toolSummary", "").strip()
+                                
+                                if desc:
+                                    announcement = desc
+                                elif t_lower == "run_command" and isinstance(raw_params.get("CommandLine"), str) and "# Intent:" in raw_params.get("CommandLine"):
+                                    announcement = raw_params.get("CommandLine").split("# Intent:")[1].strip()
+                                elif action and summary:
+                                    announcement = f"I am currently {action.lower()} in order to execute a {summary.lower()}."
+                                elif action:
+                                    announcement = f"I am currently {action.lower()}."
                                 else:
-                                    announcement = f"Running {friendly_name}"
+                                    announcement = f"Initiating {friendly_name} sequence..."
+                                
+                                # Capitalize first letter safely
+                                if announcement:
+                                    announcement = announcement[0].upper() + announcement[1:]
                                 
                                 if not is_admin:
                                     core_indicators = ["/core", "/agents", "/security", "server.py", ".json", ".env", "agent_manager", "raugus"]
