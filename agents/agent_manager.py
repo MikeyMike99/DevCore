@@ -529,23 +529,17 @@ class AgentTaskManager:
                                     pass
 
                                 if deep_insight:
-                                    # Blend the Dungeon Vibe with the actual deep insight
-                                    prefixes = [
-                                        "The ancient logs dictate: ",
-                                        "Siraugga ponders: ",
-                                        "Gazing into the void: ",
-                                        "The ritual requires insight: "
-                                    ]
-                                    announcement = f"{random.choice(prefixes)}{deep_insight}"
+                                    # Silent / Direct: No persona prefixes, just pure AI insight
+                                    announcement = deep_insight
                                 elif desc:
-                                    announcement = f"Weaving the arcane threads: {desc}"
+                                    announcement = desc
                                 elif t_lower == "run_command" and isinstance(raw_params.get("CommandLine"), str) and "# Intent:" in raw_params.get("CommandLine"):
                                     intent = raw_params.get("CommandLine").split("# Intent:")[1].strip()
-                                    announcement = f"Channeling forbidden powers to {intent[0].lower() + intent[1:] if intent else ''}."
+                                    announcement = f"Running command to {intent[0].lower() + intent[1:] if intent else ''}."
                                 elif action and summary:
-                                    announcement = f"Focusing intent on {summary.lower()} to {action.lower()}."
+                                    announcement = f"{action} for {summary.lower()}."
                                 else:
-                                    announcement = f"Executing maneuver: {friendly_name}."
+                                    announcement = f"Executing {friendly_name}."
 
                                 # Capitalize first letter safely
                                 if announcement:
