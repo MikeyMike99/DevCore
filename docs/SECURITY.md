@@ -8,7 +8,7 @@ When embedding this AI portal inside developer workflows and game engines for un
 
 ### 1. Symlink Traversal (CWE-59)
 - **Vulnerability**: An unprivileged developer creates a symlink within their assigned project folder pointing to sensitive host files:
-  `ln -s ../../server.py safe_dialogue.json`
+  `ln -s ../../App Router Module safe_dialogue.json`
   Traditional path checking using `os.path.abspath()` only normalizes dot-dot strings without dereferencing filesystem links, allowing unauthorized reads and overwrites of core files.
 - **Mitigation Applied**: `SecurityManager.resolve_safe_path()` now uses `os.path.realpath()`. It resolves all filesystem links to their canonical physical destination and asserts that the physical path resides strictly within the real project directory boundary.
 
@@ -46,3 +46,21 @@ When embedding this AI portal inside developer workflows and game engines for un
   - Maximum 180-second hard timeout enforced on agent execution (`--print-timeout 180s`).
   - Maximum file write size capped at 500 KB per transaction in `SecurityManager`.
   - Memory-safe sequence queue with bounded capacity (1,000 messages maximum).
+
+---
+
+### 5. Dynamic Tool Feed Bleed (CWE-200 / CWE-497)
+- **Vulnerability**: While file I/O operations are strictly blocked by the Raugus Firewall, the AI's internal "thinking process" (dynamic tool summaries, intended command line executions) is broadcasted live to the WebSocket accessibility feed. A malicious developer could use prompt injection to bait the AI into analyzing core files, relying on the `toolAction` or `CommandLine` stream to leak internal architectural paths before the firewall ultimately denies the request.
+- **Mitigation Applied**: `AgentTaskManager` now features Stealth Obfuscation. Before any tool execution payload is broadcasted, the server scans the JSON for core architecture indicators (`/core`, `server.py`, etc.). If a non-admin triggers these indicators, the server silently scrubs the sensitive values and overwrites the screen reader announcement with a benign, innocuous string (`"Running a routine background check..."`). This neutralizes the user's ability to map the architecture via feed snooping.
+
+---
+
+### 6. Source Code Disclosure via Backup Files (CWE-530)
+- **Vulnerability**: When automated tools (like the MCP Line Editor) dynamically modify configuration scripts or environment variables (`server.py`, `.env`), standard programming practice often dictates creating a quick `.bak` or `.orig` file as an undo mechanism. However, if these files are generated within directories served by a web server, the web server's security configurations may not recognize `.bak` extensions as restricted. This allows attackers to bypass execution controls and download raw source code, secrets, or API keys directly over HTTP.
+- **Mitigation Applied**: The architecture strictly bans in-place artifact backups (`.bak`, `.tmp`) for file modifications. The MCP Line Editor modifies target files strictly in-place, relying exclusively on `git` for state recovery. This adheres to the Global Clean Workspace Protocol and ensures zero persistent digital clutter.
+
+---
+
+### 7. MCP Tool Evasion (CWE-284)
+- **Vulnerability**: Custom Model Context Protocol (MCP) tools operate outside the standard built-in toolset (e.g. `replace_file_content`). An agent using a custom tool like `edit_lines` could bypass the AST Diffing and Semantic Firewall checks, modifying locked core functions simply because the interceptor doesn't recognize the tool name.
+- **Mitigation Applied**: The `raugus_hook.py` PreToolUse interceptor and the `AgentTaskManager` orchestration engine explicitly whitelist and map arguments for custom MCP tools (`edit_lines`). The AST Diffing engine successfully extracts `start_line`, `end_line`, and `new_code`, projecting the edits into memory to verify function-level write permissions against the `raugus_map.json` before allowing execution.

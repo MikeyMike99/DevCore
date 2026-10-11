@@ -69,13 +69,13 @@ See our paper in Multi-Agent Collaboration via Evolving Orchestration.
   
 
 • September 20, 2023: The **Human-Agent-Interaction** mode is now available! You can get involved with the ChatDev team by playing the role of reviewer  and making suggestions to the programmer ;
-  try ``python3 run.py --task [description_of_your_idea] --config "Human"``. See guide and example.
+  try ``python3 Core Component --task [description_of_your_idea] --config "Human"``. See guide and example.
   
   
   
 
 • September 1, 2023: The **Art** mode is available now! You can activate the designer agent  to generate images used in the software;
-  try ``python3 run.py --task [description_of_your_idea] --config "Art"``. See guide and example.
+  try ``python3 Core Component --task [description_of_your_idea] --config "Art"``. See guide and example.
   
 • August 28, 2023: The system is publicly available.
 
@@ -134,7 +134,7 @@ make dev
 1.  **Start Backend**:
     ```bash
     # Run from the project root
-    uv run python server_main.py --port 6400 --reload
+    uv run python Core Component --port 6400 --reload
     ```
     > `--reload` watches the server's Python source folders only; agent-generated files under `WareHouse/` no longer trigger restarts. Pass `--reload-dir` or `--reload-exclude` (repeatable) to customise.
 

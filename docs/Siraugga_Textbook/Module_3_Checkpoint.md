@@ -20,7 +20,7 @@
 *   **Protocols & HMAC:** Secure protocols authenticate data to prevent unauthorized access. DevCore employs Semantic HMAC (for WebSocket hashing), EAP, Semantic CHAP (mid-task challenges), RADI (RADIUS for quick NPC auth), TACAS+ (encrypted TCP for Admins), and Cerberus (Kerberos Ticket system).
 
 ### Chapter 13: AAA Usage and Operation
-*   **Security Policy & Centralized AAA:** A network must control who connects and what they do. DevCore relies on Centralized AAA (`server.py`) which is highly scalable and maintains strict authorization databases independent of the local clients.
+*   **Security Policy & Centralized AAA:** A network must control who connects and what they do. DevCore relies on Centralized AAA (`App Router Module`) which is highly scalable and maintains strict authorization databases independent of the local clients.
 *   **AAA Accounting:** Mandates a system that tracks exactly what an authenticated entity did. DevCore collects connection, system, and most importantly, EXEC (Command) accounting—logging every `run_command` bash string executed by the swarm directly into the AAA logs (`transcript.jsonl`).
 
 ---
@@ -36,4 +36,4 @@
 *   **Source Requirement:** *Administrator, user, service, guest accounts. Least privilege. SSO, OAuth, Password Vault, KBA, HMAC. Authentication protocols (EAP, CHAP, RADIUS, TACACS+, Kerberos).*
     *   **Review Status:** **VERIFIED.** Addressed in Chapter 12. The Tier System perfectly maps the account types. Auth management mapped to FAIM and Third-Party delegation. All 5 protocols were directly translated into DevCore’s WSS communication layer (Semantic CHAP, TACAS+, Cerberus).
 *   **Source Requirement:** *Centralized AAA authentication vs Local. RADIUS vs TACACS+. AAA accounting logs (connection, EXEC, system, command).*
-    *   **Review Status:** **VERIFIED.** Addressed in Chapter 13. `server.py` acts as the Centralized server. RADI (NPCs) and TACAS+ (Admins) were contrasted. EXEC and Command accounting precisely mirror the `transcript.jsonl` bash logging system.
+    *   **Review Status:** **VERIFIED.** Addressed in Chapter 13. `App Router Module` acts as the Centralized server. RADI (NPCs) and TACAS+ (Admins) were contrasted. EXEC and Command accounting precisely mirror the `transcript.jsonl` bash logging system.

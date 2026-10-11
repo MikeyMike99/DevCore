@@ -2,6 +2,8 @@
 
 This document outlines the core security tools and methodologies integrated into the application to protect sensitive data, prevent malicious inputs, and enforce strict execution boundaries.
 
+**Note on AI Engine:** Currently, this system uses Google's Gemini models for its core orchestration and AI interactions (referred to herein as Siraugga). However, the architecture is designed to be model-agnostic and the underlying AI engine may be swapped out for other applications or LLMs in future iterations.
+
 ## 1. Data Loss Prevention (DLP) & PII Redaction
 
 **Tool/Library**: Microsoft Presidio (powered by spaCy NLP)

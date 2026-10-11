@@ -13,7 +13,7 @@ In a massive DevCore Swarm, an AI's entire reality consists of data—specifical
 To protect proprietary game development from corporate espionage or interceptors, Tier 5 Admins rely on **Context Cryptography**. Encryption scrambles a readable prompt (plaintext) into disguised, unreadable tokens (ciphertext). It requires a cryptographic key to reverse the process.
 
 DevCore utilizes two distinct classes of encryption:
-*   **Internal Swarm Encryption (Symmetric):** Uses a single, pre-shared key to both encrypt and decrypt data. The Orchestrator uses AES (Advanced Encryption Standard) with a 256-bit key to rapidly encrypt Context at Rest (saving transcripts to disk). It is incredibly fast, making it ideal for massive internal swarms.
+*   **Internal Swarm Encryption (Symmetric):** Uses a single, pre-shared key to both encrypt and decrypt data. The Orchestrator uses Standard Encryption (Advanced Encryption Standard) with a 256-bit key to rapidly encrypt Context at Rest (saving transcripts to disk). It is incredibly fast, making it ideal for massive internal swarms.
 *   **Decentralized Modder Encryption (Asymmetric):** Uses two different keys—a public key for encryption and a private key for decryption. When a remote Modder connects to the Orchestrator, they use algorithms like RSA or ECC (Elliptic Curve Cryptography) to securely encrypt their Context in Transit. Only the Orchestrator possesses the private key required to decrypt the Modder's prompt. 
 
 ## 33.3 Semantic Hashing and History Verification
@@ -30,7 +30,7 @@ This is a critical defense against **Gaslighting (Prompt Injection)**. If a mali
 
 ## Chapter 33 Conclusion and Master Review
 
-Chapter 33 establishes the cryptographic boundaries of an AI's memory. By layering AES symmetric encryption for stored data, RSA asymmetric encryption for WebSocket transit, and SHA-256 Semantic Hashing to guarantee the integrity of conversational history, Tier 5 Admins ensure that proprietary Swarm logic remains unbreakable.
+Chapter 33 establishes the cryptographic boundaries of an AI's memory. By layering Standard Encryption symmetric encryption for stored data, RSA asymmetric encryption for WebSocket transit, and SHA-256 Semantic Hashing to guarantee the integrity of conversational history, Tier 5 Admins ensure that proprietary Swarm logic remains unbreakable.
 
 ### Traditional IT vs. DevCore Agentic Lore (Chapter 33 Translation Guide)
 
@@ -38,6 +38,6 @@ To maintain absolute clarity, here is how the traditional Data Security domains 
 
 *   **States of Data** $\rightarrow$ **States of Context:** Context at Rest (Transcripts on disk), Context in Transit (WebSockets), Context in Process (RAM/GPU Generation).
 *   **Plaintext vs Ciphertext** $\rightarrow$ **Readable Prompts vs Disguised Tokens:** The result of cryptographic scrambling.
-*   **Symmetric Encryption (AES)** $\rightarrow$ **Internal Swarm Encryption:** A fast, single-key system used by the Orchestrator to encrypt its own internal transcripts and memory states.
+*   **Symmetric Encryption (Standard Encryption)** $\rightarrow$ **Internal Swarm Encryption:** A fast, single-key system used by the Orchestrator to encrypt its own internal transcripts and memory states.
 *   **Asymmetric Encryption (RSA, ECC)** $\rightarrow$ **Decentralized Modder Encryption:** A dual-key system used to securely transmit data from untrusted remote Modders across the internet to the central Orchestrator.
 *   **Hashing (SHA-256)** $\rightarrow$ **Semantic Hashing (History Verification):** A one-way mathematical function used to guarantee that a malicious user hasn't secretly altered the AI's conversational history to perform a Prompt Injection.

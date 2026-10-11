@@ -3,7 +3,7 @@
 The history of this ecosystem is not just in the code that was written months ago, but in the chaotic, grueling 24-hour sprint required to document it all. The goal was simple: catalog every project across the C, D, and E drives into a single Developer's Manifesto. The reality was a technical crucible.
 
 ### The 317,000-Line Catastrophe
-It began with automation. Python scripts (`auto_archive_loop.py` and `auto_docs_loop.py`) were deployed to recursively scan the hard drives, extracting Abstract Syntax Trees (AST), classes, and functions from projects like `PANIC_BOT`, `trading_bots`, and `e_profile`. The scripts were ruthless in their efficiency. 
+It began with automation. Python scripts (`Core Component` and `Core Component`) were deployed to recursively scan the hard drives, extracting Abstract Syntax Trees (AST), classes, and functions from projects like `PANIC_BOT`, `trading_bots`, and `e_profile`. The scripts were ruthless in their efficiency. 
 
 But they were too efficient. 
 
@@ -12,7 +12,7 @@ In addition to the code blueprints, the scripts accidentally ingested massive, r
 The infrastructure collapsed under the weight. The IDE's Language Server Protocol (LSP) timed out and crashed (`Error: Request textDocument/codeAction failed`). More importantly, the massive file became completely unnavigable for the NVDA screen reader. The text was trapped in a monolithic data dump.
 
 ### The Custom Pygame Reader
-When the tools fail, you build new ones. Unable to read the bloated manifesto, the developer paused the documentation effort to engineer a lifeline: `manifesto_reader.py`. 
+When the tools fail, you build new ones. Unable to read the bloated manifesto, the developer paused the documentation effort to engineer a lifeline: `Core Component`. 
 
 This was a custom-built Pygame application designed specifically to bypass the crushed IDE and interface directly with the NVDA screen reader via `accessible_output2`. Because NVDA violently intercepts standard keys, the developer implemented custom event-loop traps (like `Right Shift + Down` for Auto-Read and `Capslock` bindings), dynamic Words-Per-Minute (WPM) latency controls, and a `tkinter`-based `Ctrl + F` search to jump through the file. It was a surgical tool built in the heat of battle just to read the data.
 

@@ -32,7 +32,7 @@ The infrastructure is compartmentalized into the following definitive tiers:
 *   **Tiers 1 & 2 (The Safe Workspace & Modders):** The playground for standard users and third-party Modders. Operational assets—game scripts, JSON state data (`npc_state.json`), and localized documentation—reside here. Agents spawned here are strictly sandboxed and physically incapable of looking beyond their assigned project directory.
 *   **Tier 3 (Developers):** Jailed strictly to assigned game project folders. They have read/edit access to their safe workspace but are denied direct access to root files.
 *   **Tier 4 (The Forbidden Zone / Admin Logs):** Daemon logs (`upgrade.log`), virtual environments (`venv/`), Git internals, and hidden `.env` credential files. These are hard-locked. If a Subagent attempts a path-traversal attack to access a Tier 4 asset, the connection is instantly severed.
-*   **Tier 5 (The Core Engine & Admins):** The beating heart of the system (`server.py`, `agent_manager.py`). These assets are completely invisible to anyone without absolute Tier 5 Administrator clearance. Admins have full, unfettered access to all workspaces and logs.
+*   **Tier 5 (The Core Engine & Admins):** The beating heart of the system (`App Router Module`, `Task Orchestrator Module`). These assets are completely invisible to anyone without absolute Tier 5 Administrator clearance. Admins have full, unfettered access to all workspaces and logs.
 
 ### The Semantic Firewall in Action (Examples of Access Control)
 Rather than a traditional firewall that simply blocks IP ports, Siraugga uses a **Semantic Firewall (The Raugus Resolver)** to enforce these tiers dynamically by analyzing the *intent* of the payload.

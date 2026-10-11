@@ -1,4 +1,5 @@
 import os
+from security.raugus_resolver import resolver
 
 class ProjectManager:
     """
@@ -37,6 +38,10 @@ class ProjectManager:
             raise ValueError("Invalid project name")
         
         project_dir = os.path.join(self.base_dir, name)
+        
+        # Enforce Path Security against Raugus Map VFS (Tier 1: Safe Workspace)
+        resolver.enforce_path_security(project_dir, user_tier=1)
+        
         if os.path.exists(project_dir):
             raise FileExistsError("Project already exists")
         
@@ -52,6 +57,10 @@ class ProjectManager:
             raise ValueError("Invalid project name")
         
         project_dir = os.path.join(self.base_dir, name)
+        
+        # Enforce Path Security against Raugus Map VFS (Tier 1: Safe Workspace)
+        resolver.enforce_path_security(project_dir, user_tier=1)
+        
         if not os.path.isdir(project_dir):
             raise FileNotFoundError(f"Project directory '{name}' does not exist")
         

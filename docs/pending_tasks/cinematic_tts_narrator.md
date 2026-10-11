@@ -6,7 +6,7 @@ To transcend the standard chat interface and build an immersive, highly accessib
 2. **The In-Game Narrator:** Provide an API hook so the game engine can trigger the TTS plugin to narrate quests, ops briefings, and environmental lore, entirely bypassing the need for generic, monotonous OS-level screen readers (like NVDA or VoiceOver) during gameplay.
 
 ## 2. The Security Model (Zero-Trust)
-The core agent logic (`server.py`, `agent_manager.py`) **must never** directly connect to the internet or external TTS APIs.
+The core agent logic (`App Router Module`, `Task Orchestrator Module`) **must never** directly connect to the internet or external TTS APIs.
 - The TTS engine will be built as an isolated **Peripheral Plugin** (`/plugin/tts`).
 - The core agent simply outputs standard Markdown text.
 - The Proxy Plugin intercepts that text, makes the outbound request to ElevenLabs, downloads the audio byte stream, and serves it to the frontend.
@@ -18,7 +18,7 @@ The core agent logic (`server.py`, `agent_manager.py`) **must never** directly c
 
 ### Phase 1: Infrastructure & Configuration
 - [ ] **Config Slot:** Add an `elevenlabs_api_key` and `voice_id` slot to `ui_config.json`.
-- [ ] **Raugus Map Update:** Register a new abstract route for the TTS plugin in `security/raugus_map.json` (e.g., `devcore.plugins.tts_proxy.py`).
+- [ ] **Raugus Map Update:** Register a new abstract route for the TTS plugin in `security/raugus_map.json` (e.g., `devcore.plugins.Core Component`).
 - [ ] **The Proxy Endpoint:** Create the backend route `@app.route('/api/plugin/tts')`. This endpoint will accept a JSON payload `{"text": "Hello"}` and return binary audio data (`audio/mpeg`).
 
 ### Phase 2: Frontend Chat Integration

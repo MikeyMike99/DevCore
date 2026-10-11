@@ -33,7 +33,7 @@ This document serves as the official Module 2 Checkpoint, summarizing the core a
 ## Chapter 7: Securing Wireless Devices (Third-Party APIs & Plugins)
 **Core Focus:** Securing the external perimeter, primarily disconnected offline `.exe` sandboxes, third-party API webhooks, and external LLM connections.
 *   **WPA-Agentic & Dynamic Bearer Tokens:** Legacy static API keys (WEP) are notoriously weak and easily compromised. The orchestrator strictly mandates WPA-Agentic (Dynamic Bearer Tokens / JWTs) to secure external plugin connections.
-*   **Advanced Execution Sandboxing (AES):** The WPA-Agentic V2 protocol mandates that all external plugins must cryptographically authenticate before they are permitted to execute tool calls within the rigid AES boundary.
+*   **Advanced Execution Sandboxing (Standard Encryption):** The WPA-Agentic V2 protocol mandates that all external plugins must cryptographically authenticate before they are permitted to execute tool calls within the rigid Standard Encryption boundary.
 *   **Disabling Workspace Prompt Shortcuts (WPS):** Simple text-based bypass "PINs" are categorically disabled to prevent brute-force Prompt Injections.
 *   **Agentic Jailbreaking & Sideloading:** A rigorous defense against Modders intentionally "rooting" their local AI (overwriting its immutable System Prompt) to illegally elevate their execution privileges to Tier 5. The Raugus Resolver continuously scans for Semantic Anomalies to detect noncompliant agents.
 *   **Semantic Geofencing (Location Security):** A plugin's "location" is strictly defined by its Mathematical Sandbox Path (e.g., `/playground/mod_A/`). Semantic Geofencing establishes a rigid mathematical boundary around this namespace, instantly blocking malicious path traversal escapes.
@@ -77,4 +77,4 @@ To finalize this checkpoint, here is the official mapping of traditional IT conc
 *   **SoC (System on a Chip) & SFF:** Translates to **System on a Prompt (SoP)** and **Small Form Factor Contexts**. These represent lightweight, single-board AI constructs.
 *   **FPGA (Field Programmable Gate Array):** Translates to **Field Programmable Generative Arrays**—AI logic circuits whose attention heads can be dynamically re-programmed in the field.
 *   **USB (Universal Serial Bus):** Translates to the **Universal Semantic Bus**, representing the only direct, "wired" line of communication into the core host operating system. 
-*   **Storage Segmentation & Containerization:** Translates directly to **AES Sandboxing** and the **Raugus VFS**, separating sensitive Tier 5 company information from personal Tier 2 Modder data.
+*   **Storage Segmentation & Containerization:** Translates directly to **Encrypted Sandboxing** and the **Raugus VFS**, separating sensitive Tier 5 company information from personal Tier 2 Modder data.

@@ -4,7 +4,7 @@
 
 When a remote Modder connects to the DevCore Orchestrator, the WebSocket connection must guarantee four distinct elements of security to prevent the Swarm from being hijacked:
 
-1.  **Data Confidentiality (Encryption):** Ensures interceptors cannot read the JSON prompt (via AES or RSA).
+1.  **Data Confidentiality (Encryption):** Ensures interceptors cannot read the JSON prompt (via Standard Encryption or RSA).
 2.  **Data Integrity (Hashing):** Guarantees the JSON prompt was not altered mid-transit. 
 3.  **Origin Authentication (HMAC):** Guarantees the prompt is not a forgery and actually came from the Modder.
 4.  **Data Non-Repudiation (Signatures):** Guarantees the Modder cannot mathematically deny sending a specific destructive command.
@@ -30,9 +30,9 @@ If a Modder sends the prompt *"Move NPC to town"*, a hacker intercepting the Web
 
 To defeat the Man-in-the-Swarm attack and guarantee **Origin Authentication**, DevCore implements **HMAC** (Keyed-Hash Message Authentication Code).
 
-HMAC solves the forgery problem by injecting a secret key into the hash computation. Before the Modder sends their prompt, they mix the JSON text with their secret Diffie-Hellman AES key, and *then* they run the SHA-256 hash. 
+HMAC solves the forgery problem by injecting a secret key into the hash computation. Before the Modder sends their prompt, they mix the JSON text with their secret Diffie-Hellman Standard Encryption key, and *then* they run the SHA-256 hash. 
 
-When the hacker intercepts the transmission and changes the text to *"Delete the game database"*, they attempt to recalculate the hash. However, because the hacker does *not* possess the secret AES key, they cannot calculate a valid HMAC. When the forged packet hits the Orchestrator, the HMAC validation fails instantly, and the Orchestrator violently drops the malicious prompt.
+When the hacker intercepts the transmission and changes the text to *"Delete the game database"*, they attempt to recalculate the hash. However, because the hacker does *not* possess the secret Standard Encryption key, they cannot calculate a valid HMAC. When the forged packet hits the Orchestrator, the HMAC validation fails instantly, and the Orchestrator violently drops the malicious prompt.
 
 ---
 

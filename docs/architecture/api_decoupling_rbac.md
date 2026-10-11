@@ -3,7 +3,7 @@
 **Phase:** Security & RBAC Lockdown (Tier 1 Sandbox Isolation)
 
 ## 1. Vulnerability Finding: The File-Level Classification Flaw
-During our audit of `security_manager.py`, we identified a massive structural flaw in how `classify_file()` worked. Originally, the system only matched against a flat list of `CORE_FILES` (e.g., `server.py`). 
+During our audit of `Access Control Module`, we identified a massive structural flaw in how `classify_file()` worked. Originally, the system only matched against a flat list of `CORE_FILES` (e.g., `App Router Module`). 
 
 Because it did not recursively check directory trees, files like `core/ui_config.json` or `sandbox/templates/index.html` were falsely classified as `TIER_SAFE_WORKSPACE` merely because they had a `.json` or `.html` extension. If a lower-tier agent (like a `gamedev` role) managed to bypass the path-anchoring jail, they would have had the required permissions to modify the entire frontend interface or backend configuration files.
 

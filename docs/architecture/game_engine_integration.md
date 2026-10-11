@@ -16,7 +16,7 @@ The Game Engine and the Agent do not share memory; they communicate exclusively 
 
 ## 3. Sandbox Constraints (Zero-Trust Security)
 Because the agent runs locally on the player's machine, it is highly restricted to prevent rogue code execution or OS-level damage.
-* When the game invokes the agent, the backend `security_manager.py` jails the agent's operations strictly to a designated Safe Workspace (e.g., the game's `/playground`, `/mods/`, or `/saves/` directory).
+* When the game invokes the agent, the backend `Access Control Module` jails the agent's operations strictly to a designated Safe Workspace (e.g., the game's `/playground`, `/mods/`, or `/saves/` directory).
 * The agent is fundamentally blocked from accessing System32, the user's personal documents, or the game's core compiled engine files. It may only read/write dynamic assets (JSON, Lua, dialogue trees) within the safe tier.
 
 ## 4. UI Rendering Strategies
@@ -27,5 +27,5 @@ The parent Game Engine is entirely responsible for rendering the agent to the pl
 ## 5. Protecting Host Source Code (Zero-Trust Injection)
 A critical requirement of plugging this agent into third-party projects is guaranteeing that the AI cannot accidentally (or maliciously) modify the parent application's proprietary source code.
 * **Workspace Confinement:** When the parent application starts the daemon, it designates a strictly confined directory (e.g., `C:\MyGame\Player_Mods\`). 
-* **Path Traversal Defense:** The internal `security_manager.py` uses strict `os.path.realpath` boundary checks. If the agent attempts to use directory traversal (e.g., reading `../../src/main_engine.cpp`) to look at the host application's source code, the backend intercepts the filesystem call, instantly blocks the execution, and returns a `PermissionError`.
+* **Path Traversal Defense:** The internal `Access Control Module` uses strict `os.path.realpath` boundary checks. If the agent attempts to use directory traversal (e.g., reading `../../src/main_engine.cpp`) to look at the host application's source code, the backend intercepts the filesystem call, instantly blocks the execution, and returns a `PermissionError`.
 * **The Guarantee:** The parent application's source code, host OS files, and intellectual property remain 100% invisible and physically inaccessible to the AI agent. It can only "see" the exact sandbox folder the parent application gives it.

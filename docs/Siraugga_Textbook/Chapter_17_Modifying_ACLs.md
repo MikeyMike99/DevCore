@@ -4,7 +4,7 @@
 
 After an Agentic Control List (ACL) is deployed to the active Orchestrator, it often requires modification. A Tier 5 Admin might realize an ACE (Agentic Control Entry) is accidentally blocking a legitimate QA Agent from testing a level, or worse, a typo in a UUID has left the `core_engine` exposed. 
 
-Because DevCore strictly adheres to a **Zero-Restart Policy**, shutting down `server.py` to fix a typo is unacceptable. It drops all active WebSocket connections and disrupts the live game state. Instead, Admins must "hot-patch" the ACLs while the AI Swarm continues to operate. 
+Because DevCore strictly adheres to a **Zero-Restart Policy**, shutting down `App Router Module` to fix a typo is unacceptable. It drops all active WebSocket connections and disrupts the live game state. Instead, Admins must "hot-patch" the ACLs while the AI Swarm continues to operate. 
 
 There are two primary methods for hot-patching an active ACL:
 1.  **The Crucible Purge (Text Editor Method)**
@@ -37,7 +37,7 @@ Because appending new rules simply adds them to the absolute bottom of the list 
 
 To avoid the dangerous exposure window of a full Purge, DevCore supports **Agentic Sequence Injection**. 
 
-When the `agent_manager.py` compiles an ACL, it automatically assigns a mathematical **Sequence Number** to every single ACE, typically incrementing by 10 (e.g., 10, 20, 30). This allows Admins to perform surgical strikes on an active list without bringing the rest of the security filter down.
+When the `Task Orchestrator Module` compiles an ACL, it automatically assigns a mathematical **Sequence Number** to every single ACE, typically incrementing by 10 (e.g., 10, 20, 30). This allows Admins to perform surgical strikes on an active list without bringing the rest of the security filter down.
 
 While the `show run` command hides these numbers, they can be exposed using the specific `show acl` command:
 
@@ -72,5 +72,5 @@ To maintain absolute clarity, here is the master translation of traditional ACL 
 
 *   **Text Editor Method** $\rightarrow$ **The Crucible Purge:** The brute-force method of ripping an entire ACL out of the active router (Orchestrator), editing it offline, and pasting it back in. It carries the risk of a split-second security blackout.
 *   **Sequence Number Method** $\rightarrow$ **Agentic Sequence Injection:** The surgical method of targeting an individual ACE by its numerical index, allowing Admins to hot-patch security rules on the fly.
-*   **Sequence Numbers (10, 20, 30)** $\rightarrow$ **Agentic Sequence Numbers:** The automatic index IDs assigned to every rule by `agent_manager.py` to allow for zero-downtime injection and deletion.
+*   **Sequence Numbers (10, 20, 30)** $\rightarrow$ **Agentic Sequence Numbers:** The automatic index IDs assigned to every rule by `Task Orchestrator Module` to allow for zero-downtime injection and deletion.
 *   **`show access-lists`** $\rightarrow$ **`agy show acl`:** The command used to expose the hidden Sequence Numbers of the active swarm filters.

@@ -93,6 +93,11 @@
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden">
+    <!-- Screen Reader Live Region for Announcements -->
+    <div id="sr-announcer" role="status" aria-live="polite" aria-atomic="false" class="sr-only"></div>
+    <div id="sr-alerts" role="alert" aria-live="assertive" aria-atomic="false" class="sr-only"></div>
+    <!-- Agent verification sequence: testing contextual writing intents -->
+
 
     <!-- Custom UI Components -->
     <div id="custom-toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none"></div>
@@ -109,9 +114,7 @@
     </dialog>
 
 
-    <!-- Screen Reader Live Region for Announcements -->
-    <div id="sr-announcer" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
-    <div id="sr-alerts" role="alert" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
 
     <!-- Skip Links for Keyboard / Screen Reader Navigation -->
     <a href="#prompt" class="sr-only skip-link bg-teal-600 text-white font-medium z-50 rounded m-2 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-teal-400">Skip to prompt input</a>
@@ -299,6 +302,15 @@
                 </div>
             </div>
 
+            <!-- Danger Mode Checkbox -->
+            <div class="flex items-center gap-2 bg-rose-950/20 border border-rose-900/50 rounded-lg p-3 mt-1">
+                <input type="checkbox" id="admin-override-checkbox" class="w-4 h-4 rounded border-rose-800 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-950 cursor-pointer">
+                <label for="admin-override-checkbox" class="text-xs text-rose-200/80 font-medium cursor-pointer">
+                    <span class="text-rose-400 font-bold block mb-0.5">Danger Mode (Auto-Approve)</span>
+                    Bypass Sandbox and auto-approve limits.
+                </label>
+            </div>
+
             <!-- Project Selector -->
             <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <label for="project-selector" class="text-xs font-semibold text-teal-400 shrink-0">Project Workspace:</label>
@@ -324,10 +336,7 @@
             </div>
 
             <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-800">
-                <div class="flex items-center gap-2 mt-2 mb-2">
-                    <input type="checkbox" id="admin-override-checkbox" class="w-4 h-4 bg-slate-900 border-slate-700 rounded text-teal-500 focus:ring-teal-500 focus:ring-2">
-                    <label for="admin-override-checkbox" class="text-sm font-medium text-slate-300">Enable Admin Override</label>
-                </div>
+                <!-- Admin override moved to backend environment variable -->
                 <button onclick="newConversation()" aria-label="Start a new chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium">✨ New Session</button>
                 <button onclick="renameConversation()" aria-label="Rename the current chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium">✏️ Rename Session</button>
                 <button onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium">↻ Reload Scripts</button>
@@ -401,9 +410,18 @@
         // Custom Marked renderer to avoid markdown headings polluting screen reader H/2 navigation
         var renderer = new marked.Renderer();
         
-        renderer.code = function(code, language) {
+        renderer.code = function(arg1, arg2) {
+            var codeText, language;
+            if (typeof arg1 === 'object' && arg1 !== null) {
+                codeText = arg1.text || '';
+                language = arg1.lang || '';
+            } else {
+                codeText = arg1 || '';
+                language = arg2 || '';
+            }
+
             // TIER 1 Code Blocker
-            if (currentUser && currentUser.role === 'guest') {
+            if (currentUser && (currentUser.role === 'guest' || currentUser.role === 'Tier1_Guest')) {
                 return `<div class="bg-red-950/80 border border-red-800 rounded-lg p-5 text-red-400 font-mono text-sm my-4 shadow-[0_0_15px_rgba(220,38,38,0.15)] flex flex-col items-center justify-center gap-3">
                     <i class="fas fa-lock text-3xl mb-2 text-red-500"></i>
                     <span class="font-bold tracking-widest uppercase">[ Tier 1 Restriction ]</span>
@@ -418,7 +436,7 @@
                         <i class="fas fa-copy"></i> Copy
                     </button>
                 </div>
-                <pre class="m-0"><code class="language-${escapeHtml(language||'text')} p-3 block overflow-x-auto text-sm text-slate-300 font-mono leading-relaxed" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(code)}</code></pre>
+                <pre class="m-0"><code class="language-${escapeHtml(language||'text')} p-3 block overflow-x-auto text-sm text-slate-300 font-mono leading-relaxed" style="white-space: pre-wrap; word-break: break-word;">${escapeHtml(codeText)}</code></pre>
             </div>`;
         };
 
@@ -456,11 +474,11 @@
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                         ${escapeHtml(artifactName)}
                     </div>
-                    <div class="text-sm text-slate-400 break-all">
-                        <a href="${escapeHtml(href)}" target="_blank" class="text-teal-400 hover:underline flex items-center gap-1 inline-flex">
+                    <div class="text-sm text-slate-500 break-all font-mono">
+                        <span class="flex items-center gap-1 inline-flex">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                            View Source File
-                        </a>
+                            ${escapeHtml(href)}
+                        </span>
                     </div>
                     <div class="flex mt-3 border-t border-teal-500/30 pt-4">
                         <button onclick="flipCardToPlan(this, '${escapeHtml(href)}')" class="bg-slate-800 border border-teal-700 hover:bg-slate-700 focus:ring-2 focus:ring-teal-400 focus:outline-none text-teal-400 font-medium py-2 px-5 rounded shadow transition-colors flex items-center gap-2 text-sm w-full justify-center">
@@ -519,9 +537,9 @@
                     return;
                 }
                 
-                var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
+                var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
 
-                if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.role === 'Tier5_SysAdmin') {
                     // TIER 5 (Super Admin): Direct File Access & Card Flip
                     var rawEditor = article.querySelector('.artifact-raw-editor');
                     if (!rawEditor) {
@@ -532,6 +550,8 @@
                     article.classList.add('is-flipped');
                     var flipBack = article.querySelector('.flip-back');
                     if (flipBack) flipBack.removeAttribute('aria-hidden');
+                    // Force screen reader focus into the edit box IMMEDIATELY so they instantly know it flipped!
+                    rawEditor.focus();
                 
                 try {
                     var res = await fetch('/api/artifacts?path=' + encodeURIComponent(url), { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') } });
@@ -539,15 +559,13 @@
                     if (data.content) {
                         rawEditor.value = data.content;
                         article.dataset.artifactUrl = url;
-                        // Force screen reader focus into the edit box so they instantly know it flipped!
-                        rawEditor.focus();
                     } else {
                         rawEditor.value = 'Failed to load artifact: ' + (data.error || 'Unknown error');
                     }
                 } catch (e) {
                     rawEditor.value = 'Network error fetching artifact.';
                 }
-                } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev') {
+                } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev' || currentUser.role === 'Tier3_Dev' || currentUser.role === 'Tier4') {
                     // TIER 3: Agentic Summarization (No flip, send prompt)
                     var promptText = "Please summarize the implementation plan at `" + url + "` for a Tier 3 Developer. Remove root credentials and Tier 5 secrets, but provide the technical architecture and logic.";
                     if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
@@ -591,6 +609,16 @@
                                 body: JSON.stringify({ path: url, content: rawEditor.value })
                             });
                             
+                            if (isTaskRunning) {
+                                sendCliInput(prompt);
+                            } else {
+                                var model = modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
+                                if (ws && ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({ type: 'prompt', prompt: prompt, model: model }));
+                                    appendSystemMessage("Proceeding with artifact...", "info");
+                                }
+                            }
+
                             // Expire the button to prevent accidental double-clicks or phantom Alt+P triggers
                             btn.innerHTML = '<i class="fas fa-check"></i> Expired';
                             btn.disabled = true;
@@ -604,22 +632,14 @@
                 }
             }
             
-            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
+            var model = typeof modelSelector !== 'undefined' && modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
             if (typeof appendUserMessage === 'function') {
                 appendUserMessage(prompt);
             }
-            var adminOverride = false;
-            var overrideCb = document.getElementById('admin-override-checkbox');
-            if (overrideCb) adminOverride = overrideCb.checked;
-
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
-                    type: 'prompt',
-                    prompt: prompt,
-                    model: model,
-                    conversation_id: typeof currentConversationId !== 'undefined' ? currentConversationId : null,
-                    admin_override: adminOverride,
-                    token: typeof authToken !== 'undefined' ? authToken : ''
+                    type: 'cli_input',
+                    input: 'A'
                 }));
             }
             if (typeof announce === 'function') {
@@ -651,7 +671,7 @@
                     } else {
                         showLoginOverlay(authData);
                     }
-                } else if (authData.authenticated === true && (currentUser.role === 'super_admin' || currentUser.role === 'admin')) {
+                } else if (authData.authenticated === true && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'Tier5_SysAdmin')) {
                     injectAdminDashboardButton();
                 }
             } catch (e) {
@@ -1236,12 +1256,6 @@
         }
 
         var overrideCb = document.getElementById('admin-override-checkbox');
-        if (overrideCb) {
-            overrideCb.checked = localStorage.getItem('agy_admin_override') === 'true';
-            overrideCb.addEventListener('change', function() {
-                localStorage.setItem('agy_admin_override', this.checked);
-            });
-        }
 
         // Load saved chat from localStorage on startup
         loadChatHistory();
@@ -1249,10 +1263,19 @@
         function announce(text, isAlert) {
             var target = isAlert ? srAlerts : srAnnouncer;
             if (!target) return;
-            target.textContent = '';
-            setTimeout(function() {
-                target.textContent = text;
-            }, 50);
+            
+            // Do NOT clear the region immediately, otherwise fast back-to-back announcements 
+            // (like a tool finishing right before the final response) will overwrite each other!
+            // Just append a block so the screen reader queues them sequentially.
+            var span = document.createElement('div');
+            span.textContent = text;
+            target.appendChild(span);
+            
+            // Automatically clear out the nodes after 5 seconds
+            if (target.cleanupTimeout) clearTimeout(target.cleanupTimeout);
+            target.cleanupTimeout = setTimeout(function() {
+                target.innerHTML = '';
+            }, 5000);
         }
 
         function onModelChange() {
@@ -1480,21 +1503,13 @@
             }
             else if (data.type === 'model_fallback') {
                 if (taskModelBadge) {
-                    taskModelBadge.innerText = data.fallback_model + " (Forced)";
+                    taskModelBadge.innerText = data.fallback_model + " (Forced for this request)";
                     taskModelBadge.classList.add("text-yellow-400");
                     taskModelBadge.classList.remove("text-teal-400");
                 }
-                if (typeof modelSelector !== 'undefined' && modelSelector) {
-                    var options = Array.from(modelSelector.options);
-                    var optionExists = options.some(opt => opt.value === data.fallback_model);
-                    if (optionExists) {
-                        modelSelector.value = data.fallback_model;
-                        localStorage.setItem('agy_selected_model', data.fallback_model);
-                    }
-                }
-                appendSystemMessage("⚠️ QUOTA EXCEEDED / FALLBACK: " + data.message, "warning");
+                appendSystemMessage("⚠️ QUOTA EXCEEDED / FALLBACK: " + data.message + " (Your dropdown selection remains unchanged)", "warning");
                 if (typeof announce === 'function') {
-                    announce("Quota limit reached. System forcefully downgraded model to " + data.fallback_model);
+                    announce("Quota limit reached. System forcefully downgraded model for this request.");
                 }
             }
             else if (data.type === 'task_started') {
@@ -1537,8 +1552,7 @@
                         }
                     }
                 }
-                
-                announce("Action running: " + formatToolName(data.action.tool));
+                // [MUTED] announce(data.action.announcement || 'Action started');
             }
             else if (data.type === 'action_done') {
                 if (!currentAgentArticle) {
@@ -1550,8 +1564,10 @@
                     var tName = data.action.tool.toLowerCase();
                     // Audio is handled in action_start to prevent overlapping
                 }
-                
-                announce("Action complete: " + formatToolName(data.action.tool));
+                // Insightful Outcome Generator Announcement
+                if (data.action.announcement !== "") {
+                    announce(data.action.announcement || 'Action complete');
+                }
             }
             else if (data.type === 'agent_chunk') {
                 if (!currentAgentArticle) {
@@ -1571,10 +1587,6 @@
             }
         }
 
-        function formatToolName(tool) {
-            if (!tool) return 'Operation';
-            return tool.replace(/_/g, ' ');
-        }
 
         function escapeHtml(str) {
             if (!str) return '';
@@ -1697,16 +1709,25 @@
                         statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Completed ' + elapStr;
                     }
                     
-                    var responseText = currentAgentArticle.dataset.rawMarkdown || "No response provided.";
+                    var responseText = currentAgentArticle.dataset.rawMarkdown;
+                    if (!responseText) {
+                        var hasArtifact = currentAgentArticle.querySelector('.flip-container');
+                        if (hasArtifact) {
+                            responseText = "[Artifact generated and loaded in the UI]";
+                        } else {
+                            responseText = "No response provided.";
+                        }
+                    }
                     var cleanText = responseText.replace(/[#*`_]/g, '').replace(/<[^>]+>/g, ' ');
-                    announce("Task completed successfully in " + elapStr + ". Response: " + cleanText);
+                    if (cleanText && cleanText !== "No response provided.") {
+                        announce("Task completed in " + elapStr + ". Response: " + cleanText);
+                    } else {
+                        announce("Task completed in " + elapStr);
+                    }
                 }
 
-                // Focus response heading for seamless screen reader accessibility
-                var respHeading = currentAgentArticle.querySelector('h2');
-                if (respHeading) {
-                    respHeading.focus();
-                }
+                // Removed forced focus stealing! Let ARIA Live handle the announcement
+                // so the user's cursor stays safely in the input box!
 
                 currentAgentArticle = null;
                 currentAgentId = null;
@@ -1813,7 +1834,10 @@
                         </div>
                     </div>
                     <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-sm flex-1">
-                        <div class="actions-list space-y-1.5 mb-2.5"></div>
+                        <details class="tool-logs-wrapper mb-2.5 border border-slate-800/60 rounded-lg bg-slate-950/30 overflow-hidden hidden">
+                            <summary class="px-3 py-1.5 text-xs text-slate-500 font-mono cursor-pointer hover:text-slate-400 hover:bg-slate-900/50 select-none">View Internal Tool Logs (<span class="actions-count">0</span>)</summary>
+                            <div class="actions-list space-y-1.5 p-2 bg-slate-900/40"></div>
+                        </details>
                         <div class="agent-text markdown-body text-slate-200 text-sm"></div>
                         <div class="typing-indicator flex items-center gap-2 text-xs text-teal-400 mt-2 font-medium" aria-hidden="true">
                             <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> Thinking &amp; streaming...
@@ -1833,7 +1857,7 @@
                             <i class="fas fa-undo"></i> Flip Back
                         </button>
                     </div>
-                    <div class="bg-slate-800/95 border border-amber-500/30 rounded-xl p-5 shadow-xl flex-1 flex flex-col" aria-live="polite">
+                    <div class="bg-slate-800/95 border border-amber-500/30 rounded-xl p-5 shadow-xl flex-1 flex flex-col">
                         <textarea id="artifact-editor-${msgId}" class="artifact-raw-editor w-full bg-transparent text-slate-200 text-sm outline-none flex-1 font-mono custom-scrollbar resize-none" spellcheck="false" aria-label="Artifact Content (Editable Markdown)">Loading...</textarea>
                         
                         <div class="mt-4 pt-4 border-t border-amber-500/30">
@@ -1857,12 +1881,15 @@
         function appendOrUpdateAction(action) {
             if (!currentAgentArticle || !action) return;
             var actionsList = currentAgentArticle.querySelector('.actions-list');
+            var logsWrapper = currentAgentArticle.querySelector('.tool-logs-wrapper');
+            var countSpan = currentAgentArticle.querySelector('.actions-count');
             if (!actionsList) return;
+            if (logsWrapper) logsWrapper.classList.remove('hidden');
 
             var actionId = 'act-' + (action.id || action.tool || 'op');
             var existing = document.getElementById(actionId);
 
-            var toolLabel = formatToolName(action.tool);
+            var toolLabel = action.friendly_name || (action.tool ? action.tool.replace(/_/g, ' ') : 'Operation');
             var isDone = action.status === 'done';
             var statusColor = isDone ? 'text-emerald-400' : 'text-cyan-400';
             var dotColor = isDone ? 'bg-emerald-400' : 'bg-cyan-400 animate-pulse';
@@ -1896,6 +1923,7 @@
                 details.className = 'tool-action border border-slate-800/90 rounded-lg bg-slate-950/60 overflow-hidden';
                 details.innerHTML = detailsHtml;
                 actionsList.appendChild(details);
+                if (countSpan) countSpan.textContent = actionsList.children.length;
             }
         }
 
@@ -1909,8 +1937,23 @@
             var div = document.createElement('div');
             div.className = 'flex justify-center my-2';
             var pill = document.createElement('div');
-            pill.className = `text-xs px-3.5 py-1 rounded-full border ${level === 'warning' ? 'bg-amber-950/80 text-amber-300 border-amber-800' : 'bg-slate-900 text-slate-400 border-slate-800'}`;
+            pill.className = `text-xs px-3.5 py-1 rounded-full border ${level === 'warning' ? 'bg-amber-950/80 text-amber-300 border-amber-800' : 'bg-slate-900 text-slate-400 border-slate-800'} flex items-center gap-2`;
             pill.innerText = msg;
+            
+            if (msg.includes("Waiting for manual user confirmation")) {
+                var proceedBtn = document.createElement('button');
+                proceedBtn.className = 'bg-amber-600 hover:bg-amber-500 text-white font-bold py-1 px-3 rounded text-xs ml-2 transition-colors';
+                proceedBtn.innerText = 'Proceed';
+                proceedBtn.onclick = function() {
+                    proceedBtn.disabled = true;
+                    proceedBtn.innerText = 'Sent...';
+                    if (isTaskRunning && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'cli_input', input: "Proceed\n" }));
+                    }
+                };
+                pill.appendChild(proceedBtn);
+            }
+            
             div.appendChild(pill);
             chatFeed.appendChild(div);
             chatFeed.scrollTop = chatFeed.scrollHeight;
@@ -1968,14 +2011,14 @@
 
             if (isTaskRunning) {
                 if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'cli_input', input: prompt }));
+                    ws.send(JSON.stringify({ type: 'cli_input', input: prompt + "\n" }));
                     appendSystemMessage("Injected input: " + prompt, "info");
                     inputEl.value = '';
                 }
                 return;
             }
 
-            var model = modelSelector ? modelSelector.value : 'gemini-3.8-flash-low';
+            var model = modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
 
             if (!currentConversationId) {
                 currentConversationId = 'conv-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
@@ -2005,9 +2048,6 @@
             // Reset the rolling window size
             inputEl.style.height = 'auto';
 
-            var adminOverride = false;
-            var overrideCb = document.getElementById('admin-override-checkbox');
-            if (overrideCb) adminOverride = overrideCb.checked;
 
             if (prompt.length > 10000) {
                 appendSystemMessage("Massive prompt detected (" + prompt.length + " chars). Bypassing WebSockets and delegating to Sub-Agent Ingestion Swarm...", "warning");
@@ -2036,7 +2076,6 @@
                                 prompt: actualPromptToSend || instruction,
                                 model: model,
                                 conversation_id: currentConversationId,
-                                admin_override: adminOverride,
                                 token: authToken
                             }));
                         }
@@ -2048,13 +2087,14 @@
             }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
+                var overrideCb = document.getElementById('admin-override-checkbox');
                 ws.send(JSON.stringify({
                     type: 'prompt',
                     prompt: actualPromptToSend,
                     model: model,
                     conversation_id: currentConversationId,
-                    admin_override: adminOverride,
-                    token: authToken
+                    token: authToken,
+                    danger_mode: overrideCb ? overrideCb.checked : false
                 }));
             } else {
                 appendSystemMessage("Connection not open. Reconnecting...", "warning");
@@ -2084,11 +2124,13 @@
         }
 
         function saveChatHistory() {
-            // Enforce DOM rolling window (Deque) to prevent browser lag
-            var MAX_DOM_CHILDREN = 50;
+            // Screen Reader Fix: Disabled aggressive DOM rolling window pruning.
+            // Deleting DOM nodes while a screen reader is actively navigating them causes severe focus loss and navigation resets.
+            var MAX_DOM_CHILDREN = 5000;
             if (chatFeed.children.length > MAX_DOM_CHILDREN) {
                 var diff = chatFeed.children.length - MAX_DOM_CHILDREN;
                 for (var i = 0; i < diff; i++) {
+                    // Only prune if we reach absurd limits to prevent memory crashes, but 50 is way too small.
                     chatFeed.removeChild(chatFeed.firstElementChild);
                 }
             }
@@ -2198,10 +2240,10 @@
                 var tierBadge = document.getElementById('tier-badge');
                 if (tierBadge) {
                     tierBadge.classList.remove('hidden');
-                    if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                    if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.role === 'Tier5_SysAdmin') {
                         tierBadge.innerText = 'TIER 5';
                         tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-red-900/80 text-red-300 border border-red-700/50';
-                    } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev') {
+                    } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev' || currentUser.role === 'Tier3_Dev' || currentUser.role === 'Tier4') {
                         tierBadge.innerText = 'TIER 3';
                         tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-cyan-900/80 text-cyan-300 border border-cyan-700/50';
                     } else {
@@ -2213,9 +2255,9 @@
             
             if (roleBadge) {
                 roleBadge.innerText = (currentUser.role || 'GUEST').toUpperCase();
-                if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.role === 'Tier5_SysAdmin') {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300";
-                } else if (currentUser.role === 'gamedev') {
+                } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev' || currentUser.role === 'Tier3_Dev' || currentUser.role === 'Tier4') {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-900 text-cyan-300";
                 } else {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-900 text-purple-300";
@@ -2441,7 +2483,7 @@
     document.addEventListener('keydown', function(e) {
         if (e.altKey && (e.key === 't' || e.key === 'T')) {
             e.preventDefault();
-            var iframes = document.querySelectorAll('iframe[src*="exam_application"]');
+            var iframes = document.querySelectorAll('iframe[src*="/plugin/exam"]');
             if (iframes.length > 0) {
                 var latestIframe = iframes[iframes.length - 1];
                 latestIframe.focus();
@@ -2493,12 +2535,32 @@
     <!-- Singleton Plugin Cleanup Script -->
     <script>
     (function() {
+        function cleanupOldExams() {
+            const allExams = document.querySelectorAll('iframe[src*="/plugin/exam"]');
+            if (allExams.length > 1) {
+                // Keep the last one, destroy the rest
+                for (let i = 0; i < allExams.length - 1; i++) {
+                    const oldExam = allExams[i];
+                    
+                    // Create a placeholder
+                    const placeholder = document.createElement('div');
+                    placeholder.className = "p-4 border border-slate-700 bg-slate-800/50 rounded-lg text-slate-400 text-center text-sm italic mb-4";
+                    placeholder.innerText = "[ Previous Exam Session Closed to Prevent Clutter ]";
+                    
+                    oldExam.replaceWith(placeholder);
+                }
+            }
+        }
+
+        // Run immediately on page load
+        cleanupOldExams();
+
         const observer = new MutationObserver(function(mutations) {
             let pluginAdded = false;
             mutations.forEach(function(mutation) {
                 if (mutation.addedNodes.length > 0) {
                     mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1 && (node.querySelector('iframe[src*="/plugin/exam"]') || node.matches && node.matches('iframe[src*="/plugin/exam"]'))) {
+                        if (node.nodeType === 1 && (node.querySelector('iframe[src*="/plugin/exam"]') || (node.matches && node.matches('iframe[src*="/plugin/exam"]')))) {
                             pluginAdded = true;
                         }
                     });
@@ -2506,29 +2568,15 @@
             });
 
             if (pluginAdded) {
-                // Find all exam iframes
-                const allExams = document.querySelectorAll('iframe[src*="/plugin/exam"]');
-                if (allExams.length > 1) {
-                    // Keep the last one, destroy the rest
-                    for (let i = 0; i < allExams.length - 1; i++) {
-                        const oldExam = allExams[i];
-                        const container = oldExam.closest('.message-card') || oldExam.parentElement;
-                        
-                        // Create a placeholder
-                        const placeholder = document.createElement('div');
-                        placeholder.className = "p-4 border border-slate-700 bg-slate-800/50 rounded-lg text-slate-400 text-center text-sm italic mb-4";
-                        placeholder.innerText = "[ Previous Exam Session Closed to Prevent Clutter ]";
-                        
-                        oldExam.replaceWith(placeholder);
-                    }
-                }
+                cleanupOldExams();
             }
         });
 
-        observer.observe(document.getElementById('chat-history') || document.body, {
-            childList: true,
-            subtree: true
-        });
+        const chatFeed = document.getElementById('chat-feed') || document.body;
+        observer.observe(chatFeed, { childList: true, subtree: true });
+        
+        // Run immediately in case there are already exams
+        cleanupOldExams();
     })();
     </script>
 
@@ -2627,6 +2675,8 @@
         });
     })();
     </script>
+
+
 
 </body>
 </html>

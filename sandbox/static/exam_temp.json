@@ -1,0 +1,58 @@
+{
+  "timer_seconds": 900,
+  "weighted_scoring": true,
+  "partial_credit": true,
+  "anti_cheat": false,
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "text": "Which planet in our solar system is known for its prominent ring system?",
+      "weight": 1.0,
+      "options": ["Jupiter", "Saturn", "Uranus", "Neptune"],
+      "correct_index": 1,
+      "explanation": "Saturn is famous for its extensive and complex ring system made mostly of ice particles, rocky debris, and dust."
+    },
+    {
+      "type": "multi_select",
+      "text": "Which of the following spacecraft were part of NASA's Apollo program? (Select all that apply)",
+      "weight": 2.5,
+      "options": ["Apollo 11", "Voyager 1", "Apollo 13", "Sputnik 1"],
+      "correct_indices": [0, 2],
+      "explanation": "Apollo 11 and Apollo 13 were key missions in the Apollo program. Voyager 1 was a separate deep-space probe, and Sputnik 1 was Soviet."
+    },
+    {
+      "type": "text_response",
+      "text": "Type the missing word: The first human to journey into outer space was Yuri [blank].",
+      "correct_text": "Gagarin",
+      "weight": 2.0,
+      "explanation": "Yuri Gagarin, a Soviet cosmonaut, became the first human in space when his Vostok spacecraft completed an orbit of the Earth on April 12, 1961."
+    },
+    {
+      "type": "dropdown_blank",
+      "text": "The boundary around a black hole beyond which no light or other radiation can escape is called the [BLANK].",
+      "options": ["event horizon", "accretion disk", "singularity", "photon sphere"],
+      "correct_text": "event horizon",
+      "weight": 2.0,
+      "explanation": "The event horizon is the theoretical threshold around a black hole where the escape velocity surpasses the speed of light."
+    },
+    {
+      "type": "match_columns",
+      "text": "Match the space agency to its home country or region.",
+      "weight": 3.0,
+      "pairs": [
+        {"left": "NASA", "right": "United States"},
+        {"left": "ESA", "right": "Europe"},
+        {"left": "ISRO", "right": "India"},
+        {"left": "JAXA", "right": "Japan"}
+      ],
+      "explanation": "NASA is the USA's space agency, ESA represents Europe, ISRO represents India, and JAXA represents Japan."
+    },
+    {
+      "type": "terminal_command",
+      "text": "You are navigating a remote server onboard the ISS. What Linux command would you use to list all files, including hidden system files, in the current directory?",
+      "correct_command": "ls -a",
+      "weight": 2.5,
+      "explanation": "The 'ls' command lists directory contents, and adding the '-a' flag ensures that hidden files (those starting with a dot) are also displayed."
+    }
+  ]
+}

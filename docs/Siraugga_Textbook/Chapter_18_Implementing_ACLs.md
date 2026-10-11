@@ -2,14 +2,14 @@
 
 ## 18.1 The Hierarchical Cascade (Guidelines)
 
-Writing an Agentic Control List (ACL) is only half the battle; deploying it into the live `agent_manager.py` without causing massive swarm traffic collisions requires strict adherence to the **Hierarchical Cascade**.
+Writing an Agentic Control List (ACL) is only half the battle; deploying it into the live `Task Orchestrator Module` without causing massive swarm traffic collisions requires strict adherence to the **Hierarchical Cascade**.
 
 When configuring and deploying an ACL, Tier 5 Admins must follow these golden rules:
 1.  **Top-Down Processing:** The Orchestrator reads JSON ACEs sequentially from top to bottom. As soon as a match is made, the Orchestrator executes the action and *exits the list*.
 2.  **Specific to Generic:** Because of the top-down rule, Admins must filter from the most specific target to the most generic. (e.g., You must `deny host Agent-104` *before* you `permit any`. If `permit any` is at the top, Agent 104 will slip through).
 3.  **The Implicit Deny:** Ensure the absolute final statement is always implicitly understood as `deny any`.
 4.  **One List Per Stream:** Only one ACL is allowed per WebSocket Interface, per Semantic Protocol, per direction (Inbound/Outbound).
-5.  **Self-Originated Traffic:** Packets generated internally by the core engine (`server.py`) itself are inherently trusted and are not filtered by outbound ACLs.
+5.  **Self-Originated Traffic:** Packets generated internally by the core engine (`App Router Module`) itself are inherently trusted and are not filtered by outbound ACLs.
 
 ---
 
@@ -67,7 +67,7 @@ Chapter 18 defines the physics of how Agentic Control Lists are deployed onto th
 
 To maintain absolute clarity, here is the master translation of traditional routing implementation rules into their DevCore Agentic equivalents:
 
-*   **Top-Down Processing** $\rightarrow$ **The Hierarchical Cascade:** The strict, top-to-bottom order in which `agent_manager.py` evaluates rules. A match triggers an immediate exit.
+*   **Top-Down Processing** $\rightarrow$ **The Hierarchical Cascade:** The strict, top-to-bottom order in which `Task Orchestrator Module` evaluates rules. A match triggers an immediate exit.
 *   **Specific to Generic** $\rightarrow$ **Rule Prioritization:** Surgically denying a specific UUID (`host`) before applying a blanket permission (`any`).
 *   **Extended ACL Placement (Close to Source)** $\rightarrow$ **Origin / WebSocket Filtering:** Destroying malicious or heavy tool intents the exact millisecond they hit the inbound WebSocket, saving internal engine bandwidth.
 *   **Standard ACL Placement (Close to Destination)** $\rightarrow$ **Destination / Directory Filtering:** Applying identity checks directly at the restricted Sandbox directory (`/core_engine/`) so the agent remains free to explore other safe folders.

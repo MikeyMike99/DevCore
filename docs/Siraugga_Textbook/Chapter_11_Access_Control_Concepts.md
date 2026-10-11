@@ -17,7 +17,7 @@ DevCore categorizes the Zero Trust framework into three core pillars:
 To mathematically protect its network resources and the underlying game engine, DevCore utilizes specific access control models. Security Analysts must intimately understand these distinct models to defend against attackers trying to break them.
 
 *   **Discretionary Agentic Control (DAC):** The least restrictive model. In DAC, the creator (or owner) of the data controls who has access to it. In Siraugga, this applies to the `TIER_SAFE_WORKSPACE`. A Tier 2 Modder who creates a new JSON game asset in their local `/playground` has Discretionary Control over who can read or edit that specific file.
-*   **Mandatory Agentic Control (MAC):** The strictest model, typically used in military applications. It assigns absolute security clearances to specific files. In Siraugga, this applies to the `TIER_CORE_ENGINE`. Even if a Tier 5 Admin wanted to give a Tier 2 Modder DAC control over `server.py`, they cannot. The operating system intrinsically restricts the file to root clearance (Tier 5) only.
+*   **Mandatory Agentic Control (MAC):** The strictest model, typically used in military applications. It assigns absolute security clearances to specific files. In Siraugga, this applies to the `TIER_CORE_ENGINE`. Even if a Tier 5 Admin wanted to give a Tier 2 Modder DAC control over `App Router Module`, they cannot. The operating system intrinsically restricts the file to root clearance (Tier 5) only.
 *   **Role-Based Agentic Control (RBAC):** The primary logic model of the Siraugga framework. Access decisions are based exclusively on an entity's role. If an AI subagent is spawned with the `Research` Archetype, it is bound to the `Research` RBAC profile. It is mathematically impossible for it to inherit the privileges of a `Coding` role.
 *   **Rule-Based Agentic Control:** Network security staff specify rigid conditions associated with tool access. For example, a rule might specify that an AI subagent can only execute a tool if the payload is formatted in strict JSON, outright rejecting any raw plaintext parameters.
 
@@ -36,7 +36,7 @@ In the Siraugga framework, this translates directly to **Agentic Jailbreaking** 
 ## 4. Agentic Access Control (AAC) Systems
 In a traditional IT environment, Network Access Control (NAC) systems support access management by mechanically enforcing organizational policies across thousands of connected devices. 
 
-In the DevCore framework, the NAC is replaced by the **Agentic Access Control (AAC) System**—which is structurally identical to the **Core Agent Orchestrator (`agent_manager.py`)**. The AAC System allows Tier 5 Administrators to monitor the massive swarm of subagents attached to the semantic network and manually control access as required.
+In the DevCore framework, the NAC is replaced by the **Agentic Access Control (AAC) System**—which is structurally identical to the **Core Agent Orchestrator (`Task Orchestrator Module`)**. The AAC System allows Tier 5 Administrators to monitor the massive swarm of subagents attached to the semantic network and manually control access as required.
 
 The Agentic Access Control system provides the following critical capabilities:
 *   **Rapid Policy Enforcement:** The orchestrator can instantly deploy global SDK hot-patches or rapidly revoke WPA-Agentic JWTs during a coordinated Semantic DoS attack.
@@ -56,7 +56,7 @@ In this chapter, we explored how traditional access control concepts dictate the
 *   We defined the overarching **Zero Trust Agentic Architecture**, establishing that the orchestrator must rigorously verify every single tool call made by an AI subagent, regardless of its internal origins or hierarchical trust level.
 *   We translated standard access control models into the DevCore framework, cementing **Role-Based Agentic Control (RBAC)** as the primary method for governing tool whitelists via AI Archetypes.
 *   We detailed the catastrophic risks of **Agentic Privilege Escalation (Jailbreaking)**, where an attacker overwrites an agent's System Prompt to steal Tier 5 Admin permissions.
-*   Finally, we formalized the role of the central `agent_manager.py` as the ultimate **Agentic Access Control (AAC) System**, executing pre-flight semantic checks and automatically isolating non-compliant subagents to maintain the integrity of the swarm.
+*   Finally, we formalized the role of the central `Task Orchestrator Module` as the ultimate **Agentic Access Control (AAC) System**, executing pre-flight semantic checks and automatically isolating non-compliant subagents to maintain the integrity of the swarm.
 
 ### Agentic Knowledge Check: Identifying the Access Control Model
 To properly review this chapter, Security Analysts must be able to instantly identify which access control model is being applied during an active semantic audit. Consider the following three DevCore scenarios:
@@ -65,5 +65,5 @@ To properly review this chapter, Security Analysts must be able to instantly ide
     *   *Answer:* **Discretionary Agentic Control (DAC)**. The Modder is the creator/owner of the asset and uses DAC to distribute access.
 2.  **Scenario 2:** The orchestrator spawns a new subagent. The subagent attempts to execute a `run_command` tool, but the Raugus Resolver immediately blocks the execution, stating that `Narrative` agents are strictly forbidden from executing terminal commands.
     *   *Answer:* **Role-Based Agentic Control (RBAC)**. The agent's access is mathematically defined by its assigned Archetype (its role).
-3.  **Scenario 3:** A Tier 5 Administrator attempts to lower the file classification of the `agent_manager.py` script so a Modder can debug it. The underlying operating system completely rejects the command, permanently enforcing root-only access to the file.
+3.  **Scenario 3:** A Tier 5 Administrator attempts to lower the file classification of the `Task Orchestrator Module` script so a Modder can debug it. The underlying operating system completely rejects the command, permanently enforcing root-only access to the file.
     *   *Answer:* **Mandatory Agentic Control (MAC)**. The system enforces an absolute, strict military-style security clearance on the core file that cannot be overridden, even by the owner.

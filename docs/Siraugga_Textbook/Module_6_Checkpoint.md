@@ -16,7 +16,7 @@ This checkpoint serves as the master structural review for Module 6, summarizing
 ### Chapter 26: The Physics of Swarm Zoning (ZSP Operation)
 *   **ZSP Actions:** The three absolute actions the Orchestrator can take against cross-zone traffic: *Stateless Pass, Violent Drop,* and *Stateful Inspect* (which tracks the active LLM context in the Thought Table).
 *   **The Zone Vacuum Rule:** A critical security failsafe. If a heavily secured Zone attempts to communicate with a completely unzoned, legacy directory, the Orchestrator will instantly `DROP` the traffic. Zoned and unzoned directories cannot mix.
-*   **The Self Zone:** The Orchestrator itself (`server.py`). Unlike standard inter-zone routing (which defaults to DROP), the Self Zone inherently trusts its own internal control plane traffic, so its default state is to `PASS`. 
+*   **The Self Zone:** The Orchestrator itself (`App Router Module`). Unlike standard inter-zone routing (which defaults to DROP), the Self Zone inherently trusts its own internal control plane traffic, so its default state is to `PASS`. 
 
 ### Chapter 27: Configuring Sandbox Zones via CLI
 *   **The 5 Orchestration Phases:** 

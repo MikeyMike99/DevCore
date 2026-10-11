@@ -12,7 +12,7 @@ We implemented a **Cryptographic Master Signature Auto-Detect** system. Instead 
 2. **Version Control Protection:**
    This file was explicitly added to `.gitignore`. It is treated with the same severity as a GitHub Token or AWS Secret Key and will never be pushed to a remote repository.
 3. **One-Way Hash Verification:**
-   Inside `security_manager.py`, the `check_master_signature()` method reads this file at boot. However, the raw string is **not** stored in the source code. Instead, the application computes the SHA-256 hash of the local file's contents and compares it to a hardcoded Expected Hash.
+   Inside `Access Control Module`, the `check_master_signature()` method reads this file at boot. However, the raw string is **not** stored in the source code. Instead, the application computes the SHA-256 hash of the local file's contents and compares it to a hardcoded Expected Hash.
 
 ## Security Advantages
 - **Reverse-Engineering Proof:** Because Nuitka compiles Python to C, it is possible for a dedicated hacker to rip open the `.exe` and read the internal strings. If they do this, they will only discover the SHA-256 hash, not the raw key. Because SHA-256 is a one-way mathematical function, it is physically impossible for the attacker to reverse the hash and forge their own `.devcore_master.key` file.

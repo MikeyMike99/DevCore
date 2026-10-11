@@ -20,12 +20,12 @@ Because Siraugga's core architecture relies entirely on the Zero-Restart Web Por
 ## 3. Dynamic Host Configuration Protocol (Workspace Provisioning)
 In standard networking, Dynamic Host Configuration Protocol (DHCP) uses a server to assign an IP address and configuration data to devices. In effect, the device gets a "permission slip" from the DHCP server to use the network. 
 
-In the Siraugga framework, DHCP translates to **Workspace Provisioning**. When a Tier 2 Modder connects to the web portal, the `project_manager.py` (acting as the DHCP server) assigns them a localized game project folder (their IP address) and strictly confines them to that directory. 
+In the Siraugga framework, DHCP translates to **Workspace Provisioning**. When a Tier 2 Modder connects to the web portal, the `Project Manager Module` (acting as the DHCP server) assigns them a localized game project folder (their IP address) and strictly confines them to that directory. 
 
-Attackers can target the Workspace Provisioning module to deny access to legitimate developers, or attempt to spawn a "rogue DHCP server" (an unauthorized AI agent assigning itself malicious directory paths). To prevent this, Siraugga utilizes **Path Snooping** (the equivalent of DHCP snooping), where the Raugus Resolver continuously validates that all workspace creation messages originate strictly from the trusted `project_manager.py` core file.
+Attackers can target the Workspace Provisioning module to deny access to legitimate developers, or attempt to spawn a "rogue DHCP server" (an unauthorized AI agent assigning itself malicious directory paths). To prevent this, Siraugga utilizes **Path Snooping** (the equivalent of DHCP snooping), where the Raugus Resolver continuously validates that all workspace creation messages originate strictly from the trusted `Project Manager Module` core file.
 
 **A Security Checklist for Workspace Provisioning (DHCP):**
-* **Physically secure the Provisioning Server:** Ensure `project_manager.py` is locked within the `TIER_CORE_ENGINE` classification, inaccessible to Modders.
+* **Physically secure the Provisioning Server:** Ensure `Project Manager Module` is locked within the `TIER_CORE_ENGINE` classification, inaccessible to Modders.
 * **Apply any software patches:** Utilize the Zero-Restart in-memory reload API to hot-patch provisioning logic.
 * **Locate the server behind a firewall:** Protect the workspace logic behind the Semantic Firewall to block prompt injections.
 * **Monitor provisioning activity:** Continuously review the Tier 5 Admin logs for anomalous folder creation.
@@ -66,7 +66,7 @@ In legacy networking, the Routing Information Protocol (RIP) limits the number o
 
 In the Siraugga framework, where folders act as our IP addresses, a "hop" translates directly to traversing up or down the host directory tree (e.g., `../`). Therefore, RIP translates into our **Maximum Path Traversal Limit**. To physically protect the `TIER_CORE_ENGINE`, AI subagents and Tier 3 offline sandboxes are mathematically restricted from executing more than three directory hops from their designated `TIER_SAFE_WORKSPACE` project root.
 
-Cybercriminals frequently target this traversal logic. A malicious Tier 2 Modder might utilize Prompt Injection to trick an AI agent into exceeding the maximum hop count (e.g., executing `cat ../../../../../server.py`), deliberately redirecting the execution traffic out of the isolated sandbox and into the forbidden core architecture. 
+Cybercriminals frequently target this traversal logic. A malicious Tier 2 Modder might utilize Prompt Injection to trick an AI agent into exceeding the maximum hop count (e.g., executing `cat ../../../../../App Router Module`), deliberately redirecting the execution traffic out of the isolated sandbox and into the forbidden core architecture. 
 
 To defend against these routing attacks, Siraugga relies on the `resolve_safe_path(target)` precompiled SDK macro. The Raugus Resolver intercepts every directory hop in real-time. If an AI agent attempts to route traffic beyond the predefined three-hop limit, the resolver instantly nullifies the path, trapping the payload within the project root and logging the redirection attempt to the Tier 5 Admin dashboard.
 

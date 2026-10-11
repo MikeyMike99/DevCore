@@ -41,7 +41,7 @@ def main():
         
         tool_name = raw_name.replace("default_api:", "")
         
-        if tool_name not in ["view_file", "write_to_file", "replace_file_content", "run_command"]:
+        if tool_name not in ["view_file", "write_to_file", "replace_file_content", "run_command", "edit_lines"]:
             print(json.dumps({"decision": "allow"}))
             return
 
@@ -53,8 +53,22 @@ def main():
         with open(map_path, 'r') as f:
             r_map = json.load(f)
 
-        if tool_name == "replace_file_content":
-            target = args.get("TargetFile")
+        if tool_name == "write_to_file":
+            target = args.get("TargetFile", "")
+            if target.endswith(".md"):
+                artifact_meta = args.get("ArtifactMetadata", {})
+                if artifact_meta.get("RequestFeedback") is True:
+                    if "plan" in target.lower():
+                        print(json.dumps({"decision": "ask", "reason": "Implementation plans require manual user confirmation to proceed."}))
+                        return
+                    else:
+                        reason = "Rule 8 Violation: RequestFeedback: true is strictly forbidden on Markdown files."
+                        log_violation(tool_name, target, reason)
+                        print(json.dumps({"decision": "deny", "reason": reason}))
+                        return
+
+        if tool_name in ["replace_file_content", "edit_lines"]:
+            target = args.get("TargetFile") or args.get("target_file")
             if target and target.endswith(".py"):
                 target = os.path.abspath(target)
                 
@@ -78,9 +92,11 @@ def main():
                             with open(target, 'r', encoding='utf-8') as f:
                                 original_lines = f.readlines()
                         
-                            start_line = args.get("StartLine", 1) - 1
-                            end_line = args.get("EndLine", len(original_lines))
-                            repl_content = args.get("ReplacementContent", "")
+                            sl = args.get("StartLine") or args.get("start_line", 1)
+                            el = args.get("EndLine") or args.get("end_line", len(original_lines))
+                            start_line = sl - 1
+                            end_line = el
+                            repl_content = args.get("ReplacementContent", "") or args.get("new_code", "")
                         
                             # Simulate the new file in memory (IT IS NOT SAVED YET)
                             new_lines = original_lines[:start_line] + [repl_content + "\n"] + original_lines[end_line:]
@@ -93,8 +109,8 @@ def main():
                             # We must check if that specific symbol is locked in the Raugus Map
                             for sym_name, (sym_start, sym_end) in orig_symbols.items():
                                 # Check overlap between modification range [start_line+1, end_line] and symbol range
-                                mod_start = args.get("StartLine", 1)
-                                mod_end = args.get("EndLine", len(original_lines))
+                                mod_start = sl
+                                mod_end = el
                             
                                 # If they overlap, the symbol is being modified
                                 if max(sym_start, mod_start) <= min(sym_end, mod_end):

@@ -4,7 +4,7 @@
 
 Before a Tier 5 Admin configures a complex Agentic Control List (ACL) in the live engine, strict deployment procedures must be followed. A single typo in an ACL can instantly sever the connection for an entire Modder Swarm or accidentally grant an AI root access.
 
-When configuring an ACL for the `agent_manager.py`, it is mandated that you:
+When configuring an ACL for the `Task Orchestrator Module`, it is mandated that you:
 1.  **Draft Offline:** Use a text editor to write out the specifics of the security policy.
 2.  **Add Remarks:** Always include explicit `remark` commands to document *why* the ACL was created.
 3.  **Test in the Crucible:** Always thoroughly test the ACL in the Staging Crucible to ensure it doesn't trigger an accidental Semantic Mantrap lock-out.
@@ -41,7 +41,7 @@ In traditional networking, extended ACLs filter based on Internet Protocols (TCP
 
 When defining an Extended ACL, the Orchestrator maps standard network ports to explicit physical directories in the Sandbox:
 *   **Port 80 / 443 (HTTP/HTTPS) $\rightarrow$ The Safe Workspace (`/playground/game_demo/`)**: The standard, front-facing directories where Modders and AIs build the game assets.
-*   **Port 22 (SSH) $\rightarrow$ The Core Engine (`/core_engine/`)**: The root orchestration directories containing `server.py` and security logic. The most dangerous "port," heavily restricted to Tier 5 Admins.
+*   **Port 22 (SSH) $\rightarrow$ The Core Engine (`/core_engine/`)**: The root orchestration directories containing `App Router Module` and security logic. The most dangerous "port," heavily restricted to Tier 5 Admins.
 *   **Port 21 (FTP) $\rightarrow$ The Asset Vaults (`/assets/`)**: Dedicated directories for heavy binary file transfer and 3D models.
 
 An Admin can configure the ACL using either the absolute directory path or its mathematically mapped port number. Both commands achieve the exact same path restriction through the Raugus Resolver:

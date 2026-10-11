@@ -5,7 +5,7 @@ Like most traditional software organizations, DevCore wants to maximize the avai
 ## 1. High Availability (The Zero-Restart Mandate)
 The term ‘high availability’ describes systems designed to avoid downtime as much as possible. The continuous availability of information systems is imperative, not only to internal organizations but to modern Modders who rely on the swarm 24/7.
 
-In the Siraugga framework, High Availability maps directly to the **Zero-Restart In-Memory Reload Policy**. The core server (`server.py`) must never be killed or hard-restarted to push code changes. Hard restarts drop active WebSocket connections, instantly disrupting Modders and destroying localized agentic memory. 
+In the Siraugga framework, High Availability maps directly to the **Zero-Restart In-Memory Reload Policy**. The core server (`App Router Module`) must never be killed or hard-restarted to push code changes. Hard restarts drop active WebSocket connections, instantly disrupting Modders and destroying localized agentic memory. 
 
 High availability agentic systems are typically based on three fundamental design principles.
 
@@ -71,7 +71,7 @@ The compromised system is permanently purged via the Reaper Protocol, and the or
 As established earlier, a single point of failure (SPOF) is any localized element whose failure causes the complete collapse of the entire framework. As cybersecurity specialists, Tier 5 Administrators must proactively identify these weak links and implement rigorous agentic resilience measures.
 
 In the Siraugga architecture, a single point of failure can manifest in several distinct forms:
-*   **A Specific Piece of Hardware:** The Core Agent Orchestrator (`agent_manager.py`) managing the overarching logic loops.
+*   **A Specific Piece of Hardware:** The Core Agent Orchestrator (`Task Orchestrator Module`) managing the overarching logic loops.
 *   **A Process:** The AI Semantic Merging protocol handling concurrent Modder edits.
 *   **A Specific Piece of Data:** The Master JSON state repository containing the core game's canonical logic.
 *   **An Essential Utility:** The primary WSS network stream or the API Token pipeline.
@@ -168,7 +168,7 @@ To achieve this, Tier 5 Administrators synthesize three core availability soluti
 **Antigravity Resilience (The Primary Bootset)**
 Finally, the overarching orchestrator itself—the **Antigravity CLI (`agy`)**—includes a native resilient configuration feature. 
 
-This architectural feature allows for immediate structural recovery if a Tier 2 Modder maliciously or unintentionally reformats their `/playground` flash memory or completely erases their local startup configuration. To guarantee recovery, the Antigravity engine maintains a secure, immutable working copy of the core `server.py` engine image and a highly secure, write-protected copy of the Master System Prompt. 
+This architectural feature allows for immediate structural recovery if a Tier 2 Modder maliciously or unintentionally reformats their `/playground` flash memory or completely erases their local startup configuration. To guarantee recovery, the Antigravity engine maintains a secure, immutable working copy of the core `App Router Module` engine image and a highly secure, write-protected copy of the Master System Prompt. 
 
 Because of the framework's strict Zero Trust boundaries (as established in Chapter 6), a Tier 2 Modder explicitly lacks the operating system permissions to remove, edit, or interact with these core engine files. This unassailable fail-safe is known as the **Primary Agentic Bootset**, ensuring that no matter how severely a Modder corrupts their local workspace, the Antigravity engine can always instantly recover and redeploy the resilient swarm.
 
@@ -212,7 +212,7 @@ Ultimately, system resiliency refers to the framework's overarching capability t
 A critical issue in protecting AI information systems is the management of computational "power"—specifically, the flow of LLM API Tokens. A continuous, uninterrupted supply of API tokens is absolutely essential for the DevCore swarm to function. 
 
 Here are the general rules for building highly effective agentic power systems:
-*   **Segmented Supplies:** The core orchestration engine (`server.py`) should utilize a completely isolated API Key (power supply) from the Tier 2 Modder subagents.
+*   **Segmented Supplies:** The core orchestration engine (`App Router Module`) should utilize a completely isolated API Key (power supply) from the Tier 2 Modder subagents.
 *   **Redundant Power Sources:** As established in Chapter 8, the orchestrator should maintain two or more fallback API providers (e.g., cloud-based or local open-source LLMs) in case the primary provider fails.
 *   **Uninterruptible Token Supply (UPS):** A reserved, emergency buffer of API tokens (the UPS) must be maintained. If the primary billing quota is suddenly exhausted, the UPS provides just enough computational power for the subagents to gracefully save their JSON states and shut down without data loss.
 

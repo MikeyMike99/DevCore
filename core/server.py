@@ -23,7 +23,7 @@ from core import project_manager as pm
 from agents import agent_manager as am
 from security import security_manager as sec_m
 
-app = Quart(__name__, static_folder=os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static"))
+app = Quart(__name__, static_folder=None)
 
 from security import security_headers
 security_headers.init_security_headers(app)
@@ -61,13 +61,20 @@ async def reload_system():
         session_mgr = sm.SessionManager()
         security_mgr = sec_m.SecurityManager()
         
+        # ALWAYS re-instantiate to pick up new code, but preserve running state!
+        old_proc = getattr(agent_mgr, "active_proc", None)
+        old_task = getattr(agent_mgr, "active_task", None)
+        old_start = getattr(agent_mgr, "start_time", None)
+        old_actions = getattr(agent_mgr, "actions", [])
+        old_clients = dict(agent_mgr.connected_clients)
+        
+        agent_mgr = am.AgentTaskManager(project_manager=project_mgr)
+        agent_mgr.connected_clients = old_clients
         if is_busy:
-            # If a task is active, update reference without killing the running subprocess
-            agent_mgr.project_manager = project_mgr
-        else:
-            # If idle, cleanly re-instantiate and restore connected clients
-            agent_mgr = am.AgentTaskManager(project_manager=project_mgr)
-            agent_mgr.connected_clients = active_clients
+            agent_mgr.active_proc = old_proc
+            agent_mgr.active_task = old_task
+            agent_mgr.task_start_time = old_start
+            agent_mgr.actions = old_actions
         
         # Broadcast reload success (pass dict directly, not json.dumps string)
         await agent_mgr.broadcast({
@@ -207,25 +214,96 @@ def get_live_override_path(rel_path):
     # Fallback to the bundled extraction directory
     return os.path.join(os.path.dirname(BASE_DIR), rel_path)
 
+def read_asset(rel_path):
+    from security.vfs import vfs
+    vfs.load()
+    live_path = get_live_override_path(rel_path)
+    if os.path.exists(live_path):
+        return open(live_path, 'rb').read()
+    data = vfs.read(rel_path)
+    if data:
+        return data
+    return None
+
+@app.route('/static/<path:filename>')
+async def custom_static(filename):
+    import mimetypes
+    data = read_asset(f"sandbox/static/{filename}")
+    if data:
+        mime_type, _ = mimetypes.guess_type(filename)
+        return data, 200, {'Content-Type': mime_type or 'application/octet-stream'}
+    return "Not Found", 404
+
+
 # Dynamically load from the sandbox layer (with Live Override Support)
 TEMPLATE_FILE = get_live_override_path("sandbox/templates/index.html")
 UI_CONFIG_FILE = get_live_override_path("core/ui_config.json")
 
+CACHED_MODELS = None
+
+async def fetch_dynamic_models():
+    global CACHED_MODELS
+    if CACHED_MODELS is not None:
+        return CACHED_MODELS
+        
+    import asyncio, sys, os
+    local_agy = os.path.expanduser("~/.local/bin/agy")
+    if not os.path.exists(local_agy):
+        return None
+        
+    try:
+        cmd = ["wsl.exe", "-e", "bash", "-c", "~/.local/bin/agy --model invalid --print 'test'"]
+        proc = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT
+        )
+        stdout, _ = await proc.communicate()
+        out_str = stdout.decode("utf-8", errors="ignore")
+        if "Available models:" in out_str:
+            models_section = out_str.split("Available models:")[1]
+            lines = models_section.strip().split("\n")
+            fetched_models = []
+            for line in lines:
+                val = line.strip()
+                if val and not val.startswith("Set-PSReadLineOption") and not val.startswith("At C:") and not val.startswith("+") and not val.startswith("CategoryInfo") and not val.startswith("FullyQualifiedErrorId") and not val.startswith("~"):
+                    fetched_models.append({"value": val, "text": val})
+            if fetched_models:
+                import json
+                try:
+                    ui_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_config.json")
+                    if os.path.exists(ui_config_path):
+                        with open(ui_config_path, "r", encoding="utf-8") as f:
+                            cfg = json.load(f)
+                        if cfg.get("header", {}).get("models") != fetched_models:
+                            cfg.setdefault("header", {})["models"] = fetched_models
+                            with open(ui_config_path, "w", encoding="utf-8") as f:
+                                json.dump(cfg, f, indent=4)
+                except Exception as e:
+                    pass
+                
+                CACHED_MODELS = fetched_models
+                return fetched_models
+    except Exception:
+        pass
+    return None
+
 @app.route('/')
 async def index():
     """Dynamically serves and renders the template using Jinja2 variables."""
-    if not os.path.exists(TEMPLATE_FILE):
-        return "Template not found: " + TEMPLATE_FILE, 404
-        
-    with open(TEMPLATE_FILE, 'r', encoding='utf-8') as f:
-        content = f.read()
-        
-    # Load dynamic strings
     import json
-    with open(UI_CONFIG_FILE, 'r') as f:
-        ui_strings = json.load(f)
-        
-    # Render variables into the HTML
+    template_bytes = read_asset("sandbox/templates/index.html")
+    if not template_bytes:
+        return "Template not found: sandbox/templates/index.html", 404
+    content = template_bytes.decode('utf-8')
+    
+    ui_bytes = read_asset("core/ui_config.json")
+    ui_strings = json.loads(ui_bytes.decode('utf-8')) if ui_bytes else {}
+    
+    dyn_models = await fetch_dynamic_models()
+    if dyn_models:
+        if "header" not in ui_strings:
+            ui_strings["header"] = {}
+        ui_strings["header"]["models"] = dyn_models
+    
     rendered_content = await render_template_string(content, ui=ui_strings)
     return rendered_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
@@ -234,59 +312,84 @@ GLOBAL_AUTH_PROC = None
 @app.route('/plugin/media')
 async def plugin_media():
     """Dynamically renders the video application plugin."""
+    import json
     video_id = request.args.get('v', 'jNQXAC9IVRw')
     video_title = request.args.get('title', 'Accessible Video Player')
     
-    template = get_live_override_path("sandbox/templates/video_application.html")
-    if not os.path.exists(template):
+    template_bytes = read_asset("sandbox/templates/video_application.html")
+    if not template_bytes:
         return "Media template not found", 404
-        
-    with open(template, 'r', encoding='utf-8') as f:
-        content = f.read()
-        
-    import json
-    with open(UI_CONFIG_FILE, 'r') as f:
-        ui_strings = json.load(f)
-        
+    content = template_bytes.decode('utf-8')
+    
+    ui_bytes = read_asset("core/ui_config.json")
+    ui_strings = json.loads(ui_bytes.decode('utf-8')) if ui_bytes else {}
+    
     rendered = await render_template_string(content, ui=ui_strings, video_id=video_id, video_title=video_title)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 @app.route('/plugin/security')
 async def plugin_security():
     """Dynamically renders the security dashboard plugin."""
-    template = get_live_override_path("sandbox/templates/security_dashboard.html")
-    if not os.path.exists(template):
-        return "Security template not found", 404
-        
-    with open(template, 'r', encoding='utf-8') as f:
-        content = f.read()
-        
     import json
-    with open(UI_CONFIG_FILE, 'r') as f:
-        ui_strings = json.load(f)
-        
+    template_bytes = read_asset("sandbox/templates/security_dashboard.html")
+    if not template_bytes:
+        return "Security template not found", 404
+    content = template_bytes.decode('utf-8')
+    
+    ui_bytes = read_asset("core/ui_config.json")
+    ui_strings = json.loads(ui_bytes.decode('utf-8')) if ui_bytes else {}
+    
     rendered = await render_template_string(content, ui=ui_strings)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 @app.route('/plugin/exam')
 async def plugin_exam():
     """Dynamically renders the exam generator plugin."""
+    import json
     quiz_file = request.args.get('quiz', 'quiz_temp.json')
     exam_title = request.args.get('title', 'Siraugga Exam')
     
-    template = get_live_override_path("sandbox/templates/exam_application.html")
-    if not os.path.exists(template):
+    template_bytes = read_asset("sandbox/templates/exam_application.html")
+    if not template_bytes:
         return "Exam template not found", 404
-        
-    with open(template, 'r', encoding='utf-8') as f:
-        content = f.read()
-        
-    import json
-    with open(UI_CONFIG_FILE, 'r') as f:
-        ui_strings = json.load(f)
-        
+    content = template_bytes.decode('utf-8')
+    
+    ui_bytes = read_asset("core/ui_config.json")
+    ui_strings = json.loads(ui_bytes.decode('utf-8')) if ui_bytes else {}
+    
     rendered = await render_template_string(content, ui=ui_strings, quiz_file=quiz_file, exam_title=exam_title)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/plugin/exam_builder')
+async def plugin_exam_builder():
+    """Serves the visual Exam Builder Dashboard."""
+    template_bytes = read_asset("sandbox/templates/exam_builder.html")
+    if not template_bytes:
+        return "Exam builder template not found", 404
+    content = template_bytes.decode('utf-8')
+    rendered = await render_template_string(content)
+    return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
+@app.route('/api/exam/content', methods=['GET', 'POST'])
+async def api_exam_content():
+    content_dir = os.path.join(os.getcwd(), 'plugins', 'exam_application', 'content')
+    os.makedirs(content_dir, exist_ok=True)
+    if request.method == 'GET':
+        try:
+            files = os.listdir(content_dir)
+            files = [f for f in files if os.path.isfile(os.path.join(content_dir, f))]
+            return jsonify({"files": files})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    
+    if request.method == 'POST':
+        files = await request.files
+        uploaded = []
+        for name, file in files.items():
+            path = os.path.join(content_dir, file.filename)
+            await file.save(path)
+            uploaded.append(file.filename)
+        return jsonify({"message": "Files uploaded successfully", "files": uploaded})
 
 @app.route('/api/artifacts', methods=['GET'])
 async def get_artifact():
@@ -346,13 +449,31 @@ async def save_artifacts():
     safe_path = shlex.quote(path)
     
     if sys.platform == "win32" and path.startswith("/"):
+        import tempfile
         try:
-            redirect_op = ">>" if append_mode else ">"
+            # Mitigation for Broken Pipes on WSL: write to a Windows temp file first
+            fd, tmp_path = tempfile.mkstemp(suffix=".md")
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            # Use wsl.exe to copy the file into the Linux environment
+            # wslpath -a converts the Windows path to a WSL path
+            if append_mode:
+                cmd = f"cat $(wslpath -a '{tmp_path}') >> {safe_path}"
+            else:
+                cmd = f"cp $(wslpath -a '{tmp_path}') {safe_path}"
+                
             process = subprocess.Popen(
-                ["wsl.exe", "-e", "bash", "-c", f"cat {redirect_op} {safe_path}"],
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+                ["wsl.exe", "-e", "bash", "-c", cmd],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
             )
-            stdout, stderr = process.communicate(input=content)
+            stdout, stderr = process.communicate()
+            
+            try:
+                os.remove(tmp_path)
+            except:
+                pass
+                
             if process.returncode == 0:
                 return jsonify({"success": True})
             else:
@@ -499,11 +620,10 @@ async def auth_check():
 
 @app.route('/login')
 async def login_page():
-    login_file = get_live_override_path("sandbox/templates/login.html")
-    if not os.path.exists(login_file):
+    template_bytes = read_asset("sandbox/templates/login.html")
+    if not template_bytes:
         return "Login template not found", 404
-    with open(login_file, 'r', encoding='utf-8') as f:
-        return f.read(), 200, {'Content-Type': 'text/html; charset=utf-8'}
+    return template_bytes.decode('utf-8'), 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 @app.route('/api/set_api_key', methods=['POST'])
 async def set_api_key():
@@ -628,7 +748,7 @@ async def ws_endpoint():
                     if path.startswith('file://'):
                         path = path[7:]
                         
-                    import sys, subprocess, os
+                    import subprocess
                     if sys.platform == "win32" and path.startswith("/"):
                         try:
                             # Avoid stdin piping bugs on Windows by writing to a local temp file first
@@ -666,7 +786,6 @@ async def ws_endpoint():
                     prompt = data.get("prompt", "").strip()
                     model = data.get("model", "gemini-3.8-flash-high")
                     conversation_id = data.get("conversation_id")
-                    admin_override = data.get("admin_override", False)
                     token = data.get("token")
                     
                     if token:
@@ -681,15 +800,19 @@ async def ws_endpoint():
                         await agent_mgr.authenticate_client(client_queue, user.get("username"))
                     else:
                         user = security_mgr.get_user_from_token(None)
+                    
+                    admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
+                    if data.get("danger_mode") is True:
+                        admin_override = True
             except (json.JSONDecodeError, AttributeError):
                 prompt = str(raw_msg).strip()
                 user = None
-                admin_override = False
+                admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
 
             if prompt:
                 # [SECURITY] 1. SEMANTIC FIREWALL INTERCEPTION (RBAC AWARE)
                 # Tier 5 Admins require full unrestricted execution for system administration.
-                is_admin = user and user.get("role") == "Tier5_SysAdmin"
+                is_admin = user and user.get("role") in ("admin", "super_admin", "Tier5_SysAdmin")
                 if not is_admin:
                     try:
                         from local_security import LocalSecurity

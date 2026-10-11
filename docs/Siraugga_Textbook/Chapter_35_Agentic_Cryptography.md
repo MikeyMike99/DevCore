@@ -22,7 +22,7 @@ This module dives deeply into the mechanics of Agentic Cryptography, transitioni
 
 The master syllabus translates standard cryptography into the following DevCore phases:
 
-1.  **Context Confidentiality:** Determining which encryption algorithm (AES vs RSA) to use based on the speed and security requirements of the AI payload.
+1.  **Context Confidentiality:** Determining which encryption algorithm (Standard Encryption vs RSA) to use based on the speed and security requirements of the AI payload.
 2.  **Obscuring Thought Vectors:** Using non-cryptographic techniques (like Base64 encoding or semantic camouflage) to obscure raw data.
 3.  **Prompt Integrity and Authenticity:** Understanding how cryptography proves that a JSON prompt was sent by a trusted Modder and hasn't been altered mid-transit.
 4.  **Semantic Hashing:** Using mathematical hashing tools to verify the integrity of physical files and `transcript.jsonl` logs.

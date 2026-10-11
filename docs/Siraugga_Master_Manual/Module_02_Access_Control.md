@@ -57,7 +57,7 @@ To achieve Sub-File Granularity, the DevCore architecture relies on two advanced
 ### 1. Deep Alias Mapping
 The Raugus Map Generator does not stop at the file level. When mapping the host operating system, it utilizes Python's native Abstract Syntax Tree (`ast`) library to physically read the source code of every executable script. It parses the syntax tree, extracts every top-level Function and Variable, and assigns them independent permission blocks within the `raugus_map.json` architecture. 
 
-For example, `devcore.core.server.py` may have full `Read/Write` access, but the specific function alias `devcore.core.server.py::hypercorn_config` can be statically assigned a `Read-Only` permission block.
+For example, `devcore.core.App Router Module` may have full `Read/Write` access, but the specific function alias `devcore.core.App Router Module::hypercorn_config` can be statically assigned a `Read-Only` permission block.
 
 ### 2. Proactive Memory Interception (The PreToolUse Hook)
 If an AI attempts to rewrite a file (e.g., invoking `replace_file_content`), the NGPF must prevent the modification from ever reaching the physical hard drive. It utilizes a **PreToolUse Hook** (`.agents/hooks.json`).

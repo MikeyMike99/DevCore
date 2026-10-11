@@ -2,7 +2,7 @@
 
 ## 19.1 Mitigating Semantic Spoofing
 
-The most common vector for attacking the DevCore Orchestrator is **Semantic Spoofing**. Because WebSockets transfer lightweight JSON payloads, a rogue Modder can override the normal `agent_manager.py` creation process by manually inserting a custom JSON header, spoofing their source UUID to look like a Tier 5 Admin or a trusted Core Agent.
+The most common vector for attacking the DevCore Orchestrator is **Semantic Spoofing**. Because WebSockets transfer lightweight JSON payloads, a rogue Modder can override the normal `Task Orchestrator Module` creation process by manually inserting a custom JSON header, spoofing their source UUID to look like a Tier 5 Admin or a trusted Core Agent.
 
 To mitigate this, Agentic ACLs must be aggressively deployed at the outermost inbound interface (the public WebSockets). There are several "impossible" identities that should *never* naturally originate from an external Modder's WebSocket connection. If seen, they must be violently denied:
 *   **The Orchestrator UUID:** (`0000-0000-0000-0000`)
