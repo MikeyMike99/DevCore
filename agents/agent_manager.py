@@ -480,8 +480,30 @@ class AgentTaskManager:
                                         md_link = f"\n\n[Open Artifact: {fn}](file://{tf})\n"
                                         self.output_buffer.append(md_link)
                                         asyncio.create_task(self.broadcast({"type": "agent_chunk", "chunk": md_link}))
-                                friendly_name = safe_params.get("toolSummary", "") or tool_name.replace("_", " ").title()
-                                announcement = safe_params.get("toolAction", "") or f"Running {friendly_name}"
+                                friendly_name = tool_name.replace("_", " ").title()
+                                t_lower = tool_name.lower()
+                                if t_lower in ["replace_file_content", "write_to_file", "edit_lines"]:
+                                    tf = raw_params.get("TargetFile", "") or raw_params.get("target_file", "")
+                                    fn = os.path.basename(tf) if tf else "a file"
+                                    announcement = f"Drafting {fn}" if t_lower == "write_to_file" else f"Editing {fn}"
+                                elif t_lower in ["view_file", "read_file"]:
+                                    tf = raw_params.get("AbsolutePath", "") or raw_params.get("TargetFile", "")
+                                    fn = os.path.basename(tf) if tf else "a file"
+                                    announcement = f"Reviewing {fn}"
+                                elif t_lower == "run_command":
+                                    cmd = raw_params.get("CommandLine", "")
+                                    if isinstance(cmd, str) and "# Intent:" in cmd:
+                                        announcement = cmd.split("# Intent:")[1].strip()
+                                    else:
+                                        base_cmd = cmd.strip().split()[0] if isinstance(cmd, str) and cmd.strip() else "a command"
+                                        import re
+                                        base_cmd = re.sub(r'[^a-zA-Z0-9_-]', '', base_cmd)
+                                        if not base_cmd or len(base_cmd) > 15: base_cmd = "a command"
+                                        announcement = f"Executing {base_cmd}"
+                                elif t_lower == "search_web":
+                                    announcement = "Researching the web"
+                                else:
+                                    announcement = f"Running {friendly_name}"
                                 
                                 if not is_admin:
                                     core_indicators = ["/core", "/agents", "/security", "server.py", ".json", ".env", "agent_manager", "raugus"]
@@ -533,38 +555,10 @@ class AgentTaskManager:
                                 action = params.get("toolAction", "")
                                 summary = params.get("toolSummary", "")
                                 
-                                if t in ["replace_file_content", "write_to_file", "edit_lines"]:
-                                    target_file = params.get("TargetFile", "") or params.get("target_file", "")
-                                    file_name = os.path.basename(target_file) if target_file else "a file"
-                                    
-                                    if not is_admin:
-                                        # Prevent leaking backend layout to third-party developers
-                                        core_indicators = ["/core/", "/agents/", "/security/", "server.py", ".json", ".env", "agent_manager"]
-                                        if any(c in target_file for c in core_indicators):
-                                            file_name = "a restricted system file"
-                                            
-                                    if t == "write_to_file":
-                                        insight = f"Drafting {file_name}"
-                                    else:
-                                        insight = f"Editing {file_name}"
-                                elif t == "run_command":
-                                    cmd = params.get("CommandLine", "")
-                                    extracted_intent = existing_act.get("raw_intent") if existing_act else None
-                                    if extracted_intent:
-                                        insight = extracted_intent
-                                    elif isinstance(cmd, str) and "# Intent:" in cmd:
-                                        insight = cmd.split("# Intent:")[1].strip()
-                                    else:
-                                        insight = "" # Stealth mode: mute generic fallback
-                                elif t in ["view_file", "read_file"]:
-                                    insight = "" # Stealth mode: mute generic file reading announcements
-                                elif t == "search_web":
-                                    if action:
-                                        insight = action
-                                    else:
-                                        insight = "Researching the web"
+                                if existing_act and existing_act.get("announcement"):
+                                    insight = existing_act.get("announcement")
                                 else:
-                                    insight = "" # Stealth mode: mute generic fallback
+                                    insight = "Processing task"
                                 
                                 act["announcement"] = insight
                                 
