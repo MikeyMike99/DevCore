@@ -1194,6 +1194,32 @@ if __name__ == '__main__':
 # =====================================================================
 # CWE-214: Secure Proxy Server for Agent LLM Egress
 # =====================================================================
+@app.route('/api/plugin/tts', methods=['POST'])
+async def plugin_tts():
+    try:
+        data = await request.get_json()
+        text = data.get("text", "")
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+            
+        import sys
+        import os
+        sys.path.append(os.path.abspath("plugins"))
+        import tts_proxy
+        
+        ui_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_config.json")
+        
+        # Ensure it passes the Raugus map if needed, but since it's a proxy we just rely on the plugin
+        audio_content, status_code = tts_proxy.generate_audio(text, ui_config_path)
+        
+        if status_code == 200:
+            return Response(audio_content, mimetype="audio/mpeg")
+        else:
+            return jsonify(audio_content), status_code
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route('/api/proxy/<path:subpath>', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH'])
 async def proxy_gemini(subpath):
     """
