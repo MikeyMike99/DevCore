@@ -1264,11 +1264,14 @@
             var target = isAlert ? srAlerts : srAnnouncer;
             if (!target) return;
             
+            // Clean text of markdown characters before announcing
+            var cleanText = text.replace(/[*`#_()\[\]{}]/g, '');
+            
             // Do NOT clear the region immediately, otherwise fast back-to-back announcements 
             // (like a tool finishing right before the final response) will overwrite each other!
             // Just append a block so the screen reader queues them sequentially.
             var span = document.createElement('div');
-            span.textContent = text;
+            span.textContent = cleanText;
             target.appendChild(span);
             
             // Automatically clear out the nodes after 5 seconds
@@ -1305,6 +1308,7 @@
 
         var pingInterval = null;
         var lastReceivedSeq = 0;
+        var announcedActions = new Set();
 
         function connectWebSocket() {
             var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -1552,7 +1556,11 @@
                         }
                     }
                 }
-                // [MUTED] announce(data.action.announcement || 'Action started');
+                
+                if (data.action.announcement !== "" && !announcedActions.has(data.action.id)) {
+                    announce(data.action.announcement || 'Action started');
+                    announcedActions.add(data.action.id);
+                }
             }
             else if (data.type === 'action_done') {
                 if (!currentAgentArticle) {
@@ -1565,8 +1573,9 @@
                     // Audio is handled in action_start to prevent overlapping
                 }
                 // Insightful Outcome Generator Announcement
-                if (data.action.announcement !== "") {
+                if (data.action.announcement !== "" && !announcedActions.has(data.action.id)) {
                     announce(data.action.announcement || 'Action complete');
+                    announcedActions.add(data.action.id);
                 }
             }
             else if (data.type === 'agent_chunk') {
@@ -1718,12 +1727,8 @@
                             responseText = "No response provided.";
                         }
                     }
-                    var cleanText = responseText.replace(/[#*`_]/g, '').replace(/<[^>]+>/g, ' ');
-                    if (cleanText && cleanText !== "No response provided.") {
-                        announce("Task completed in " + elapStr + ". Response: " + cleanText);
-                    } else {
-                        announce("Task completed in " + elapStr);
-                    }
+                    
+                    announce("Task completed in " + elapStr + ". Response: " + (responseText || "").trim());
                 }
 
                 // Removed forced focus stealing! Let ARIA Live handle the announcement

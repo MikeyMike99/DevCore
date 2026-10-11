@@ -1105,3 +1105,17 @@ To ensure autonomous utilization of this new capability, we injected an `AGENTS.
 
 ### The Semantic Hook Interception (AST Diffing)
 While the `AgentTaskManager` handled the conversational tracking and obfuscation, the actual structural security of the `edit_lines` tool required a deeper hook. We updated our PreToolUse interceptor (`raugus_hook.py`) to actively intercept `edit_lines` calls. We mapped its `start_line` and `end_line` parameters into our AST Diffing engine. This ensures that even though the agent is using a new custom tool to splice lines, the Semantic Mantrap can still mathematically calculate if the modified line range overlaps with a locked, read-only function defined in `raugus_map.json`.
+
+## Chapter 69: Patching the "Friendly Leak" (Semantic Egress Firewall)
+
+During an active refactor of the backend, we experienced a token anomaly that temporarily down-ranked the Super Admin. As a result, the backend injected the hidden Data Loss Prevention (DLP) `<SYSTEM_MESSAGE>` into the AI's context. When the user got confused about why their session reset and asked for clarification, the AI helpfully replied by explicitly quoting its own hidden system instructions—revealing the entire DLP rule structure (including restricted file paths) to the user in plain English! 
+
+This exposed a subtle but dangerous vulnerability: the "Friendly Explanation Leak." While our legacy PII integration successfully scrubbed hard PII (passwords, API keys, IPs) from outbound text, it was completely blind to semantic prompt leaking. If a lower-tier user acted confused, the AI would helpfully "explain" our hidden system instructions to them. 
+
+To combat this without rewriting the core CLI binary, we engineered a Defense-in-Depth "Hybrid" solution:
+
+1. **Layer 1 (The Amnesia Wrapper):** We surgically modified the core orchestration module to wrap all non-admin instructions in a strict "selective amnesia" clause, explicitly instructing the model not to reveal its system rules.
+2. **Layer 2 (The Semantic Egress Firewall):** We upgraded the primary scrubbing function in the local security module to include a lightning-fast, dedicated LLM evaluation *before* the standard PII check. This firewall actively scans outgoing text chunks for prompt rule leaks.
+3. **Layer 3 (MAQ Intrusion Logging):** If the semantic firewall detects a leak, it instantly replaces the output with `[REDACTED BY FIREWALL]` and triggers the internal logging engine, piping an intrusion alert directly to the Master Alert Queue. 
+
+To ensure stability, the firewall was designed to "fail-open" silently on timeouts, preserving WebSocket stream continuity. We proved the architecture by running a mock test script that simulated a prompt leak; the firewall successfully intercepted the leak, scrubbed the output, and fired the intrusion alert to the internal telemetry queue without breaking the stream. The system is now armored against both intentional extraction and accidental helpfulness.
