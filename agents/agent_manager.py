@@ -252,6 +252,9 @@ class AgentTaskManager:
                 k: v for k, v in os.environ.items()
                 if k in ("PATH", "HOME", "USER", "LANG", "TERM", "SHELL") or k.startswith("AGY_")
             }
+            # Force unbuffered Python stdout to prevent event stream delay
+            safe_env["PYTHONUNBUFFERED"] = "1"
+            safe_env["PYTHONIOENCODING"] = "utf-8"
             # Secure Proxy Setup: Provide a dummy token and route through local proxy
             safe_env["GEMINI_API_KEY"] = "dummy_token_123"
             safe_env["GOOGLE_API_KEY"] = "dummy_token_123"
