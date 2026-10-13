@@ -19,3 +19,8 @@ __pycache__/
 *.onefile-build/
 *.log
 crash_log*.txt
+
+# Dynamic Exam & Content Payloads
+sandbox/static/*.json
+desktop_app.dist/sandbox/static/*.json
+plugins/exam_application/content/
