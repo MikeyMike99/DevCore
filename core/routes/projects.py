@@ -39,9 +39,13 @@ async def set_active_project():
 
 @projects_bp.route('/api/conversations', methods=['GET'])
 async def list_conversations():
+    user = get_current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
     limit = request.args.get('limit', default=10, type=int)
     # Threaded to prevent connection blocking
-    convos, has_more = await asyncio.to_thread(current_app.session_mgr.list_conversations, current_app.project_mgr.active_project, get_current_user(), limit)
+    convos, has_more = await asyncio.to_thread(current_app.session_mgr.list_conversations, current_app.project_mgr.active_project, user, limit)
     return jsonify({"conversations": convos, "has_more": has_more})
 
 

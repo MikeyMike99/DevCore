@@ -69,7 +69,7 @@ def main():
 
         if tool_name in ["replace_file_content", "edit_lines"]:
             target = args.get("TargetFile") or args.get("target_file")
-            if target and target.endswith(".py"):
+            if target:
                 target = os.path.abspath(target)
                 
                 # Check file permission first
@@ -79,12 +79,14 @@ def main():
                         file_alias = alias
                         if data.get("permissions", {}).get("write") is False:
                             reason = f"Raugus Firewall: File {alias} is Read-Only."
+                            if "exam_application.html" in target or "exam_builder.html" in target:
+                                reason += " Do NOT modify these templates. Use the exam-generator skill and exam_temp.json payload instead."
                             log_violation(tool_name, target, reason)
                             print(json.dumps({"decision": "deny", "reason": reason}))
                             return
                 
                 # If the file is writable, we do AST Diffing to check Function-level permissions
-                if file_alias:
+                if file_alias and target.endswith(".py"):
                     try:
                         sys.path.insert(0, '/mnt/c/Users/michael/Documents/devcore')
                         from security.mantrap import SemanticMantrap

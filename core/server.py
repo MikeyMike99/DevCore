@@ -201,14 +201,16 @@ async def fetch_dynamic_models():
     global CACHED_MODELS
     if CACHED_MODELS is not None:
         return CACHED_MODELS
-        
-    import asyncio, sys, os
     local_agy = os.path.expanduser("~/.local/bin/agy")
     if not os.path.exists(local_agy):
         return None
         
     try:
-        cmd = ["wsl.exe", "-e", "bash", "-c", "~/.local/bin/agy --model invalid --print 'test'"]
+        import sys
+        if sys.platform == "win32":
+            cmd = ["wsl.exe", "-e", "bash", "-c", "~/.local/bin/agy --model invalid --print 'test'"]
+        else:
+            cmd = [local_agy, "--model", "invalid", "--print", "test"]
         proc = await asyncio.create_subprocess_exec(
             *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT
         )

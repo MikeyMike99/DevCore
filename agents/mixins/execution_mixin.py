@@ -8,6 +8,8 @@ import random
 import re
 import traceback
 import logging
+import subprocess
+import signal
 
 class ExecutionMixin:
     async def start_task(self, prompt: str, model: str = "Gemini 3.8 Flash (Low)", conversation_id: str = None, user: dict = None, admin_override: bool = False):
@@ -148,6 +150,7 @@ class ExecutionMixin:
             bundled_exe = os.path.join(base_dir, "agy.exe")
             bundled_linux = os.path.join(base_dir, "agy")
             
+            is_wsl = False
             real_agy = None
             cand = shutil.which("agy")
             if cand and os.path.exists(cand) and os.path.getsize(cand) > 50:
@@ -160,20 +163,30 @@ class ExecutionMixin:
                 local_agy = os.path.expanduser("~/.local/bin/agy")
                 if os.path.exists(local_agy) and os.path.getsize(local_agy) > 50:
                     real_agy = local_agy
+            else:
+                # We are on Windows, try WSL
+                is_wsl = True
+                real_agy = "wsl.exe"
 
             # 2. If NO real working agy CLI binary exists, seamlessly use the native Gemini engine
             if not real_agy:
                 await self._execute_native_gemini(prompt, model, task_time, conversation_id, is_admin)
                 return
 
-            cmd = [
-                real_agy,
+            cmd = []
+            if is_wsl:
+                cmd.extend(["wsl.exe", "-e", "bash", "-c", "~/.local/bin/agy \"$@\"", "_"])
+            else:
+                cmd.append(real_agy)
+            
+            if perm_flag:
+                cmd.append(perm_flag)
+
+            cmd.extend([
                 "--model", model,
                 "--output-format", "stream-json",
                 "--print-timeout", "3600s" # Enforce hard timeout (CWE-400)
-            ]
-            if perm_flag:
-                cmd.insert(1, perm_flag)
+            ])
             if conversation_id:
                 cmd.extend(["--conversation", conversation_id])
             cmd.extend(["--print", prompt])
@@ -236,7 +249,8 @@ class ExecutionMixin:
                             if self.transcript_watcher_task:
                                 self.transcript_watcher_task.cancel()
                             self.transcript_watcher_task = asyncio.create_task(self.tail_transcript(real_conv_id))
-                            await self.broadcast({"type": "init_conv_id", "conversation_id": real_conv_id})
+                            real_model = event_data.get("init", {}).get("model")
+                            await self.broadcast({"type": "init_conv_id", "conversation_id": real_conv_id, "real_model": real_model})
                             try:
                                 from core import session_manager
                                 sm_inst = session_manager.SessionManager()
@@ -336,7 +350,7 @@ class ExecutionMixin:
                                         safe_params[k] = v[:2000] + "... [Truncated for UI]"
                                     else:
                                         safe_params[k] = v
-                                if tool_name == "write_to_file" and "ArtifactMetadata" in raw_params:
+                                if "write_to_file" in tool_name and "ArtifactMetadata" in raw_params:
                                     tf = raw_params.get("TargetFile")
                                     if tf:
                                         import os as _os
@@ -583,6 +597,26 @@ class ExecutionMixin:
             self.active_proc = None
             self.active_task = None
             self.start_time = None
+            
+            # Zero-Idle Protocol: Unconditionally kill all lingering agy subagent processes for this conversation
+            try:
+                cid = getattr(self, "current_conversation_id", "")
+                if cid:
+                    cmd = ['pkill', '-9', '-f', f'agy.*{cid}']
+                    if sys.platform == "win32":
+                        cmd = ['wsl.exe', '-e'] + cmd
+                    subprocess.run(cmd, capture_output=True)
+            except Exception as e:
+                import logging
+                logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
+            try:
+                if sys.platform == "win32":
+                    subprocess.run(['wsl.exe', '-e', 'pkill', '-9', '-f', 'agy'], capture_output=True)
+                else:
+                    subprocess.run(['pkill', '-9', '-f', 'agy'], capture_output=True)
+            except Exception as e:
+                import logging
+                logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
 
     async def _execute_native_gemini(self, prompt: str, model: str, task_time: float, conversation_id: str, is_admin: bool):
         await self.broadcast({"type": "agent_start", "model": model})
@@ -649,15 +683,8 @@ class ExecutionMixin:
                     sys_msg_text = parts[0].replace("<SYSTEM_MESSAGE>\n", "").strip()
                     clean_prompt = parts[1]
 
-            # Candidate models for fallback
-            candidate_models = []
-            if model and model not in ("Gemini 3.8 Flash (Low)", "Gemini 3.8 Flash (High)"):
-                candidate_models.append(model)
-            
-            if model and "pro" in model.lower():
-                candidate_models.extend(["gemini-2.5-pro", "gemini-1.5-pro", "gemini-pro-latest"])
-            else:
-                candidate_models.extend(["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"])
+            # Candidate models
+            candidate_models = [model] if model else ["gemini-1.5-pro"]
 
             from google.genai import types
             gen_config = None
@@ -680,6 +707,12 @@ class ExecutionMixin:
 
             if response_iter is None:
                 raise last_err or RuntimeError("Failed to connect to Gemini models.")
+                
+            if candidate != model:
+                await self.broadcast({
+                    "type": "model_fallback",
+                    "fallback_model": candidate
+                })
 
             async for chunk in response_iter:
                 if chunk.text:
@@ -727,28 +760,44 @@ class ExecutionMixin:
             await self.active_proc.stdin.drain()
 
     async def cancel_task(self):
-        if self.is_running():
+        import logging
+
+        # 1. Kill the active process if it's still running
+        if self.is_running() and self.active_proc:
             try:
-                import sys, os, signal
                 if sys.platform == "win32":
-                    # Native Windows: Kill process tree
-                    import subprocess
                     subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.active_proc.pid)], capture_output=True)
                 else:
-                    # Linux/WSL: Kill the entire Process Group (Main Agent + All Subagents)
                     os.killpg(os.getpgid(self.active_proc.pid), signal.SIGKILL)
             except Exception:
                 try: self.active_proc.kill()
                 except: pass
-            if self.active_task and not self.active_task.done():
-                self.active_task.cancel()
-            await self.broadcast({
-                "type": "system",
-                "level": "info",
-                "message": "Task cancelled by user."
-            })
-            await self.broadcast({
-                "type": "agent_done",
-                "cancelled": True
-            })
 
+        # 2. Zero-Idle Protocol: Unconditionally kill all lingering agy subagent processes
+        try:
+            cid = getattr(self, "current_conversation_id", "")
+            if cid:
+                cmd = ['pkill', '-9', '-f', f'agy.*{cid}']
+                if sys.platform == "win32":
+                    cmd = ['wsl.exe', '-e'] + cmd
+                subprocess.run(cmd, capture_output=True)
+            else:
+                cmd = ['pkill', '-9', '-f', 'agy']
+                if sys.platform == "win32":
+                    cmd = ['wsl.exe', '-e'] + cmd
+                subprocess.run(cmd, capture_output=True)
+        except Exception as e:
+            logging.error(f"[AgentManager] Failed to run pkill: {e}")
+        # 3. Cancel the async reader task
+        if hasattr(self, 'active_task') and self.active_task and not self.active_task.done():
+            self.active_task.cancel()
+
+        await self.broadcast({
+            "type": "system",
+            "level": "info",
+            "message": "Task and all background subagents cancelled (Zero-Idle Protocol Enforced)."
+        })
+        await self.broadcast({
+            "type": "agent_done",
+            "cancelled": True
+        })

@@ -85,7 +85,7 @@ class SessionManager:
             else:
                 if project_name and meta.get("project") != project_name:
                     continue
-                if meta.get("owner") != user.get("username"):
+                if not user or meta.get("owner") != user.get("username"):
                     continue
             valid_ids.append(conv_id)
 

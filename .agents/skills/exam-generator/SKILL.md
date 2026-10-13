@@ -12,12 +12,26 @@ When the user asks you to generate a quiz, exam, or assessment based on their co
 1. **Analyze Content:** Read the source materials the user has provided. Often, they will drop documents into the `plugins/exam_application/content/` folder for you to read.
 2. **Generate JSON:** Formulate questions, plausible distractors, and **detailed educational explanations** for every answer based strictly on the source content.
 3. **Save Data:** Write the resulting JSON payload to `sandbox/static/exam_temp.json`.
-4. **Activate UI:** Embed the plugin directly into your chat response by rendering an iframe:
+4. **Format & Validate:** You MUST execute the included schema normalizer script to fix any subagent hallucinations before rendering the UI:
+   `python3 /mnt/c/Users/michael/Documents/DevCore/.agents/skills/exam-generator/scripts/format_exam.py /mnt/c/Users/michael/Documents/DevCore/sandbox/static/exam_temp.json`
+5. **Activate UI:** Embed the plugin directly into your chat response by rendering an iframe:
    ```html
    <iframe src="/plugin/exam?quiz=exam_temp.json&title=Your+Custom+Title" class="w-full aspect-video border-0 rounded-lg" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
    ```
 
+## Blueprint & JSON Templating
+The Exam Application UI is a read-only blueprint. To automate and extend the application (e.g., adding a timer, enabling partial credit, or adding textboxes), you must modify the JSON payload. 
+- Treat the JSON schema as your ultimate configuration template.
+- Do not attempt to write HTML or broken JS from scratch to add features.
+- If a user requests a complex UI behavior, generate a comprehensive JSON payload that leverages the supported schema features to achieve the result.
+
 ## JSON Schema Specification
+**CRITICAL RULES FOR SUBAGENTS:**
+- NEVER use the key `"question"` for the question text. You MUST use exactly `"text"`.
+- For `multiple_choice` questions, NEVER use `"correct_answer"` with a string. You MUST use `"correct_index"` with an **integer** representing the 0-based index of the correct option in the `"options"` array.
+- For `multi_select` questions, NEVER use `"correct_answers"` with an array of strings. You MUST use `"correct_indices"` with an array of **integers** representing the 0-based indices.
+- For `dropdown_blank`, you MUST only have exactly one `[BLANK]` string in the `"text"` field. Do NOT create nested dictionaries for multiple blanks. Use `"correct_text"` for the single correct string.
+
 The plugin expects a root object containing an optional `timer_seconds`, optional `weighted_scoring` (boolean), optional `partial_credit` (boolean), optional `anti_cheat` (boolean), and a `questions` array.
 
 ```json
@@ -112,5 +126,6 @@ When the user specifically asks for help with the Exam Generator (e.g., by click
    - *Basic:* "Generate a quick 3-question multiple-choice quiz on JavaScript arrays."
    - *Intermediate:* "Read the PDF in the content folder and build a 5-question exam using dropdowns and fill-in-the-blanks."
    - *Complex:* "Create a 10-minute weighted exam on Linux commands. Include 2 terminal-command questions, 2 matching columns, and embed a relevant tutorial video on question 3."
+6. **Interactive Generation UI:** ALWAYS embed the Exam Builder UI at the end of the guide using the following iframe: `<iframe src="/plugin/exam_builder" class="w-full min-h-[600px] border-0 rounded-lg shadow-xl" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Exam Generator Builder"></iframe>`
 
 Format the guide using clean Markdown headers and bullet points. Keep it practical and focused on how the user can interact with the app.

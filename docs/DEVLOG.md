@@ -581,7 +581,7 @@ To mathematically guarantee the death of all Subagents when the Main Agent dies,
 
 ## Chapter 40: Agentic Skills and Template Immutability
 
-As the system generates dynamic, user-facing applications (like the AZ-900 Exam Plugin), a core vulnerability arises: **Template Corruption**. If an Autonomous Agent modifies the master `exam_application.html` to generate a quiz, it risks corrupting the core UI blueprint or inadvertently injecting malicious code into the permanent application layer.
+As the system generates dynamic, user-facing applications (like the Accessible Exam Plugin), a core vulnerability arises: **Template Corruption**. If an Autonomous Agent modifies the master `exam_application.html` to generate a quiz, it risks corrupting the core UI blueprint or inadvertently injecting malicious code into the permanent application layer.
 
 ### The Capability Bootstrapping Solution
 To solve this, we explicitly instruct the Agent using the **Antigravity Skills Architecture** (`SKILL.md`). We built a dedicated `exam_generator` skill that enforces strict operational boundaries:
@@ -592,7 +592,7 @@ To solve this, we explicitly instruct the Agent using the **Antigravity Skills A
 
 ## Chapter 41: Extending Ephemeral Plugins (The Media Player)
 
-The Ephemeral Plugin architecture (originally designed for the AZ-900 Exam) is infinitely extensible. To prove this, we extended the capability to securely embed and play external media (e.g., YouTube videos) directly within the Chat UI without exposing the parent DOM to cross-site scripting (XSS) attacks.
+The Ephemeral Plugin architecture (originally designed for the Accessible Exam) is infinitely extensible. To prove this, we extended the capability to securely embed and play external media (e.g., YouTube videos) directly within the Chat UI without exposing the parent DOM to cross-site scripting (XSS) attacks.
 
 ### The Media Player Implementation
 We deployed a new master template (`static/video_application.html`) equipped with dark-mode CSS and NVDA screen-reader accessibility hooks (auto-focusing the title upon load). 

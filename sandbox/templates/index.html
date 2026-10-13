@@ -253,7 +253,10 @@
                             <div class="font-bold text-teal-400 text-sm">/media</div>
                             <div class="text-xs text-slate-300 mt-1">Spawns the Accessible Media Player (Music/Video)</div>
                         </button>
-                        
+                        <button type="button" role="option" id="slash-item-3" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/builder">
+                            <div class="font-bold text-teal-400 text-sm">/builder</div>
+                            <div class="text-xs text-slate-300 mt-1">Spawns the Visual Exam Builder Dashboard</div>
+                        </button>
                     </div>
 
                     <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
@@ -1460,6 +1463,11 @@
                 }
             }
             else if (data.type === 'init_conv_id') {
+                if (data.real_model && taskModelBadge && !taskModelBadge.innerText.includes("Forced")) {
+                    taskModelBadge.innerText = data.real_model;
+                    taskModelBadge.classList.add("text-teal-400");
+                    taskModelBadge.classList.remove("text-yellow-400");
+                }
                 if (data.conversation_id && currentConversationId !== data.conversation_id) {
                     var oldId = currentConversationId;
                     currentConversationId = data.conversation_id;
@@ -1517,6 +1525,9 @@
                 }
             }
             else if (data.type === 'task_started') {
+                if (typeof playIncomingSound === 'function') {
+                    playIncomingSound();
+                }
                 startTaskUI(data.prompt, data.model, data.start_time);
             }
             else if (data.type === 'task_active') {
@@ -1537,6 +1548,9 @@
                 chatFeed.scrollTop = chatFeed.scrollHeight;
             }
             else if (data.type === 'agent_start') {
+                if (typeof playIncomingSound === 'function') {
+                    playIncomingSound();
+                }
                 if (!currentAgentArticle) {
                     currentAgentArticle = appendAgentMessageContainer(data.model);
                 }
@@ -1655,7 +1669,7 @@
 
         
         function playNotificationSound() {
-            var audio = new Audio('/api/sound/notification');
+            var audio = new Audio('{{ ui.sounds.notification | default("/api/sounds/notification") }}');
             audio.play().catch(err => {
                 // Fallback: If no MP3 is found, synthesize a soft, non-alarming UI pop
                 try {
@@ -1690,6 +1704,11 @@
             sendBtn.disabled = false;
             sendBtnSpinner.classList.add('hidden');
             sendBtnText.innerText = "Execute";
+            
+            // Play completed sound when task finishes
+            if (typeof playCompletedSound === 'function') {
+                playCompletedSound();
+            }
 
             if (currentAgentArticle) {
                 // Remove typing pulse
@@ -1728,7 +1747,15 @@
                         }
                     }
                     
-                    announce("Task completed in " + elapStr + ". Response: " + (responseText || "").trim());
+                    if (responseText && (responseText.includes("Siraugga Exam Generator Guide") || responseText.includes("Exam Generator Guide"))) {
+                        if (!currentAgentArticle.querySelector('iframe[src*="/plugin/exam_builder"]')) {
+                            var iframeWrap = document.createElement('div');
+                            iframeWrap.className = 'mt-4 border-t border-slate-700/50 pt-4';
+                            iframeWrap.innerHTML = '<h3 class="text-sm font-bold text-teal-400 mb-2">Interactive Exam Builder</h3><iframe src="/plugin/exam_builder" class="w-full min-h-[600px] border-0 rounded-lg shadow-xl" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Exam Generator Builder"></iframe>';
+                            currentAgentArticle.querySelector('.agent-text').appendChild(iframeWrap);
+                        }
+                    }
+                    announce("Task completed in " + elapStr + ". Response: " + (responseText || "").replace(/<[^>]*>?/gm, '').trim());
                 }
 
                 // Removed forced focus stealing! Let ARIA Live handle the announcement
@@ -1964,9 +1991,12 @@
             chatFeed.scrollTop = chatFeed.scrollHeight;
         }
 
-        
+        var lastIncomingSoundTime = 0;
         function playIncomingSound() {
-            var audio = new Audio('/api/sound/incoming');
+            var now = Date.now();
+            if (now - lastIncomingSoundTime < 2000) return;
+            lastIncomingSoundTime = now;
+            var audio = new Audio('{{ ui.sounds.incoming | default("/api/sounds/incoming") }}');
             audio.play().catch(err => {
                 // Synthesizer fallback if file is missing (soft high pitched beep)
                 try {
@@ -1983,12 +2013,18 @@
                     gain.gain.exponentialRampToValueAtTime(0.01, context.currentTime + 0.1);
                     osc.start(context.currentTime);
                     osc.stop(context.currentTime + 0.1);
-                } catch(e) {}
+                } catch(e) {
+                    console.error("Audio trigger failed (incoming fallback):", err, e);
+                }
             });
         }
 
+        var lastCompletedSoundTime = 0;
         function playCompletedSound() {
-            var audio = new Audio('/api/sound/completed');
+            var now = Date.now();
+            if (now - lastCompletedSoundTime < 2000) return;
+            lastCompletedSoundTime = now;
+            var audio = new Audio('{{ ui.sounds.completed | default("/api/sounds/completed") }}');
             audio.play().catch(err => {
                 // Synthesizer fallback (low bass drone)
                 try {
@@ -2005,7 +2041,9 @@
                     gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.2);
                     osc.start(context.currentTime);
                     osc.stop(context.currentTime + 0.25);
-                } catch(e) {}
+                } catch(e) {
+                    console.error("Audio trigger failed (completed fallback):", err, e);
+                }
             });
         }
 
@@ -2013,6 +2051,11 @@
             if (e) e.preventDefault();
             var prompt = inputEl.value.trim();
             if (!prompt) return;
+
+            // Play sound when sending a message
+            if (typeof playIncomingSound === 'function') {
+                playIncomingSound();
+            }
 
             if (isTaskRunning) {
                 if (ws && ws.readyState === WebSocket.OPEN) {
@@ -2040,11 +2083,6 @@
 
             appendUserMessage(prompt);
             inputEl.value = '';
-            
-            // Play sound when sending a message
-            if (typeof playIncomingSound === 'function') {
-                playIncomingSound();
-            }
             
             var actualPromptToSend = prompt;
             // Clear the local draft JSON only upon intentional send
@@ -2187,6 +2225,14 @@
                         var art = appendAgentMessageContainer();
                         art.dataset.rawMarkdown = item.markdown;
                         art.querySelector('.agent-text').innerHTML = marked.parse(item.markdown);
+                        if (item.markdown && (item.markdown.includes("Siraugga Exam Generator Guide") || item.markdown.includes("Exam Generator Guide"))) {
+                            if (!art.querySelector('iframe[src*="/plugin/exam_builder"]')) {
+                                var iframeWrap = document.createElement('div');
+                                iframeWrap.className = 'mt-4 border-t border-slate-700/50 pt-4';
+                                iframeWrap.innerHTML = '<h3 class="text-sm font-bold text-teal-400 mb-2">Interactive Exam Builder</h3><iframe src="/plugin/exam_builder" class="w-full min-h-[600px] border-0 rounded-lg shadow-xl" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Exam Generator Builder"></iframe>';
+                                art.querySelector('.agent-text').appendChild(iframeWrap);
+                            }
+                        }
                         var pulse = art.querySelector('.typing-indicator');
                         if (pulse) pulse.remove();
                         var cancelBtn = art.querySelector('.cancel-btn');
@@ -2462,6 +2508,23 @@
     document.addEventListener('keydown', function(e) {
         if (e.altKey && (e.key === 'h' || e.key === 'H' || e.code === 'KeyH')) {
             e.preventDefault();
+            
+            // Clear existing help menus to prevent clutter
+            var feed = document.getElementById('chat-feed');
+            if (feed) {
+                Array.from(feed.children).forEach(function(node) {
+                    var html = node.innerHTML.toLowerCase();
+                    if (html.includes('siraugga help menu') || html.includes('siraugga exam generator guide')) {
+                        // Attempt to remove the previous user prompt ("help") if it exists
+                        var prev = node.previousElementSibling;
+                        if (prev && prev.innerHTML.toLowerCase().includes('help')) {
+                            prev.remove();
+                        }
+                        node.remove();
+                    }
+                });
+            }
+
             var inputEl = document.getElementById('prompt');
             if (inputEl) {
                 inputEl.value = 'help';

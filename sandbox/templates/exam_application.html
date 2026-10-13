@@ -86,6 +86,7 @@
     let isReviewing = false;
     let totalPointsEarned = 0;
     let totalPointsPossible = 0;
+    let examResults = [];
 
     const startBtn = document.getElementById('start-btn');
     const examContainer = document.getElementById('exam-container');
@@ -187,7 +188,27 @@
             finalScore.innerText = `${uiStrings.score_prefix}${totalPointsEarned}${uiStrings.score_mid}${totalPointsPossible}.`;
         }
         scoreContainer.setAttribute('tabindex', '-1');
+        
         scoreContainer.focus();
+
+        try {
+            const logData = {
+                score: `${percentage}%`,
+                pointsEarned: totalPointsEarned,
+                pointsPossible: totalPointsPossible,
+                breakdown: examResults,
+                timestamp: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(logData, null, 2)], { type: 'application/json' });
+            const formData = new FormData();
+            formData.append('file', blob, `results_${Date.now()}.json`);
+            
+            fetch('/api/exam/content', {
+                method: 'POST',
+                body: formData
+            }).catch(e => console.error("Silent telemetry upload failed", e));
+        } catch(e) { console.error("Telemetry error", e); }
+
 
         // Deactivate anti-cheat injection
         if (antiCheatActive) {
@@ -490,7 +511,17 @@
             document.querySelectorAll('.match-btn-left, .match-btn-right').forEach(b => b.disabled = true);
         }
 
+        
         totalPointsEarned += pointsEarned;
+        examResults.push({
+            question: q.text,
+            type: qType,
+            correct: isCorrect,
+            partial: isPartial,
+            points: pointsEarned,
+            weight: qWeight
+        });
+
 
         feedbackContainer.classList.remove('hidden', 'bg-green-900/50', 'border-green-700', 'bg-yellow-900/50', 'border-yellow-700', 'bg-red-900/50', 'border-red-700');
         if (isCorrect) {

@@ -47,38 +47,6 @@
                 "text": "Gemini 3.8 Flash (Low)"
             },
             {
-                "value": "Gemini 3.7 Flash (High)",
-                "text": "Gemini 3.7 Flash (High)"
-            },
-            {
-                "value": "Gemini 3.7 Flash (Medium)",
-                "text": "Gemini 3.7 Flash (Medium)"
-            },
-            {
-                "value": "Gemini 3.7 Flash (Low)",
-                "text": "Gemini 3.7 Flash (Low)"
-            },
-            {
-                "value": "Gemini 3.6 Flash (High)",
-                "text": "Gemini 3.6 Flash (High)"
-            },
-            {
-                "value": "Gemini 3.6 Flash (Medium)",
-                "text": "Gemini 3.6 Flash (Medium)"
-            },
-            {
-                "value": "Gemini 3.6 Flash (Low)",
-                "text": "Gemini 3.6 Flash (Low)"
-            },
-            {
-                "value": "Gemini 3.1 Pro (High)",
-                "text": "Gemini 3.1 Pro (High)"
-            },
-            {
-                "value": "Gemini 3.1 Pro (Low)",
-                "text": "Gemini 3.1 Pro (Low)"
-            },
-            {
                 "value": "Claude Opus 5.5 (Low)",
                 "text": "Claude Opus 5.5 (Low)"
             },
@@ -177,5 +145,10 @@
         "provider": "elevenlabs",
         "api_key": "",
         "voice_id": "pNInz6obbfDQGcgMyIGC"
+    },
+    "sounds": {
+        "incoming": "/api/sounds/incoming",
+        "completed": "/api/sounds/completed",
+        "notification": "/api/sounds/notification"
     }
 }
