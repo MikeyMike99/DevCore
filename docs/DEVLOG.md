@@ -1122,7 +1122,26 @@ To ensure stability, the firewall was designed to "fail-open" silently on timeou
 
 
 
-## Chapter 70: The Pre-Authorization Wall (AADSTS65002 and the Headless Enterprise Illusion)
+## Chapter 70: The Compliance Audit & The Four-Layer Forensic Purge
+
+Institutional governance and AI compliance are not merely theoretical guidelines—in an enterprise and educational environment, they define the exact perimeter of development operations. Following a formal policy clarification from IT management regarding copyright boundaries, proprietary courseware (specifically Microsoft AZ-900 and SC-900 curriculum materials), and AI ingestion limits, DevCore faced an immediate operational mandate: achieve absolute, zero-trace compliance across every layer of the platform.
+
+In a Zero-Trust architecture, compliance cannot be satisfied by simply "deleting a file" from the workspace. In modern AI-assisted engineering, data persists across git commit trees, local database caches, orchestration logs, and agent memory transcripts. To ensure total alignment with institutional policies, we executed a comprehensive Four-Layer Forensic Purge.
+
+### The Four-Layer Forensic Architecture
+
+1. **Layer 1 (Working Tree & Courseware Sanitization):** We permanently purged all proprietary courseware modules, answer keys, and exam extracts from `plugins/exam_application/content/`. The local demo data in `sandbox/static/` was wiped and replaced with clean, fully open-source computer science curricula (Python Core Architecture, Linux Systems Hardening, and Networking Fundamentals). Strict `.gitignore` boundaries were added to permanently block raw courseware ingestion.
+2. **Layer 2 (Git History Rewriting across 477 Commits):** Because Git retains every historical snapshot, simple filesystem deletion leaves a permanent audit trail. We executed a full history rewrite using `git filter-branch --force --index-filter` across all 477 historical commits, surgically excising every trace of legacy courseware JSON. We followed by deleting all backup references, expiring reflogs (`git reflog expire --expire=now --all`), and running aggressive garbage collection (`git gc --prune=now --aggressive`) to guarantee zero residual git footprint.
+3. **Layer 3 (Antigravity Orchestration DB Purge):** We audited the engine's internal SQLite database infrastructure (`~/.gemini/antigravity-cli/conversations/` and `conversation_summaries.db`). Every conversation record referencing legacy study guides was systematically excised, followed by a database `VACUUM` to physically zero out unallocated database pages on disk.
+4. **Layer 4 (Deep Brain Transcript Sanitization):** Finally, we addressed the agentic memory layer. The JSONL transcripts residing in the Antigravity Brain archive were forensically sanitized in-place, preventing any LLM from ever retrieving, referencing, or regurgitating legacy courseware fragments in future context windows.
+
+### The Spark: Seeking Enterprise-Governed Intelligence
+
+The rigor of the compliance audit brought an important question to the forefront: if managing external public AI models and custom datasets creates continuous copyright and data-governance friction, why not shift intelligence entirely inside the institution's sanctioned perimeter?
+
+The college maintains an active Microsoft 365 Copilot tenant under `@hwacademy.org`. If the DevCore agentic framework could authenticate directly through this institutional identity, compliance would theoretically be inherited automatically from the college's enterprise tenant agreement. It seemed like the perfect solution—which immediately led us to test headless programmatic integration with Microsoft 365 Copilot.
+
+## Chapter 71: The Pre-Authorization Wall (AADSTS65002 and the Headless Enterprise Illusion)
 
 As part of our architectural evaluation and institutional policy alignment, we explored whether enterprise-managed AI tooling—specifically Microsoft 365 Copilot and the Microsoft Graph API ecosystem—could serve as a compliant, enterprise-governed intelligence engine for the DevCore orchestration layer. The theoretical premise was compelling: if developer sessions could authenticate directly using institutional `@hwacademy.org` student accounts, data compliance and corporate governance boundaries would be inherited natively from the Microsoft tenant.
 
