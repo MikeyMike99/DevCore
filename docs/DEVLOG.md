@@ -1119,3 +1119,35 @@ To combat this without rewriting the core CLI binary, we engineered a Defense-in
 3. **Layer 3 (MAQ Intrusion Logging):** If the semantic firewall detects a leak, it instantly replaces the output with `[REDACTED BY FIREWALL]` and triggers the internal logging engine, piping an intrusion alert directly to the Master Alert Queue. 
 
 To ensure stability, the firewall was designed to "fail-open" silently on timeouts, preserving WebSocket stream continuity. We proved the architecture by running a mock test script that simulated a prompt leak; the firewall successfully intercepted the leak, scrubbed the output, and fired the intrusion alert to the internal telemetry queue without breaking the stream. The system is now armored against both intentional extraction and accidental helpfulness.
+
+
+
+## Chapter 70: The Pre-Authorization Wall (AADSTS65002 and the Headless Enterprise Illusion)
+
+As part of our architectural evaluation and institutional policy alignment, we explored whether enterprise-managed AI tooling—specifically Microsoft 365 Copilot and the Microsoft Graph API ecosystem—could serve as a compliant, enterprise-governed intelligence engine for the DevCore orchestration layer. The theoretical premise was compelling: if developer sessions could authenticate directly using institutional `@hwacademy.org` student accounts, data compliance and corporate governance boundaries would be inherited natively from the Microsoft tenant.
+
+### The Headless Handshake (MSAL Device Code Flow)
+To test connectivity in a headless, cross-platform environment without exposing interactive browser redirects or embedding static secrets, we constructed an OAuth 2.0 test harness utilizing the Microsoft Authentication Library (`msal`). We configured the flow to use the Device Authorization Grant (`initiate_device_flow`), targeting first-party enterprise application endpoints and the Microsoft Graph API (`https://graph.microsoft.com/.default`).
+
+The agent spawned the authentication challenge, yielding the verification URI (`https://login.microsoft.com/device`) and a one-time user code. The developer authenticated using their official `@hwacademy.org` organizational credentials.
+
+### Hitting the Pre-Authorization Wall
+The moment authentication was submitted, Microsoft Entra ID (Azure AD) abruptly halted the handshake with error `AADSTS65002`:
+
+> `AADSTS65002: Consent between first party application '04b07795-8ddb-461a-bbee-02f9e1bf7b46' and first party resource '00000003-0000-0000-c000-000000000000' must be configured via preauthorization - applications owned and operated by Microsoft must get approval from the API owner before requesting tokens for that API.`
+
+In line with our security expectations in a properly secured organizational tenant, the authentication flow returned `AADSTS65002` (requiring tenant-level preauthorization and admin consent). 
+
+### Deconstructing the Enterprise Illusion
+This technical roadblock demonstrated the fundamental divide between end-user enterprise software and programmatic API consumption:
+1. **The Interactive SaaS Boundary:** While student credentials provide seamless access to interactive Microsoft 365 web apps and desktop suites (Word, Teams, Copilot Web), that access is tightly mediated through pre-authorized first-party client IDs with institutional conditional access policies.
+2. **The Headless App Registration Barrier:** External scripts, CLI tools, and agentic runtimes cannot simply "piggyback" on end-user credentials to consume Graph APIs. To proceed, an organization's IT administration must manually provision an Enterprise App Registration in Entra ID, configure delegated scopes (`User.Read`, `Copilot.Data`, etc.), explicitly enable public client flows, and grant Tenant Admin Consent.
+3. **The Administrative Bureaucracy:** Even for legitimate educational and assistive engineering, establishing custom enterprise app registrations introduces continuous friction: tenant review boards, security audits, credential lifecycles, and reliance on IT administration for operational uptime.
+
+### The Architectural Pivot: Sovereign Independence
+Confronted with the administrative overhead and rigid access barriers of an enterprise tenant, we arrived at a decisive architectural conclusion: **DevCore will not rely on enterprise tenant APIs for core intelligence.**
+
+Attempting to tether an autonomous, accessible developer portal to an external corporate cloud tenant creates an unacceptable single point of failure and subjects the platform to external governance shifts. The reality of `AADSTS65002` crystallized our commitment to sovereign, local-first intelligence:
+- **Local Model Execution:** Prioritizing self-hosted, offline LLM backends and open-source models running directly on developer hardware.
+- **Defense-in-Depth Semantic Firewalls:** Retaining full ownership of data classification, egress filtering, and intrusion logging through our local Raugus Mantrap rather than delegating security to remote cloud policies.
+- **Zero Cloud Entanglement:** Ensuring the DevCore framework operates with complete autonomy, guaranteeing accessibility, zero telemetry leakage, and continuous availability regardless of external tenant restrictions.
