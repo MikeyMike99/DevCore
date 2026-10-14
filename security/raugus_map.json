@@ -269,43 +269,6 @@
         },
         "id": "2495f3f6-e32d-47c8-ab9c-68aaa138a2be"
     },
-    "devcore.all_user_inputs.txt": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/all_user_inputs.txt",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "b7fd376d-fe03-4eed-93a4-376a76f6c13a"
-    },
-    "devcore.apply_mods.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/apply_mods.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "2f718328-055d-4a18-9adc-0fa687365df6"
-    },
-    "devcore.apply_mods.py::apply": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/apply_mods.py",
-        "symbol_name": "apply",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "974cf19d-74a3-4ccf-930d-da305d13fecd"
-    },
     "devcore.apply_upgrade.sh": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/apply_upgrade.sh",
@@ -1088,31 +1051,6 @@
         },
         "id": "53b45d68-46e7-4153-99d3-2e5b9d466cad"
     },
-    "devcore.self_heal.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/self_heal.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "908fa054-26fd-4542-8fc5-63ce966a46ed"
-    },
-    "devcore.self_heal.py::heal_crash": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/self_heal.py",
-        "symbol_name": "heal_crash",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "6aee4adf-2811-476b-999d-8c47152c4c77"
-    },
     "devcore.sessions.json": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/sessions.json",
@@ -1160,18 +1098,6 @@
             "execute": false
         },
         "id": "1f8c4687-839f-4591-b9e5-a7c39a39a4b4"
-    },
-    "devcore.slice.json": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/slice.json",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "e3c77d84-cfae-45eb-8ca4-6f83c2167f77"
     },
     "devcore.test.js": {
         "type": "file",
@@ -1234,31 +1160,6 @@
             "execute": false
         },
         "id": "cab4ee56-8f1f-401d-ae99-a834c96ee526"
-    },
-    "devcore.test_endpoints.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_endpoints.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "90a232fd-5035-4a6d-a36b-e61f8178d14f"
-    },
-    "devcore.test_endpoints.py::endpoints": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_endpoints.py",
-        "symbol_name": "endpoints",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "1f0a9903-b80d-48c7-b749-c4ef771c3309"
     },
     "devcore.test_feedback.py": {
         "type": "file",
@@ -1360,31 +1261,6 @@
         },
         "id": "376e92a9-a123-4b24-aa95-6c49f0f5b06b"
     },
-    "devcore.test_traceback.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_traceback.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f53b4a92-5602-4697-a21d-f7111c283743"
-    },
-    "devcore.test_traceback.py::run_test": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_traceback.py",
-        "symbol_name": "run_test",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "51f1275a-1776-4d15-8101-9532ad22ff10"
-    },
     "devcore.test_uid.sh": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_uid.sh",
@@ -1472,31 +1348,6 @@
         },
         "id": "c9192e2a-d18b-4b11-a9ab-51e504f515ef"
     },
-    "devcore.test_wsl.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_wsl.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3994564d-d3e5-404d-a851-a807c69b5672"
-    },
-    "devcore.test_wsl.py::test": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/test_wsl.py",
-        "symbol_name": "test",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5d2f250c-66a0-4eb2-b44f-d937efa208ee"
-    },
     "devcore.Uninstall_Siraugga.bat": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/Uninstall_Siraugga.bat",
@@ -1508,18 +1359,6 @@
             "execute": false
         },
         "id": "e70c705f-194c-4cad-b80a-edf1489c9915"
-    },
-    "devcore.user_inputs.jsonl": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/user_inputs.jsonl",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "fffa7bf3-900b-483b-b9b5-34f5a019f1cb"
     },
     "devcore.web_brute.py": {
         "type": "file",
@@ -1671,6 +1510,71 @@
             "execute": false
         },
         "id": "1d6ec856-56bd-4c42-9f85-3b3b5d37e7e7"
+    },
+    "devcore..agents.raugus_hook.py::PROTECTED_SECURITY_FILES": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py",
+        "symbol_name": "PROTECTED_SECURITY_FILES",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a959f5f1-1d1c-4044-8f7e-d486d7151253"
+    },
+    "devcore..agents.raugus_hook.py::FILE_AND_SEARCH_TOOLS": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py",
+        "symbol_name": "FILE_AND_SEARCH_TOOLS",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "84987067-390a-4b23-bb95-45f4fe4e2c06"
+    },
+    "devcore..agents.raugus_hook.py::COMMAND_TOOLS": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py",
+        "symbol_name": "COMMAND_TOOLS",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f69b4fd0-f48b-49c5-8db3-8a794d2a29b9"
+    },
+    "devcore..agents.raugus_hook.py::WRITE_TOOLS": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py",
+        "symbol_name": "WRITE_TOOLS",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6befedd9-2780-4e4c-adc1-04a8b645ca83"
+    },
+    "devcore..agents.raugus_hook.py::check_self_protection": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py",
+        "symbol_name": "check_self_protection",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "28727028-ac06-4545-9708-1d704c15f70f"
     },
     "devcore..agents.raugus_hook.py::find_sensitive_target": {
         "type": "symbol",
@@ -1945,18 +1849,6 @@
         },
         "id": "2ac01166-019c-457a-93e0-6bff369486b1"
     },
-    "devcore.agents.agent_manager.py.bak": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/agent_manager.py.bak",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "7a360a62-d414-4912-9534-ea23e3ec2227"
-    },
     "devcore.agents.README.md": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/README.md",
@@ -2156,31 +2048,6 @@
         },
         "id": "5b368f3c-3e9f-4cbb-841c-1cca42e0821c"
     },
-    "devcore.archive_scripts.apply_mods.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/apply_mods.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "b37153b0-1966-4227-9fb7-fed199aa4c8e"
-    },
-    "devcore.archive_scripts.apply_mods.py::apply": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/apply_mods.py",
-        "symbol_name": "apply",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "eafa8a0a-83c1-4771-9fd8-2a1c6f219006"
-    },
     "devcore.archive_scripts.apply_upgrade.sh": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/apply_upgrade.sh",
@@ -2192,83 +2059,6 @@
             "execute": false
         },
         "id": "5ad95d94-8740-4e6c-b66a-7f880dd78c74"
-    },
-    "devcore.archive_scripts.bootstrap_gateway.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/bootstrap_gateway.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d24c0d4f-cf0b-41b7-bce7-1235b94bc045"
-    },
-    "devcore.archive_scripts.bootstrap_gateway.py::app": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/bootstrap_gateway.py",
-        "symbol_name": "app",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "bef6cf68-6469-40cf-adb8-e0acab59a9d7"
-    },
-    "devcore.archive_scripts.bootstrap_gateway.py::BACKEND_HTTP_URL": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/bootstrap_gateway.py",
-        "symbol_name": "BACKEND_HTTP_URL",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "8918f805-c204-4468-b0a5-e6b250cfd299"
-    },
-    "devcore.archive_scripts.bootstrap_gateway.py::BACKEND_WS_URL": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/bootstrap_gateway.py",
-        "symbol_name": "BACKEND_WS_URL",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "41c6370c-8093-4f82-b72a-80d238dfe6e3"
-    },
-    "devcore.archive_scripts.bootstrap_gateway.py::proxy_http": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/bootstrap_gateway.py",
-        "symbol_name": "proxy_http",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "06380aa4-b7c0-4eae-bbc1-f788b133acde"
-    },
-    "devcore.archive_scripts.bootstrap_gateway.py::proxy_ws": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/archive_scripts/bootstrap_gateway.py",
-        "symbol_name": "proxy_ws",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "38a16390-028a-442f-b10c-0ce0f0ea8b91"
     },
     "devcore.archive_scripts.build_slim.py": {
         "type": "file",
@@ -4057,19 +3847,6 @@
         },
         "id": "6bf33047-9046-4207-ad04-7cf64401b2ce"
     },
-    "devcore.core.bootstrap_gateway.py::app": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
-        "symbol_name": "app",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "434c5f88-8d78-4b50-9423-117ffc6f5c97"
-    },
     "devcore.core.bootstrap_gateway.py::BACKEND_HTTP_URL": {
         "type": "symbol",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
@@ -4096,10 +3873,10 @@
         },
         "id": "4a592769-8f8e-4321-befd-fafb46776eed"
     },
-    "devcore.core.bootstrap_gateway.py::proxy_http": {
+    "devcore.core.bootstrap_gateway.py::PROTECTED_FIREWALL_BASENAMES": {
         "type": "symbol",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
-        "symbol_name": "proxy_http",
+        "symbol_name": "PROTECTED_FIREWALL_BASENAMES",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -4107,12 +3884,12 @@
             "write": false,
             "execute": false
         },
-        "id": "47d0efe7-6bcc-41f5-800a-5df31ba24a72"
+        "id": "51ff1a8b-b866-4eff-856e-2d37167cdf4c"
     },
-    "devcore.core.bootstrap_gateway.py::proxy_ws": {
+    "devcore.core.bootstrap_gateway.py::DEFAULT_ENGINE_REL_PATHS": {
         "type": "symbol",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
-        "symbol_name": "proxy_ws",
+        "symbol_name": "DEFAULT_ENGINE_REL_PATHS",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -4120,7 +3897,72 @@
             "write": false,
             "execute": false
         },
-        "id": "6c99d650-0063-457a-a25c-4febb9e74636"
+        "id": "86086ffe-f5a7-4733-a151-aa20269b7571"
+    },
+    "devcore.core.bootstrap_gateway.py::get_base_dir": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "get_base_dir",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bb5cfa9b-61dd-4221-b0d9-44a5ef7517d5"
+    },
+    "devcore.core.bootstrap_gateway.py::get_engine_files": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "get_engine_files",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1b1e5079-58dd-43ea-8067-73745a5c8827"
+    },
+    "devcore.core.bootstrap_gateway.py::resolve_engine_target": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "resolve_engine_target",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b039d74a-9e46-44e6-9a09-38aa0ea430e3"
+    },
+    "devcore.core.bootstrap_gateway.py::_compile_check": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "_compile_check",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9441b872-7804-4520-b5f9-aa41b27699b5"
+    },
+    "devcore.core.bootstrap_gateway.py::_promote_staged_patches": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "_promote_staged_patches",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2a1c9201-d2bf-4097-a81e-5c7a020c4233"
     },
     "devcore.core.bootstrap_gateway.py::run_preflight_checks": {
         "type": "symbol",
@@ -4134,6 +3976,71 @@
             "execute": false
         },
         "id": "002106bd-eb07-4e79-ad58-c4b6fe773ca1"
+    },
+    "devcore.core.bootstrap_gateway.py::heal_crash": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "heal_crash",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "90d45b54-5e7b-4995-82c0-285410fa7f59"
+    },
+    "devcore.core.bootstrap_gateway.py::create_gateway_app": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "create_gateway_app",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5f4b5470-e6a2-486f-a625-e036ee08f1fe"
+    },
+    "devcore.core.bootstrap_gateway.py::app": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "app",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "434c5f88-8d78-4b50-9423-117ffc6f5c97"
+    },
+    "devcore.core.bootstrap_gateway.py::_run_ephemeral_gateway_failover_test": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "_run_ephemeral_gateway_failover_test",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "eb1254aa-38ce-442a-893d-5c27e2b6ec72"
+    },
+    "devcore.core.bootstrap_gateway.py::run_self_test": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/bootstrap_gateway.py",
+        "symbol_name": "run_self_test",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2407bc08-dc59-4b2c-95a5-8f5cb9a52a75"
     },
     "devcore.core.client_debug.txt": {
         "type": "file",
@@ -4637,824 +4544,6 @@
         },
         "id": "b53a2214-6ad4-4c31-a540-e25b31ef7a9d"
     },
-    "devcore.core.server_backup.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "fd44cad2-41f1-45b6-9e39-df5a6a5fe4da"
-    },
-    "devcore.core.server_backup.py::app": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "app",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "58856e85-41e6-4fbd-90e5-1da5c83bf186"
-    },
-    "devcore.core.server_backup.py::project_mgr": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "project_mgr",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5c282881-49b3-41db-b86a-545c8e0aaa8c"
-    },
-    "devcore.core.server_backup.py::session_mgr": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "session_mgr",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "ee2a8fdb-8666-479d-ba8d-b93fba757730"
-    },
-    "devcore.core.server_backup.py::agent_mgr": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "agent_mgr",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d05fd37f-b51b-47c6-8a6f-474ba9a8690a"
-    },
-    "devcore.core.server_backup.py::security_mgr": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "security_mgr",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3523c497-d99b-427a-90f5-7084a22699bc"
-    },
-    "devcore.core.server_backup.py::reload_system": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "reload_system",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a60c1f24-43f2-4cec-a2a2-293bee3cfa30"
-    },
-    "devcore.core.server_backup.py::execute_hot_patch_sequence": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "execute_hot_patch_sequence",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3f28fffd-aa25-4f6c-9c8a-4af1d6cc1960"
-    },
-    "devcore.core.server_backup.py::trigger_hot_patch": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "trigger_hot_patch",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "63aafbbe-e42e-4508-ab07-44ac5c845d45"
-    },
-    "devcore.core.server_backup.py::auto_patch_daemon": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auto_patch_daemon",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "84b47e9c-7862-41c1-9031-73715b1e1da6"
-    },
-    "devcore.core.server_backup.py::start_background_tasks": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "start_background_tasks",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "9d9e836f-e8cc-4415-aa2c-b0f74da3c6d9"
-    },
-    "devcore.core.server_backup.py::BASE_DIR": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "BASE_DIR",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "9add31d8-4af6-490a-ac15-e8a8183c9826"
-    },
-    "devcore.core.server_backup.py::get_live_override_path": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_live_override_path",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5a04626f-d66b-4fe9-a9de-a47ddd99e09c"
-    },
-    "devcore.core.server_backup.py::read_asset": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "read_asset",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "2b1f4d6f-18c6-4d4f-a76d-b9145a2fc967"
-    },
-    "devcore.core.server_backup.py::custom_static": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "custom_static",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3cf4e306-787b-40b8-ae41-8d54abb470d5"
-    },
-    "devcore.core.server_backup.py::TEMPLATE_FILE": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "TEMPLATE_FILE",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "89b5ebf4-d863-444b-9f94-c8649cba1f8f"
-    },
-    "devcore.core.server_backup.py::UI_CONFIG_FILE": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "UI_CONFIG_FILE",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5c2ff195-1cca-4091-b630-a8afe1c80a68"
-    },
-    "devcore.core.server_backup.py::CACHED_MODELS": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "CACHED_MODELS",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a5512061-c8dc-477f-b627-c7f794145e52"
-    },
-    "devcore.core.server_backup.py::fetch_dynamic_models": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "fetch_dynamic_models",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "e5b66925-ef4d-47e3-ba6f-dbcf811c9332"
-    },
-    "devcore.core.server_backup.py::index": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "index",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d28196fe-566c-4a5c-9fd5-28b10f34f10d"
-    },
-    "devcore.core.server_backup.py::GLOBAL_AUTH_PROC": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "GLOBAL_AUTH_PROC",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "84350e00-d23d-4529-8385-e21aa7c96b0c"
-    },
-    "devcore.core.server_backup.py::plugin_media": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "plugin_media",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f15519b4-a0b5-42ba-beba-09cd1e03b7fa"
-    },
-    "devcore.core.server_backup.py::plugin_security": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "plugin_security",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "c1106e29-f3ae-4a85-8c74-001c591c6542"
-    },
-    "devcore.core.server_backup.py::plugin_exam": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "plugin_exam",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "74bfd784-92ff-489f-a73c-e52b73b68aa3"
-    },
-    "devcore.core.server_backup.py::plugin_exam_builder": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "plugin_exam_builder",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f1df2652-225b-480b-bd30-b84db5e8efb3"
-    },
-    "devcore.core.server_backup.py::api_exam_content": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "api_exam_content",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "ed449552-e339-4d95-9175-3dc1fc7c0dc2"
-    },
-    "devcore.core.server_backup.py::get_artifact": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_artifact",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a0fa5d53-4d7d-47b5-8c5a-136daddebf66"
-    },
-    "devcore.core.server_backup.py::save_artifacts": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "save_artifacts",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "1ce22108-43b4-43bc-a308-d8f32ede278b"
-    },
-    "devcore.core.server_backup.py::handle_massive_prompt": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "handle_massive_prompt",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "964a52e8-f13c-481f-bdb3-f31a79603d87"
-    },
-    "devcore.core.server_backup.py::auth_check": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auth_check",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "99c87dc4-296c-4ada-b14d-89259a22ade7"
-    },
-    "devcore.core.server_backup.py::login_page": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "login_page",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "2e04504f-beea-4577-a98c-8c9bdfc619f9"
-    },
-    "devcore.core.server_backup.py::set_api_key": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "set_api_key",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "416589fc-de56-411e-9aa8-284efd02718f"
-    },
-    "devcore.core.server_backup.py::auth_submit": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auth_submit",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "30de279a-a9b1-4498-a170-de472eab97a8"
-    },
-    "devcore.core.server_backup.py::ws_endpoint": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "ws_endpoint",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "74bd6436-c5b9-4e63-9502-070472c9d9be"
-    },
-    "devcore.core.server_backup.py::list_projects": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "list_projects",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "687da225-b3fd-408c-8aef-2eee1c571bf2"
-    },
-    "devcore.core.server_backup.py::create_project": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "create_project",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "cebbcd1c-ef4c-4a66-9173-84d8c6998228"
-    },
-    "devcore.core.server_backup.py::set_active_project": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "set_active_project",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "6b8ee36a-2d04-4ca2-82c6-aca8cb8cf589"
-    },
-    "devcore.core.server_backup.py::list_conversations": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "list_conversations",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "67c2c321-3a06-4d37-8e36-25397e5d7320"
-    },
-    "devcore.core.server_backup.py::get_conversation": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_conversation",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "b8b39b10-aba9-4bb4-962b-f9b1b17e6799"
-    },
-    "devcore.core.server_backup.py::delete_conversation": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "delete_conversation",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "dfe6a625-262d-49d0-9efd-7c54a237e143"
-    },
-    "devcore.core.server_backup.py::clear_project_sessions": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "clear_project_sessions",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "00f8b873-ebd2-4cdc-8469-e2a8eafb319a"
-    },
-    "devcore.core.server_backup.py::get_current_user": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_current_user",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "01e36454-07ff-4dc3-8d65-277ed3c7a169"
-    },
-    "devcore.core.server_backup.py::list_keys": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "list_keys",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "ff5e959b-9942-4a91-a60b-e4fc2a6996cb"
-    },
-    "devcore.core.server_backup.py::scrub_auth": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "scrub_auth",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "046e98e9-3092-477f-b3ea-29b6e8e7f475"
-    },
-    "devcore.core.server_backup.py::create_key": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "create_key",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "77d39049-c10c-43f2-9ac1-2ad8f7e8f795"
-    },
-    "devcore.core.server_backup.py::delete_key": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "delete_key",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d5e556a2-0438-42d0-a2ab-8aa80cf373ed"
-    },
-    "devcore.core.server_backup.py::get_sound": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_sound",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d8189f1c-e305-4d19-954e-3e3a61f74543"
-    },
-    "devcore.core.server_backup.py::list_files": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "list_files",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "66063585-62d2-49b2-9d57-62e64bb26c93"
-    },
-    "devcore.core.server_backup.py::get_file_content": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_file_content",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5db15a3e-44d1-4fb0-9d85-5633957f8a55"
-    },
-    "devcore.core.server_backup.py::save_file_content": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "save_file_content",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3e1e5604-8322-44e9-b4fa-961106432281"
-    },
-    "devcore.core.server_backup.py::list_logs": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "list_logs",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "783c16f7-f866-45be-aab2-ed435ceb6da7"
-    },
-    "devcore.core.server_backup.py::get_log_content": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "get_log_content",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "58c3add7-c021-4b59-8ed7-274e908b628a"
-    },
-    "devcore.core.server_backup.py::csp_report": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "csp_report",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a204b1c6-1138-4def-9766-f1f1c3985dd0"
-    },
-    "devcore.core.server_backup.py::auth_system_status": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auth_system_status",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "ed310d78-48f5-47d2-87ec-84291cd34a1b"
-    },
-    "devcore.core.server_backup.py::auth_login": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auth_login",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "76cdfd0e-dffa-40aa-9d7b-6e03e5025866"
-    },
-    "devcore.core.server_backup.py::auth_logout": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auth_logout",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "fa4b2767-c82b-4a47-bee7-33ec2a299c97"
-    },
-    "devcore.core.server_backup.py::auth_me": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auth_me",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "4906a286-28eb-47c4-86c0-a2802bd0d410"
-    },
-    "devcore.core.server_backup.py::trigger_dast_scan_internal": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "trigger_dast_scan_internal",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5195c0ec-d93b-4804-80e1-3b872c0dc799"
-    },
-    "devcore.core.server_backup.py::auto_red_team_daemon": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "auto_red_team_daemon",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "8b86d189-db3c-44a9-bbf8-e410378e0784"
-    },
-    "devcore.core.server_backup.py::api_trigger_red_team": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "api_trigger_red_team",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3d498e2a-bbce-432e-8488-eedc6c5f1a53"
-    },
-    "devcore.core.server_backup.py::force_shutdown": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "force_shutdown",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "da67ced0-fcb8-45da-9000-3d0185d05c4a"
-    },
-    "devcore.core.server_backup.py::plugin_tts": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "plugin_tts",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3f0e542b-accc-4909-8eba-64b5c51fba44"
-    },
-    "devcore.core.server_backup.py::proxy_gemini": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_backup.py",
-        "symbol_name": "proxy_gemini",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "180fea56-7dec-4971-8a49-f6bc225721c2"
-    },
     "devcore.core.server_new.py": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/server_new.py",
@@ -5596,174 +4685,6 @@
         },
         "id": "c41dd31b-0893-4e93-ab5d-3f1d1de8b575"
     },
-    "devcore.core.split_script.py": {
-        "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5e878884-7b4d-422a-8756-f5cef2669cb5"
-    },
-    "devcore.core.split_script.py::get_block": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "get_block",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "7ef08be7-e5c7-4d19-acbf-bf78297c6ac8"
-    },
-    "devcore.core.split_script.py::routes": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "routes",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "30e9ed59-1a73-45f1-9a0a-2732a35dae01"
-    },
-    "devcore.core.split_script.py::curr": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "curr",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "4b396381-1bed-4775-9ee9-75034bde5af8"
-    },
-    "devcore.core.split_script.py::auth_routes": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "auth_routes",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a0d5171b-9298-4499-a4f8-50511cd4b8f4"
-    },
-    "devcore.core.split_script.py::project_routes": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "project_routes",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "287eef83-1d47-40b8-8a18-5d8bb88a403c"
-    },
-    "devcore.core.split_script.py::file_routes": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "file_routes",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "9ed1b5c1-409c-4417-b7f1-610443b35cdd"
-    },
-    "devcore.core.split_script.py::system_routes": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "system_routes",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "2176adcb-62f7-465c-96e1-633eecc2d7ca"
-    },
-    "devcore.core.split_script.py::lines_to_keep": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "lines_to_keep",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "6d9b906e-1166-488c-ba87-6e7633f608b3"
-    },
-    "devcore.core.split_script.py::indices_to_remove": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "indices_to_remove",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "b98eecd8-e4a1-40df-9106-e82a81b99eb5"
-    },
-    "devcore.core.split_script.py::new_server": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "new_server",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "cf061ac2-1476-400a-8251-6d5451ea5ebc"
-    },
-    "devcore.core.split_script.py::bp_registration": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "bp_registration",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "630e9e26-8148-4a7c-98f8-977a6f0ed161"
-    },
-    "devcore.core.split_script.py::setup_globals": {
-        "type": "symbol",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/split_script.py",
-        "symbol_name": "setup_globals",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "959778c5-879b-48e5-b085-1004ee8d72f1"
-    },
     "devcore.core.ui_config.json": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/ui_config.json",
@@ -5875,6 +4796,689 @@
         },
         "id": "79ba13c2-db3a-4d93-b164-7bbe1e259277"
     },
+    "devcore.core.backups.auth.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2f08526c-adce-4ed2-8276-ce4fef9ea08f"
+    },
+    "devcore.core.backups.auth.py::GLOBAL_AUTH_PROC": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "GLOBAL_AUTH_PROC",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bf619ba6-44a7-41c7-8e6e-913b55943580"
+    },
+    "devcore.core.backups.auth.py::auth_bp": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_bp",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cbbe8158-b631-4ad3-a5c1-3cd7d0bc7777"
+    },
+    "devcore.core.backups.auth.py::auth_check": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_check",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ff8d0541-038d-4bef-83cb-6e4310bf317b"
+    },
+    "devcore.core.backups.auth.py::login_page": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "login_page",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2ace7c2e-e4af-42ac-b286-71bb01845d6c"
+    },
+    "devcore.core.backups.auth.py::set_api_key": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "set_api_key",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "79e3f5b7-f303-476d-9f81-8a0ceeb63ae3"
+    },
+    "devcore.core.backups.auth.py::auth_submit": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_submit",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "395446ef-ded7-49bf-a0c4-73e3f32bff96"
+    },
+    "devcore.core.backups.auth.py::list_keys": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "list_keys",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6bdade25-5d7f-4e8f-8999-22bf9931304b"
+    },
+    "devcore.core.backups.auth.py::scrub_auth": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "scrub_auth",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0da1e3c5-270f-4005-a358-418f0c598c49"
+    },
+    "devcore.core.backups.auth.py::create_key": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "create_key",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e063f423-9e77-49f5-8dca-b6c333f08665"
+    },
+    "devcore.core.backups.auth.py::delete_key": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "delete_key",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "04929fee-cf5a-4542-befe-0d9088a8968a"
+    },
+    "devcore.core.backups.auth.py::auth_system_status": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_system_status",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fd4cf1fa-3095-4915-9745-9c6eafc0cdc8"
+    },
+    "devcore.core.backups.auth.py::auth_login": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_login",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "728b7cc1-96ad-487e-a03a-9359b5de6458"
+    },
+    "devcore.core.backups.auth.py::auth_logout": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_logout",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2a3f1e72-95f8-4a1c-b30a-086d151258be"
+    },
+    "devcore.core.backups.auth.py::auth_me": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "auth_me",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ab888eb2-e178-4f7a-bcdc-4228c55eb56c"
+    },
+    "devcore.core.backups.auth.py::get_current_user": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/auth.py",
+        "symbol_name": "get_current_user",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9cba0e18-8ca8-4dea-8363-78e6fe6f574d"
+    },
+    "devcore.core.backups.bootstrap_gateway.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5761bb31-b023-4176-9e65-11e6ba21c3ad"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::BACKEND_HTTP_URL": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "BACKEND_HTTP_URL",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6ff81ea3-05a4-4202-9a60-2a3b46b30b54"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::BACKEND_WS_URL": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "BACKEND_WS_URL",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0cd4a927-77ae-404d-82b0-1e41123b82f7"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::PROTECTED_FIREWALL_BASENAMES": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "PROTECTED_FIREWALL_BASENAMES",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f7de7d81-450b-447a-801f-214e0dab9a81"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::DEFAULT_ENGINE_REL_PATHS": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "DEFAULT_ENGINE_REL_PATHS",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8c8f3347-98ee-458b-841b-1e9bc3549690"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::get_base_dir": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "get_base_dir",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dafa82a6-0d4c-4353-9d83-e37d6123aaa9"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::get_engine_files": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "get_engine_files",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "52baa99b-dc1e-4d04-a10f-229b41f75561"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::resolve_engine_target": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "resolve_engine_target",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "44ecec89-d327-4d4e-9d23-3e598c26e0d1"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::_compile_check": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "_compile_check",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4839b90c-4a30-481e-bcef-3a186a153935"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::_promote_staged_patches": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "_promote_staged_patches",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "99d9237e-393d-4bc4-a82e-66ab6783c7af"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::run_preflight_checks": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "run_preflight_checks",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d292b6b2-72d4-4b8f-9906-24d2e2f91904"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::heal_crash": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "heal_crash",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "469335d2-41a1-4791-b75d-97bfa841e6e7"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::create_gateway_app": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "create_gateway_app",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3957048c-c8db-4eb6-a5a0-bcfef931eda1"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::app": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "app",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9074680e-6ccd-421e-83ea-a81d2662a7cc"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::_run_ephemeral_gateway_failover_test": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "_run_ephemeral_gateway_failover_test",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "901fc378-db1b-4ab7-9bc2-1ac03552131e"
+    },
+    "devcore.core.backups.bootstrap_gateway.py::run_self_test": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/bootstrap_gateway.py",
+        "symbol_name": "run_self_test",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bd8bfb61-626b-42e8-bd81-50252c3382d3"
+    },
+    "devcore.core.backups.comms_mixin.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/comms_mixin.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ca7b13bd-8677-4cf9-b70b-3c9c247d4409"
+    },
+    "devcore.core.backups.comms_mixin.py::CommsMixin": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/comms_mixin.py",
+        "symbol_name": "CommsMixin",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "747be134-edaa-46dd-ba72-7b69004660b0"
+    },
+    "devcore.core.backups.execution_mixin.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/execution_mixin.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "accf18d3-3378-4c54-8ca1-1e0e29b670b5"
+    },
+    "devcore.core.backups.execution_mixin.py::ExecutionMixin": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/execution_mixin.py",
+        "symbol_name": "ExecutionMixin",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a3702d2a-f81d-43df-a39b-cb772fa15de7"
+    },
+    "devcore.core.backups.files.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1899753c-ea5a-4539-bff1-0c12d07330aa"
+    },
+    "devcore.core.backups.files.py::files_bp": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "symbol_name": "files_bp",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "788ab3b5-e30b-4b64-a693-cbe613fa9790"
+    },
+    "devcore.core.backups.files.py::list_files": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "symbol_name": "list_files",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5b6d6e71-9b8b-4d92-bafe-76cdf32f5eba"
+    },
+    "devcore.core.backups.files.py::get_file_content": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "symbol_name": "get_file_content",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "902c92b0-bbc4-41ed-9a77-8000dff3ac1c"
+    },
+    "devcore.core.backups.files.py::save_file_content": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "symbol_name": "save_file_content",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d092ab54-8ca2-4344-981b-37ea326550a8"
+    },
+    "devcore.core.backups.files.py::list_logs": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "symbol_name": "list_logs",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5185353f-0b41-4ee7-9338-1a61f76ad0fa"
+    },
+    "devcore.core.backups.files.py::get_log_content": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/files.py",
+        "symbol_name": "get_log_content",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8fa74be6-a4d4-4a42-8eeb-6f87b7719f4a"
+    },
+    "devcore.core.backups.projects.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e5626257-f7a5-46da-8f28-f01293e672a3"
+    },
+    "devcore.core.backups.projects.py::projects_bp": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "projects_bp",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "30c94fe9-1faa-4fa9-a74c-ad963203698b"
+    },
+    "devcore.core.backups.projects.py::list_projects": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "list_projects",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "06024fda-7781-4a95-a7a8-0176189f9156"
+    },
+    "devcore.core.backups.projects.py::create_project": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "create_project",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ebe79cd0-0b9f-4642-acf1-79b6ea5a613f"
+    },
+    "devcore.core.backups.projects.py::set_active_project": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "set_active_project",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4d8d1547-40f4-4820-8797-42b0eb271eff"
+    },
+    "devcore.core.backups.projects.py::list_conversations": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "list_conversations",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "004b1ece-6ed9-48a0-825b-ccd105aaef7e"
+    },
+    "devcore.core.backups.projects.py::get_conversation": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "get_conversation",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c0da31c4-2cb0-4064-afe7-589587e6016e"
+    },
+    "devcore.core.backups.projects.py::rename_conversation": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "rename_conversation",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "30d5fb36-f7fd-4fe4-86c3-6b57abe37466"
+    },
+    "devcore.core.backups.projects.py::delete_conversation": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "delete_conversation",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fd75eb9c-ebd3-4c1d-a663-0d50227e92bc"
+    },
+    "devcore.core.backups.projects.py::clear_project_sessions": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/projects.py",
+        "symbol_name": "clear_project_sessions",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0fc53fd4-c6ef-4f77-a9c9-e958910d731c"
+    },
     "devcore.core.backups.project_manager.py": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/project_manager.py",
@@ -5924,6 +5528,447 @@
             "execute": false
         },
         "id": "0b965583-7ada-4c68-8ab6-6d39586c80be"
+    },
+    "devcore.core.backups.server.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ec533b46-f4d1-43e2-9785-c5829757a649"
+    },
+    "devcore.core.backups.server.py::app": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "app",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "75295bc3-c40a-4230-8917-d5c0f7b259bb"
+    },
+    "devcore.core.backups.server.py::project_mgr": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "project_mgr",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3886fb6c-716f-49f8-99cc-f90c019d8150"
+    },
+    "devcore.core.backups.server.py::session_mgr": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "session_mgr",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "299860ab-0dfc-44b8-8115-53dafe052643"
+    },
+    "devcore.core.backups.server.py::agent_mgr": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "agent_mgr",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "49d06161-4126-4207-a2ab-286fd0d2fb5f"
+    },
+    "devcore.core.backups.server.py::security_mgr": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "security_mgr",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1d4935f7-6d97-4d65-b896-c45533cc1adb"
+    },
+    "devcore.core.backups.server.py::execute_hot_patch_sequence": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "execute_hot_patch_sequence",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4185a09f-7834-4690-b08d-5600835a2c8e"
+    },
+    "devcore.core.backups.server.py::auto_patch_daemon": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "auto_patch_daemon",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0e86a33e-259d-4cb9-90c8-1528cb7d77bf"
+    },
+    "devcore.core.backups.server.py::start_background_tasks": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "start_background_tasks",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fdc1171f-20a9-404b-97ac-9515418fb381"
+    },
+    "devcore.core.backups.server.py::BASE_DIR": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "BASE_DIR",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ef11f751-64cc-4ecb-b7ec-69a14ebc0c69"
+    },
+    "devcore.core.backups.server.py::get_live_override_path": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "get_live_override_path",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "50513b1f-b470-4633-a493-3f26a01d9477"
+    },
+    "devcore.core.backups.server.py::read_asset": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "read_asset",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6d678d20-54e4-4914-9288-50616969113e"
+    },
+    "devcore.core.backups.server.py::custom_static": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "custom_static",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3d81be8b-bdd5-4fb2-9ebc-604a92559fd7"
+    },
+    "devcore.core.backups.server.py::TEMPLATE_FILE": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "TEMPLATE_FILE",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8b1150e6-f78f-4dfe-ac1d-1fc4b535932b"
+    },
+    "devcore.core.backups.server.py::UI_CONFIG_FILE": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "UI_CONFIG_FILE",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "769accef-700f-436e-9017-a0e9484f60bd"
+    },
+    "devcore.core.backups.server.py::CACHED_MODELS": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "CACHED_MODELS",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8f9caa5a-cb9b-4f24-863b-606b132198ca"
+    },
+    "devcore.core.backups.server.py::fetch_dynamic_models": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "fetch_dynamic_models",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2635316a-c8e4-4808-944d-fc38d857728a"
+    },
+    "devcore.core.backups.server.py::index": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "index",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "45e517cc-65d2-4fe3-971b-e3efeff21817"
+    },
+    "devcore.core.backups.server.py::GLOBAL_AUTH_PROC": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "GLOBAL_AUTH_PROC",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e21bcced-d12c-4e41-ba38-9d07480325ea"
+    },
+    "devcore.core.backups.server.py::plugin_media": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "plugin_media",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e72873e6-524b-45fe-a5bd-ab35d731b8a4"
+    },
+    "devcore.core.backups.server.py::plugin_security": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "plugin_security",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3c7489a0-a4fe-40d9-90f3-89857543473d"
+    },
+    "devcore.core.backups.server.py::plugin_exam": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "plugin_exam",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bccfd221-c994-4eea-9a53-897b2b455f0e"
+    },
+    "devcore.core.backups.server.py::plugin_exam_builder": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "plugin_exam_builder",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bd0b2637-5b42-4506-a990-3fc2b9540e7b"
+    },
+    "devcore.core.backups.server.py::api_exam_content": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "api_exam_content",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e3bd4823-a3e9-4d9b-87bf-f5d4b185204d"
+    },
+    "devcore.core.backups.server.py::get_artifact": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "get_artifact",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b5d0d2a1-5b77-4089-b1e2-f5eeb4251cfb"
+    },
+    "devcore.core.backups.server.py::save_artifacts": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "save_artifacts",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9b706432-f282-493c-8141-5998a0f3b429"
+    },
+    "devcore.core.backups.server.py::handle_massive_prompt": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "handle_massive_prompt",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7ac7b392-5624-4fe2-a6ca-355fbcb5ce3e"
+    },
+    "devcore.core.backups.server.py::ws_endpoint": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "ws_endpoint",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "177ce6ed-6c04-4944-a4c6-6b7f51225d8b"
+    },
+    "devcore.core.backups.server.py::play_sound": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "play_sound",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "649be02a-9d10-4c5a-9fc7-769cc1931033"
+    },
+    "devcore.core.backups.server.py::trigger_dast_scan_internal": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "trigger_dast_scan_internal",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "17d0b01a-fedf-495b-853d-4009dcba795c"
+    },
+    "devcore.core.backups.server.py::auto_red_team_daemon": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "auto_red_team_daemon",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7fe58d6f-ae16-4fd1-9ee2-63e50a68923f"
+    },
+    "devcore.core.backups.server.py::force_shutdown": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "force_shutdown",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0daf7c26-f330-428c-977c-2bcea967aea6"
+    },
+    "devcore.core.backups.server.py::plugin_tts": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "plugin_tts",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a9e6481f-7138-464f-b100-ffbc25218d66"
+    },
+    "devcore.core.backups.server.py::proxy_gemini": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/server.py",
+        "symbol_name": "proxy_gemini",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "28b01640-ded7-45d3-ba0d-1d42b1de7255"
     },
     "devcore.core.backups.session_manager.py": {
         "type": "file",
@@ -5976,9 +6021,9 @@
         },
         "id": "63ef6e7f-0dab-400e-8848-0cc47f76bc66"
     },
-    "devcore.core.plugins.exam_application.content.results_1791749626580.json": {
+    "devcore.core.backups.system.py": {
         "type": "file",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/plugins/exam_application/content/results_1791749626580.json",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -5986,7 +6031,123 @@
             "write": false,
             "execute": false
         },
-        "id": "f36726d2-8b7e-42e3-90c9-b1554cc8926f"
+        "id": "aedce8ed-d2c2-43d2-b293-0f941c607ab3"
+    },
+    "devcore.core.backups.system.py::system_bp": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "system_bp",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "990709da-c884-402c-a376-528736565367"
+    },
+    "devcore.core.backups.system.py::PROTECTED_FIREWALL_BASENAMES": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "PROTECTED_FIREWALL_BASENAMES",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "251a14b3-0e2f-44b8-8d0f-78a513a71353"
+    },
+    "devcore.core.backups.system.py::execute_hot_patch_sequence": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "execute_hot_patch_sequence",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "82ced84f-b760-4542-9194-255960ceb1dc"
+    },
+    "devcore.core.backups.system.py::reload_system": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "reload_system",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "120c2f31-7622-4d94-ba9a-2a33ad3280b0"
+    },
+    "devcore.core.backups.system.py::trigger_hot_patch": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "trigger_hot_patch",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8b56ac6b-6ec0-4956-b87b-26b42ba54b92"
+    },
+    "devcore.core.backups.system.py::csp_report": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "csp_report",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "61cecdf4-fcda-4e87-bdaf-346d8110b6b5"
+    },
+    "devcore.core.backups.system.py::api_trigger_red_team": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/system.py",
+        "symbol_name": "api_trigger_red_team",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "27269afd-a0a8-4ad3-b871-7ca5b66d4e16"
+    },
+    "devcore.core.backups.transcript_mixin.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/transcript_mixin.py",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "63798932-a89a-4a10-bf55-d909d4ec7611"
+    },
+    "devcore.core.backups.transcript_mixin.py::TranscriptMixin": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/backups/transcript_mixin.py",
+        "symbol_name": "TranscriptMixin",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cc5d5982-2286-439c-b134-a626c1964819"
     },
     "devcore.core.routes.auth.py": {
         "type": "file",
@@ -6439,6 +6600,19 @@
         },
         "id": "13e79bdd-a41b-4d6c-bd58-d16241c62231"
     },
+    "devcore.core.routes.system.py::PROTECTED_FIREWALL_BASENAMES": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/system.py",
+        "symbol_name": "PROTECTED_FIREWALL_BASENAMES",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c3547e22-1a35-4416-acaa-04027124f037"
+    },
     "devcore.core.routes.system.py::execute_hot_patch_sequence": {
         "type": "symbol",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/system.py",
@@ -6477,6 +6651,19 @@
             "execute": false
         },
         "id": "ea133687-5870-4dcc-8780-cd750faeab5a"
+    },
+    "devcore.core.routes.system.py::api_bootstrap_preflight": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/system.py",
+        "symbol_name": "api_bootstrap_preflight",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c17515b3-f9b3-4fad-9664-d2296cec15ca"
     },
     "devcore.core.routes.system.py::csp_report": {
         "type": "symbol",
@@ -21493,6 +21680,18 @@
             "execute": false
         },
         "id": "337fb36c-c01c-418d-9425-1e32506d66a2"
+    },
+    "devcore.docs.HOT_PATCH_ARCHITECTURE.md": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/docs/HOT_PATCH_ARCHITECTURE.md",
+        "required_tier": 3,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": true,
+            "execute": false
+        },
+        "id": "aa43e7c3-160d-4ac1-87a0-0d5a19ce4ea7"
     },
     "devcore.docs.manifesto_reader.py": {
         "type": "file",
@@ -44818,6 +45017,19 @@
         },
         "id": "5c098b99-f58a-4d65-af30-217d90ba6f7c"
     },
+    "devcore.security.raugus_resolver.py::_SENS_INO_CACHE": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/raugus_resolver.py",
+        "symbol_name": "_SENS_INO_CACHE",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4e836eec-35ac-4afb-bc11-be1ec29c7a9c"
+    },
     "devcore.security.raugus_resolver.py::is_sensitive_inode": {
         "type": "symbol",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/raugus_resolver.py",
@@ -44856,6 +45068,19 @@
             "execute": false
         },
         "id": "71289e12-232c-4735-9e93-d1af4e8301c0"
+    },
+    "devcore.security.raugus_resolver.py::_OD_CACHE": {
+        "type": "symbol",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/raugus_resolver.py",
+        "symbol_name": "_OD_CACHE",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "76097394-ecd1-4a49-a6cc-2ae469ded137"
     },
     "devcore.security.raugus_resolver.py::discover_onedrive_roots": {
         "type": "symbol",

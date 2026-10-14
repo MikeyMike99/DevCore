@@ -343,9 +343,19 @@ def _sync_live_blueprint_routes():
 
         if "core.routes.system" in sys.modules:
             sys_mod = importlib.reload(sys.modules["core.routes.system"])
-            for fn_name in ("trigger_hot_patch", "reload_system", "csp_report", "api_trigger_red_team"):
+            for fn_name in ("trigger_hot_patch", "reload_system", "csp_report", "api_trigger_red_team", "api_bootstrap_preflight"):
                 if hasattr(sys_mod, fn_name):
                     live_app.view_functions[f"system_bp.{fn_name}"] = getattr(sys_mod, fn_name)
+            if hasattr(sys_mod, "api_bootstrap_preflight") and "system_bp.api_bootstrap_preflight" not in [r.endpoint for r in live_app.url_map.iter_rules()]:
+                try:
+                    live_app.add_url_rule(
+                        '/api/bootstrap/preflight',
+                        endpoint='system_bp.api_bootstrap_preflight',
+                        view_func=sys_mod.api_bootstrap_preflight,
+                        methods=['GET', 'POST']
+                    )
+                except Exception:
+                    pass
             if hasattr(sys_mod, "execute_hot_patch_sequence") and main_mod:
                 main_mod.execute_hot_patch_sequence = sys_mod.execute_hot_patch_sequence
 

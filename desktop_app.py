@@ -80,6 +80,8 @@ shutdown_event = asyncio.Event()
 def start_server():
     """Starts the DevCore backend in a background thread using Hypercorn ASGI."""
     try:
+        from core.bootstrap_gateway import run_preflight_checks
+        run_preflight_checks(spawn_agent=False, quiet=False)
         from hypercorn.config import Config
         from hypercorn.asyncio import serve
         import core.server as server
@@ -117,8 +119,8 @@ def start_server():
         
         # Self-heal logic
         try:
-            import self_heal
-            self_heal.heal_crash(tb_str)
+            from core.bootstrap_gateway import heal_crash
+            heal_crash(tb_str, restart_process=True)
         except Exception as heal_err:
             print(f"Self-heal module error: {heal_err}")
 

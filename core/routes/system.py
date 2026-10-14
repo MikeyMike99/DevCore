@@ -130,18 +130,25 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
             "level": "warning",
             "message": "🛡️ AUTO-PATCH ENGINE: Manual hot-patch sequence initiated (0 external files in core/patches/). Validating core engine modules..."
         })
-        core_targets = [
-            ("server.py", os.path.join(core_dir, "server.py")),
-            ("session_manager.py", os.path.join(core_dir, "session_manager.py")),
-            ("project_manager.py", os.path.join(core_dir, "project_manager.py")),
-            ("agent_manager.py", os.path.join(repo_root, "agents", "agent_manager.py")),
-            ("security_manager.py", os.path.join(repo_root, "security", "security_manager.py")),
-        ]
+        try:
+            from core.bootstrap_gateway import get_engine_files
+            rel_list = get_engine_files(repo_root)
+            core_targets = [(os.path.basename(r), os.path.join(repo_root, r)) for r in rel_list]
+        except Exception:
+            core_targets = [
+                ("server.py", os.path.join(core_dir, "server.py")),
+                ("session_manager.py", os.path.join(core_dir, "session_manager.py")),
+                ("project_manager.py", os.path.join(core_dir, "project_manager.py")),
+                ("bootstrap_gateway.py", os.path.join(core_dir, "bootstrap_gateway.py")),
+                ("agent_manager.py", os.path.join(repo_root, "agents", "agent_manager.py")),
+                ("security_manager.py", os.path.join(repo_root, "security", "security_manager.py")),
+            ]
         for label, fpath in core_targets:
             if os.path.exists(fpath):
                 try:
                     py_compile.compile(fpath, doraise=True)
-                    shutil.copy2(fpath, os.path.join(backup_dir, label))
+                    if label not in PROTECTED_FIREWALL_BASENAMES:
+                        shutil.copy2(fpath, os.path.join(backup_dir, label))
                 except py_compile.PyCompileError as ce:
                     await agent_mgr.broadcast({
                         "type": "system",
@@ -274,6 +281,17 @@ async def trigger_hot_patch():
     # Run the sequence in the background so we can return the HTTP response immediately
     asyncio.create_task(execute_hot_patch_sequence(app_obj=app_obj, manual_trigger=True, fast_countdown=False))
     return jsonify({"success": True, "message": "Hot-patch verification & reload sequence initiated."})
+
+
+@system_bp.route('/api/bootstrap/preflight', methods=['GET', 'POST'])
+async def api_bootstrap_preflight():
+    try:
+        from core.bootstrap_gateway import run_preflight_checks
+        report = run_preflight_checks(spawn_agent=False, exit_on_failure=False, quiet=True)
+        status_code = 200 if report.get("success") else 500
+        return jsonify(report), status_code
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @system_bp.route('/api/security/csp-report', methods=['POST'])
