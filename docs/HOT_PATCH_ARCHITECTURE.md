@@ -111,3 +111,18 @@ If a candidate module passes static syntax compilation but throws a runtime exce
 | **Agent applies broken public boilerplate** | Corrupts live state; requires manual git reset | Caught in Stage 7; auto-restores snapshot from Backup Vault |
 | **Agent attempts to hot-patch the firewall** | Security controls silently weakened | Blocked by Stage 1 Self-Protection & Stage 4 Guardrail Exclusion |
 | **Public docs leak internal file paths** | Attackers and agents target live files directly | Public docs use abstract VFS terminology; live paths remain obfuscated |
+
+---
+
+## 5. Dual-Layer Uptime Protection: Combining Pre-Flight Self-Healing with Live Hot-Patching
+
+The **Zero-Downtime Hot-Patch Sequence** operates in tandem with the **Bootstrap Pre-Flight Supervisor & Persistent Connection Gateway** (documented in `BOOTSTRAP_PREFLIGHT_ARCHITECTURE.md`) to provide two complementary layers of uptime defense against rogue or hallucinating agents:
+
+1. **Layer 1 — The Self-Healing Pre-Flight Check & Persistent Gateway (Boot & Crash Recovery)**:
+   - Audits all 15 engine modules via bytecode compilation prior to port binding and immediately after any unexpected crash.
+   - Automatically restores corrupted modules in `< 5ms` from the **Backup Vault** (seeded during Layer 2 hot-patches), or spawns the **Emergency Auto-Repair Agent** into the **Staging Quarantine Directory** if no valid backup exists.
+   - Maintains a **Persistent WebSocket & HTTP Gateway** that holds client and agent connections open across backend reloads, buffering incoming messages while the engine restarts and replaying them automatically upon reconnection.
+2. **Layer 2 — The Zero-Downtime Hot-Patch Engine (Live Runtime Evolution)**:
+   - Intercepts direct writes to live engine modules and forces all agent code mutations through the **Staging Quarantine Directory**.
+   - Compiles candidate code before applying, snapshots known-good modules into the **Backup Vault**, hot-swaps classes and routes in memory while preserving active WebSocket queues and running agent subprocesses, and automatically rolls back if a runtime error occurs.
+

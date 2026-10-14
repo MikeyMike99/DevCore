@@ -281,3 +281,22 @@ To continuously verify all 30 zero-trust controls, anti-tamper protections, and 
    - **64-Bit Hardware Inode (`st_ino`) Fingerprinting**: Tracks operating-system Master File Table (MFT) / filesystem inode identifiers so renaming or moving a protected folder never strips its sensitivity classification.
    - **Loopback HTTP & Runtime Alias Lockdown**: Enforces sensitive vault checks directly inside internal HTTP artifact handlers (returning HTTP 403 Forbidden) and intercepts all low-level runtime step aliases.
 6. **Stage 6 — SIEM & Intrusion Alert Telemetry Verification**: Confirms live structured event logging to the central SIEM and intrusion alert queues, then automatically purges synthetic test records to maintain a clean workspace.
+
+---
+
+## 17. Dual-Layer Uptime Protection: Self-Healing Pre-Flight & Zero-Downtime Hot-Patching
+
+**Methodology**: Two-Stage Bytecode Gatekeeping, Instant Golden-Snapshot Restoration, Persistent WebSocket Gateway Bridging, & Live In-Memory Hot-Swapping
+
+**Purpose in the Application**:
+To guarantee continuous uptime and prevent a "Brain-Dead Lockout" if an autonomous agent goes rogue, hallucinates invalid syntax or non-existent imports, or introduces a runtime crash while modifying backend infrastructure.
+
+**Action (The 2 Layers of Uptime Defense)**:
+1. **Layer 1 — The Self-Healing Pre-Flight Check & Persistent Connection Gateway**:
+   - **Pre-Flight Bytecode Audit**: Before the server binds its port (and immediately following any unexpected crash), the supervisor promotes valid staged candidates, quarantines broken candidates, and bytecode-compiles all 15 engine modules.
+   - **Tier-1 Instant Self-Heal (`< 5ms`)**: If any engine module is corrupted by a hallucinated edit or disk fault, the supervisor immediately restores the last verified golden snapshot from the **Backup Vault** without waiting on an external LLM call.
+   - **Tier-2 Firewall-Compliant Auto-Repair Agent**: If a corrupted module has no valid backup, the supervisor spawns an Emergency Auto-Repair Agent constrained strictly to the **Staging Quarantine Directory**, validates the repaired bytecode, promotes it into place, and seeds a fresh backup.
+   - **Persistent WebSocket & HTTP Gateway**: Holds browser and agent connections permanently open across backend reloads with a 4-second keep-alive pulse, queuing outgoing client messages while the engine restarts and replaying them automatically upon reconnection.
+2. **Layer 2 — The Zero-Downtime Hot-Patch & Live Rollback Engine**:
+   - **Pre-Execution Direct-Write Block**: Blocks agents from editing live engine modules in place and forces all code mutations into the **Staging Quarantine Directory**.
+   - **Live In-Memory Swap & Instant Rollback**: Validates candidate bytecode in quarantine, snapshots the live module to the **Backup Vault**, hot-swaps classes and routes in memory while preserving active WebSocket streams and running agent tasks, and automatically rolls back from the Backup Vault if a runtime exception occurs.
