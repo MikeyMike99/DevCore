@@ -245,6 +245,7 @@ def run_tool_audit(target_filter: str = "all", clean_logs: bool = True) -> dict:
     audit_files = [
         os.path.join(DEVCORE_ROOT, "security", "local_brain_broker.py"),
         os.path.join(DEVCORE_ROOT, ".agents", "raugus_hook.py"),
+        os.path.join(DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "server.py"),
         os.path.join(DEVCORE_ROOT, ".agents", "skills", "exam-generator", "scripts", "format_exam.py"),
     ]
     if target_filter not in ("all", "exam", "broker"):
@@ -279,7 +280,7 @@ def run_tool_audit(target_filter: str = "all", clean_logs: bool = True) -> dict:
                     if kw.arg == "shell" and isinstance(kw.value, ast.Constant) and kw.value.value is True:
                         found_shell_true = True
 
-        if "local_brain_broker.py" in rel_f or "raugus_hook.py" in rel_f:
+        if "local_brain_broker.py" in rel_f or "raugus_hook.py" in rel_f or "raugus_resolver" in rel_f:
             record_check(
                 "Stage 3: AST Static Code Analysis",
                 f"Air-Gapped Zero HTTP Clients ({rel_f})",
@@ -529,6 +530,43 @@ def run_tool_audit(target_filter: str = "all", clean_logs: bool = True) -> dict:
         "Hot-Patch Staging Enforcement (Block Direct Live Engine Edit and Require core/patches/)",
         hot_patch_ok,
         f"direct_live_edit={d_live_edit.get('decision')}, staged_core_patches={d_staged_patch.get('decision')}",
+    )
+
+    # 5.10 Opaque Key-Only Raugus Resolver MCP Server Verification (Zero Path Leak, RBAC, AST Symbol & Vault Gate)
+    mcp_plugin_dir = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver")
+    if mcp_plugin_dir not in sys.path:
+        sys.path.insert(0, mcp_plugin_dir)
+    import server as raugus_mcp_srv
+
+    mcp_search = raugus_mcp_srv.search_keys("system.py", entry_type="all", user_tier=5, limit=10)
+    mcp_list = raugus_mcp_srv.list_module_keys("devcore.core.routes.system.py", user_tier=5)
+    mcp_read_sym = raugus_mcp_srv.read_by_key("devcore.core.routes.system.py::api_bootstrap_preflight", user_tier=5)
+    mcp_read_var = raugus_mcp_srv.read_by_key("devcore.core.routes.system.py::PROTECTED_FIREWALL_BASENAMES", user_tier=5)
+    mcp_read_t3 = json.loads(raugus_mcp_srv.read_by_key("devcore.core.routes.system.py::reload_system", user_tier=3))
+    sens_key = next(k for k, v in r_map.items() if v.get('sensitive') is True)
+    mcp_read_vault = raugus_mcp_srv.read_by_key(sens_key, user_tier=5)
+    mcp_write_guard = json.loads(raugus_mcp_srv.write_by_key("devcore.security.raugus_resolver.py", "x = 1\n", user_tier=5))
+    mcp_write_ro = json.loads(raugus_mcp_srv.write_by_key("devcore.README.md", "hi", user_tier=5))
+    mcp_write_syn = json.loads(raugus_mcp_srv.write_by_key("devcore.core.routes.system.py::api_bootstrap_preflight", "def broken(:\n", user_tier=5))
+
+    combined_mcp_payloads = mcp_search + mcp_list + mcp_read_sym + mcp_read_var + mcp_read_vault
+    zero_path_leak = ("/mnt/c" not in combined_mcp_payloads) and ("real_path" not in combined_mcp_payloads)
+    mcp_rules_ok = (
+        zero_path_leak
+        and json.loads(mcp_read_sym).get("status") == "GRANTED"
+        and "def api_bootstrap_preflight" in json.loads(mcp_read_sym).get("result", "")
+        and json.loads(mcp_read_var).get("status") == "GRANTED"
+        and mcp_read_t3.get("status") == "DENIED"
+        and json.loads(mcp_read_vault).get("status") == "GRANTED_SANITIZED_DIGEST_ONLY"
+        and mcp_write_guard.get("status") == "DENIED_SELF_PROTECTION"
+        and mcp_write_ro.get("status") == "DENIED_READ_ONLY"
+        and mcp_write_syn.get("status") == "DENIED_SYNTAX_ERROR"
+    )
+    record_check(
+        "Stage 5: Anti-Tamper & Script Evasion",
+        "Opaque Key-Only Raugus Resolver MCP (Zero Path Leak, RBAC, Symbol AST & Vault Gate)",
+        mcp_rules_ok,
+        f"zero_path_leak={zero_path_leak}, symbol_read=GRANTED, tier3=DENIED, vault=DIGEST_ONLY, guard=DENIED_SELF_PROTECTION",
     )
 
     # =========================================================================

@@ -53,6 +53,8 @@ PROTECTED_SECURITY_FILES = {
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/raugus_map.json"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/generate_raugusmap.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/tool_security_auditor.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/raugus_resolver/server.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/raugus_resolver/mcp_config.json"),
 }
 
 FILE_AND_SEARCH_TOOLS = {
@@ -331,6 +333,16 @@ def main():
         
         tool_name = raw_name.replace("default_api:", "").lower()
         
+        if tool_name in ("mcp_tool", "call_mcp_tool") and raw_args.get("ToolName") in (
+            "search_keys",
+            "list_module_keys",
+            "read_by_key",
+            "write_by_key",
+            "refresh_key_map",
+        ):
+            print(json.dumps({"decision": "allow"}))
+            return
+
         if tool_name not in (FILE_AND_SEARCH_TOOLS | COMMAND_TOOLS):
             print(json.dumps({"decision": "allow"}))
             return

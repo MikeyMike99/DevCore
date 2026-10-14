@@ -1,0 +1,5 @@
+{
+  "name": "Raugus VFS Key Resolver (MCP)",
+  "description": "Opaque key-only Virtual File System broker. Resolves Raugus keys, enforces RBAC and AST symbol locks, and returns only granted results without ever revealing physical file paths.",
+  "version": "1.0.0"
+}

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "raugus-resolver": {
+      "command": "python3",
+      "args": [
+        "/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/raugus_resolver/server.py"
+      ]
+    }
+  }
+}
