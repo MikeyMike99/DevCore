@@ -300,3 +300,20 @@ To guarantee continuous uptime and prevent a "Brain-Dead Lockout" if an autonomo
 2. **Layer 2 — The Zero-Downtime Hot-Patch & Live Rollback Engine**:
    - **Pre-Execution Direct-Write Block**: Blocks agents from editing live engine modules in place and forces all code mutations into the **Staging Quarantine Directory**.
    - **Live In-Memory Swap & Instant Rollback**: Validates candidate bytecode in quarantine, snapshots the live module to the **Backup Vault**, hot-swaps classes and routes in memory while preserving active WebSocket streams and running agent tasks, and automatically rolls back from the Backup Vault if a runtime exception occurs.
+
+---
+
+## 18. Opaque Key-Only Raugus Resolver MCP Broker
+
+**Methodology**: Key-Only Virtual File System (VFS) Resolution, Private In-Memory Path Mapping, Granular AST Symbol Splicing, & 6-Gate Rule Enforcement
+
+**Purpose in the Application**:
+To eliminate physical filesystem path exposure to the AI agent entirely. Instead of reading or writing operating-system file paths, the agent accesses files, functions, classes, and module-level variables exclusively through **Opaque Raugus VFS Keys** (e.g., `vfs.engine.router` or `vfs.engine.router::reload_handler`).
+
+**Action (The 6-Gate Key Resolution Flow)**:
+1. **Zero Physical Path Exposure**: The Raugus Resolver MCP Server (`search_keys`, `list_module_keys`, `read_by_key`, `write_by_key`, `refresh_key_map`) resolves VFS keys to physical storage paths strictly inside private server memory and scrubs any host path literals from all responses.
+2. **Gate 1–2 (Phonebook Existence & RBAC Tier Clearance)**: Rejects unknown keys (blocking path traversal at the protocol layer) and enforces caller `user_tier >= required_tier`.
+3. **Gate 3 (Sensitive Vault, Cloud-Sync & 64-Bit Inode Gate)**: Blocks writes to sensitive keys and routes read requests to the air-gapped Local CPU Inference Broker, returning only a sanitized, de-identified topic digest (`GRANTED_SANITIZED_DIGEST_ONLY`).
+4. **Gate 4 (Self-Protection & Read-Only Blueprint Lock)**: Blocks any modification to locked security guardrails or immutable UI blueprints.
+5. **Gate 5 (Granular AST Symbol Extraction, Lock Verification & Syntax Gate)**: On reads, extracts and returns **only** the requested function, class, or variable AST node. On writes, verifies function-level write locks inside the **Semantic Mantrap** and validates the resulting module with `ast.parse()` before touching disk.
+6. **Gate 6 (Automatic Zero-Downtime Hot-Patch Routing)**: Automatically stages validated backend engine updates into the Hot-Patch Quarantine, runs Pre-Flight bytecode checks, snapshots the Backup Vault, and promotes the update in memory—returning only the grant confirmation to the agent.
