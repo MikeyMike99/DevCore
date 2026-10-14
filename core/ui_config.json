@@ -35,6 +35,18 @@
         "model_aria": "Select AI Model",
         "models": [
             {
+                "value": "Gemini 4 Argon (Medium)",
+                "text": "Gemini 4 Argon (Medium)"
+            },
+            {
+                "value": "Gemini 4 Argon (High)",
+                "text": "Gemini 4 Argon (High)"
+            },
+            {
+                "value": "Gemini 4 Argon (Low)",
+                "text": "Gemini 4 Argon (Low)"
+            },
+            {
                 "value": "Gemini 3.8 Flash (High)",
                 "text": "Gemini 3.8 Flash (High)"
             },

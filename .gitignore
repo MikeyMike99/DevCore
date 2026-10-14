@@ -24,3 +24,9 @@ crash_log*.txt
 sandbox/static/*.json
 desktop_app.dist/sandbox/static/*.json
 plugins/exam_application/content/
+
+# Hot-Patch Quarantine & Local Backups
+core/patches/*.py
+core/backups/*.py
+*.bak
+scratch/

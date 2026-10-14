@@ -28,14 +28,13 @@ This project is an **Accessible, Resilient Antigravity Web Portal** designed as 
 
 ---
 
-## 3. Zero-Restart In-Memory Reload Policy
+## 3. Zero-Restart In-Memory Reload & Safe Hot-Patch Sequence
 - **Never Kill Port 5000**:
-  - Do not use `pkill -f "python.*server\.py"` or external kill scripts during active sessions. Hard restarts drop active WebSocket connections, disrupt browser state, and risk port-binding conflicts.
-- **In-Process Swapping**:
-  - When backend classes (`agent_manager`, `security_manager`, `project_manager`, `session_manager`) are edited, trigger the hot-reload via:
-    - HTTP: `POST /api/reload`
-    - WebSocket: `{"type": "reload"}`
-  - The server dynamically reloads modules using `importlib.reload()` and re-initializes instances in memory while preserving existing WebSocket client connections.
+  - Do not use external kill scripts during active sessions. Hard restarts drop active WebSocket connections, disrupt browser state, and risk port-binding conflicts.
+- **Mandatory 3-Step Safe Hot-Patch Sequence**:
+  1. **Stage in `core/patches/`**: Never edit live backend engine `.py` files (`core/`, `core/routes/`, `agents/`, `agents/mixins/`, `security/`) directly in place. Always write the complete updated Python module to `/mnt/c/Users/michael/Documents/DevCore/core/patches/<filename>.py`.
+  2. **Trigger Hot-Patch Validation & Swap**: Execute `curl -s -X POST http://127.0.0.1:5000/api/simulate-patch` (or `POST http://127.0.0.1:5000/api/reload`).
+  3. **Automated Validation, Backup & Rollback**: `execute_hot_patch_sequence()` compiles every staged file via `py_compile.compile(..., doraise=True)`, snapshots the previous live version into `core/backups/<filename>.py`, copies the validated patch to its live target path, hot-reloads modules and Quart view functions in memory (`importlib.reload()` + `_sync_live_blueprint_routes()`), removes the staged file from `core/patches/`, and automatically rolls back from `core/backups/` if any runtime error occurs.
 
 ---
 

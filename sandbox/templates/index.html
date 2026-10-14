@@ -107,14 +107,23 @@
             <h3 class="text-lg font-bold text-white mb-3" id="confirm-modal-title">{{ ui.modal.title }}</h3>
             <p class="text-sm text-slate-300 mb-6" id="confirm-modal-message"></p>
             <div class="flex justify-end gap-3">
-                <button id="confirm-modal-no" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_cancel }}</button>
-                <button id="confirm-modal-yes" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_confirm }}</button>
+                <button id="confirm-modal-no" type="button" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_cancel }}</button>
+                <button id="confirm-modal-yes" type="button" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_confirm }}</button>
             </div>
         </div>
     </dialog>
 
-
-
+    <dialog id="custom-prompt-modal" aria-labelledby="prompt-modal-title" aria-describedby="prompt-modal-message" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm">
+        <form id="custom-prompt-form" class="bg-slate-900 border border-slate-700 p-6 rounded-xl shadow-2xl max-w-sm w-full mx-4">
+            <h3 class="text-lg font-bold text-white mb-2" id="prompt-modal-title">Input Required</h3>
+            <label for="prompt-modal-input" class="block text-sm text-slate-300 mb-3" id="prompt-modal-message"></label>
+            <input id="prompt-modal-input" type="text" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white mb-5 focus:outline-none focus:ring-2 focus:ring-teal-500" autocomplete="off" />
+            <div class="flex justify-end gap-3">
+                <button id="prompt-modal-cancel" type="button" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_cancel }}</button>
+                <button id="prompt-modal-ok" type="submit" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">{{ ui.modal.btn_confirm }}</button>
+            </div>
+        </form>
+    </dialog>
 
     <!-- Skip Links for Keyboard / Screen Reader Navigation -->
     <a href="#prompt" class="sr-only skip-link bg-teal-600 text-white font-medium z-50 rounded m-2 focus:not-sr-only focus:outline-none focus:ring-2 focus:ring-teal-400">Skip to prompt input</a>
@@ -131,7 +140,7 @@
                     Antigravity Dev Portal
                     <span class="text-xs font-normal px-2 py-0.5 rounded-full bg-teal-950 border border-teal-800/80 text-teal-400">Background Resilient</span>
                 </h1>
-                <p class="text-xs text-slate-400 font-mono">Workspace: antigravity_test</p>
+                <p id="header-workspace-label" class="text-xs text-slate-400 font-mono">Workspace: Workspaces</p>
             </div>
         </div>
 
@@ -152,7 +161,7 @@
                 <span id="connection-text">{{ ui.header.conn_text }}</span>
             </div>
             <button onclick="clearHistory()" aria-label="Clear chat history display" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">Clear View</button>
-            <button type="button" aria-controls="settings-panel" aria-expanded="false" onclick="document.getElementById('settings-panel').showModal()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
+            <button id="settings-panel-btn" type="button" aria-controls="settings-panel" aria-expanded="false" onclick="openSettingsPanel()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
                 Settings &amp; Sessions
             </button>
         </div>
@@ -238,6 +247,25 @@
 
         <!-- Chat Input Bar -->
         <div class="p-4 bg-slate-900 border-t border-slate-800/80 shrink-0">
+            <!-- Queued Follow-Up Context Bar -->
+            <div id="queued-prompts-bar" role="region" aria-label="Queued Follow-Up Messages" aria-live="polite" class="hidden mb-2.5 bg-slate-950/90 border border-indigo-500/40 rounded-lg p-2.5 text-xs text-slate-200 shadow-md">
+                <div class="flex items-center justify-between gap-2 mb-1.5">
+                    <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+                        <i class="fas fa-layer-group" aria-hidden="true"></i>
+                        <span id="queued-count-label">1 Queued Follow-Up (will run when current step finishes)</span>
+                    </span>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" onclick="promoteQueueToSteer()" aria-label="Steer Now with queued messages — interrupt current step and inject immediately" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded transition-colors cursor-pointer">
+                            🎯 Steer Now
+                        </button>
+                        <button type="button" onclick="clearQueuedPrompts()" aria-label="Clear all queued messages" class="px-2 py-1 bg-slate-800 hover:bg-rose-900/60 text-rose-300 border border-slate-700 rounded transition-colors cursor-pointer">
+                            ✕ Clear
+                        </button>
+                    </div>
+                </div>
+                <ul id="queued-prompts-list" class="space-y-1 text-slate-300 font-mono text-[11px] max-h-24 overflow-y-auto pl-1"></ul>
+            </div>
+
             <form id="chat-form" class="flex gap-2.5 items-end" onsubmit="sendPrompt(event)">
                 <div class="flex-1 relative">
                     
@@ -267,17 +295,29 @@
                         aria-expanded="false" 
                         aria-controls="slash-command-menu" 
                         rows="2"
+                        data-default-placeholder="{{ ui.chat_input.placeholder }}"
                         style="white-space: pre-wrap !important; word-break: break-word !important;"
                         class="w-full bg-slate-950 text-slate-100 rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none text-sm placeholder-slate-500" 
                         placeholder="{{ ui.chat_input.placeholder }}"
                         onkeydown="handleKeyDown(event)"></textarea>
-                    <div class="text-[11px] text-slate-500 absolute bottom-2 right-3 pointer-events-none" aria-hidden="true">
+                    <div id="chat-input-helper" class="text-[11px] text-slate-500 absolute bottom-2 right-3 pointer-events-none" aria-hidden="true">
                         {{ ui.chat_input.helper_text }}
                     </div>
                 </div>
                 <button 
+                    type="button" 
+                    id="queue-btn" 
+                    onclick="sendPrompt(null, 'queue')"
+                    aria-label="Queue context for next turn without interrupting current action (Alt+Enter)"
+                    title="Queue for next turn without interrupting current step (Alt+Enter)"
+                    class="hidden bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg px-4 py-2.5 transition-colors h-[58px] flex items-center justify-center gap-1.5 shadow-sm shrink-0 text-sm cursor-pointer">
+                    <span>📥 Queue</span>
+                </button>
+                <button 
                     type="submit" 
                     id="send-btn" 
+                    data-default-aria="{{ ui.chat_input.btn_aria_label }}"
+                    data-default-text="{{ ui.chat_input.btn_text }}"
                     aria-label="{{ ui.chat_input.btn_aria_label }}"
                     class="bg-teal-600 hover:bg-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg px-6 py-2.5 transition-colors h-[58px] flex items-center justify-center gap-2 shadow-sm shrink-0">
                     <span id="send-btn-spinner" class="hidden w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" aria-hidden="true"></span>
@@ -291,7 +331,7 @@
     <dialog id="settings-panel" class="bg-slate-950 text-slate-300 border-l border-slate-700 shadow-2xl h-full m-0 ml-auto w-80 backdrop:bg-slate-950/50 p-5 rounded-l-2xl open:flex flex-col gap-6" aria-label="Settings and Sessions">
         <div class="flex justify-between items-center border-b border-slate-800 pb-3">
             <h2 class="text-lg font-bold text-teal-400">Settings &amp; Sessions</h2>
-            <button type="button" onclick="document.getElementById('settings-panel').close()" aria-label="Close Settings" class="text-slate-400 hover:text-white px-3 py-1 text-2xl font-bold rounded focus:ring-2 focus:ring-teal-500 focus:outline-none">&times;</button>
+            <button type="button" onclick="closeSettingsPanel()" aria-label="Close Settings" class="text-slate-400 hover:text-white px-3 py-1 text-2xl font-bold rounded focus:ring-2 focus:ring-teal-500 focus:outline-none">&times;</button>
         </div>
         
         <div class="flex flex-col gap-4 overflow-y-auto">
@@ -300,58 +340,82 @@
                 <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-xs font-bold bg-teal-900 text-teal-300 w-fit">SUPER_ADMIN</span>
                 <span id="user-display-name" class="font-medium text-slate-200">Guest</span>
                 <div class="flex gap-2 mt-1">
-                    <button onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-xs text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-teal-800/50">Login</button>
-                    <button onclick="logout()" id="logout-btn" class="hidden flex-1 text-xs text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-rose-800/50">Logout</button>
+                    <button type="button" onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-xs text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-teal-800/50 focus:ring-2 focus:ring-teal-500 focus:outline-none">Login</button>
+                    <button type="button" onclick="logout()" id="logout-btn" class="hidden flex-1 text-xs text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-rose-800/50 focus:ring-2 focus:ring-rose-500 focus:outline-none">Logout</button>
                 </div>
-            </div>
-
-            <!-- Danger Mode Checkbox -->
-            <div class="flex items-center gap-2 bg-rose-950/20 border border-rose-900/50 rounded-lg p-3 mt-1">
-                <input type="checkbox" id="admin-override-checkbox" class="w-4 h-4 rounded border-rose-800 bg-slate-900 text-rose-500 focus:ring-rose-500 focus:ring-offset-slate-950 cursor-pointer">
-                <label for="admin-override-checkbox" class="text-xs text-rose-200/80 font-medium cursor-pointer">
-                    <span class="text-rose-400 font-bold block mb-0.5">Danger Mode (Auto-Approve)</span>
-                    Bypass Sandbox and auto-approve limits.
-                </label>
             </div>
 
             <!-- Project Selector -->
             <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <label for="project-selector" class="text-xs font-semibold text-teal-400 shrink-0">Project Workspace:</label>
-                <select id="project-selector" onchange="switchProject()" aria-label="Select Project Workspace" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none cursor-pointer p-1 w-full truncate">
+                <select id="project-selector" onchange="switchProject()" aria-label="Select Project Workspace" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer p-1 w-full truncate">
                     <option value="">(Loading...)</option>
                 </select>
                 <div class="flex gap-2 mt-1">
-                    <button onclick="newProject()" title="New Project" aria-label="Create New Project" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">+ New</button>
-                    <button onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="flex-1 text-rose-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">🗑️ Clear</button>
+                    <button type="button" onclick="newProject()" title="New Project" aria-label="Create New Project" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">+ New</button>
+                    <button type="button" onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="flex-1 text-rose-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-rose-500 focus:outline-none">🗑️ Clear</button>
                 </div>
             </div>
 
             <!-- Conversation Selector -->
             <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <label for="conversation-selector" class="text-xs font-semibold text-teal-400 shrink-0">Current Session:</label>
-                <select id="conversation-selector" onchange="switchConversation()" aria-label="Select Conversation" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none cursor-pointer p-1 w-full truncate">
+                <select id="conversation-selector" onchange="switchConversation()" aria-label="Select Conversation" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer p-1 w-full truncate">
                 </select>
                 <div class="flex gap-2 mt-1">
-                    <button onclick="renameConversation()" title="Rename Session" aria-label="Rename current session" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">✏️ Rename</button>
-                    <button onclick="deleteSingleSession()" title="Delete Selected Session" aria-label="Delete selected session" class="flex-1 text-amber-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">🗑️ Delete</button>
-                    <button onclick="sanitizeSessions()" title="Sanitize/Clear All Sessions" aria-label="Sanitize all sessions" class="flex-1 text-rose-500 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors">🧹 Clear All</button>
+                    <button type="button" onclick="renameConversation()" title="Rename Session" aria-label="Rename current session" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">✏️ Rename</button>
+                    <button type="button" onclick="deleteSingleSession()" title="Delete Selected Session" aria-label="Delete selected session" class="flex-1 text-amber-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-amber-500 focus:outline-none">🗑️ Delete</button>
+                    <button type="button" onclick="sanitizeSessions()" title="Sanitize/Clear All Sessions" aria-label="Sanitize all sessions" class="flex-1 text-rose-500 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-rose-500 focus:outline-none">🧹 Clear All</button>
                 </div>
             </div>
 
             <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-800">
                 <!-- Admin override moved to backend environment variable -->
-                <button onclick="newConversation()" aria-label="Start a new chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium">✨ New Session</button>
-                <button onclick="renameConversation()" aria-label="Rename the current chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium">✏️ Rename Session</button>
-                <button onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium">↻ Reload Scripts</button>
-                <button onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="w-full text-sm px-3 py-2 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded-lg border border-amber-700/60 transition-colors font-medium">🛡️ Auto-Patch Event</button>
+                <button type="button" onclick="newConversation()" aria-label="Start a new chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">✨ New Session</button>
+                <button type="button" onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">↻ Reload Scripts</button>
+                <button type="button" onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="w-full text-sm px-3 py-2 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded-lg border border-amber-700/60 transition-colors font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">🛡️ Auto-Patch Event</button>
             </div>
         </div>
     </dialog>
     <script>
+        function openSettingsPanel() {
+            const panel = document.getElementById('settings-panel');
+            const btn = document.getElementById('settings-panel-btn');
+            if (!panel) return;
+            if (!panel.open) {
+                panel.showModal();
+            }
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+            if (typeof initProjects === 'function') initProjects();
+            if (typeof initConversations === 'function') initConversations();
+        }
+
+        function closeSettingsPanel() {
+            const panel = document.getElementById('settings-panel');
+            const btn = document.getElementById('settings-panel-btn');
+            if (panel && panel.open) {
+                panel.close();
+            }
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const panel = document.getElementById('settings-panel');
+            const btn = document.getElementById('settings-panel-btn');
+            if (panel && btn) {
+                panel.addEventListener('close', function() {
+                    btn.setAttribute('aria-expanded', 'false');
+                });
+            }
+        });
 
         // Custom UI Overrides
         function showToast(message, type = 'info') {
+            if (typeof announce === 'function') {
+                announce(String(message || ''), type === 'error');
+            }
             const container = document.getElementById('custom-toast-container');
+            if (!container) return;
             const toast = document.createElement('div');
             const bgColor = type === 'error' ? 'bg-rose-900/90 border-rose-700' : 'bg-slate-800/90 border-slate-700';
             toast.className = `flex items-center p-4 rounded-lg border shadow-lg text-sm text-white pointer-events-auto transform translate-x-full transition-transform duration-300 ${bgColor}`;
@@ -360,7 +424,7 @@
                     ${type === 'error' ? '<svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '<svg class="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'}
                 </div>
                 <div>${message}</div>
-                <button class="ml-4 text-slate-400 hover:text-white focus:outline-none" onclick="this.parentElement.remove()">
+                <button type="button" aria-label="Dismiss notification" class="ml-4 text-slate-400 hover:text-white focus:outline-none" onclick="this.parentElement.remove()">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             `;
@@ -378,8 +442,9 @@
         }
 
         window.alert = function(msg) {
-            const type = msg.toLowerCase().includes('error') || msg.toLowerCase().includes('fail') ? 'error' : 'info';
-            showToast(msg, type);
+            const text = String(msg || '');
+            const type = text.toLowerCase().includes('error') || text.toLowerCase().includes('fail') ? 'error' : 'info';
+            showToast(text, type);
         };
 
         window.confirm = function(msg) {
@@ -392,7 +457,7 @@
                 msgEl.innerText = msg;
                 
                 const cleanup = () => {
-                    modal.close();
+                    if (modal.open) modal.close();
                     btnYes.removeEventListener('click', onYes);
                     btnNo.removeEventListener('click', onNo);
                     modal.removeEventListener('cancel', onCancel);
@@ -406,7 +471,58 @@
                 btnNo.addEventListener('click', onNo);
                 modal.addEventListener('cancel', onCancel);
                 
-                modal.showModal();
+                if (!modal.open) modal.showModal();
+                btnYes.focus();
+            });
+        };
+
+        window.customPrompt = function(msg, defaultValue = '', title = 'Input Required') {
+            return new Promise(resolve => {
+                const modal = document.getElementById('custom-prompt-modal');
+                const form = document.getElementById('custom-prompt-form');
+                const titleEl = document.getElementById('prompt-modal-title');
+                const msgEl = document.getElementById('prompt-modal-message');
+                const inputEl = document.getElementById('prompt-modal-input');
+                const btnCancel = document.getElementById('prompt-modal-cancel');
+
+                if (!modal || !form || !inputEl) {
+                    resolve(null);
+                    return;
+                }
+
+                titleEl.innerText = title || 'Input Required';
+                msgEl.innerText = msg || '';
+                inputEl.value = defaultValue || '';
+
+                const cleanup = () => {
+                    if (modal.open) modal.close();
+                    form.removeEventListener('submit', onSubmit);
+                    btnCancel.removeEventListener('click', onCancel);
+                    modal.removeEventListener('cancel', onCancel);
+                };
+
+                const onSubmit = (e) => {
+                    e.preventDefault();
+                    const val = inputEl.value;
+                    cleanup();
+                    resolve(val);
+                };
+
+                const onCancel = (e) => {
+                    if (e) e.preventDefault();
+                    cleanup();
+                    resolve(null);
+                };
+
+                form.addEventListener('submit', onSubmit);
+                btnCancel.addEventListener('click', onCancel);
+                modal.addEventListener('cancel', onCancel);
+
+                if (!modal.open) modal.showModal();
+                setTimeout(() => {
+                    inputEl.focus();
+                    inputEl.select();
+                }, 20);
             });
         };
 
@@ -573,7 +689,13 @@
                     var promptText = "Please summarize the implementation plan at `" + url + "` for a Tier 3 Developer. Remove root credentials and Tier 5 secrets, but provide the technical architecture and logic.";
                     if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
                     if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                        ws.send(JSON.stringify({
+                            type: 'prompt',
+                            prompt: promptText,
+                            model: model,
+                            conversation_id: currentConversationId,
+                            token: authToken || localStorage.getItem('agy_auth_token') || ''
+                        }));
                     }
                 } else {
                     alert("Debug: You are logged in as a Guest or Dev. Card flipping is disabled for this role. Sending a prompt instead...");
@@ -581,7 +703,13 @@
                     var promptText = "Please read the implementation plan at `" + url + "`. Remove ALL code. Explain it in layman's terms without revealing sensitive information or the structure of the backend.";
                     if (typeof appendUserMessage === 'function') appendUserMessage(promptText);
                     if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'prompt', prompt: promptText, model: model }));
+                        ws.send(JSON.stringify({
+                            type: 'prompt',
+                            prompt: promptText,
+                            model: model,
+                            conversation_id: currentConversationId,
+                            token: authToken || localStorage.getItem('agy_auth_token') || ''
+                        }));
                     }
                 }
             } catch (err) {
@@ -592,6 +720,7 @@
 
         async function proceedArtifact(btn) {
             var prompt = "Proceed";
+            var activeToken = authToken || localStorage.getItem('agy_auth_token') || '';
             
             // Auto-save edited artifact content
             if (btn) {
@@ -608,18 +737,21 @@
                             // Save via the dedicated HTTP route
                             await fetch('/api/artifacts/save', {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') },
+                                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + activeToken },
                                 body: JSON.stringify({ path: url, content: rawEditor.value })
                             });
                             
-                            if (isTaskRunning) {
-                                sendCliInput(prompt);
-                            } else {
-                                var model = modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
-                                if (ws && ws.readyState === WebSocket.OPEN) {
-                                    ws.send(JSON.stringify({ type: 'prompt', prompt: prompt, model: model }));
-                                    appendSystemMessage("Proceeding with artifact...", "info");
-                                }
+                            var model = modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify({
+                                    type: 'prompt',
+                                    mode: isTaskRunning ? 'steer' : 'normal',
+                                    prompt: isTaskRunning ? ('[STEER_NOW]\n' + prompt) : prompt,
+                                    model: model,
+                                    conversation_id: currentConversationId,
+                                    token: activeToken
+                                }));
+                                appendSystemMessage("Proceeding with artifact...", "info");
                             }
 
                             // Expire the button to prevent accidental double-clicks or phantom Alt+P triggers
@@ -659,7 +791,28 @@
                 const sysRes = await fetch('/api/auth/system-status');
                 const sysData = await sysRes.json();
                 
-                const token = localStorage.getItem('agy_auth_token') || '';
+                let token = localStorage.getItem('agy_auth_token') || '';
+                if (!token && sysData.super_admin && !sessionStorage.getItem('agy_manual_logout')) {
+                    try {
+                        const autoRes = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ access_key: 'SUPER_ADMIN_AUTO' })
+                        });
+                        const autoData = await autoRes.json();
+                        if (autoData && autoData.token) {
+                            token = autoData.token;
+                            authToken = autoData.token;
+                            currentUser = autoData.user;
+                            localStorage.setItem('agy_auth_token', authToken);
+                            localStorage.setItem('agy_user', JSON.stringify(currentUser));
+                            if (typeof updateUserUI === 'function') updateUserUI();
+                            if (typeof initProjects === 'function') await initProjects();
+                            if (typeof initConversations === 'function') await initConversations();
+                        }
+                    } catch (e) {}
+                }
+
                 const authRes = await fetch('/api/auth_check', {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
@@ -984,6 +1137,7 @@
 
         var ws = null;
         var chatFeed = document.getElementById('chat-feed');
+        var initialWelcomeHTML = chatFeed ? chatFeed.innerHTML : '';
         var connBadge = document.getElementById('connection-badge');
         var connText = document.getElementById('connection-text');
         var sendBtn = document.getElementById('send-btn');
@@ -1011,104 +1165,180 @@
         var convSelector = document.getElementById('conversation-selector');
 
         var hasMoreConversations = false;
+        function sanitizeSessionLabel(label, fallbackId) {
+            if (!label) return 'Session ' + (fallbackId ? fallbackId.substring(0, 8) : '');
+            var cleaned = String(label)
+                .replace(/<SYSTEM_MESSAGE>[\s\S]*?<\/SYSTEM_MESSAGE>/gi, '')
+                .replace(/<ADDITIONAL_METADATA>[\s\S]*?<\/ADDITIONAL_METADATA>/gi, '')
+                .replace(/<\/?USER_REQUEST>/gi, '')
+                .replace(/<SYSTEM_MESSAGE>[\s\S]*/gi, '')
+                .replace(/<ADDITIONAL_METADATA>[\s\S]*/gi, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (!cleaned) return 'Session ' + (fallbackId ? fallbackId.substring(0, 8) : '');
+            return cleaned;
+        }
+
+        function renderConversationSelect() {
+            var convSelector = document.getElementById('conversation-selector');
+            if (!convSelector) return;
+
+            convSelector.innerHTML = '';
+            var optNew = document.createElement('option');
+            optNew.value = '';
+            optNew.textContent = '(New Unsaved Session)';
+            if (!currentConversationId) optNew.selected = true;
+            convSelector.appendChild(optNew);
+
+            conversations.forEach(function(c) {
+                var opt = document.createElement('option');
+                opt.value = c.id;
+                var rawLabel = ((c.customRenamed || c.custom_renamed) && c.name) ? c.name : (c.title || c.name || ('Session ' + c.id.substring(0, 8)));
+                opt.textContent = sanitizeSessionLabel(rawLabel, c.id);
+                if (c.id === currentConversationId) opt.selected = true;
+                convSelector.appendChild(opt);
+            });
+
+            if (hasMoreConversations) {
+                var optM = document.createElement('option');
+                optM.value = 'load_more';
+                optM.textContent = 'Load More...';
+                convSelector.appendChild(optM);
+            }
+        }
+
         async function initConversations(limit) {
             if (limit === undefined) limit = 10;
-            var found = false;
-            for (var i=0; i<conversations.length; i++) {
-                if (conversations[i].id === currentConversationId) found = true;
-            }
-            if (!found && currentConversationId) {
-                conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(0, 8)});
-                localStorage.setItem('agy_conversations', JSON.stringify(conversations));
-            }
-            function renderSelect() {
-                var convSelector = document.getElementById('conversation-selector');
-                if (!convSelector) return;
-
-                convSelector.innerHTML = '';
-                conversations.forEach(function(c) {
-                    var opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.title || c.name || ('Session ' + c.id.substring(0, 8));
-                    if (c.id === currentConversationId) opt.selected = true;
-                    convSelector.appendChild(opt);
-                });
-
-                if (hasMoreConversations) {
-                    var optM = document.createElement('option');
-                    optM.value = 'load_more';
-                    optM.textContent = 'Load More...';
-                    convSelector.appendChild(optM);
-                }
-            }
-            renderSelect();
+            renderConversationSelect();
             try {
                 var response = await fetch('/api/conversations?limit=' + limit, {
                     headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
                 });
                 var data = await response.json();
                 if (data.conversations) {
-                    hasMoreConversations = data.has_more;
-                    var localMap = {};
+                    hasMoreConversations = Boolean(data.has_more);
+                    var customRenameMap = {};
+                    var provisionalMap = {};
                     var localConvs = [];
                     try { localConvs = JSON.parse(localStorage.getItem('agy_conversations')) || []; } catch(e) {}
                     localConvs.forEach(function(c) {
-                        if (c.name && !c.name.startsWith('Session ') && c.name.trim() !== '') localMap[c.id] = c.name;
-                        else if (c.title && !c.title.startsWith('Session ') && c.title.trim() !== '') localMap[c.id] = c.title;
+                        if ((c.customRenamed || c.custom_renamed) && c.name && c.name.trim() !== '') {
+                            customRenameMap[c.id] = sanitizeSessionLabel(c.name, c.id);
+                        } else if (c.name && !c.name.startsWith('Session ')) {
+                            var cleanProv = sanitizeSessionLabel(c.name, c.id);
+                            if (!cleanProv.startsWith('Session ')) provisionalMap[c.id] = cleanProv;
+                        }
                     });
 
                     conversations = data.conversations.map(function(c) {
-                        if (localMap[c.id]) {
-                            c.name = localMap[c.id];
-                            c.title = localMap[c.id];
+                        c.title = sanitizeSessionLabel(c.title, c.id);
+                        if (c.custom_renamed && c.title) {
+                            c.name = c.title;
+                            c.customRenamed = true;
+                        } else if (customRenameMap[c.id]) {
+                            c.name = customRenameMap[c.id];
+                            c.title = customRenameMap[c.id];
+                            c.customRenamed = true;
+                        } else if (c.title.startsWith('Session ') && provisionalMap[c.id]) {
+                            c.title = provisionalMap[c.id];
+                            c.name = provisionalMap[c.id];
+                        } else {
+                            c.name = c.title;
                         }
                         return c;
                     });
                     var sfound = false;
-                    for (var i=0; i<conversations.length; i++) {
+                    for (var i = 0; i < conversations.length; i++) {
                         if (conversations[i].id === currentConversationId) sfound = true;
                     }
                     if (!sfound && currentConversationId) {
-                        conversations.unshift({id: currentConversationId, name: 'Session ' + currentConversationId.substring(0, 8)});
+                        if (isTaskRunning) {
+                            var fallbackTitle = customRenameMap[currentConversationId] || provisionalMap[currentConversationId] || ('Session ' + currentConversationId.substring(0, 8));
+                            conversations.unshift({
+                                id: currentConversationId,
+                                name: fallbackTitle,
+                                title: fallbackTitle,
+                                customRenamed: Boolean(customRenameMap[currentConversationId])
+                            });
+                        } else {
+                            currentConversationId = null;
+                            localStorage.removeItem('agy_conversation_id');
+                        }
                     }
                     localStorage.setItem('agy_conversations', JSON.stringify(conversations));
-                    renderSelect();
+                    renderConversationSelect();
                 }
             } catch(e) {}
         }
         initConversations();
 
-        function switchConversation() {
+        var switchConvTimer = null;
+        function switchConversation(immediate) {
             var convSelector = document.getElementById('conversation-selector');
-            if (convSelector) {
-                var selected = convSelector.value;
-                if (selected === 'load_more') {
-                    var loadOpt = convSelector.querySelector('option[value="load_more"]');
-                    if (loadOpt) loadOpt.textContent = "Loading...";
-                    convSelector.value = currentConversationId;
-                    initConversations(0).then(() => {
-                        alert("All older sessions have successfully loaded! Please click the dropdown again to view them.");
-                    });
-                    return;
+            if (!convSelector) return;
+            var selected = convSelector.value;
+            if (selected === 'load_more') {
+                var loadOpt = convSelector.querySelector('option[value="load_more"]');
+                if (loadOpt) loadOpt.textContent = "Loading...";
+                convSelector.value = currentConversationId || '';
+                initConversations(0).then(() => {
+                    alert("All older sessions have been loaded into the Current Session combo box.");
+                });
+                return;
+            }
+            var applySwitch = async function() {
+                var targetId = convSelector.value || null;
+                if (targetId === 'load_more') return;
+                if (targetId !== currentConversationId) {
+                    currentConversationId = targetId;
+                    if (currentConversationId) {
+                        localStorage.setItem('agy_conversation_id', currentConversationId);
+                    } else {
+                        localStorage.removeItem('agy_conversation_id');
+                    }
+                    await loadChatHistory();
+                    var selectedText = convSelector.options[convSelector.selectedIndex]
+                        ? convSelector.options[convSelector.selectedIndex].text
+                        : (currentConversationId || 'New Unsaved Session');
+                    announce('Active session set to ' + selectedText);
                 }
-                if (selected !== currentConversationId) {
-                    localStorage.setItem('agy_conversation_id', selected);
-                    location.reload();
-                }
+            };
+            if ( switchConvTimer ) clearTimeout(switchConvTimer);
+            if (immediate) {
+                applySwitch();
+            } else {
+                switchConvTimer = setTimeout(applySwitch, 250);
             }
         }
 
         async function deleteSingleSession() {
-            if (!currentConversationId) return;
-            if (await confirm('Are you sure you want to delete (sanitize) the current session?')) {
+            if (!currentConversationId) {
+                alert("No saved session is currently selected to delete.");
+                return;
+            }
+            if (await confirm('Are you sure you want to delete (archive) the selected session?')) {
+                var targetId = currentConversationId;
                 try {
-                    await fetch('/api/conversations/' + currentConversationId, {
+                    var res = await fetch('/api/conversations/' + encodeURIComponent(targetId), {
                         method: 'DELETE',
                         headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
                     });
+                    var data = await res.json();
+                    if (!res.ok || data.error) {
+                        alert("Error deleting session: " + (data.error || res.statusText));
+                        return;
+                    }
                     localStorage.removeItem('agy_conversation_id');
-                    location.reload();
-                } catch(err) {}
+                    localStorage.removeItem('agy_chat_items_v2_' + targetId);
+                    conversations = conversations.filter(function(c) { return c.id !== targetId; });
+                    localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+                    currentConversationId = null;
+                    await initConversations();
+                    await loadChatHistory();
+                    alert("Session deleted.");
+                } catch(err) {
+                    alert("Failed to delete session: " + err);
+                }
             }
         }
 
@@ -1128,19 +1358,53 @@
             }
         });
 
+        function clearCachedSessionStorage() {
+            localStorage.removeItem('agy_conversation_id');
+            localStorage.removeItem('agy_conversations');
+            localStorage.removeItem('agy_chat_items_v2');
+            localStorage.removeItem('agy_chat_items');
+            try {
+                var keysToRemove = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && k.indexOf('agy_chat_items_v2_') === 0) {
+                        keysToRemove.push(k);
+                    }
+                }
+                keysToRemove.forEach(function(k) { localStorage.removeItem(k); });
+            } catch(e) {}
+        }
+
         async function sanitizeSessions() {
-            if (await confirm("Are you sure you want to sanitize (archive) ALL sessions for this project?")) {
+            if (await confirm("Are you sure you want to sanitize (archive) ALL sessions for this project workspace?")) {
                 try {
-                    await fetch('/api/projects/active/conversations', { method: 'DELETE' });
-                    localStorage.removeItem('agy_conversation_id');
-                    location.reload();
-                } catch(e) {}
+                    var res = await fetch('/api/projects/active/conversations', {
+                        method: 'DELETE',
+                        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                    });
+                    var data = await res.json();
+                    if (!res.ok || data.error) {
+                        alert("Error clearing sessions: " + (data.error || res.statusText));
+                        return;
+                    }
+                    clearCachedSessionStorage();
+                    conversations = [];
+                    currentConversationId = null;
+                    await initConversations();
+                    await loadChatHistory();
+                    alert("All sessions for this workspace have been archived.");
+                } catch(e) {
+                    alert("Failed to sanitize sessions: " + e);
+                }
             }
         }
 
-        function renameConversation() {
+        async function renameConversation() {
             var selected = currentConversationId;
-            if (!selected) return;
+            if (!selected) {
+                alert("Please select a saved session before renaming.");
+                return;
+            }
             var currentName = '';
             var currentIndex = -1;
             for (var i = 0; i < conversations.length; i++) {
@@ -1150,25 +1414,52 @@
                     break;
                 }
             }
-            var newName = prompt("Enter friendly name for this session:", currentName);
+            var newName = await customPrompt("Enter friendly name for this session:", currentName, "Rename Session");
             if (newName !== null && newName.trim() !== '') {
+                var cleanCustom = newName.trim();
+                try {
+                    var res = await fetch('/api/conversations/' + encodeURIComponent(selected) + '/rename', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
+                        },
+                        body: JSON.stringify({ title: cleanCustom })
+                    });
+                    if (!res.ok) {
+                        await fetch('/api/conversations/' + encodeURIComponent(selected) + '?rename=' + encodeURIComponent(cleanCustom), {
+                            headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                        });
+                    }
+                } catch(e) {}
+
                 if (currentIndex > -1) {
-                    conversations[currentIndex].name = newName;
-                    conversations[currentIndex].title = newName;
+                    conversations[currentIndex].name = cleanCustom;
+                    conversations[currentIndex].title = cleanCustom;
+                    conversations[currentIndex].customRenamed = true;
+                    conversations[currentIndex].custom_renamed = true;
                 }
                 localStorage.setItem('agy_conversations', JSON.stringify(conversations));
-                initConversations();
+                renderConversationSelect();
+                alert("Session renamed to " + cleanCustom);
             }
         }
 
         var projSelector = document.getElementById('project-selector');
+
+        function updateWorkspaceHeaderLabel(activeName, rootName) {
+            var lbl = document.getElementById('header-workspace-label');
+            if (lbl) {
+                lbl.textContent = 'Workspace: ' + (activeName || rootName || 'Workspaces');
+            }
+        }
 
         async function initProjects() {
             try {
                 var res = await fetch('/api/projects', { headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') } });
                 var data = await res.json();
                 if (projSelector && data.projects) {
-                    var rootName = data.root_name || 'Root';
+                    var rootName = data.root_name || 'Workspaces';
                     projSelector.innerHTML = '<option value="">(' + rootName + ')</option>';
                     data.projects.forEach(function(p) {
                         var opt = document.createElement('option');
@@ -1177,33 +1468,58 @@
                         if (p === data.active) opt.selected = true;
                         projSelector.appendChild(opt);
                     });
+                    if (!data.active) {
+                        projSelector.value = '';
+                    }
+                    updateWorkspaceHeaderLabel(data.active, rootName);
                 }
             } catch(e) {}
         }
         initProjects();
 
-        async function switchProject() {
-            if (!projSelector) return;
-            var val = projSelector.value;
-            try {
-                var res = await fetch('/api/projects/active', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')},
-                    body: JSON.stringify({name: val})
-                });
-                var data = await res.json();
-                if (data.success) {
-                    var displayVal = projSelector.options[projSelector.selectedIndex].text;
-                    announce('Active project set to ' + displayVal);
-                    localStorage.removeItem('agy_conversation_id');
-                    setTimeout(() => location.reload(), 300);
+        var switchProjectTimer = null;
+        function switchProject(immediate) {
+            if (!projSelector) return Promise.resolve();
+            var performSwitch = async function() {
+                var val = projSelector.value;
+                try {
+                    var res = await fetch('/api/projects/active', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')},
+                        body: JSON.stringify({name: val})
+                    });
+                    var data = await res.json();
+                    if (data.success) {
+                        var displayVal = (projSelector.options[projSelector.selectedIndex] && projSelector.options[projSelector.selectedIndex].text) || val || 'Workspaces';
+                        updateWorkspaceHeaderLabel(data.active, 'Workspaces');
+                        currentConversationId = null;
+                        localStorage.removeItem('agy_conversation_id');
+                        await initConversations();
+                        await loadChatHistory();
+                        announce('Active project workspace set to ' + displayVal);
+                    } else if (data.error) {
+                        alert("Error switching workspace: " + data.error);
+                        await initProjects();
+                    }
+                } catch(e) {
+                    alert("Failed to switch workspace: " + e);
                 }
-            } catch(e) {}
+            };
+            if (switchProjectTimer) clearTimeout(switchProjectTimer);
+            if (immediate) {
+                return performSwitch();
+            }
+            return new Promise(function(resolve) {
+                switchProjectTimer = setTimeout(function() {
+                    performSwitch().then(resolve);
+                }, 250);
+            });
         }
 
         async function newProject() {
-            var name = prompt("Enter new project directory name:");
-            if (!name) return;
+            var name = await customPrompt("Enter new project directory name:", "", "Create Project Workspace");
+            if (!name || !name.trim()) return;
+            name = name.trim();
             try {
                 var res = await fetch('/api/projects', {
                     method: 'POST',
@@ -1213,8 +1529,9 @@
                 var data = await res.json();
                 if (data.success) {
                     await initProjects();
-                    if (projSelector) projSelector.value = name;
-                    await switchProject();
+                    if (projSelector) projSelector.value = data.name || name;
+                    await switchProject(true);
+                    alert("Created and switched to workspace " + (data.name || name));
                 } else {
                     alert("Error creating project: " + (data.error || "Unknown"));
                 }
@@ -1228,10 +1545,11 @@
                 var res = await fetch('/api/reload', {method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }});
                 var data = await res.json();
                 if (data.success) {
-                    announce('Backend modules reloaded successfully.');
+                    await initProjects();
+                    await initConversations();
                     alert("✓ " + data.message);
                 } else {
-                    alert("Reload error: " + data.error);
+                    alert("Reload error: " + (data.error || "Unknown error"));
                 }
             } catch(e) {
                 alert("Failed to trigger reload: " + e);
@@ -1240,12 +1558,13 @@
 
         async function simulateHotPatch() {
             try {
+                closeSettingsPanel();
                 var res = await fetch('/api/simulate-patch', {method: 'POST', headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }});
                 var data = await res.json();
                 if (data.success) {
-                    announce('Auto-patch sequence initiated.');
+                    alert("🛡️ " + (data.message || "Auto-patch sequence initiated."));
                 } else {
-                    alert("Patch error: " + data.error);
+                    alert("Patch error: " + (data.error || "Unknown error"));
                 }
             } catch(e) {
                 alert("Failed to trigger patch: " + e);
@@ -1257,8 +1576,6 @@
         if (savedModel && modelSelector) {
             modelSelector.value = savedModel;
         }
-
-        var overrideCb = document.getElementById('admin-override-checkbox');
 
         // Load saved chat from localStorage on startup
         loadChatHistory();
@@ -1473,12 +1790,14 @@
                     currentConversationId = data.conversation_id;
                     localStorage.setItem('agy_conversation_id', currentConversationId);
                     
-                    // Update array
+                    // Update array while preserving provisional prompt title
                     var found = false;
                     for (var i=0; i<conversations.length; i++) {
                         if (conversations[i].id === oldId) {
                             conversations[i].id = currentConversationId;
-                            conversations[i].name = 'Session ' + currentConversationId.substring(0, 8);
+                            if (!conversations[i].name || conversations[i].name.startsWith('Session ')) {
+                                conversations[i].name = 'Session ' + currentConversationId.substring(0, 8);
+                            }
                             found = true;
                         }
                     }
@@ -1524,9 +1843,17 @@
                     announce("Quota limit reached. System forcefully downgraded model for this request.");
                 }
             }
+            else if (data.type === 'queue_updated') {
+                if (typeof renderQueuedPromptsBar === 'function') {
+                    renderQueuedPromptsBar(data.queue || []);
+                }
+            }
             else if (data.type === 'task_started') {
                 if (typeof playIncomingSound === 'function') {
                     playIncomingSound();
+                }
+                if (data.queued_user_prompt && typeof appendUserMessage === 'function') {
+                    appendUserMessage(data.queued_user_prompt);
                 }
                 startTaskUI(data.prompt, data.model, data.start_time);
             }
@@ -1597,8 +1924,6 @@
                     currentAgentArticle = appendAgentMessageContainer();
                 }
                 
-
-                
                 var prev = currentAgentArticle.dataset.rawMarkdown || '';
                 var updated = prev + data.chunk;
                 currentAgentArticle.dataset.rawMarkdown = updated;
@@ -1607,6 +1932,9 @@
             }
             else if (data.type === 'agent_done') {
                 finishTaskUI(data.cancelled, data.elapsed, data.status);
+                if (typeof initConversations === 'function') {
+                    initConversations();
+                }
             }
         }
 
@@ -1626,8 +1954,8 @@
             taskStartTime = startTime || Date.now() / 1000;
             
             let displayPrompt = prompt || 'Executing instruction...';
-            if (displayPrompt.startsWith('<SYSTEM_MESSAGE>') || displayPrompt.startsWith('SYSTEM TRIGGER')) {
-                displayPrompt = 'Processing background system instruction...';
+            if (displayPrompt.startsWith('<SYSTEM_MESSAGE>') || displayPrompt.startsWith('SYSTEM TRIGGER') || displayPrompt.startsWith('<MID_TASK_STEERING_UPDATE>')) {
+                displayPrompt = 'Processing instruction...';
             }
             
             currentTaskPromptEl.innerText = displayPrompt;
@@ -1646,15 +1974,29 @@
             }
             taskBanner.classList.remove('hidden');
 
-            // sendBtn.disabled = true;
+            sendBtn.disabled = false;
             sendBtnSpinner.classList.remove('hidden');
-            sendBtnText.innerText = "Send Input";
+            sendBtnText.innerText = "🎯 Steer";
+            sendBtn.setAttribute('aria-label', 'Steer Agent Now — interrupt current step and inject this context immediately (Enter)');
+            sendBtn.classList.remove('bg-teal-600', 'hover:bg-teal-500');
+            sendBtn.classList.add('bg-amber-600', 'hover:bg-amber-500');
+
+            var queueBtn = document.getElementById('queue-btn');
+            if (queueBtn) queueBtn.classList.remove('hidden');
+
+            if (inputEl) {
+                inputEl.placeholder = "Task running — Press Enter to Steer Now (redirect immediately), or Alt+Enter to Queue Next...";
+            }
+            var helperEl = document.getElementById('chat-input-helper');
+            if (helperEl) {
+                helperEl.innerText = "Enter: Steer Now · Alt+Enter: Queue Next";
+            }
 
             updateTimer();
             clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 500);
 
-            announce("Task started: " + displayPrompt + ". Running in background.");
+            announce("Task started: " + displayPrompt + ". Press Enter in the chat box to steer immediately or Alt+Enter to queue follow-up context.");
 
             window.onbeforeunload = function() {
                 return "Task is running in the background. It will continue safely.";
@@ -1703,10 +2045,26 @@
 
             sendBtn.disabled = false;
             sendBtnSpinner.classList.add('hidden');
-            sendBtnText.innerText = "Execute";
+            sendBtnText.innerText = sendBtn.dataset.defaultText || "Execute";
+            sendBtn.setAttribute('aria-label', sendBtn.dataset.defaultAria || "Send prompt");
+            sendBtn.classList.remove('bg-amber-600', 'hover:bg-amber-500');
+            sendBtn.classList.add('bg-teal-600', 'hover:bg-teal-500');
+
+            var queueBtn = document.getElementById('queue-btn');
+            if (queueBtn) queueBtn.classList.add('hidden');
+
+            if (inputEl) {
+                inputEl.placeholder = inputEl.dataset.defaultPlaceholder || "Type your instruction...";
+            }
+            var helperEl = document.getElementById('chat-input-helper');
+            if (helperEl) {
+                helperEl.innerText = "Enter to send, Shift+Enter for newline";
+            }
             
-            // Play completed sound when task finishes
-            if (typeof playCompletedSound === 'function') {
+            var isSteered = (status === 'STEERED');
+
+            // Play completed sound when task finishes (skip on intermediate steer transition)
+            if (!isSteered && typeof playCompletedSound === 'function') {
                 playCompletedSound();
             }
 
@@ -1720,7 +2078,17 @@
                 if (cancelBtn) cancelBtn.remove();
 
                 var statusBadge = currentAgentArticle.querySelector('.status-badge');
-                if (cancelled) {
+                if (isSteered) {
+                    var elapStrSteer = elapsed ? elapsed + 's' : '';
+                    if (statusBadge) {
+                        statusBadge.className = "text-[11px] text-amber-400 font-mono flex items-center gap-1";
+                        statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> Redirected ' + elapStrSteer;
+                    }
+                    var steerNotice = document.createElement('div');
+                    steerNotice.className = "text-xs font-semibold text-amber-400/90 mt-2 italic";
+                    steerNotice.innerText = "[↪ Course-corrected with new user input]";
+                    currentAgentArticle.querySelector('.agent-text').appendChild(steerNotice);
+                } else if (cancelled) {
                     if (statusBadge) {
                         statusBadge.className = "text-[11px] text-rose-400 font-mono flex items-center gap-1";
                         statusBadge.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span> Cancelled';
@@ -2047,7 +2415,49 @@
             });
         }
 
-        async function sendPrompt(e) {
+        function renderQueuedPromptsBar(queue) {
+            var bar = document.getElementById('queued-prompts-bar');
+            var countLabel = document.getElementById('queued-count-label');
+            var listEl = document.getElementById('queued-prompts-list');
+            if (!bar || !countLabel || !listEl) return;
+
+            if (!queue || queue.length === 0) {
+                bar.classList.add('hidden');
+                listEl.innerHTML = '';
+                return;
+            }
+
+            bar.classList.remove('hidden');
+            countLabel.innerText = queue.length + (queue.length === 1
+                ? ' Queued Follow-Up (will run when current step finishes)'
+                : ' Queued Follow-Ups (will run when current step finishes)');
+
+            listEl.innerHTML = '';
+            queue.forEach(function(item, idx) {
+                var li = document.createElement('li');
+                li.className = "truncate text-slate-300";
+                li.innerText = (idx + 1) + ". " + (item.prompt || '');
+                listEl.appendChild(li);
+            });
+        }
+
+        function clearQueuedPrompts() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'cli_input', input: '__DEVCORE_CLEAR_QUEUE__' }));
+            }
+            renderQueuedPromptsBar([]);
+        }
+
+        function promoteQueueToSteer() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'cli_input', input: '__DEVCORE_PROMOTE_QUEUE__' }));
+                if (typeof announce === 'function') {
+                    announce("Promoting queued messages to steer agent immediately.");
+                }
+            }
+        }
+
+        async function sendPrompt(e, mode) {
             if (e) e.preventDefault();
             var prompt = inputEl.value.trim();
             if (!prompt) return;
@@ -2057,28 +2467,67 @@
                 playIncomingSound();
             }
 
-            if (isTaskRunning) {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({ type: 'cli_input', input: prompt + "\n" }));
-                    appendSystemMessage("Injected input: " + prompt, "info");
-                    inputEl.value = '';
-                }
-                return;
-            }
-
             var model = modelSelector ? modelSelector.value : 'Gemini 3.8 Flash (Low)';
+
+            var cleanSnip = sanitizeSessionLabel(prompt, currentConversationId || 'new');
+            var provTitle = cleanSnip.length > 42 ? (cleanSnip.substring(0, 42).trim() + '...') : cleanSnip;
 
             if (!currentConversationId) {
                 currentConversationId = 'conv-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
                 localStorage.setItem('agy_conversation_id', currentConversationId);
                 
-                // Add to dropdown immediately
-                var name = 'Session ' + currentConversationId.substring(0, 8);
-                conversations.unshift({id: currentConversationId, name: name});
+                // Add to dropdown immediately with provisional dynamic title
+                conversations.unshift({id: currentConversationId, name: provTitle, title: provTitle});
                 localStorage.setItem('agy_conversations', JSON.stringify(conversations));
                 
                 // Redraw UI
                 initConversations();
+            } else {
+                var existingConv = conversations.find(function(c) { return c.id === currentConversationId; });
+                if (existingConv && (!existingConv.title || existingConv.title.startsWith('Session ')) && !existingConv.customRenamed) {
+                    existingConv.name = provTitle;
+                    existingConv.title = provTitle;
+                    localStorage.setItem('agy_conversations', JSON.stringify(conversations));
+                }
+            }
+
+            if (isTaskRunning) {
+                var effectiveMode = (mode === 'queue') ? 'queue' : 'steer';
+                inputEl.value = '';
+                localStorage.removeItem('agy_draft_prompt');
+                inputEl.style.height = 'auto';
+
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    if (effectiveMode === 'queue') {
+                        ws.send(JSON.stringify({
+                            type: 'prompt',
+                            mode: 'queue',
+                            prompt: '[QUEUE_NEXT]\n' + prompt,
+                            model: model,
+                            conversation_id: currentConversationId,
+                            token: authToken
+                        }));
+                        if (typeof announce === 'function') {
+                            announce("Queued context for next turn: " + prompt);
+                        }
+                    } else {
+                        appendUserMessage(prompt);
+                        ws.send(JSON.stringify({
+                            type: 'prompt',
+                            mode: 'steer',
+                            prompt: '[STEER_NOW]\n' + prompt,
+                            model: model,
+                            conversation_id: currentConversationId,
+                            token: authToken
+                        }));
+                        if (typeof announce === 'function') {
+                            announce("Steering agent immediately with new context: " + prompt);
+                        }
+                    }
+                } else {
+                    appendSystemMessage("Connection not open. Reconnecting...", "warning");
+                }
+                return;
             }
 
             appendUserMessage(prompt);
@@ -2130,14 +2579,12 @@
             }
 
             if (ws && ws.readyState === WebSocket.OPEN) {
-                var overrideCb = document.getElementById('admin-override-checkbox');
                 ws.send(JSON.stringify({
                     type: 'prompt',
                     prompt: actualPromptToSend,
                     model: model,
                     conversation_id: currentConversationId,
-                    token: authToken,
-                    danger_mode: overrideCb ? overrideCb.checked : false
+                    token: authToken
                 }));
             } else {
                 appendSystemMessage("Connection not open. Reconnecting...", "warning");
@@ -2145,6 +2592,11 @@
         }
 
         function handleKeyDown(e) {
+            if (e.key === 'Enter' && (e.altKey || e.ctrlKey || e.metaKey) && isTaskRunning) {
+                e.preventDefault();
+                sendPrompt(null, 'queue');
+                return;
+            }
             if (e.key === 'Enter' && !e.shiftKey) {
                 // Prevent sending if the slash menu is active and an item is highlighted
                 var menuEl = document.getElementById('slash-command-menu');
@@ -2156,7 +2608,7 @@
                     }
                 }
                 e.preventDefault();
-                sendPrompt();
+                sendPrompt(null, isTaskRunning ? 'steer' : 'normal');
             }
         }
 
@@ -2164,6 +2616,7 @@
             if (ws && ws.readyState === WebSocket.OPEN && isTaskRunning) {
                 ws.send(JSON.stringify({ type: 'cancel' }));
             }
+            renderQueuedPromptsBar([]);
         }
 
         function saveChatHistory() {
@@ -2202,20 +2655,28 @@
                     if (stored) {
                         items = JSON.parse(stored);
                     } else {
-                        var response = await fetch('/api/conversations/' + currentConversationId, {
+                        var response = await fetch('/api/conversations/' + encodeURIComponent(currentConversationId), {
                             headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
                         });
-                        var data = await response.json();
-                        if (data.items && data.items.length > 0) {
-                            items = data.items;
-                            localStorage.setItem('agy_chat_items_v2_' + currentConversationId, JSON.stringify(items));
+                        if (response.ok) {
+                            var data = await response.json();
+                            if (data.items && data.items.length > 0) {
+                                items = data.items;
+                                localStorage.setItem('agy_chat_items_v2_' + currentConversationId, JSON.stringify(items));
+                            }
                         }
                     }
                 } else {
                     var stored = localStorage.getItem('agy_chat_items_v2') || localStorage.getItem('agy_chat_items');
                     if (stored) items = JSON.parse(stored);
                 }
-                if (!items) return;
+                if (!items || items.length === 0) {
+                    if (chatFeed && initialWelcomeHTML) {
+                        chatFeed.innerHTML = initialWelcomeHTML;
+                        if (typeof updateUserUI === 'function') updateUserUI();
+                    }
+                    return;
+                }
                 
                 chatFeed.innerHTML = '';
                 items.forEach(function(item) {
@@ -2255,8 +2716,13 @@
                         localStorage.removeItem('agy_chat_items_v2_' + currentConversationId);
                     }
                     localStorage.removeItem('agy_chat_items_v2');
+                    localStorage.removeItem('agy_chat_items');
                 } catch(e) {}
-                location.reload();
+                if (chatFeed && initialWelcomeHTML) {
+                    chatFeed.innerHTML = initialWelcomeHTML;
+                    if (typeof updateUserUI === 'function') updateUserUI();
+                }
+                alert("Local chat display cleared.");
             }
         }
 
@@ -2264,8 +2730,13 @@
             if (await confirm("Start a new session? This will clear the current view and generate a fresh conversation ID.")) {
                 try {
                     localStorage.removeItem('agy_conversation_id');
+                    localStorage.removeItem('agy_chat_items_v2');
+                    localStorage.removeItem('agy_chat_items');
                 } catch(e) {}
-                location.reload();
+                currentConversationId = null;
+                renderConversationSelect();
+                await loadChatHistory();
+                alert("Started a new chat session.");
             }
         }
 
@@ -2307,11 +2778,11 @@
             if (roleBadge) {
                 roleBadge.innerText = (currentUser.role || 'GUEST').toUpperCase();
                 if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.role === 'Tier5_SysAdmin') {
-                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300";
+                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300 w-fit";
                 } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev' || currentUser.role === 'Tier3_Dev' || currentUser.role === 'Tier4') {
-                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-900 text-cyan-300";
+                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-900 text-cyan-300 w-fit";
                 } else {
-                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-900 text-purple-300";
+                    roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-900 text-purple-300 w-fit";
                 }
             }
             if (displayName) {
@@ -2320,11 +2791,12 @@
             var loginBtn = document.getElementById('login-btn');
             var logoutBtn = document.getElementById('logout-btn');
             if (loginBtn && logoutBtn) {
+                loginBtn.classList.remove('hidden');
                 if (authToken) {
-                    loginBtn.classList.add('hidden');
+                    loginBtn.textContent = 'Switch Role';
                     logoutBtn.classList.remove('hidden');
                 } else {
-                    loginBtn.classList.remove('hidden');
+                    loginBtn.textContent = 'Login';
                     logoutBtn.classList.add('hidden');
                 }
             }
@@ -2333,7 +2805,18 @@
 
         function toggleLoginModal() {
             var modal = document.getElementById('login-modal');
-            if (modal) modal.classList.toggle('hidden');
+            if (!modal) return;
+            if (typeof modal.showModal === 'function') {
+                if (modal.open) {
+                    modal.close();
+                } else {
+                    modal.showModal();
+                    var uInput = document.getElementById('login-username');
+                    if (uInput) setTimeout(function() { uInput.focus(); }, 20);
+                }
+            } else {
+                modal.classList.toggle('hidden');
+            }
         }
 
         async function logout() {
@@ -2347,10 +2830,18 @@
             } catch(e) {}
             authToken = '';
             currentUser = { username: 'guest', role: 'guest', name: 'Guest' };
+            sessionStorage.setItem('agy_manual_logout', 'true');
             localStorage.removeItem('agy_auth_token');
             localStorage.setItem('agy_user', JSON.stringify(currentUser));
+            currentConversationId = null;
+            conversations = [];
+            localStorage.removeItem('agy_conversation_id');
+            localStorage.removeItem('agy_conversations');
             updateUserUI();
-            location.reload();
+            await initProjects();
+            renderConversationSelect();
+            await loadChatHistory();
+            alert('Logged out. Active role is now Guest.');
         }
 
         async function quickLogin(u, p) {
@@ -2362,15 +2853,18 @@
                 });
                 var data = await res.json();
                 if (data.token) {
+                    sessionStorage.removeItem('agy_manual_logout');
                     authToken = data.token;
                     currentUser = data.user;
                     localStorage.setItem('agy_auth_token', authToken);
                     localStorage.setItem('agy_user', JSON.stringify(currentUser));
                     updateUserUI();
-                    toggleLoginModal();
-                    announce('Logged in as ' + currentUser.name);
-                    initConversations(10);
-                    location.reload();
+                    var modal = document.getElementById('login-modal');
+                    if (modal && modal.open) modal.close();
+                    await initProjects();
+                    await initConversations(10);
+                    await loadChatHistory();
+                    alert('Logged in as ' + (currentUser.name || currentUser.username));
                 } else {
                     alert('Login failed: ' + (data.error || 'Unknown error'));
                 }
@@ -2397,17 +2891,7 @@
         }
 
         async function clearProjectSessions() {
-            if (!await confirm("Are you sure you want to permanently delete all session histories for this project?")) return;
-            try {
-                await fetch('/api/projects/active/conversations', {
-                    method: 'DELETE',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                localStorage.removeItem('agy_conversation_id');
-                location.reload();
-            } catch (e) {
-                console.error("Failed to clear sessions", e);
-            }
+            await sanitizeSessions();
         }
 
         // ==========================================
@@ -2458,24 +2942,24 @@
     });
     </script>
 
-    <!-- Accessible Login & Role Switcher Modal -->
-    <div id="login-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+    <!-- Accessible Login & Role Switcher Modal (Top-Layer Dialog) -->
+    <dialog id="login-modal" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm" aria-labelledby="modal-title">
+        <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                 <h2 id="modal-title" class="text-base font-bold text-white">Login / Switch Role</h2>
-                <button onclick="toggleLoginModal()" aria-label="Close dialog" class="text-slate-400 hover:text-white text-lg">&times;</button>
+                <button type="button" onclick="toggleLoginModal()" aria-label="Close login dialog" class="text-slate-400 hover:text-white text-lg px-2 py-0.5 rounded focus:ring-2 focus:ring-teal-500 focus:outline-none">&times;</button>
             </div>
-            <p class="text-xs text-slate-400">Quick-switch test accounts for red teaming:</p>
+            <p class="text-xs text-slate-400">Quick-switch test accounts for role-based testing:</p>
             <div class="grid grid-cols-3 gap-2">
-                <button onclick="quickLogin('admin','admin')" class="bg-slate-800 hover:bg-teal-950 hover:border-teal-600 border border-slate-700 p-2.5 rounded text-center transition">
+                <button type="button" onclick="quickLogin('admin','admin')" class="bg-slate-800 hover:bg-teal-950 hover:border-teal-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-teal-500 focus:outline-none">
                     <div class="text-xs font-bold text-teal-400">Admin</div>
                     <div class="text-[10px] text-slate-400 font-mono">admin / admin</div>
                 </button>
-                <button onclick="quickLogin('dev','dev')" class="bg-slate-800 hover:bg-cyan-950 hover:border-cyan-600 border border-slate-700 p-2.5 rounded text-center transition">
+                <button type="button" onclick="quickLogin('dev','dev')" class="bg-slate-800 hover:bg-cyan-950 hover:border-cyan-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-cyan-500 focus:outline-none">
                     <div class="text-xs font-bold text-cyan-400">GameDev</div>
                     <div class="text-[10px] text-slate-400 font-mono">dev / dev</div>
                 </button>
-                <button onclick="quickLogin('mod','mod')" class="bg-slate-800 hover:bg-purple-950 hover:border-purple-600 border border-slate-700 p-2.5 rounded text-center transition">
+                <button type="button" onclick="quickLogin('mod','mod')" class="bg-slate-800 hover:bg-purple-950 hover:border-purple-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-purple-500 focus:outline-none">
                     <div class="text-xs font-bold text-purple-400">Modder</div>
                     <div class="text-[10px] text-slate-400 font-mono">mod / mod</div>
                 </button>
@@ -2483,21 +2967,21 @@
             <div class="border-t border-slate-800 pt-3">
                 <form onsubmit="handleCustomLogin(event)" class="space-y-3">
                     <div>
-                        <label class="text-xs text-slate-300 font-medium block mb-1">Username</label>
-                        <input id="login-username" type="text" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500">
+                        <label for="login-username" class="text-xs text-slate-300 font-medium block mb-1">Username</label>
+                        <input id="login-username" type="text" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
                     </div>
                     <div>
-                        <label class="text-xs text-slate-300 font-medium block mb-1">Password</label>
-                        <input id="login-password" type="password" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-teal-500">
+                        <label for="login-password" class="text-xs text-slate-300 font-medium block mb-1">Password</label>
+                        <input id="login-password" type="password" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
                     </div>
                     <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" onclick="toggleLoginModal()" class="px-3 py-1.5 rounded text-xs border border-slate-700 text-slate-400 hover:bg-slate-800">Cancel</button>
-                        <button type="submit" class="px-3 py-1.5 rounded text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold">Sign In</button>
+                        <button type="button" onclick="toggleLoginModal()" class="px-3 py-1.5 rounded text-xs border border-slate-700 text-slate-400 hover:bg-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none">Cancel</button>
+                        <button type="submit" class="px-3 py-1.5 rounded text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none">Sign In</button>
                     </div>
                 </form>
             </div>
         </div>
-    </div>
+    </dialog>
 
 
 

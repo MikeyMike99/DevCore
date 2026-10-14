@@ -1,13 +1,16 @@
 {
-  "PreToolUse": [
-    {
-      "matcher": ".*",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "python3 /mnt/c/Users/michael/Documents/devcore/.agents/raugus_hook.py"
-        }
-      ]
-    }
-  ]
+  "raugus-firewall": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py"
+          }
+        ]
+      }
+    ]
+  }
 }

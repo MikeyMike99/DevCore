@@ -24,7 +24,21 @@ class SIEMJsonFormatter(logging.Formatter):
             event_category = "AGENTIC"
         elif "login" in msg_lower or "token" in msg_lower or "auth" in msg_lower or "role" in msg_lower:
             event_category = "AUTH"
-        elif "security" in record.name or "intrusion" in msg_lower or "raugus" in msg_lower or "unauthorized" in msg_lower:
+        elif any(
+            kw in record.name or kw in msg_lower
+            for kw in (
+                "security",
+                "intrusion",
+                "raugus",
+                "unauthorized",
+                "exfiltration",
+                "sensitive",
+                "vault",
+                "pii",
+                "verbatim",
+                "violation",
+            )
+        ):
             event_category = "SECURITY_AUDIT"
         elif record.levelname == "WARNING":
             event_category = "WARNING"
@@ -37,7 +51,7 @@ class SIEMJsonFormatter(logging.Formatter):
             "level": record.levelname,
             "category": event_category,
             "logger": record.name,
-            "module": record.module,
+            "module": getattr(record, "custom_module", None) or record.module,
             "message": record.getMessage()
         }
         
@@ -54,6 +68,31 @@ def handle_unhandled_exception(exc_type, exc_value, exc_traceback):
 
 def handle_warnings(message, category, filename, lineno, file=None, line=None):
     logging.warning(f"{category.__name__}: {message} ({filename}:{lineno})")
+
+def log_siem_event(level: str, message: str, module_name: str = "raugus_vault", logger_name: str = "security.raugus"):
+    """
+    Appends a structured SIEM JSON event directly to devcore_master.jsonl
+    without attaching stdout/stderr StreamHandlers (safe for PreToolUse hooks and CLI brokers).
+    """
+    try:
+        os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+        lvl = getattr(logging, level.upper(), logging.INFO)
+        record = logging.LogRecord(
+            name=logger_name,
+            level=lvl,
+            pathname=module_name,
+            lineno=0,
+            msg=message,
+            args=(),
+            exc_info=None,
+        )
+        record.custom_module = module_name
+        formatted = SIEMJsonFormatter().format(record)
+        if formatted:
+            with open(LOG_FILE, "a", encoding="utf-8") as f:
+                f.write(formatted + "\n")
+    except Exception:
+        pass
 
 def init_central_logging():
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

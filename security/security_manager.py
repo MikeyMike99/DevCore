@@ -280,20 +280,23 @@ class SecurityManager:
             return True
         return False
 
+    def is_admin_user(self, user):
+        return bool(user and user.get("role") in (self.ROLE_ADMIN, "super_admin", "super admin", "Tier5_SysAdmin"))
+
     def can_access_project(self, user, project_name):
         if not user:
             return False
-        if user["role"] == self.ROLE_ADMIN:
+        if self.is_admin_user(user):
             return True
         if not project_name:
             return False
         return ("*" in user.get("allowed_projects", [])) or (project_name in user.get("allowed_projects", []))
 
     def can_view_logs(self, user):
-        return bool(user and user.get("role") == self.ROLE_ADMIN)
+        return self.is_admin_user(user)
 
     def can_reload_engine(self, user):
-        return bool(user and user.get("role") == self.ROLE_ADMIN)
+        return self.is_admin_user(user)
 
     def classify_file(self, rel_path: str) -> str:
         norm_path = os.path.normpath(rel_path).replace("\\", "/")
@@ -334,7 +337,7 @@ class SecurityManager:
 
         # Dynamic Anchoring for Dual-Access:
         # If user is not an admin, they are forcefully anchored to the /playground directory
-        is_admin = user and user.get("role") == self.ROLE_ADMIN
+        is_admin = self.is_admin_user(user)
         if not is_admin:
             target_base = os.path.join(self.base_dir, "playground")
             os.makedirs(target_base, exist_ok=True)
@@ -366,7 +369,7 @@ class SecurityManager:
             raise PermissionError("Access Denied: Symlink or path escapes sandbox boundary")
 
         # Role Check: Non-admins can NEVER touch Core Engine or Logs
-        if user and user.get("role") != self.ROLE_ADMIN:
+        if user and not self.is_admin_user(user):
             tier = self.classify_file(clean_rel)
             if tier in (self.TIER_CORE_ENGINE, self.TIER_ADMIN_LOG, self.TIER_FORBIDDEN):
                 raise PermissionError(f"Access Denied: Role '{user.get('role')}' cannot access {tier} files")
@@ -375,7 +378,7 @@ class SecurityManager:
 
     def list_files(self, project_path: str, user: dict = None):
         """Lists files with role-aware filtering and permission attributes."""
-        is_admin = user and user.get("role") == self.ROLE_ADMIN
+        is_admin = self.is_admin_user(user)
         is_modder = user and user.get("role") == self.ROLE_MODDER
         effective_base = project_path or self.base_dir
         items = []
@@ -457,7 +460,7 @@ class SecurityManager:
             os.close(fd)
             raise
 
-        is_admin = user and user.get("role") == self.ROLE_ADMIN
+        is_admin = self.is_admin_user(user)
         is_modder = user and user.get("role") == self.ROLE_MODDER
 
         # Safeguard: Scrub file content of PII for non-administrators

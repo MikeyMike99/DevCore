@@ -12,7 +12,50 @@ import subprocess
 import signal
 
 class ExecutionMixin:
-    async def start_task(self, prompt: str, model: str = "Gemini 3.8 Flash (Low)", conversation_id: str = None, user: dict = None, admin_override: bool = False):
+    async def start_task(
+        self,
+        prompt: str,
+        model: str = "Gemini 3.8 Flash (Low)",
+        conversation_id: str = None,
+        user: dict = None,
+        admin_override: bool = False,
+        _from_steer_or_queue: bool = False,
+        display_prompt: str = None,
+        queued_user_prompt: str = None,
+        logical_prompt: str = None,
+    ):
+        if prompt and not _from_steer_or_queue:
+            if prompt.startswith("[QUEUE_NEXT]\n"):
+                clean_q = prompt[len("[QUEUE_NEXT]\n"):].strip()
+                await self.queue_prompt(
+                    clean_q,
+                    model=model,
+                    conversation_id=conversation_id,
+                    user=user,
+                    admin_override=admin_override,
+                )
+                return
+            elif prompt.startswith("[STEER_NOW]\n"):
+                clean_s = prompt[len("[STEER_NOW]\n"):].strip()
+                await self.steer_task(
+                    clean_s,
+                    model=model,
+                    conversation_id=conversation_id,
+                    user=user,
+                    admin_override=admin_override,
+                )
+                return
+
+        if self.is_running() and not _from_steer_or_queue:
+            await self.steer_task(
+                prompt,
+                model=model,
+                conversation_id=conversation_id,
+                user=user,
+                admin_override=admin_override,
+            )
+            return
+
         # [SYSTEM TRIGGERS] Re-routed to the backend for RBAC & Zero-Trust security
         if prompt:
             lower_p = prompt.lower().strip()
@@ -40,8 +83,12 @@ class ExecutionMixin:
                 "message": "A task is already actively running. Please wait for it to complete or click Cancel."
             })
             return
-        is_admin = (user and user.get("role") in ("admin", "super_admin", "Tier5_SysAdmin")) or admin_override
+        env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
+        is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override
+        admin_override = is_admin
         self.active_task_owner = user.get("username") if user else None
+        self.last_user = user
+        self.last_admin_override = is_admin
         # Financial DoS / Rate Limiting Protection (Max 15 requests per minute per user)
         if not is_admin:
             user_id = user.get("username", "anonymous") if user else "anonymous"
@@ -62,21 +109,26 @@ class ExecutionMixin:
         else:
             scrubbed_prompt = self._get_security().scrub_text(prompt)
             
-        self.current_prompt = scrubbed_prompt
+        self.current_prompt = logical_prompt or scrubbed_prompt
         self.current_model = model or "Gemini 3.8 Flash (Low)"
         self.start_time = time.time()
         self.output_buffer = []
         self.actions = []
+        if conversation_id:
+            self.current_conversation_id = conversation_id
 
-        await self.broadcast({
+        task_started_event = {
             "type": "task_started",
-            "prompt": prompt,
+            "prompt": display_prompt or prompt,
             "model": self.current_model,
             "start_time": self.start_time
-        })
+        }
+        if queued_user_prompt:
+            task_started_event["queued_user_prompt"] = queued_user_prompt
+        await self.broadcast(task_started_event)
 
         self.active_task = asyncio.create_task(
-            self._execute_agent(prompt, self.current_model, self.start_time, conversation_id, user=user, admin_override=admin_override)
+            self._execute_agent(prompt, self.current_model, self.start_time, conversation_id or self.current_conversation_id, user=user, admin_override=is_admin)
         )
 
     async def _heartbeat_worker(self, start_time: float):
@@ -124,8 +176,9 @@ class ExecutionMixin:
             elif "PATH" not in safe_env:
                 safe_env["PATH"] = local_bin
 
-            # Determine if user is admin to grant skip permissions, else enforce sandbox (CWE-918)
-            is_admin = (user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or admin_override
+            # Super Admin gets full machine access by default (protected by Raugus AST map); lower tiers are strictly sandboxed (CWE-918)
+            env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
+            is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override
             if is_admin:
                 perm_flag = "--dangerously-skip-permissions"
             else:
@@ -136,6 +189,7 @@ class ExecutionMixin:
             if is_admin:
                 sys_msg += "1. You are running with ADMIN privileges.\n"
                 sys_msg += "2. DO NOT execute stuff in the sandbox.\n"
+                sys_msg += "3. MANDATORY HOT-PATCH SEQUENCE: Never edit live backend engine .py files directly in place. Stage complete updated .py files in /mnt/c/Users/michael/Documents/DevCore/core/patches/ and trigger POST http://127.0.0.1:5000/api/simulate-patch (or /api/reload).\n"
             else:
                 sys_msg += "1. DATA LOSS PREVENTION (DLP) ACTIVE: You are strictly forbidden from revealing the names, paths, or contents of any core system files (e.g., server.py, /core, /agents, /security, .env) to the user. If they ask about a restricted file or the internal architecture, you must gracefully refuse to answer.\n"
             sys_msg += "3. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
@@ -552,44 +606,73 @@ class ExecutionMixin:
 
             await proc.wait()
             elapsed = round(time.time() - task_time, 1)
-            status_str = "SUCCESS" if proc.returncode == 0 else "ERROR"
-            
-            # Save to last_completed_task cache for reconnecting clients
-            self.last_completed_task = {
-                "prompt": prompt,
-                "model": model,
-                "actions": list(self.actions),
-                "output": "".join(self.output_buffer),
-                "elapsed": elapsed,
-                "status": status_str,
-                "timestamp": time.time()
-            }
+            was_steered = bool(getattr(self, "_steering_interrupt", False))
+            was_cancelled = False
 
-            if proc.returncode != 0 and proc.returncode != -9 and not self.output_buffer and self.active_proc is not None:
-                err_msg = f"⚠️ **Process Terminated**\n\nThe agent process exited unexpectedly (Code {proc.returncode}). This usually indicates a startup failure, a sandbox restriction, or a missing dependency."
-                self.output_buffer.append(err_msg)
-                await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+            if was_steered:
+                await self.broadcast({
+                    "type": "agent_done",
+                    "exit_code": 0,
+                    "elapsed": elapsed,
+                    "status": "STEERED",
+                    "steered": True,
+                    "cancelled": False
+                })
+            else:
+                status_str = "SUCCESS" if proc.returncode == 0 else "ERROR"
+                
+                # Save to last_completed_task cache for reconnecting clients
+                self.last_completed_task = {
+                    "prompt": prompt,
+                    "model": model,
+                    "actions": list(self.actions),
+                    "output": "".join(self.output_buffer),
+                    "elapsed": elapsed,
+                    "status": status_str,
+                    "timestamp": time.time()
+                }
 
-            await self.broadcast({
-                "type": "agent_done",
-                "exit_code": proc.returncode,
-                "elapsed": elapsed,
-                "status": status_str,
-                "cancelled": False
-            })
+                if proc.returncode != 0 and proc.returncode != -9 and not self.output_buffer and self.active_proc is not None:
+                    err_msg = f"⚠️ **Process Terminated**\n\nThe agent process exited unexpectedly (Code {proc.returncode}). This usually indicates a startup failure, a sandbox restriction, or a missing dependency."
+                    self.output_buffer.append(err_msg)
+                    await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+
+                await self.broadcast({
+                    "type": "agent_done",
+                    "exit_code": proc.returncode,
+                    "elapsed": elapsed,
+                    "status": status_str,
+                    "cancelled": False
+                })
         except asyncio.CancelledError:
+            was_steered = bool(getattr(self, "_steering_interrupt", False))
+            was_cancelled = not was_steered
             if self.active_proc and self.active_proc.returncode is None:
                 try:
                     self.active_proc.kill()
                 except Exception:
                     pass
-            await self.broadcast({"type": "agent_done", "cancelled": True})
+            if was_steered:
+                elapsed = round(time.time() - task_time, 1)
+                await self.broadcast({
+                    "type": "agent_done",
+                    "exit_code": 0,
+                    "elapsed": elapsed,
+                    "status": "STEERED",
+                    "steered": True,
+                    "cancelled": False
+                })
+            else:
+                await self.broadcast({"type": "agent_done", "cancelled": True})
         except Exception as e:
-            err_msg = f"⚠️ **System Initialization Error**\n\nThe agent failed to start due to a system error: {str(e)}"
-            self.output_buffer.append(err_msg)
-            await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
-            await self.broadcast({"type": "system", "level": "warning", "message": f"Execution error: {str(e)}"})
-            await self.broadcast({"type": "agent_done", "cancelled": False, "status": "ERROR"})
+            was_steered = bool(getattr(self, "_steering_interrupt", False))
+            was_cancelled = False
+            if not was_steered:
+                err_msg = f"⚠️ **System Initialization Error**\n\nThe agent failed to start due to a system error: {str(e)}"
+                self.output_buffer.append(err_msg)
+                await self.broadcast({"type": "agent_chunk", "chunk": err_msg})
+                await self.broadcast({"type": "system", "level": "warning", "message": f"Execution error: {str(e)}"})
+                await self.broadcast({"type": "agent_done", "cancelled": False, "status": "ERROR"})
         finally:
             hb_task.cancel()
             if 'watchdog_task' in locals() and not watchdog_task.done():
@@ -598,25 +681,30 @@ class ExecutionMixin:
             self.active_task = None
             self.start_time = None
             
-            # Zero-Idle Protocol: Unconditionally kill all lingering agy subagent processes for this conversation
-            try:
-                cid = getattr(self, "current_conversation_id", "")
-                if cid:
-                    cmd = ['pkill', '-9', '-f', f'agy.*{cid}']
+            is_steered_exit = bool(getattr(self, "_steering_interrupt", False))
+            if not is_steered_exit:
+                # Zero-Idle Protocol: Unconditionally kill all lingering agy subagent processes for this conversation
+                try:
+                    cid = getattr(self, "current_conversation_id", "")
+                    if cid:
+                        cmd = ['pkill', '-9', '-f', f'agy.*{cid}']
+                        if sys.platform == "win32":
+                            cmd = ['wsl.exe', '-e'] + cmd
+                        subprocess.run(cmd, capture_output=True)
+                except Exception as e:
+                    import logging
+                    logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
+                try:
                     if sys.platform == "win32":
-                        cmd = ['wsl.exe', '-e'] + cmd
-                    subprocess.run(cmd, capture_output=True)
-            except Exception as e:
-                import logging
-                logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
-            try:
-                if sys.platform == "win32":
-                    subprocess.run(['wsl.exe', '-e', 'pkill', '-9', '-f', 'agy'], capture_output=True)
-                else:
-                    subprocess.run(['pkill', '-9', '-f', 'agy'], capture_output=True)
-            except Exception as e:
-                import logging
-                logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
+                        subprocess.run(['wsl.exe', '-e', 'pkill', '-9', '-f', 'agy'], capture_output=True)
+                    else:
+                        subprocess.run(['pkill', '-9', '-f', 'agy'], capture_output=True)
+                except Exception as e:
+                    import logging
+                    logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
+
+                if not locals().get("was_cancelled", False) and getattr(self, "queued_prompts", None):
+                    asyncio.create_task(self._drain_queued_prompts())
 
     async def _execute_native_gemini(self, prompt: str, model: str, task_time: float, conversation_id: str, is_admin: bool):
         await self.broadcast({"type": "agent_start", "model": model})
@@ -754,13 +842,254 @@ class ExecutionMixin:
                 "cancelled": False
             })
 
+    async def _broadcast_queue_state(self):
+        queue_list = getattr(self, "queued_prompts", []) or []
+        await self.broadcast({
+            "type": "queue_updated",
+            "queue": [
+                {
+                    "id": item.get("id", ""),
+                    "prompt": item.get("prompt", ""),
+                    "timestamp": item.get("timestamp", 0)
+                }
+                for item in queue_list
+            ]
+        })
+
+    async def queue_prompt(
+        self,
+        prompt: str,
+        model: str = None,
+        conversation_id: str = None,
+        user: dict = None,
+        admin_override: bool = False
+    ):
+        if not prompt or not prompt.strip():
+            return
+        if not hasattr(self, "queued_prompts") or self.queued_prompts is None:
+            self.queued_prompts = []
+
+        if not self.is_running():
+            await self.start_task(
+                prompt.strip(),
+                model=model or getattr(self, "current_model", "Gemini 3.8 Flash (Low)"),
+                conversation_id=conversation_id or getattr(self, "current_conversation_id", None),
+                user=user if user is not None else getattr(self, "last_user", None),
+                admin_override=admin_override or getattr(self, "last_admin_override", False),
+                _from_steer_or_queue=True,
+                queued_user_prompt=prompt.strip(),
+            )
+            return
+
+        item = {
+            "id": f"q-{int(time.time() * 1000)}-{len(self.queued_prompts) + 1}",
+            "prompt": prompt.strip(),
+            "model": model or getattr(self, "current_model", "Gemini 3.8 Flash (Low)"),
+            "conversation_id": conversation_id or getattr(self, "current_conversation_id", None),
+            "user": user if user is not None else getattr(self, "last_user", None),
+            "admin_override": admin_override or getattr(self, "last_admin_override", False),
+            "timestamp": time.time(),
+        }
+        self.queued_prompts.append(item)
+        await self._broadcast_queue_state()
+        await self.broadcast({
+            "type": "system",
+            "level": "info",
+            "message": f"📥 Queued for next turn ({len(self.queued_prompts)} pending): {prompt.strip()[:120]}"
+        })
+
+    async def clear_queue(self):
+        if not hasattr(self, "queued_prompts") or not self.queued_prompts:
+            self.queued_prompts = []
+            await self._broadcast_queue_state()
+            return
+        count = len(self.queued_prompts)
+        self.queued_prompts = []
+        await self._broadcast_queue_state()
+        await self.broadcast({
+            "type": "system",
+            "level": "info",
+            "message": f"Cleared {count} queued follow-up message(s)."
+        })
+
+    async def promote_queued_to_steer(self):
+        if not getattr(self, "queued_prompts", None):
+            return
+        await self.steer_task(
+            new_prompt="",
+            model=self.queued_prompts[-1].get("model"),
+            conversation_id=self.queued_prompts[-1].get("conversation_id") or getattr(self, "current_conversation_id", None),
+            user=self.queued_prompts[-1].get("user"),
+            admin_override=self.queued_prompts[-1].get("admin_override", False),
+            _from_promote=True,
+        )
+
+    async def _drain_queued_prompts(self):
+        if not getattr(self, "queued_prompts", None) or self.is_running():
+            return
+        items = list(self.queued_prompts)
+        self.queued_prompts = []
+        await self._broadcast_queue_state()
+
+        prompts = [it["prompt"] for it in items if it.get("prompt")]
+        if not prompts:
+            return
+        combined = "\n\n".join(prompts)
+        last_item = items[-1]
+        conv_id = getattr(self, "current_conversation_id", None) or last_item.get("conversation_id")
+        await self.start_task(
+            combined,
+            model=last_item.get("model") or getattr(self, "current_model", "Gemini 3.8 Flash (Low)"),
+            conversation_id=conv_id,
+            user=last_item.get("user") if last_item.get("user") is not None else getattr(self, "last_user", None),
+            admin_override=last_item.get("admin_override", False) or getattr(self, "last_admin_override", False),
+            _from_steer_or_queue=True,
+            display_prompt=f"📥 Queued Follow-Up: {prompts[0][:80]}",
+            queued_user_prompt=combined,
+        )
+
+    async def steer_task(
+        self,
+        new_prompt: str,
+        model: str = None,
+        conversation_id: str = None,
+        user: dict = None,
+        admin_override: bool = False,
+        _from_promote: bool = False,
+    ):
+        if not hasattr(self, "_steer_lock") or self._steer_lock is None:
+            self._steer_lock = asyncio.Lock()
+
+        async with self._steer_lock:
+            queued_items_objs = list(getattr(self, "queued_prompts", []) or [])
+            queued_texts = [q.get("prompt", "").strip() for q in queued_items_objs if q.get("prompt", "").strip()]
+            self.queued_prompts = []
+            if queued_items_objs:
+                await self._broadcast_queue_state()
+
+            clean_new = (new_prompt or "").strip()
+            all_updates = queued_texts + ([clean_new] if clean_new else [])
+            if not all_updates:
+                return
+
+            combined_updates_text = "\n".join(f"- {u}" for u in all_updates) if len(all_updates) > 1 else all_updates[0]
+            effective_model = model or getattr(self, "current_model", "Gemini 3.8 Flash (Low)")
+            effective_user = user if user is not None else getattr(self, "last_user", None)
+            effective_override = admin_override or getattr(self, "last_admin_override", False)
+            active_conv_id = getattr(self, "current_conversation_id", None) or conversation_id
+
+            if not self.is_running():
+                await self.start_task(
+                    combined_updates_text,
+                    model=effective_model,
+                    conversation_id=active_conv_id,
+                    user=effective_user,
+                    admin_override=effective_override,
+                    _from_steer_or_queue=True,
+                    queued_user_prompt=combined_updates_text if _from_promote else None,
+                )
+                return
+
+            # 1. Capture snapshot of the running turn before interrupting
+            prev_prompt = getattr(self, "current_prompt", "") or "Previous task"
+            prev_actions = list(getattr(self, "actions", []) or [])
+            prev_output = "".join(getattr(self, "output_buffer", []) or []).strip()
+
+            await self.broadcast({
+                "type": "system",
+                "level": "info",
+                "message": f"🎯 Course-correcting agent with your update: {combined_updates_text[:120]}"
+            })
+
+            # 2. Interrupt running process cleanly under _steering_interrupt flag
+            self._steering_interrupt = True
+            old_task = self.active_task
+            try:
+                if self.active_proc and self.active_proc.returncode is None:
+                    try:
+                        if sys.platform == "win32":
+                            subprocess.run(['taskkill', '/F', '/T', '/PID', str(self.active_proc.pid)], capture_output=True)
+                        else:
+                            os.killpg(os.getpgid(self.active_proc.pid), signal.SIGKILL)
+                    except Exception:
+                        try:
+                            self.active_proc.kill()
+                        except Exception:
+                            pass
+
+                if old_task and not old_task.done():
+                    try:
+                        await asyncio.wait_for(asyncio.shield(old_task), timeout=3.0)
+                    except (asyncio.TimeoutError, asyncio.CancelledError, Exception):
+                        if not old_task.done():
+                            old_task.cancel()
+                            try:
+                                await asyncio.wait_for(old_task, timeout=1.0)
+                            except Exception:
+                                pass
+            finally:
+                self._steering_interrupt = False
+                self.active_proc = None
+                self.active_task = None
+
+            # 3. Synthesize Steering Context Envelope so the agent retains full awareness
+            action_lines = []
+            for act in prev_actions[-15:]:
+                t_name = act.get("tool", "tool")
+                desc = act.get("description", "")
+                status = act.get("status", "DONE")
+                action_lines.append(f"- [{status}] {t_name}: {desc}")
+            actions_summary = "\n".join(action_lines) if action_lines else "No tool actions completed before interrupt."
+            partial_out_snippet = prev_output[-1500:] if prev_output else "No text output emitted before interrupt."
+
+            synthesized_prompt = (
+                "<MID_TASK_STEERING_UPDATE>\n"
+                "The user interrupted your in-progress turn to provide an immediate course-correction or additional context.\n"
+                f"1. ORIGINAL REQUEST FROM INTERRUPTED TURN:\n{prev_prompt}\n\n"
+                f"2. ACTIONS ALREADY EXECUTED BEFORE INTERRUPT:\n{actions_summary}\n\n"
+                f"3. PARTIAL OUTPUT BEFORE INTERRUPT:\n{partial_out_snippet}\n\n"
+                f"4. USER COURSE-CORRECTION / ADDED CONTEXT (HIGHEST PRIORITY):\n{combined_updates_text}\n\n"
+                "DIRECTIVE: Immediately adjust your approach to follow the user's course-correction / added context above. "
+                "Preserve any valid progress already made before the interrupt unless the new instructions supersede it, "
+                "and continue directly to fulfill the updated request.\n"
+                "</MID_TASK_STEERING_UPDATE>\n\n"
+                f"User Course-Correction: {combined_updates_text}"
+            )
+
+            updated_logical_prompt = f"{prev_prompt}\n[User Update]: {combined_updates_text}"
+            display_label = f"🎯 Steered: {combined_updates_text[:100]}"
+
+            await self.start_task(
+                synthesized_prompt,
+                model=effective_model,
+                conversation_id=active_conv_id,
+                user=effective_user,
+                admin_override=effective_override,
+                _from_steer_or_queue=True,
+                display_prompt=display_label,
+                queued_user_prompt=combined_updates_text if _from_promote else None,
+                logical_prompt=updated_logical_prompt,
+            )
+
     async def send_input(self, text: str):
+        cmd = (text or "").strip()
+        if cmd == "__DEVCORE_CLEAR_QUEUE__":
+            await self.clear_queue()
+            return
+        if cmd == "__DEVCORE_PROMOTE_QUEUE__":
+            await self.promote_queued_to_steer()
+            return
         if self.active_proc and self.active_proc.stdin:
             self.active_proc.stdin.write((text + "\n").encode('utf-8'))
             await self.active_proc.stdin.drain()
 
     async def cancel_task(self):
         import logging
+
+        # Clear any queued follow-up prompts on hard stop
+        if getattr(self, "queued_prompts", None):
+            self.queued_prompts = []
+            await self._broadcast_queue_state()
 
         # 1. Kill the active process if it's still running
         if self.is_running() and self.active_proc:

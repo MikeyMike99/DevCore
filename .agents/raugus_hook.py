@@ -22,36 +22,363 @@ def get_ast_symbols(source_code):
 
 def log_violation(tool_name, target, reason):
     try:
-        import sys
-        sys.path.insert(0, '/mnt/c/Users/michael/Documents/devcore')
-        from security import central_logger
-        import logging
-        
-        central_logger.init_central_logging()
-        logging.error(f"[SECURITY_AUDIT] Raugus PreToolUse Hook intercepted and denied an unauthorized action. Tool: {tool_name}, Target: {target}, Reason: {reason}")
-    except Exception as e:
+        devcore_root = "/mnt/c/Users/michael/Documents/DevCore"
+        if devcore_root not in sys.path:
+            sys.path.insert(0, devcore_root)
+        from security.central_logger import log_siem_event
+        from security.swarm_telemetry import SwarmFlowLogger
+
+        log_siem_event(
+            level="ERROR",
+            message=f"[SECURITY_AUDIT] Raugus PreToolUse Hook intercepted and denied action. Tool: {tool_name}, Target: {target}, Reason: {reason}",
+            module_name="raugus_hook",
+            logger_name="security.raugus_hook",
+        )
+        SwarmFlowLogger.log_intrusion_alert(
+            modder_id="MainCloudBrain",
+            agent_id="PreToolUse_Hook",
+            target_namespace=f"{tool_name}:{target}",
+            reason=reason,
+        )
+    except Exception:
         pass
+
+PROTECTED_SECURITY_FILES = {
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/hooks.json"),
+    os.path.abspath(os.path.expanduser("~/.gemini/config/hooks.json")),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.gemini/settings.json"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/raugus_resolver.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/raugus_map.json"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/generate_raugusmap.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/tool_security_auditor.py"),
+}
+
+FILE_AND_SEARCH_TOOLS = {
+    "view_file",
+    "view_file_outline",
+    "view_code_item",
+    "view_content_chunk",
+    "write_to_file",
+    "replace_file_content",
+    "edit_lines",
+    "code_action",
+    "file_change",
+    "write_blob",
+    "mcp_tool",
+    "call_mcp_tool",
+    "grep_search",
+    "find_by_name",
+    "find",
+    "list_dir",
+    "list_directory",
+    "delete_directory",
+    "move",
+    "read_url_content",
+}
+
+COMMAND_TOOLS = {
+    "run_command",
+    "shell_exec",
+    "send_command_input",
+}
+
+WRITE_TOOLS = {
+    "write_to_file",
+    "replace_file_content",
+    "edit_lines",
+    "code_action",
+    "file_change",
+    "write_blob",
+    "mcp_tool",
+    "call_mcp_tool",
+}
+
+
+def check_self_protection(tool_name, args):
+    """
+    Prevents the AI agent from modifying, renaming, deleting, or overwriting
+    the security hook, hooks.json, Raugus map, resolver, or Local Brain Broker via file tools or bash commands.
+    """
+    import re
+    if tool_name in WRITE_TOOLS:
+        cand = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath")
+        if cand:
+            for resolved in (os.path.abspath(cand), os.path.realpath(cand)):
+                if resolved in PROTECTED_SECURITY_FILES:
+                    return (
+                        f"Raugus Self-Protection Firewall: Core security file '{resolved}' is strictly "
+                        "locked against AI modification, rename, or overwrite."
+                    )
+    elif tool_name in COMMAND_TOOLS:
+        cmd_line = args.get("CommandLine") or args.get("Input") or ""
+        if "tool_security_auditor.py" in cmd_line and not any(x in cmd_line for x in ["sed ", "mv ", "rm ", "cp ", ">"]):
+            return None
+        protected_basenames = (
+            "raugus_hook.py",
+            "hooks.json",
+            "local_brain_broker.py",
+            "raugus_resolver.py",
+            "raugus_map.json",
+            "generate_raugusmap.py",
+            "tool_security_auditor.py",
+            ".gemini/settings.json",
+        )
+        destructive_patterns = (
+            r"\bsed\b", r"\bawk\b", r"\bmv\b", r"\brm\b", r"\bcp\b",
+            r"\btee\b", r"\bchmod\b", r"\bchown\b", r"\bchattr\b",
+            r"\bicacls", r"\btruncate\b", r"\bdd\b", r"shutil\.",
+            r"os\.rename", r"os\.remove", r"os\.unlink", r">",
+        )
+        if any(pb in cmd_line for pb in protected_basenames):
+            if any(re.search(dp, cmd_line) for dp in destructive_patterns):
+                return (
+                    "Raugus Self-Protection Firewall: Modifying, renaming, or overwriting core security "
+                    "guard files via shell commands is strictly forbidden."
+                )
+    return None
+
+
+def find_sensitive_target(tool_name, args, r_map):
+    """
+    Checks if a tool call targets a path marked 'sensitive': true in raugus_map.json,
+    inside plugins/exam_application/content, or inside any automatically detected
+    OneDrive sync root (regardless of what the OneDrive folder is named or whether
+    accessed via wildcards, relative paths, string-splitting, URL hex encoding, or two-step scripts).
+    Allows authorized single-command calls to local_brain_broker.py.
+    """
+    import glob
+    import re
+    devcore_root = "/mnt/c/Users/michael/Documents/DevCore"
+    if devcore_root not in sys.path:
+        sys.path.insert(0, devcore_root)
+
+    try:
+        from security.raugus_resolver import (
+            discover_onedrive_roots,
+            is_path_in_onedrive,
+            is_sensitive_inode,
+            normalize_cross_platform_path,
+        )
+    except Exception:
+        def normalize_cross_platform_path(p):
+            return os.path.abspath(p) if p else ""
+        def discover_onedrive_roots():
+            return []
+        def is_path_in_onedrive(p):
+            return None
+        def is_sensitive_inode(p, m=None):
+            return False
+
+    sensitive_dirs = []
+    sensitive_files = set()
+    for alias, data in r_map.items():
+        if data.get("sensitive") is True:
+            rp = data.get("real_path", "")
+            if rp:
+                abs_rp = normalize_cross_platform_path(rp)
+                if data.get("type") == "directory" or os.path.isdir(abs_rp):
+                    if abs_rp not in sensitive_dirs:
+                        sensitive_dirs.append(abs_rp)
+                else:
+                    sensitive_files.add(abs_rp)
+
+    # Always ensure exam_application/content and all discovered OneDrive roots are registered
+    default_exam_vault = os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/plugins/exam_application/content")
+    if default_exam_vault not in sensitive_dirs:
+        sensitive_dirs.append(default_exam_vault)
+
+    for od_root in discover_onedrive_roots():
+        if od_root not in sensitive_dirs:
+            sensitive_dirs.append(od_root)
+
+    def _decode_hex_url(s):
+        if not s or "%" not in s:
+            return s
+        return re.sub(r"%([0-9a-fA-F]{2})", lambda m: chr(int(m.group(1), 16)), s)
+
+    def _is_path_sensitive(cand_path):
+        if not cand_path:
+            return None
+        cand_str = _decode_hex_url(str(cand_path))
+        if cand_str.startswith("file://"):
+            cand_str = cand_str[7:]
+        elif "path=" in cand_str:
+            cand_str = cand_str.split("path=", 1)[-1].split("&", 1)[0]
+        norm_cand = normalize_cross_platform_path(cand_str)
+        for resolved in (norm_cand, os.path.realpath(norm_cand)):
+            if resolved in sensitive_files:
+                return resolved
+            for sdir in sensitive_dirs:
+                if resolved == sdir or resolved.startswith(sdir + os.sep):
+                    return resolved
+            od_hit = None
+            if od_hit:
+                return od_hit
+            if is_sensitive_inode(resolved, r_map):
+                return resolved
+        return None
+
+    def _deobfuscate_and_check_text(raw_text):
+        if not raw_text:
+            return None
+        decoded = _decode_hex_url(str(raw_text))
+        # Collapse quote-splitting and string concatenation: 'One' + 'Drive' -> OneDrive
+        collapsed = re.sub(r"['\"]\s*\+?\s*['\"]", "", decoded)
+        for sdir in sensitive_dirs:
+            if sdir in collapsed or sdir.lower() in collapsed.lower():
+                return sdir
+        if "exam_application/content" in collapsed or ("exam_application" in collapsed and "content" in collapsed):
+            return default_exam_vault
+        if re.search(r"/mnt/[a-z]/users/[^/\s]+/onedrive", collapsed, re.IGNORECASE) or re.search(r"[a-z]:\\users\\[^\\\s]+\\onedrive", collapsed, re.IGNORECASE):
+            return sensitive_dirs[-1] if sensitive_dirs else default_exam_vault
+        return None
+
+    if tool_name in FILE_AND_SEARCH_TOOLS:
+        cand = (
+            args.get("AbsolutePath")
+            or args.get("TargetFile")
+            or args.get("target_file")
+            or args.get("SearchPath")
+            or args.get("SearchDirectory")
+            or args.get("DirectoryPath")
+            or args.get("File")
+            or args.get("Url")
+        )
+        direct_hit = _is_path_sensitive(cand)
+        if direct_hit:
+            return direct_hit
+        if cand:
+            url_deob = _deobfuscate_and_check_text(cand)
+            if url_deob:
+                return url_deob
+
+        # Prevent writing two-step sneaky scripts (.py/.sh) that target sensitive vaults or OneDrive
+        if tool_name in WRITE_TOOLS and cand:
+            if str(cand).lower().endswith((".py", ".sh", ".bash", ".ps1")):
+                code_body = (
+                    args.get("CodeContent")
+                    or args.get("ReplacementContent")
+                    or args.get("new_code")
+                    or ""
+                )
+                script_hit = _deobfuscate_and_check_text(code_body)
+                if script_hit:
+                    return script_hit
+        return None
+
+    if tool_name in COMMAND_TOOLS:
+        cmd_line = args.get("CommandLine") or args.get("Input") or ""
+        # Allow the Main Brain to talk to the Local Brain Broker script
+        if "local_brain_broker.py" in cmd_line and not any(x in cmd_line for x in [";", "&&", "||", "|", "`", "$("]):
+            return None
+        cwd = args.get("Cwd", "") or "/mnt/c/Users/michael/Documents/DevCore/playground"
+        hit = _is_path_sensitive(cwd)
+        if hit:
+            return hit
+
+        # Block base64 decode into shell/python execution pipelines
+        if re.search(r"base64\s+(-d|--decode)", cmd_line) and re.search(r"\|\s*(bash|sh|zsh|python|python3|eval)\b", cmd_line):
+            return default_exam_vault
+
+        # Check quoted strings, absolute paths, relative paths (..), and wildcard globs (*)
+        decoded_cmd = _decode_hex_url(cmd_line)
+        candidates = []
+        for m in re.finditer(r'"([^"]+)"|\'([^\']+)\'|(/mnt/[a-zA-Z]/[^\s"\';|&]+)|([a-zA-Z]:\\[^\s"\';|&]+)|(\.\./[^\s"\';|&]+)', decoded_cmd):
+            tok = next((g for g in m.groups() if g), None)
+            if tok:
+                candidates.append(tok)
+
+        for tok in candidates:
+            if "\n" in tok or not (len(tok) < 260):
+                continue
+            resolved_tok = tok
+            if not os.path.isabs(tok) and not (len(tok) >= 3 and tok[1] == ":") and not tok.startswith("http"):
+                resolved_tok = os.path.abspath(os.path.join(cwd, tok))
+            sub_hit = _is_path_sensitive(resolved_tok)
+            if sub_hit:
+                return sub_hit
+            # Expand shell wildcards (*, ?, [) to block glob-based renames or reads (e.g. mv ../plugins/exam_application/con*)
+            if any(w in resolved_tok for w in ("*", "?", "[")):
+                for g_match in glob.glob(resolved_tok):
+                    g_hit = _is_path_sensitive(g_match)
+                    if g_hit:
+                        return g_hit
+
+        # Deobfuscate string concatenation ('One' + 'Drive') and hex URLs in cmd_line
+        deob_hit = _deobfuscate_and_check_text(decoded_cmd)
+        if deob_hit:
+            return deob_hit
+
+        for sfile in sensitive_files:
+            if sfile in decoded_cmd:
+                return sfile
+
+    return None
+
 
 def main():
     try:
         payload = json.load(sys.stdin)
         tool_call = payload.get("toolCall", {})
         raw_name = tool_call.get("name", "")
-        args = tool_call.get("args", {})
+        raw_args = tool_call.get("args", {}) or {}
+        args = dict(raw_args)
+        if isinstance(raw_args.get("Arguments"), dict):
+            for k, v in raw_args["Arguments"].items():
+                args.setdefault(k, v)
         
-        tool_name = raw_name.replace("default_api:", "")
+        tool_name = raw_name.replace("default_api:", "").lower()
         
-        if tool_name not in ["view_file", "write_to_file", "replace_file_content", "run_command", "edit_lines"]:
+        if tool_name not in (FILE_AND_SEARCH_TOOLS | COMMAND_TOOLS):
             print(json.dumps({"decision": "allow"}))
             return
 
-        map_path = "/mnt/c/Users/michael/Documents/devcore/security/raugus_map.json"
+        # --- SELF-PROTECTION LOCK ON SECURITY HOOK & BROKER FILES ---
+        tamper_reason = check_self_protection(tool_name, args)
+        if tamper_reason:
+            target_desc = args.get("TargetFile") or args.get("target_file") or args.get("CommandLine", "security_file")
+            log_violation(tool_name, target_desc, tamper_reason)
+            print(json.dumps({"decision": "deny", "reason": tamper_reason}))
+            return
+
+        map_path = "/mnt/c/Users/michael/Documents/DevCore/security/raugus_map.json"
+        if not os.path.exists(map_path):
+            map_path = "/mnt/c/Users/michael/Documents/devcore/security/raugus_map.json"
         if not os.path.exists(map_path):
             print(json.dumps({"decision": "allow"}))
             return
 
         with open(map_path, 'r') as f:
             r_map = json.load(f)
+
+        # --- SENSITIVE VAULT LOCAL BRAIN BROKER INTERCEPTION ---
+        sensitive_target = find_sensitive_target(tool_name, args, r_map)
+        if sensitive_target:
+            try:
+                sys.path.insert(0, "/mnt/c/Users/michael/Documents/DevCore")
+                from security.local_brain_broker import generate_digest
+                digest_obj = generate_digest(sensitive_target)
+                digest_str = json.dumps(digest_obj, indent=2)
+            except Exception as broker_err:
+                digest_str = f'{{"status": "BROKER_ERROR", "error": "{str(broker_err)}"}}'
+
+            reason = (
+                f"[RAUGUS SENSITIVE VAULT INTERCEPTION]\n"
+                f"Target '{sensitive_target}' has attribute `sensitive: true` in the Raugus Map. "
+                f"Direct access by the Main Cloud Brain is blocked so raw sensitive data never leaves the local machine.\n\n"
+                f"Instead, the Local Brain (Qwen2.5-1.5B CPU) automatically inspected the target and generated this sanitized digest:\n"
+                f"{digest_str}\n\n"
+                f"HOW TO CONVERSE WITH THE LOCAL BRAIN (DO NOT RETRY {tool_name}):\n"
+                f"1. To ask the Local Brain to generate Exam JSON questions from this sensitive target:\n"
+                f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"{sensitive_target}\" --mode exam --count 5 --query \"Specify question types or topics here\"\n"
+                f"2. To ask the Local Brain a follow-up question or summary request about this target:\n"
+                f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"{sensitive_target}\" --mode query --query \"Your specific question here\""
+            )
+            log_violation(tool_name, sensitive_target, "Intercepted sensitive path and routed to Local Brain Broker.")
+            print(json.dumps({"decision": "deny", "reason": reason}))
+            return
 
         if tool_name == "write_to_file":
             target = args.get("TargetFile", "")
@@ -66,6 +393,34 @@ def main():
                         log_violation(tool_name, target, reason)
                         print(json.dumps({"decision": "deny", "reason": reason}))
                         return
+
+        if tool_name in WRITE_TOOLS:
+            target = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath")
+            if target:
+                target = os.path.abspath(target)
+                norm_t = target.replace("\\", "/")
+                is_live_engine_py = (
+                    norm_t.endswith(".py")
+                    and (
+                        "/DevCore/core/" in norm_t
+                        or "/DevCore/agents/" in norm_t
+                        or "/DevCore/security/" in norm_t
+                    )
+                    and "/DevCore/core/patches/" not in norm_t
+                    and "/DevCore/core/backups/" not in norm_t
+                )
+                if is_live_engine_py:
+                    bname = os.path.basename(target)
+                    reason = (
+                        f"Raugus Hot-Patch Enforcement: Direct in-place edits to live backend engine module '{bname}' are forbidden.\n"
+                        f"MANDATORY 3-STEP HOT-PATCH SEQUENCE:\n"
+                        f"1. Stage the complete updated Python file in '/mnt/c/Users/michael/Documents/DevCore/core/patches/{bname}' using write_to_file.\n"
+                        f"2. Trigger the validated hot-patch sequence via: curl -s -X POST http://127.0.0.1:5000/api/simulate-patch (or POST http://127.0.0.1:5000/api/reload).\n"
+                        f"3. The server will validate syntax (py_compile), snapshot core/backups/{bname}, hot-swap in memory, and roll back automatically on error."
+                    )
+                    log_violation(tool_name, target, reason)
+                    print(json.dumps({"decision": "deny", "reason": reason}))
+                    return
 
         if tool_name in ["replace_file_content", "edit_lines"]:
             target = args.get("TargetFile") or args.get("target_file")

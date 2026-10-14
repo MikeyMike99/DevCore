@@ -59,3 +59,16 @@ By using this application to generate quizzes based on provided coursework, stud
 
 **Disclaimer & User Rights:**
 Always enquire with your institution's administration or IT department before using this tool. An institution may rightfully deny your request if the materials contain highly sensitive data or proprietary secrets. However, if a document contains no sensitive information, you have a right to leverage assistive technologies to facilitate your studies. In the event an institution denies the use of this AI tool for accessibility purposes, they bear the responsibility of providing you with equally accessible alternative materials.
+
+## Local Privacy Broker for Sensitive Content & OneDrive Sync Roots (`sensitive: true`)
+To protect confidential coursework, internal training manuals, and PII-heavy documents placed inside `plugins/exam_application/content/` or any synced **Microsoft OneDrive** directory, this plugin uses the **Raugus Sensitive Vault & Local Brain Broker**:
+- **Zero Raw Cloud Exposure & Automatic OneDrive Detection**:
+  - The `plugins/exam_application/content/` directory and all automatically discovered OneDrive folders (`external.onedrive.*`) are flagged with `"sensitive": true` in `security/raugus_map.json`.
+  - **Works Regardless of Folder Name**: `security/raugus_resolver.py` automatically detects any OneDrive folder—even if renamed—by checking Microsoft OneDrive's hidden sync-root GUID marker (`.849C9593-D756-4E56-8D6E-42412F2A707B`), `desktop.ini` (`OneDrive.exe`), and ancestor path segments across both Windows (`C:\Users\...`) and WSL (`/mnt/c/Users/...`) paths.
+  - The `PreToolUse` interceptor (`.agents/raugus_hook.py`) blocks the Main Cloud Brain from directly reading, searching, or running shell commands on files in these folders.
+- **Ephemeral Local Model (`Qwen2.5-1.5B-Instruct`) & Offline `.docx`/`.pdf` Parsing**:
+  - `security/local_brain_broker.py` extracts text 100% offline from `.docx`, `.pdf`, `.md`, `.txt`, `.json`, and `.csv` study documents.
+  - It wakes up a local CPU-optimized `Qwen2.5-1.5B-Instruct` (`Q4_K_M`) model via `llama.cpp`, loading into RAM only for the few seconds needed to summarize topics or generate practice questions, then immediately unloading back to **0 MB idle RAM**.
+- **South African POPIA & Identifiable Information Scrubbing**:
+  - All inputs and generated outputs pass through `offline_scrub_pii()` (deterministic regex + local Microsoft Presidio `spaCy` NLP) to redact **South African 13-digit ID numbers** (`<REDACTED_SA_ID>`), **labeled student/learner/passport/tax numbers** (`<REDACTED_ID_NUMBER>`), **SA `+27`/local cellphone and landline numbers** (`<REDACTED_PHONE>`), **bank/card numbers** (`<REDACTED_FINANCIAL_ID>`), **street addresses** (`<REDACTED_ADDRESS>`), **POPIA Section 26 medical/disability records** (`<REDACTED_MEDICAL_INFO>`), **person names** (`<PERSON>`), **emails**, **IPs**, and **API keys/secrets** before being handed to the Main Brain for `format_exam.py` validation and UI rendering.
+

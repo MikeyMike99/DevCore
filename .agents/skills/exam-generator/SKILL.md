@@ -9,8 +9,12 @@ description: Generates highly accessible, dynamic exams and quizzes from user-pr
 When the user asks you to generate a quiz, exam, or assessment based on their content, you must use this skill. The Exam Application is a dynamic, highly accessible front-end plugin that reads a specific JSON schema to render multiple-choice, multi-select, fill-in-the-blank, dropdown, matching, and terminal-command questions.
 
 ## Workflow
-1. **Analyze Content:** Read the source materials the user has provided. Often, they will drop documents into the `plugins/exam_application/content/` folder for you to read.
-2. **Generate JSON:** Formulate questions, plausible distractors, and **detailed educational explanations** for every answer based strictly on the source content.
+1. **Analyze Content (Raugus Sensitive Vault):** Read the source materials the user has provided. Often, they will drop documents into the `plugins/exam_application/content/` folder.
+   - **Privacy Broker Note:** Because `plugins/exam_application/content/` is marked `sensitive: true` in the Raugus Map, any attempt to directly `view_file` or `cat` files inside it will be intercepted by the Raugus Hook, which will automatically return a sanitized **Local Brain Digest** from the local `Qwen2.5-1.5B` model.
+   - **Conversing with the Local Brain:** To extract specific exam questions or ask follow-up questions about files in `plugins/exam_application/content/` without exposing raw PII to the cloud, run:
+     `python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target "/mnt/c/Users/michael/Documents/DevCore/plugins/exam_application/content" --mode exam --count 5 --query "Your specific question types and topic instructions"`
+     (or `--mode query --query "Your follow-up question"`).
+2. **Generate JSON:** Formulate questions, plausible distractors, and **detailed educational explanations** for every answer based strictly on the source content or the Local Brain Broker's sanitized output.
 3. **Save Data:** Write the resulting JSON payload to `sandbox/static/exam_temp.json`.
 4. **Format & Validate:** You MUST execute the included schema normalizer script to fix any subagent hallucinations before rendering the UI:
    `python3 /mnt/c/Users/michael/Documents/DevCore/.agents/skills/exam-generator/scripts/format_exam.py /mnt/c/Users/michael/Documents/DevCore/sandbox/static/exam_temp.json`

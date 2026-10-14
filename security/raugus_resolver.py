@@ -150,5 +150,212 @@ class RaugusResolver:
             
         return True
 
+    def is_sensitive_path(self, path: str) -> bool:
+        """
+        Checks if a physical path (or any of its parent directories) is marked
+        with `"sensitive": true` in the Raugus Map, resides inside any
+        automatically detected OneDrive sync root, OR matches a sensitive
+        hardware inode (even if the folder or file was renamed).
+        """
+        if not path:
+            return False
+        target_path = normalize_cross_platform_path(path)
+        if is_path_in_onedrive(target_path):
+            return True
+        if is_sensitive_inode(target_path, self.phonebook):
+            return True
+        for alias, data in self.phonebook.items():
+            if data.get("sensitive") is True:
+                real_path = os.path.abspath(data.get("real_path", ""))
+                if target_path == real_path or target_path.startswith(real_path + os.sep):
+                    return True
+        return False
+
+
+ONEDRIVE_GUID_MARKER = ".849C9593-D756-4E56-8D6E-42412F2A707B"
+_DEVCORE_ENGINE_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+def get_path_inode(path: str) -> int:
+    """
+    Returns the 64-bit OS/NTFS Master File Table inode (st_ino) for a path, or 0 if non-existent.
+    """
+    if not path:
+        return 0
+    try:
+        return int(os.stat(normalize_cross_platform_path(path)).st_ino)
+    except Exception:
+        return 0
+
+
+_SENS_INO_CACHE = None
+
+def is_sensitive_inode(path: str, phonebook: dict = None) -> bool:
+    """
+    Walks `path` and its existing ancestor directories and compares their hardware
+    inodes (`st_ino`) against all sensitive entries in `phonebook`.
+    Prevents bypassing vault protection by renaming or moving a sensitive folder.
+    """
+    global _SENS_INO_CACHE
+    if not path:
+        return False
+    if _SENS_INO_CACHE is None:
+        s_inodes = set()
+        if phonebook:
+            for data in phonebook.values():
+                if data.get("sensitive") is True:
+                    ino = data.get("inode", 0)
+                    if ino:
+                        s_inodes.add(int(ino))
+                    rp = data.get("real_path", "")
+                    if rp:
+                        live_ino = get_path_inode(rp)
+                        if live_ino:
+                            s_inodes.add(live_ino)
+        for od_root in discover_onedrive_roots():
+            od_ino = get_path_inode(od_root)
+            if od_ino:
+                s_inodes.add(od_ino)
+        _SENS_INO_CACHE = s_inodes
+    sensitive_inodes = _SENS_INO_CACHE
+
+    if not sensitive_inodes:
+        return False
+
+    curr = normalize_cross_platform_path(path)
+    stop_dirs = {"/", "/mnt", "/mnt/c", "/mnt/c/Users", "/home", _DEVCORE_ENGINE_ROOT}
+    for _ in range(15):
+        if not curr or curr in stop_dirs:
+            break
+        ino = get_path_inode(curr)
+        if ino and ino in sensitive_inodes:
+            return True
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+
+    return False
+
+
+def normalize_cross_platform_path(path: str) -> str:
+    """
+    Normalizes Windows paths (e.g. C:\\Users\\... or C:/Users/...) and POSIX/WSL paths
+    into canonical absolute paths on the current OS.
+    """
+    if not path:
+        return ""
+    s = path.strip().strip("'\"")
+    if os.name == "posix" and len(s) >= 3 and s[0].isalpha() and s[1] == ":" and s[2] in ("\\", "/"):
+        drive = s[0].lower()
+        rest = s[3:].replace("\\", "/")
+        return os.path.abspath(f"/mnt/{drive}/{rest}")
+    return os.path.abspath(s)
+
+
+def is_onedrive_sync_root(dir_path: str) -> bool:
+    """
+    Detects whether a directory is a OneDrive sync root regardless of what it is named:
+    1. Folder name contains 'onedrive' (case-insensitive)
+    2. Contains Microsoft OneDrive's universal sync-root GUID marker (.849C9593-D756-4E56-8D6E-42412F2A707B)
+    3. Contains a desktop.ini referencing OneDrive.exe
+    Never classifies the DevCore engine root itself as a OneDrive root.
+    """
+    if not dir_path:
+        return False
+    norm_dir = normalize_cross_platform_path(dir_path)
+    if norm_dir == _DEVCORE_ENGINE_ROOT or norm_dir.startswith(_DEVCORE_ENGINE_ROOT + os.sep):
+        return False
+    base = os.path.basename(norm_dir).lower()
+    if "onedrive" in base:
+        return True
+    if not os.path.isdir(norm_dir):
+        return False
+    if os.path.exists(os.path.join(norm_dir, ONEDRIVE_GUID_MARKER)):
+        return True
+    desktop_ini = os.path.join(norm_dir, "desktop.ini")
+    if os.path.isfile(desktop_ini):
+        try:
+            with open(desktop_ini, "rb") as f:
+                raw = f.read(1024)
+            text = raw.decode("utf-8", errors="ignore") + raw.decode("utf-16", errors="ignore")
+            if "onedrive" in text.lower():
+                return True
+        except Exception:
+            pass
+    return False
+
+
+_OD_CACHE = None
+def discover_onedrive_roots() -> list:
+    global _OD_CACHE
+    if _OD_CACHE is not None: return _OD_CACHE
+    """
+    Automatically discovers all OneDrive folders on the machine across user profiles
+    and environment variables, even if custom-named.
+    """
+    roots = set()
+    users_base = "/mnt/c/Users"
+    skip_users = {"All Users", "Default", "Default User", "Public", "desktop.ini"}
+    if os.path.isdir(users_base):
+        try:
+            for user_entry in os.listdir(users_base):
+                if user_entry in skip_users:
+                    continue
+                user_dir = os.path.join(users_base, user_entry)
+                if not os.path.isdir(user_dir):
+                    continue
+                try:
+                    for sub in os.listdir(user_dir):
+                        sub_path = os.path.join(user_dir, sub)
+                        if os.path.isdir(sub_path) and is_onedrive_sync_root(sub_path):
+                            roots.add(os.path.abspath(sub_path))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    for env_key in ("OneDrive", "OneDriveCommercial", "OneDriveConsumer", "ONEDRIVE"):
+        val = os.environ.get(env_key)
+        if val:
+            norm_val = normalize_cross_platform_path(val)
+            if os.path.isdir(norm_val):
+                roots.add(norm_val)
+    _OD_CACHE = sorted(roots); return _OD_CACHE
+
+
+def is_path_in_onedrive(path: str):
+    """
+    Returns the normalized path if `path` is inside any OneDrive directory
+    (matched via discovered roots, parent-directory marker inspection, or path segments),
+    otherwise None.
+    """
+    if not path:
+        return None
+    norm_p = normalize_cross_platform_path(path)
+    if norm_p == _DEVCORE_ENGINE_ROOT or norm_p.startswith(_DEVCORE_ENGINE_ROOT + os.sep):
+        return None
+
+    for root in discover_onedrive_roots():
+        if norm_p == root or norm_p.startswith(root + os.sep):
+            return norm_p
+
+    # Walk up ancestor directories to detect custom-named or external OneDrive sync folders
+    curr = norm_p
+    stop_dirs = {"/", "/mnt", "/mnt/c", "/mnt/c/Users", "/home"}
+    for _ in range(15):
+        if not curr or curr in stop_dirs:
+            break
+        if is_onedrive_sync_root(curr):
+            return norm_p
+        parent = os.path.dirname(curr)
+        if parent == curr:
+            break
+        curr = parent
+
+    return None
+
+
 # Singleton instance for the application to import
 resolver = RaugusResolver()
+
+

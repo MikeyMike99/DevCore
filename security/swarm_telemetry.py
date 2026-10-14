@@ -3,10 +3,12 @@ import json
 import logging
 from datetime import datetime, timezone
 
-LOG_FILE = "/mnt/c/Users/michael/Documents/devcore/logs/swarmflow.jsonl"
+_LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logs"))
+LOG_FILE = os.path.join(_LOGS_DIR, "swarmflow.jsonl")
+ALERT_FILE = os.path.join(_LOGS_DIR, "master_alert_queue.jsonl")
 
 def setup_logger():
-    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+    os.makedirs(_LOGS_DIR, exist_ok=True)
 
 class SwarmFlowLogger:
     """
@@ -53,9 +55,8 @@ class SwarmFlowLogger:
             "reason": reason
         }
         
-        alert_file = "/mnt/c/Users/michael/Documents/devcore/logs/master_alert_queue.jsonl"
         try:
-            with open(alert_file, 'a', encoding='utf-8') as f:
+            with open(ALERT_FILE, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(record) + "\n")
         except Exception:
             pass

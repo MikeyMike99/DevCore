@@ -49,90 +49,11 @@ app.project_mgr = project_mgr
 app.session_mgr = session_mgr
 app.agent_mgr = agent_mgr
 
-async def execute_hot_patch_sequence():
+async def execute_hot_patch_sequence(manual_trigger=False):
     """Timer sequence for safe hot-patching with syntax validation and automated rollback."""
-    global project_mgr, session_mgr, agent_mgr, security_mgr, sm, pm, am, sec_m
-    import shutil, py_compile, os, traceback
-    
-    # Pre-validation & Backup Phase
-    patch_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "patches")
-    backup_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "backups")
-    os.makedirs(patch_dir, exist_ok=True)
-    os.makedirs(backup_dir, exist_ok=True)
-    
-    patches_found = [f for f in os.listdir(patch_dir) if f.endswith('.py')]
-    
-    if not patches_found:
-        return
-        
-    await agent_mgr.broadcast({
-        "type": "system",
-        "level": "warning",
-        "message": "🚨 EXPLOIT DETECTED: Initiating safe zero-downtime hot-patching sequence..."
-    })
-    
-    # 1. Syntax Validation: Ensure no patch has syntax errors before applying
-    for patch in patches_found:
-        try:
-            py_compile.compile(os.path.join(patch_dir, patch), doraise=True)
-        except py_compile.PyCompileError as e:
-            await agent_mgr.broadcast({"type": "system", "level": "error", "message": f"❌ PATCH ABORTED: Syntax error detected in {patch}. Server protection engaged."})
-            return
+    from core.routes.system import execute_hot_patch_sequence as _run_hot_patch
+    await _run_hot_patch(app_obj=app, manual_trigger=manual_trigger)
 
-    for i in range(3, 0, -1):
-        await agent_mgr.broadcast({"type": "system", "level": "info", "message": f"Validating and applying hot-patch in {i} seconds..."})
-        await asyncio.sleep(1)
-        
-    # 2. Backup and Apply Phase
-    if patches_found:
-        for patch in patches_found:
-            target_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), patch)
-            if os.path.exists(target_file):
-                shutil.copy2(target_file, os.path.join(backup_dir, patch)) # Backup original
-            shutil.copy2(os.path.join(patch_dir, patch), target_file) # Apply patch
-            
-    await agent_mgr.broadcast({"type": "system", "level": "info", "message": "Files updated! Re-compiling backend modules in-memory..."})
-    
-    # 3. Reload & Rollback Phase
-    active_clients = dict(agent_mgr.connected_clients)
-    is_busy = agent_mgr.is_running()
-    
-    try:
-        # Attempt to dynamically reload
-        importlib.reload(sm)
-        importlib.reload(pm)
-        importlib.reload(am)
-        importlib.reload(sec_m)
-        
-        project_mgr = pm.ProjectManager()
-        session_mgr = sm.SessionManager()
-        security_mgr = sec_m.SecurityManager()
-        
-        if is_busy:
-            agent_mgr.project_manager = project_mgr
-        else:
-            agent_mgr = am.AgentTaskManager(project_manager=project_mgr)
-            agent_mgr.connected_clients = active_clients
-            
-        await agent_mgr.broadcast({"type": "system", "level": "success", "message": "✅ Server successfully hot-patched and secured."})
-        
-    except Exception as e:
-        # 4. Rollback: If initialization fails (e.g. AttributeError), restore backups and reload again
-        await agent_mgr.broadcast({"type": "system", "level": "error", "message": f"⚠️ CRITICAL: Patch crashed the server engine! Initiating emergency rollback..."})
-        if patches_found:
-            for patch in patches_found:
-                backup_file = os.path.join(backup_dir, patch)
-                if os.path.exists(backup_file):
-                    shutil.copy2(backup_file, os.path.join(os.path.dirname(os.path.abspath(__file__)), patch))
-        
-        # Reload the restored modules
-        importlib.reload(sm); importlib.reload(pm); importlib.reload(am); importlib.reload(sec_m)
-        project_mgr = pm.ProjectManager(); session_mgr = sm.SessionManager(); security_mgr = sec_m.SecurityManager()
-        if not is_busy:
-            agent_mgr = am.AgentTaskManager(project_manager=project_mgr)
-            agent_mgr.connected_clients = active_clients
-            
-        await agent_mgr.broadcast({"type": "system", "level": "warning", "message": "🔄 Rollback complete. Previous stable state restored."})
 async def auto_patch_daemon():
     """Runs continuously in the background to automatically patch exploits."""
     while True:
@@ -357,6 +278,13 @@ async def get_artifact():
     path = request.args.get('path', '')
     if path.startswith('file://'):
         path = path[7:]
+
+    try:
+        from security.raugus_resolver import resolver
+        if resolver.is_sensitive_path(path):
+            return jsonify({"error": "Raugus Sensitive Vault: Direct HTTP read of sensitive files is blocked."}), 403
+    except Exception:
+        pass
         
     if sys.platform == "win32" and path.startswith("/"):
         try:
@@ -399,6 +327,13 @@ async def save_artifacts():
     
     if path.startswith('file://'):
         path = path[7:]
+
+    try:
+        from security.raugus_resolver import resolver
+        if resolver.is_sensitive_path(path):
+            return jsonify({"error": "Raugus Sensitive Vault: Direct HTTP write to sensitive files is blocked."}), 403
+    except Exception:
+        pass
         
     # 2. Path Traversal & Command Injection Defense
     if not path.startswith("/home/") and not path.startswith("/mnt/"):
@@ -572,16 +507,27 @@ async def ws_endpoint():
                     cli_in = data.get("input", "")
                     await agent_mgr.send_input(cli_in)
                     continue
+                elif msg_type == "clear_queue":
+                    if hasattr(agent_mgr, "clear_queue"):
+                        await agent_mgr.clear_queue()
+                    continue
+                elif msg_type == "promote_queue":
+                    if hasattr(agent_mgr, "promote_queued_to_steer"):
+                        await agent_mgr.promote_queued_to_steer()
+                    continue
                 elif msg_type == "ack":
                     seq = data.get("seq")
                     if seq is not None:
                         agent_mgr.handle_ack(seq)
                     continue
-                elif msg_type == "prompt":
+                elif msg_type in ("prompt", "steer", "queue_prompt"):
                     prompt = data.get("prompt", "").strip()
                     model = data.get("model", "gemini-3.8-flash-high")
                     conversation_id = data.get("conversation_id")
                     token = data.get("token")
+                    req_mode = data.get("mode") or (
+                        "steer" if msg_type == "steer" else ("queue" if msg_type == "queue_prompt" else "normal")
+                    )
                     
                     if token:
                         user = security_mgr.get_user_from_token(token)
@@ -596,18 +542,18 @@ async def ws_endpoint():
                     else:
                         user = security_mgr.get_user_from_token(None)
                     
-                    admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
-                    if data.get("danger_mode") is True:
-                        admin_override = True
+                    is_role_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin"))
+                    admin_override = is_role_admin or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
             except (json.JSONDecodeError, AttributeError):
                 prompt = str(raw_msg).strip()
                 user = None
+                req_mode = "normal"
                 admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
 
             if prompt:
                 # [SECURITY] 1. SEMANTIC FIREWALL INTERCEPTION (RBAC AWARE)
                 # Tier 5 Admins require full unrestricted execution for system administration.
-                is_admin = user and user.get("role") in ("admin", "super_admin", "Tier5_SysAdmin")
+                is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
                 if not is_admin:
                     try:
                         from local_security import LocalSecurity
@@ -625,7 +571,14 @@ async def ws_endpoint():
                     except Exception as e:
                         print(f"[Security Firewall] Error parsing intent: {e}")
 
-                await agent_mgr.start_task(prompt, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
+                if locals().get("req_mode") == "queue" and hasattr(agent_mgr, "queue_prompt"):
+                    clean_q = prompt[len("[QUEUE_NEXT]\n"):].strip() if prompt.startswith("[QUEUE_NEXT]\n") else prompt
+                    await agent_mgr.queue_prompt(clean_q, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
+                elif locals().get("req_mode") == "steer" and hasattr(agent_mgr, "steer_task"):
+                    clean_s = prompt[len("[STEER_NOW]\n"):].strip() if prompt.startswith("[STEER_NOW]\n") else prompt
+                    await agent_mgr.steer_task(clean_s, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
+                else:
+                    await agent_mgr.start_task(prompt, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
     except asyncio.CancelledError:
         pass
     except Exception as e:
