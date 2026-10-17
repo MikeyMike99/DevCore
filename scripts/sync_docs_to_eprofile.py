@@ -10,7 +10,13 @@ import os
 import re
 import json
 import shutil
+import sys
 from pathlib import Path
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+from sensitivity_engine import compute_document_sensitivity
 
 DEVCORE_ROOT = Path("/mnt/c/Users/michael/Documents/DevCore")
 EPROFILE_ROOT = Path("/mnt/c/Users/michael/Documents/e_profile")
@@ -221,6 +227,10 @@ def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict
         pass
         
     project, project_label, topics, order_score, is_latest, is_proprietary, clearance = classify_metadata(relative_slug, title, content, category)
+    base_sens, max_sens = compute_document_sensitivity(content, category)
+    if max_sens >= 4:
+        is_proprietary = True
+        clearance = "proprietary"
 
     return {
         "slug": relative_slug,
@@ -235,6 +245,8 @@ def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict
         "is_latest": is_latest,
         "is_proprietary": is_proprietary,
         "clearance": clearance,
+        "base_sensitivity": base_sens,
+        "max_sensitivity": max_sens,
         "rel_path": str(file_path.relative_to(DOCS_DEST)).replace('\\', '/')
     }
 

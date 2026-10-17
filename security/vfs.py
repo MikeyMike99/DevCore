@@ -18,13 +18,15 @@ class EncryptedVFS:
     def load(self):
         if self.loaded: return
         
-        # Check if we are running in Nuitka
+        # Check if we are running in Nuitka, CWD, or repo root
         base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(sys.argv[0])))
-        vfs_path = os.path.join(base_dir, self.vfs_file)
-        
-        # If not found next to exe, check in CWD
-        if not os.path.exists(vfs_path):
-            vfs_path = os.path.join(os.getcwd(), self.vfs_file)
+        repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+        candidates = [
+            os.path.join(base_dir, self.vfs_file),
+            os.path.join(os.getcwd(), self.vfs_file),
+            os.path.join(repo_root, self.vfs_file),
+        ]
+        vfs_path = next((p for p in candidates if os.path.exists(p)), candidates[0])
             
         if not os.path.exists(vfs_path):
             msg = f"[VFS] CRITICAL: No encrypted payload found at {vfs_path}."

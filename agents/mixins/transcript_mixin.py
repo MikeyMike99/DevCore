@@ -10,6 +10,40 @@ import traceback
 import logging
 
 class TranscriptMixin:
+    @staticmethod
+    def _strip_aria_noise(text: str) -> str:
+        if not text:
+            return ""
+        import os
+        import re
+        s = str(text)
+        # Convert markdown links [label](url) -> label
+        s = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', s)
+        # Strip bare file:// URIs to basename without line anchors
+        s = re.sub(
+            r'file:///[^\s)>\]]+',
+            lambda m: os.path.basename(re.sub(r'#L\d+(?:-L?\d+)?', '', m.group(0)).rstrip('/')),
+            s,
+            flags=re.IGNORECASE,
+        )
+        # Collapse raw Unix/Windows paths (/mnt/c/.../foo.py#L10-L20, /home/.../bar.py) to basename only
+        s = re.sub(
+            r'(?:/mnt/[a-zA-Z]/|/home/|/var/|/tmp/|/etc/|/opt/|/usr/|[A-Za-z]:\\)[^\s)>\]"\'`,;]+',
+            lambda m: os.path.basename(
+                re.sub(r'#L\d+(?:-L?\d+)?', '', re.sub(r':\d+(?:-\d+)?$', '', m.group(0))).replace('\\', '/').rstrip('/')
+            ),
+            s,
+        )
+        # Strip line number anchors and line range phrases
+        s = re.sub(r'#L\d+(?:-L?\d+)?\b', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'(\.[a-zA-Z0-9]{1,6}):\d+(?:-\d+)?\b', r'\1', s)
+        s = re.sub(r'\(\s*lines?\s+L?\d+(?:\s*(?:-|–|to)\s*L?\d+)?\s*\)', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'\blines?\s+L?\d+\s*(?:-|–|to)\s*L?\d+\b', '', s, flags=re.IGNORECASE)
+        s = re.sub(r'([a-zA-Z0-9])_([a-zA-Z0-9])', r'\1 \2', s)
+        s = re.sub(r'([a-zA-Z0-9])_([a-zA-Z0-9])', r'\1 \2', s)
+        s = re.sub(r'[*`#_()\[\]{}]', '', s)
+        return re.sub(r'\s+', ' ', s).strip()
+
     async def _get_narrative_context(self, conversation_id, expected_tool_name=None):
         deep_insight = ""
         tool_args = {}
@@ -49,11 +83,9 @@ class TranscriptMixin:
                 deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
                 deep_insight = re.sub(r'<planning_mode>.*?</planning_mode>', '', deep_insight, flags=re.DOTALL)
                 deep_insight = re.sub(r'<bash_command_reminder>.*?</bash_command_reminder>', '', deep_insight, flags=re.DOTALL)
-                deep_insight = re.sub(r'[*`#_]', '', deep_insight)
                 paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
                 if paras:
-                    # Give the full reasoning, just join the paragraphs
-                    deep_insight = " ".join(paras)
+                    deep_insight = self._strip_aria_noise(" ".join(paras))
                     if len(deep_insight) > 600:
                         deep_insight = deep_insight[:600] + "..." 
         except Exception:
@@ -81,7 +113,7 @@ class TranscriptMixin:
         import platform
         
         # Always read from the WSL path since Antigravity runs in WSL
-        wsl_path = f"/home/michael/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl"
+        wsl_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl")
         
         # Wait a brief moment to allow the conversation to initialize
         await asyncio.sleep(2)
@@ -116,7 +148,7 @@ class TranscriptMixin:
             process.terminate()
         except Exception as e:
             import logging
-            logging.error(f"Transcript tailer failed: {e}")
+            logging.error(f"[TranscriptMixin] Transcript tailer failed: {e}")
             try:
                 process.terminate()
             except:
