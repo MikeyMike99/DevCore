@@ -2,7 +2,7 @@
 """
 Sync Docs to E-Profile
 ======================
-Automated synchronization, DLP path sanitization, link normalization,
+Automated synchronization, DLP path sanitization, multi-dimensional taxonomy,
 and catalog generator bridge between DevCore and the public e_profile portfolio.
 """
 
@@ -54,20 +54,11 @@ def sanitize_content(raw_text: str, category: str) -> str:
     text = re.sub(r'/home/michael/\.gemini/antigravity-cli/brain/', r'[LOCAL_BRAIN_VAULT]/', text)
     
     # 2. Normalize relative markdown links between devlog pillars
-    # e.g., (./01_PROBLEMS_ENCOUNTERED/01_43_TOKEN_BURST_PREMATURE_ROLLOVER_AND_MIDTASK_RESET_TRAPS.md)
     def normalize_link(match):
         target = match.group(1)
         if target.endswith('.md'):
             basename = os.path.basename(target)[:-3]
-            if "01_" in target:
-                return f'(/docs/devlog/{basename})'
-            elif "02_" in target:
-                return f'(/docs/devlog/{basename})'
-            elif "03_" in target:
-                return f'(/docs/devlog/{basename})'
-            elif "04_" in target:
-                return f'(/docs/devlog/{basename})'
-            elif "05_" in target:
+            if "01_" in target or "02_" in target or "03_" in target or "04_" in target or "05_" in target:
                 return f'(/docs/devlog/{basename})'
             elif "Chapter_" in target or "Module_" in target or "Checkpoint_" in target:
                 return f'(/docs/textbook/{basename})'
@@ -79,11 +70,94 @@ def sanitize_content(raw_text: str, category: str) -> str:
     
     return text
 
+def classify_metadata(slug: str, title: str, content: str, category: str):
+    """
+    Classifies documents across Project ownership and Topic interest dimensions,
+    and computes an order score for chronological / recency sorting.
+    """
+    text_lower = (slug + " " + title + " " + content[:2500]).lower()
+    
+    # --- Dimension 1: Project Ownership ---
+    if category == "story":
+        project = "siraugga"
+        project_label = "Siraugga / DevCore Framework"
+    elif any(k in text_lower for k in ["callebrate_sound", "spatial trigonometry", "slot_meshine", "3d coordinate", "8-way compass", "movement grid"]) or (category == "manifesto" and any(k in text_lower for k in ["echoes", "audio game"])):
+        project = "echoes"
+        project_label = "Echoes of the World (Audio Game)"
+    elif any(k in text_lower for k in ["video player", "exam application", "exam engine", "spotify", "pywebview", "manifesto_reader", "chunk reader"]):
+        project = "accessible_apps"
+        project_label = "Accessible Applications"
+    elif any(k in text_lower for k in ["e_profile", "portfolio", "admin surgery", "profile management"]):
+        project = "eprofile"
+        project_label = "E-Profile Portal"
+    else:
+        project = "siraugga"
+        project_label = "Siraugga / DevCore Framework"
+        
+    # --- Dimension 2: Topic & Interest Areas ---
+    topics = []
+    
+    # Security
+    if any(k in text_lower for k in ["security", "rbac", "dlp", "kms", "mantrap", "ast lock", "popia", "firewall", "threat", "crack", "vault", "pki", "cipher", "crypto", "sandbox", "jail", "pretooluse"]):
+        topics.append("security")
+        
+    # Infrastructure
+    if any(k in text_lower for k in ["infrastructure", "hypercorn", "uvicorn", "asgi", "nuitka", "inno setup", "wsl", "supervisor", "pipe", "binary", "compilation", "pe trailer", "shell hook", "bashrc", "venv"]):
+        topics.append("infrastructure")
+        
+    # Layout, UI & Accessibility
+    if any(k in text_lower for k in ["screen reader", "accessibility", "wcag", "aria", "nvda", "tolk", "speech", "tts", "combobox", "live region", "flip card", "reader", "narrator", "audio feed"]):
+        topics.append("accessibility_ui")
+        
+    # Workflow & Automation
+    if any(k in text_lower for k in ["workflow", "hot-patch", "zero-downtime", "git", "automation", "clean workspace", "piped", "ephemeral", "reload", "blueprint sync", "mcp", "line editor"]):
+        topics.append("workflow")
+        
+    # Limitations & Traps
+    if any(k in text_lower for k in ["limitation", "quota", "rate limit", "cache trap", "bloat", "memory leak", "amnesia", "tearing", "zombie", "exhaustion", "timeout", "dropout", "reset", "disconnect"]):
+        topics.append("limitations")
+        
+    # Origins & Journey
+    if any(k in text_lower for k in ["manifesto", "origin", "forensic timeline", "crucible", "sovereignty dividend", "genesis", "history"]) or category == "manifesto":
+        topics.append("origin_story")
+        
+    # Changelog / Sprint Notes
+    if category in ["devlog", "story"] or "01_" in slug or "chapter" in slug:
+        topics.append("changelog")
+        
+    if not topics:
+        topics.append("general")
+        
+    # --- Dimension 3: Recency & Order Score ---
+    order_score = 0
+    
+    # Devlog pillar numbers (e.g. 01_43 -> 43, 05_42 -> 42)
+    pillar_match = re.search(r'0\d_(\d\d)', slug)
+    if pillar_match:
+        order_score = int(pillar_match.group(1)) * 10
+        
+    # Textbook / Manual chapter numbers
+    ch_match = re.search(r'Chapter_(\d+)', slug, re.IGNORECASE)
+    if ch_match:
+        order_score = int(ch_match.group(1))
+        
+    # Story (DEVLOG.md has Chapter 73!)
+    if category == "story":
+        order_score = 7300
+        
+    is_latest = False
+    if "01_43" in slug or "02_39" in slug or "03_36" in slug or "04_39" in slug or "05_42" in slug or category == "story":
+        is_latest = True
+        order_score += 5000
+
+    return project, project_label, topics, order_score, is_latest
+
 def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict:
-    """Extracts title, summary, and word count from a markdown document."""
+    """Extracts title, summary, classification, and word count from a markdown document."""
     title = relative_slug.replace('_', ' ')
     summary = "Siraugga Framework architecture documentation."
     word_count = 0
+    content = ""
     
     try:
         content = file_path.read_text(encoding='utf-8', errors='replace')
@@ -114,12 +188,19 @@ def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict
     except Exception:
         pass
         
+    project, project_label, topics, order_score, is_latest = classify_metadata(relative_slug, title, content, category)
+
     return {
         "slug": relative_slug,
         "category": category,
         "title": title,
         "summary": summary,
         "word_count": word_count,
+        "project": project,
+        "project_label": project_label,
+        "topics": topics,
+        "order_score": order_score,
+        "is_latest": is_latest,
         "rel_path": str(file_path.relative_to(DOCS_DEST)).replace('\\', '/')
     }
 
@@ -239,6 +320,8 @@ def sync():
         
         meta = extract_metadata(dest_f, "DEVLOG", "story")
         meta["title"] = "The Antigravity Dev Portal: A Development Story (73 Chapters)"
+        meta["is_latest"] = True
+        meta["order_score"] = 9999
         catalog.append(meta)
 
     # 6. Sync General Architecture Guides
@@ -260,14 +343,15 @@ def sync():
             meta = extract_metadata(dest_f, slug, "guides")
             catalog.append(meta)
 
-    # 7. Write docs_catalog.json
+    # 7. Write docs_catalog.json sorted by recency / order_score descending
     catalog_path = DOCS_DEST / "docs_catalog.json"
-    catalog.sort(key=lambda x: (x["category"], x["slug"]))
+    catalog.sort(key=lambda x: x["order_score"], reverse=True)
+    
     with open(catalog_path, 'w', encoding='utf-8') as f:
         json.dump(catalog, f, indent=2)
         
-    print(f"[+] Successfully synced and sanitized {synced_count} documents.")
-    print(f"[+] Master catalog generated at: {catalog_path}")
+    print(f"[+] Successfully synced and categorized {synced_count} documents.")
+    print(f"[+] Multi-dimensional catalog generated at: {catalog_path}")
     print("=" * 60)
     return True
 
