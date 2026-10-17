@@ -12,6 +12,23 @@ import subprocess
 import signal
 
 class ExecutionMixin:
+    def _get_session_mgr(self):
+        if not hasattr(self, "_session_mgr") or self._session_mgr is None:
+            try:
+                import sys
+                main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
+                if main_mod and hasattr(main_mod, "session_mgr"):
+                    self._session_mgr = main_mod.session_mgr
+                elif main_mod and hasattr(main_mod, "app") and hasattr(main_mod.app, "session_mgr"):
+                    self._session_mgr = main_mod.app.session_mgr
+                else:
+                    from core.session_manager import SessionManager
+                    self._session_mgr = SessionManager()
+            except Exception:
+                from core.session_manager import SessionManager
+                self._session_mgr = SessionManager()
+        return self._session_mgr
+
     async def start_task(
         self,
         prompt: str,
@@ -128,7 +145,7 @@ class ExecutionMixin:
         await self.broadcast(task_started_event)
 
         self.active_task = asyncio.create_task(
-            self._execute_agent(prompt, self.current_model, self.start_time, conversation_id or self.current_conversation_id, user=user, admin_override=is_admin)
+            self._execute_agent(prompt, self.current_model, self.start_time, conversation_id or self.current_conversation_id, user=user, admin_override=is_admin, _from_steer_or_queue=_from_steer_or_queue)
         )
 
     async def _heartbeat_worker(self, start_time: float):
@@ -144,7 +161,7 @@ class ExecutionMixin:
         except asyncio.CancelledError:
             pass
 
-    async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False):
+    async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False, _from_steer_or_queue: bool = False):
         if hasattr(self, 'transcript_watcher_task') and self.transcript_watcher_task:
             self.transcript_watcher_task.cancel()
         if conversation_id:
@@ -156,7 +173,73 @@ class ExecutionMixin:
                 workspace_dir = self.project_manager.get_active_workspace_path()
             if not workspace_dir:
                 workspace_dir = os.path.dirname(os.path.abspath(__file__))
+            # --- AUTOMATED SILENT SESSION ROLLOVER CHECK ---
+            # Session reset MUST NOT happen when a task is still ongoing midconversation.
+            # 1. Never rollover if this turn is from steering or draining queued follow-ups.
+            # 2. Never rollover if follow-up prompts are queued in the pipeline.
+            # 3. Never rollover based on cached token count (prompt caching is efficient, not bloat).
+            # 4. Default to disabled to prevent unexpected context interruption.
+            auto_rollover_enabled = os.environ.get("ENABLE_AUTO_SESSION_ROLLOVER", "false").lower() == "true"
+            is_ongoing_midconversation = _from_steer_or_queue or bool(getattr(self, "queued_prompts", []))
 
+            if conversation_id and auto_rollover_enabled:
+                if is_ongoing_midconversation:
+                    try:
+                        from security.central_logger import log_siem_event
+                        log_siem_event(
+                            level="INFO",
+                            message=f"[SESSION_GUARD] Session rollover suppressed: Task is actively ongoing midconversation (conv_id={conversation_id})",
+                            module_name="execution_mixin",
+                            logger_name="agent.session"
+                        )
+                    except Exception:
+                        pass
+                else:
+                    try:
+                        session_mgr = self._get_session_mgr()
+                        turn_count = session_mgr.get_session_turn_count(conversation_id)
+
+                        if turn_count >= 80:
+                            briefing = session_mgr.generate_continuation_briefing(conversation_id, workspace_dir)
+                            old_conv_id = conversation_id
+                            new_conv_id = f"conv-{int(time.time())}-{random.randint(1000, 9999)}"
+
+                            username = user.get("username", "admin") if user else "admin"
+                            project_name = self.project_manager.active_project if self.project_manager else None
+                            session_mgr.register_session_owner(new_conv_id, username, project_name)
+
+                            conversation_id = new_conv_id
+                            self.current_conversation_id = new_conv_id
+                            self.last_cache_read_tokens = 0
+
+                            if hasattr(self, 'transcript_watcher_task') and self.transcript_watcher_task:
+                                self.transcript_watcher_task.cancel()
+                            self.transcript_watcher_task = asyncio.create_task(self.tail_transcript(new_conv_id))
+
+                            try:
+                                from security.central_logger import log_siem_event
+                                log_siem_event(
+                                    level="INFO",
+                                    message=f"[SESSION_ROLLOVER] Session {old_conv_id} rolled over to {new_conv_id} after {turn_count} turns (user={username}, project={project_name})",
+                                    module_name="execution_mixin",
+                                    logger_name="agent.session"
+                                )
+                            except Exception:
+                                pass
+
+                            await self.broadcast({
+                                "type": "session_rollover",
+                                "old_conversation_id": old_conv_id,
+                                "new_conversation_id": new_conv_id,
+                                "turns": turn_count,
+                                "cached_tokens": 0,
+                                "message": "🔄 Session automatically rolled over for speed and token efficiency. Working directory and project context were seamlessly transferred."
+                            })
+
+                            if briefing:
+                                prompt = briefing + "\n\n" + prompt
+                    except Exception as e:
+                        logging.warning(f"[ExecutionMixin] Session rollover check warning: {e}")
             # Sanitize environment: strip API keys and host secrets from subprocess (CWE-214)
             safe_env = {
                 k: v for k, v in os.environ.items()
@@ -577,6 +660,16 @@ class ExecutionMixin:
                         res = event_data.get("result", {})
                         final_resp = res.get("response", "")
                         
+                        usage = res.get("usage", {})
+                        if isinstance(usage, dict) and usage:
+                            self.last_cache_read_tokens = usage.get("cache_read_tokens", 0)
+                            self.last_total_tokens = usage.get("total_tokens", 0)
+                            await self.broadcast({
+                                "type": "token_telemetry",
+                                "usage": usage,
+                                "conversation_id": self.current_conversation_id
+                            })
+                        
                         error_msg = res.get("error", "")
                         if not final_resp and error_msg:
                             final_resp = f"⚠️ **Error**: {error_msg}"
@@ -683,26 +776,7 @@ class ExecutionMixin:
             
             is_steered_exit = bool(getattr(self, "_steering_interrupt", False))
             if not is_steered_exit:
-                # Zero-Idle Protocol: Unconditionally kill all lingering agy subagent processes for this conversation
-                try:
-                    cid = getattr(self, "current_conversation_id", "")
-                    if cid:
-                        cmd = ['pkill', '-9', '-f', f'agy.*{cid}']
-                        if sys.platform == "win32":
-                            cmd = ['wsl.exe', '-e'] + cmd
-                        subprocess.run(cmd, capture_output=True)
-                except Exception as e:
-                    import logging
-                    logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
-                try:
-                    if sys.platform == "win32":
-                        subprocess.run(['wsl.exe', '-e', 'pkill', '-9', '-f', 'agy'], capture_output=True)
-                    else:
-                        subprocess.run(['pkill', '-9', '-f', 'agy'], capture_output=True)
-                except Exception as e:
-                    import logging
-                    logging.error(f"[AgentManager] Failed to run pkill in finally: {e}")
-
+                pass
                 if not locals().get("was_cancelled", False) and getattr(self, "queued_prompts", None):
                     asyncio.create_task(self._drain_queued_prompts())
 

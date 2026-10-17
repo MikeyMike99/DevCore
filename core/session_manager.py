@@ -317,6 +317,119 @@ class SessionManager:
 
         return items[-50:]
 
+    def get_session_turn_count(self, conv_id: str) -> int:
+        if not conv_id or '..' in conv_id or '/' in conv_id or '\\' in conv_id:
+            return 0
+        transcript_path = os.path.join(self.brain_dir, conv_id, ".system_generated", "logs", "transcript.jsonl")
+        if not os.path.exists(transcript_path):
+            transcript_path = os.path.join(self.brain_dir, conv_id, "transcript.jsonl")
+        if not os.path.exists(transcript_path):
+            return 0
+        turns = 0
+        try:
+            with open(transcript_path, 'r', encoding='utf-8', errors='replace') as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        data = json.loads(line)
+                        if data.get("type") == "USER_INPUT":
+                            turns += 1
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        return turns
+
+    def generate_continuation_briefing(self, conv_id: str, workspace_path: str = None) -> str:
+        """
+        Extracts key working state, active workspace, recent user intents,
+        recently touched files, and operational rules from the expiring session
+        without making any external LLM calls.
+        """
+        if not conv_id:
+            return ""
+        
+        self.ownership = self._load_ownership()
+        meta = self.ownership.get(conv_id, {})
+        project_name = meta.get("project") or "DevCore"
+        
+        workspace_dir = workspace_path or "/mnt/c/Users/michael/Documents/DevCore/playground"
+        
+        transcript_path = os.path.join(self.brain_dir, conv_id, ".system_generated", "logs", "transcript.jsonl")
+        if not os.path.exists(transcript_path):
+            transcript_path = os.path.join(self.brain_dir, conv_id, "transcript.jsonl")
+            
+        user_prompts = []
+        agent_outcomes = []
+        files_touched = set()
+        
+        if os.path.exists(transcript_path):
+            try:
+                with open(transcript_path, 'r', encoding='utf-8', errors='replace') as f:
+                    for line in f:
+                        if not line.strip():
+                            continue
+                        try:
+                            data = json.loads(line)
+                        except Exception:
+                            continue
+                        
+                        dtype = data.get("type")
+                        if dtype == "USER_INPUT":
+                            cleaned = self._clean_prompt_text(data.get("content", ""))
+                            if cleaned and len(cleaned) > 3:
+                                user_prompts.append(cleaned)
+                        elif dtype == "PLANNER_RESPONSE":
+                            resp_txt = (data.get("content") or "").strip()
+                            if resp_txt and len(resp_txt) > 10:
+                                agent_outcomes.append(resp_txt)
+                                
+                        for call in data.get("tool_calls", []):
+                            args = call.get("args") or {}
+                            f_cand = (
+                                args.get("TargetFile")
+                                or args.get("target_file")
+                                or args.get("AbsolutePath")
+                                or args.get("File")
+                            )
+                            if f_cand and isinstance(f_cand, str) and not f_cand.endswith((".log", ".tmp")):
+                                files_touched.add(os.path.basename(f_cand).replace('"', "").replace("'", "").strip())
+            except Exception as e:
+                print(f"[SessionManager] Warning during briefing extraction: {e}")
+                
+        recent_goals_str = ""
+        meaningful_prompts = user_prompts[-3:] if user_prompts else ["Continue active software engineering task."]
+        for p in meaningful_prompts:
+            clean_p = p[:100].strip()
+            recent_goals_str += f"  • {clean_p}\n"
+            
+        recent_files_str = ""
+        if files_touched:
+            for fn in list(files_touched)[-5:]:
+                recent_files_str += f"  • {fn}\n"
+        else:
+            recent_files_str = "  • None recorded in recent turns.\n"
+            
+        latest_outcome = "Ready to proceed."
+        if agent_outcomes:
+            latest_outcome = agent_outcomes[-1][:200].replace("\n", " ").strip()
+            
+        briefing = (
+            "<SESSION_CONTINUATION_CONTEXT>\n"
+            "[AUTOMATIC SESSION ROLLOVER: The previous session was archived to maintain peak responsiveness and eliminate token bloat.]\n"
+            f"- Active Workspace Directory: {workspace_dir}\n"
+            f"- Active Project: {project_name}\n"
+            "- Recent Accomplished Goals:\n"
+            f"{recent_goals_str}"
+            "- Recently Touched Files:\n"
+            f"{recent_files_str}"
+            f"- Latest Context / Outcome: {latest_outcome}\n"
+            "- Operational Rules: Screen-reader optimized responses; concise markdown; clickable file:// links; clean workspace protocol (no lingering scratch files).\n"
+            "</SESSION_CONTINUATION_CONTEXT>"
+        )
+        return briefing
+
 
 _SYNCING_ROUTES = False
 
@@ -337,7 +450,14 @@ def _sync_live_blueprint_routes():
         for sec_sub in ("security.raugus_resolver", "security.security_headers", "security.vfs"):
             if sec_sub in sys.modules:
                 try:
-                    importlib.reload(sys.modules[sec_sub])
+                    reloaded_mod = importlib.reload(sys.modules[sec_sub])
+                    if sec_sub == "security.security_headers" and hasattr(reloaded_mod, "apply_security_headers"):
+                        after_funcs = getattr(live_app, "after_request_funcs", {}).get(None, [])
+                        for idx, fn in enumerate(after_funcs):
+                            if getattr(fn, "__name__", "") == "apply_security_headers":
+                                after_funcs[idx] = reloaded_mod.apply_security_headers
+                    elif sec_sub == "security.vfs" and hasattr(reloaded_mod, "vfs"):
+                        reloaded_mod.vfs.load()
                 except Exception:
                     pass
 
