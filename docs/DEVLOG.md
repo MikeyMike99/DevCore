@@ -1205,3 +1205,52 @@ DevCore, by contrast, was forged under active institutional pressure. The constr
 What appeared to be an administrative roadblock was, in truth, an enterprise hardening crucible. We did not merely dodge a compliance bullet—we mastered the complex realities of enterprise identity governance, tenant isolation, and forensic data cleansing. 
 
 By refusing to give us a shortcut, the institution forced us to build an unbreakable, sovereign platform that answers to no corporate landlord. The constraint was never a limitation; it was the blueprint.
+
+## Chapter 73: The Mid-Task Reset & The Token Cache Trap
+
+Just as our sovereign architecture was settling and our static security audits were running clean, a bizarre and insidious poltergeist struck our development flow: the AI suddenly suffered catastrophic amnesia in the middle of active turns. 
+
+I would be in the middle of a complex, multi-step engineering task or issue a quick course-correction, and instead of continuing the work, the AI would violently reset into a brand new conversation session. The working memory was wiped, active commands were orphaned, and I was greeted by a cold system rollover header: `[AUTOMATIC SESSION ROLLOVER: The previous session was archived to maintain peak responsiveness and eliminate token bloat.]`.
+
+My frustration was immediate and sharp:
+*"The session reset should not happen when a task is still ongoing midconversation."*
+*"I do not want you to crash before the job is done and start with a crash."*
+*"What is the next step? So we are now in a fresh session?"*
+
+When you rely entirely on a screen reader, sudden context wipes are disorienting. You lose your bearings in the chat feed, you don't know what state the backend is in, and you are forced to re-explain the entire context from scratch.
+
+### The Forensic Transcript Investigation
+
+I halted all work and ordered a forensic investigation into the engine's execution mixin (`agents/mixins/execution_mixin.py`) and session manager (`core/session_manager.py`). Mining the transcripts and execution logs exposed three distinct bugs operating in disastrous synergy:
+
+1. **The Gemini Token Cache Illusion:** The rollover monitor had an aggressive threshold triggering whenever `last_cache >= 75000`. But in modern Gemini architectures, context caching is a feature, not a memory leak. A cache hit drastically reduces latency and token billing. Misclassifying 75,000 cached tokens as "runaway bloat" meant that after just two or three turns, the engine panicked and forced a session wipe under the illusion that memory was overflowing!
+2. **The In-Flight Steering Blindspot:** When a user interrupted an active turn with a course-correction (such as typing `?` or queuing a directive), the engine processed the steering update without checking if a task was currently executing. The rollover logic fired blindly mid-thought, severing the conversational tree right out from under the agent's feet.
+3. **The Indiscriminate Process Reaper:** In the turn cleanup routines, an un-scoped `pkill -9 -f agy` was running, blindly executing across the OS and murdering legitimate background processes, subagents, and active tasks.
+
+### The Architectural Resolution
+
+We engineered an airtight, multi-layered guardrail:
+
+1. **In-Flight Task Protection Lock:** In `agents/mixins/execution_mixin.py`, we implemented a strict condition: if a task is currently executing (`is_ongoing_midconversation`) or if the message originated from a steering update (`_from_steer_or_queue`), session rollover is unconditionally blocked. The agent must finish its active work before any rollover can ever be considered.
+2. **Cache Trap Elimination & Safe Opt-In:** We eradicated the `last_cache >= 75000` rule entirely. Furthermore, we disabled automated rollover by default (`ENABLE_AUTO_SESSION_ROLLOVER = False`), requiring an explicit opt-in environment flag and a minimum threshold of `>= 80` completed user turns before an idle rollover is even evaluated.
+3. **Targeted Process Management:** We purged the indiscriminate `pkill -9 -f agy` command, replacing it with targeted process ID cancellation that only affects specific aborted tasks.
+
+### The Security Audit & SIEM Telemetry
+
+To ensure this regression could never sneak back into future builds, I demanded automated enforcement:
+*"The audit script should check this conditions to guard us for future changes... is it properly logged?"*
+
+We updated `security/security_audit.py` with **Section 4: Session Stability & Rollover Guards**, adding 6 automated checks:
+- Verifying the presence of the in-flight `_from_steer_or_queue` guard in the AST.
+- Ensuring no premature `last_cache` traps exist.
+- Validating subprocess hygiene (zero un-scoped `pkill` calls).
+- Path traversal defense on session turn counters.
+- Continuation briefing format and tag integrity.
+- Invariant logic verification across all 5 state permutations.
+
+The audit suite now runs 13/13 tests passing, and every session lifecycle event (`[SESSION_ROLLOVER]`, `[SESSION_GUARD]`, and `[SECURITY_AUDIT]`) is formally logged to the central SIEM in `logs/devcore_master.jsonl`.
+
+### The Reflection
+
+Memory management in autonomous AI is not just about clearing buffers; it is about respecting the developer's train of thought. An unprompted session reset that blindsides a developer mid-sentence is worse than a memory leak. True resilience means knowing when to hold the line, when to remember, and only stepping aside when the task is truly done.
+
