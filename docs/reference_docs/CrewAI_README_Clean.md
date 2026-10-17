@@ -1,13 +1,6 @@
+[//]: # (DOC_ID: SIRA-DOC-CREWAI_README_ | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
 
-  
-    
-  
-
-  
-    
-  
-
-  Homepage
+Homepage
   ·
   Open Source
   ·
@@ -46,6 +39,7 @@
   
 
 ### Fast and Flexible Multi-Agent Automation Framework
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-1)
 
 > CrewAI is an open-source Python framework with high-level abstractions and low-level APIs for building production-ready multi-agent workflows.
 > It gives developers autonomous agent collaboration through Crews and precise, event-driven control through Flows.
@@ -63,6 +57,7 @@ For organizations that need a commercial control plane around CrewAI, CrewAI AMP
 You can try one part of the suite, the Crew Control Plane, for free.
 
 ## Crew Control Plane Key Features:
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-2)
 
 - **Tracing & Observability**: Monitor and track your AI agents and workflows in real-time, including metrics, logs, and traces.
 - **Unified Control Plane**: A centralized platform for managing, monitoring, and scaling your AI agents and workflows.
@@ -76,6 +71,7 @@ CrewAI AMP is designed for enterprises seeking a powerful, reliable solution to 
 intelligent automations.
 
 ## Table of contents
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-3)
 
 - Build with AI
 - Why CrewAI?
@@ -100,6 +96,7 @@ intelligent automations.
 - Frequently Asked Questions (FAQ)
 
 ## Build with AI
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-4)
 
 Using an AI coding agent? Teach it CrewAI best practices in one command:
 
@@ -126,6 +123,7 @@ npx skills add crewaiinc/skills
 This installs the official CrewAI Skills — structured instructions that teach coding agents how to scaffold Flows, configure Crews, design agents and tasks, and follow CrewAI patterns.
 
 ## Why CrewAI?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-5)
 
   
 
@@ -140,12 +138,14 @@ CrewAI unlocks the true potential of multi-agent automation, delivering speed, f
 CrewAI empowers developers and teams to build intelligent automations that balance simplicity, flexibility, and production-grade control.
 
 ## Getting Started
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-6)
 
 Setup and run your first CrewAI agents by following this tutorial.
 
 [](https://www.youtube.com/watch?v=-kSOTtYzgEw "CrewAI Getting Started Tutorial")
 
 ### Learning Resources
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-7)
 
 Learn CrewAI through our comprehensive courses:
 
@@ -153,6 +153,7 @@ Learn CrewAI through our comprehensive courses:
 - Practical Multi AI Agents and Advanced Use Cases - Deep dive into advanced implementations
 
 ### Understanding Flows and Crews
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-8)
 
 CrewAI offers two powerful, complementary approaches that work seamlessly together to build sophisticated AI applications:
 
@@ -178,10 +179,12 @@ The true power of CrewAI emerges when combining Crews and Flows. This synergy al
 - Maintain clean, maintainable code structure
 
 ### Getting Started with Installation
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-9)
 
 To get started with CrewAI, follow these simple steps. The full walkthrough lives in the installation guide.
 
 ### 1. Installation
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-1)
 
 CrewAI requires `Python >=3.10 and 
 ```
@@ -290,6 +293,7 @@ Then edit the generated files:
 ```
 
 ### 3. Running Your Crew
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-3)
 
 Before running your crew, set the required keys in your `.env` file:
 
@@ -312,6 +316,7 @@ In addition to the sequential process, you can use the hierarchical process, whi
 For a Flow-first walkthrough, see the Quickstart.
 
 ## Key Features
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-10)
 
 CrewAI gives developers a practical foundation for building agentic systems that move from prototype to production: autonomous collaboration where it helps, explicit workflow control where it matters, and Python-native customization throughout.
 
@@ -326,6 +331,7 @@ CrewAI gives developers a practical foundation for building agentic systems that
 Choose CrewAI to build powerful, adaptable, and production-ready AI automations.
 
 ## Examples
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-11)
 
 You can test different real life examples of AI crews in the CrewAI-examples repo:
 
@@ -335,28 +341,33 @@ You can test different real life examples of AI crews in the CrewAI-examples rep
 - Stock Analysis
 
 ### Quick Tutorial
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-12)
 
 [](https://www.youtube.com/watch?v=tnejrr-0a94 "CrewAI Tutorial")
 
 ### Write Job Descriptions
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-13)
 
 Check out code for this example or watch a video below:
 
 [](https://www.youtube.com/watch?v=u98wEMz-9to "Jobs postings")
 
 ### Trip Planner
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-14)
 
 Check out code for this example or watch a video below:
 
 [](https://www.youtube.com/watch?v=xis7rWp-hjs "Trip Planner")
 
 ### Stock Analysis
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-15)
 
 Check out code for this example or watch a video below:
 
 [](https://www.youtube.com/watch?v=e0Uj4yWdaAg "Stock Analysis")
 
 ### Using Crews and Flows Together
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-16)
 
 CrewAI's power truly shines when combining Crews with Flows to create sophisticated automation pipelines.
 CrewAI flows support logical operators like `or_` and `and_` to combine multiple conditions. This can be used with `@start`, `@listen`, or `@router` decorators to create complex triggering conditions.
@@ -456,12 +467,14 @@ This example demonstrates how to:
 4. Implement conditional branching based on Crew results
 
 ## Connecting Your Crew to a Model
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-17)
 
 CrewAI supports using various LLMs through a variety of connection options. By default your agents will use the OpenAI API when querying the model. However, there are several other ways to allow your agents to connect to models. For example, you can configure your agents to use a local model via the Ollama tool.
 
 Please refer to the Connect CrewAI to LLMs page for details on configuring your agents' connections to models.
 
 ## When to Use CrewAI
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-18)
 
 Use CrewAI when you need more than a single prompt or chatbot: multi-step work, specialized agents, tool use, structured outputs, human review, or workflows that combine autonomous reasoning with explicit business logic.
 
@@ -474,6 +487,7 @@ CrewAI is especially useful when you want to:
 - Add tools, memory, checkpointing, and async execution as your system grows.
 
 ## Contribution
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-19)
 
 CrewAI is open-source and we welcome contributions. See
 `.github/CONTRIBUTING.md` for the full setup guide,
@@ -497,6 +511,7 @@ uv run mypy lib/
 ```
 
 ### Contributing to the docs
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-20)
 
 The site at docs.crewai.com is published from
 `docs/` by Mintlify. The docs use directory-based
@@ -510,6 +525,7 @@ release CLI (`devtools release`) handles the freeze automatically; see
 `lib/devtools/README.md` for release tooling.
 
 ## Telemetry
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-21)
 
 CrewAI uses anonymous telemetry to collect usage data with the main purpose of helping us improve the library by focusing our efforts on the most used features, integrations and tools.
 
@@ -541,12 +557,15 @@ Data collected includes:
 Users can opt-in to Further Telemetry, sharing the complete telemetry data by setting the `share_crew` attribute to `True` on their Crews. Enabling `share_crew` results in the collection of detailed crew and task execution data, including `goal`, `backstory`, `context`, and `output` of tasks. This enables a deeper insight into usage patterns while respecting the user's choice to share.
 
 ## License
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-22)
 
 CrewAI is released under the MIT License.
 
 ## Frequently Asked Questions (FAQ)
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-23)
 
 ### General
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-24)
 
 - What exactly is CrewAI?
 - How do I install CrewAI?
@@ -555,6 +574,7 @@ CrewAI is released under the MIT License.
 - Does CrewAI collect data from users?
 
 ### Features and Capabilities
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-25)
 
 - Can CrewAI handle complex use cases?
 - Can I use CrewAI with local AI models?
@@ -562,21 +582,25 @@ CrewAI is released under the MIT License.
 - Does CrewAI support fine-tuning or training custom models?
 
 ### Resources and Community
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-26)
 
 - Where can I find real-world CrewAI examples?
 - How can I contribute to CrewAI?
 
 ### Enterprise Features
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-27)
 
 - What additional features does CrewAI AMP offer?
 - Is CrewAI AMP available for cloud and on-premise deployments?
 - Can I try CrewAI AMP for free?
 
 ### Q: What exactly is CrewAI?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-28)
 
 A: CrewAI is a lean, fast Python framework built specifically for orchestrating autonomous AI agents and production-ready agentic workflows.
 
 ### Q: How do I install CrewAI?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-29)
 
 A: Install the CrewAI CLI with UV:
 
@@ -587,77 +611,96 @@ uv tool install crewai
 Then create a project with `crewai create crew `, run `crewai install`, and start it with `crewai run`. See the installation guide for details.
 
 ### Q: Is CrewAI a standalone framework?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-30)
 
 A: Yes. CrewAI is a standalone Python framework with its own primitives for agents, tasks, crews, flows, tools, and orchestration.
 
 ### Q: Can CrewAI handle complex use cases?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-31)
 
 A: Yes. CrewAI excels at both simple and highly complex real-world scenarios, offering deep customization options at both high and low levels, from internal prompts to sophisticated workflow orchestration.
 
 ### Q: Can I use CrewAI with local AI models?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-32)
 
 A: Absolutely! CrewAI supports various language models, including local ones. Tools like Ollama and LM Studio allow seamless integration. Check the LLM Connections documentation for more details.
 
 ### Q: What makes Crews different from Flows?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-33)
 
 A: Crews provide autonomous agent collaboration, ideal for tasks requiring flexible decision-making and dynamic interaction. Flows offer precise, event-driven control, ideal for managing detailed execution paths and secure state management. You can seamlessly combine both for maximum effectiveness.
 
 ### Q: Is CrewAI open-source?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-34)
 
 A: Yes, CrewAI is open-source and actively encourages community contributions and collaboration.
 
 ### Q: Does CrewAI collect data from users?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-35)
 
 A: CrewAI collects anonymous telemetry data strictly for improvement purposes. Sensitive data such as prompts, tasks, or API responses are never collected unless explicitly enabled by the user.
 
 ### Q: Where can I find real-world CrewAI examples?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-36)
 
 A: Check out practical examples in the CrewAI-examples repository, covering use cases like trip planners, stock analysis, and job postings.
 
 ### Q: How can I contribute to CrewAI?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-37)
 
 A: Contributions are warmly welcomed! Fork the repository, create your branch, implement your changes, and submit a pull request. See `.github/CONTRIBUTING.md` for detailed guidelines.
 
 ### Q: What additional features does CrewAI AMP offer?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-38)
 
 A: CrewAI AMP provides advanced features such as a unified control plane, real-time observability, secure integrations, advanced security, actionable insights, and dedicated 24/7 enterprise support.
 
 ### Q: Is CrewAI AMP available for cloud and on-premise deployments?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-39)
 
 A: Yes, CrewAI AMP supports both cloud-based and on-premise deployment options, allowing enterprises to meet their specific security and compliance requirements.
 
 ### Q: Can I try CrewAI AMP for free?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-40)
 
 A: Yes, you can explore part of the CrewAI AMP Suite by accessing the Crew Control Plane for free.
 
 ### Q: Does CrewAI support fine-tuning or training custom models?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-41)
 
 A: Yes, CrewAI can integrate with custom-trained or fine-tuned models, allowing you to enhance your agents with domain-specific knowledge and accuracy.
 
 ### Q: Can CrewAI agents interact with external tools and APIs?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-42)
 
 A: Absolutely! CrewAI agents can easily integrate with external tools, APIs, and databases, empowering them to leverage real-world data and resources.
 
 ### Q: Is CrewAI suitable for production environments?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-43)
 
 A: Yes, CrewAI is designed with production-grade patterns that support reliable, stable, and scalable agentic workflows.
 
 ### Q: How scalable is CrewAI?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-44)
 
 A: CrewAI is highly scalable, supporting simple automations and large-scale workflows involving numerous agents and complex tasks simultaneously.
 
 ### Q: Does CrewAI offer debugging and monitoring tools?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-45)
 
 A: Yes, CrewAI AMP includes advanced debugging, tracing, and real-time observability features, simplifying the management and troubleshooting of your automations.
 
 ### Q: What programming languages does CrewAI support?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-46)
 
 A: CrewAI is primarily Python-based but easily integrates with services and APIs written in any programming language through its flexible API integration capabilities.
 
 ### Q: Does CrewAI offer educational resources for beginners?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-47)
 
 A: Yes, CrewAI provides extensive beginner-friendly tutorials, courses, and documentation through learn.crewai.com, supporting developers at all skill levels.
 
 ### Q: Can CrewAI automate human-in-the-loop workflows?
+[//]: # (SECTION_ID: SIRA-DOC-CREWAI_README_-SEC-48)
 
 A: Yes, CrewAI fully supports human-in-the-loop workflows, allowing seamless collaboration between human experts and AI agents for enhanced decision-making.

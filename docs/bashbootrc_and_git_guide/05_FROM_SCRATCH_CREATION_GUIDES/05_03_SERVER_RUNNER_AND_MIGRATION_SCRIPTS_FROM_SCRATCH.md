@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-05_03 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 05.3: From-Scratch Creation Guide: Server Runner & Migration Scripts
 
 - **Back to Master Index**: [`../00_README_INDEX.md`](../00_README_INDEX.md)
@@ -6,6 +8,7 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-1)
 
 This guide details how to build two essential production maintenance scripts from scratch:
 1. **`scripts/start_server.sh`**: A deterministic server runner that locks working directories and ensures the server executes strictly inside its dedicated virtual environment.
@@ -14,11 +17,14 @@ This guide details how to build two essential production maintenance scripts fro
 ---
 
 ## Script 1: Deterministic Server Runner (`start_server.sh`)
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-2)
 
 ### Purpose
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-3)
 When servers are started manually or by background daemons, the current working directory or shell environment might not be configured properly. This script guarantees correct execution every time.
 
 ### Implementation
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-4)
 Create `scripts/start_server.sh`:
 
 ```bash
@@ -58,11 +64,14 @@ chmod +x scripts/start_server.sh
 ---
 
 ## Script 2: Safe Dependency Migration (`cleanup_dependencies.sh`)
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-5)
 
 ### Purpose
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-6)
 When separating a monolithic Python environment into isolated environments, you must verify that no live production server is actively using the environment before uninstalling packages.
 
 ### Implementation
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-7)
 Create `scripts/cleanup_dependencies.sh`:
 
 ```bash
@@ -127,6 +136,7 @@ chmod +x scripts/cleanup_dependencies.sh
 ---
 
 ## Why Order Matters in Runner & Migration Scripts
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-8)
 
 1. **Resolve Directory Before Activating Venv**:
    - `cd "$PROJECT_ROOT"` must happen before `source "$VENV_PATH/bin/activate"`. Relative path imports inside Python depend on being located at the workspace root.
@@ -140,12 +150,16 @@ chmod +x scripts/cleanup_dependencies.sh
 ---
 
 ## Beginner Coder Q&A
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-9)
 
 ### Q: Why use `exec python3 server.py` instead of just `python3 server.py`?
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-10)
 **A:** `exec` replaces the wrapper shell process with Python. This ensures system signals (such as `Ctrl+C` or daemon restart signals) reach Python directly without getting trapped or delayed by an intermediary Bash shell.
 
 ### Q: What is `/proc/<pid>/environ`?
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-11)
 **A:** Linux stores live diagnostic information about every running program inside the virtual `/proc` directory. Reading `/proc/<pid>/environ` lets you see the exact environment variables (like `$VIRTUAL_ENV`) that the process was launched with.
 
 ### Q: Will `pip uninstall` delete files from other virtual environments?
+[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-12)
 **A:** No. Because we explicitly activated `secondary_env` in Stage 2, `pip` only removes packages located inside that specific environment's folder.

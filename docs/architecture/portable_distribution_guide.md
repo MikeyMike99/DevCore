@@ -1,11 +1,15 @@
+[//]: # (DOC_ID: SIRA-DOC-PORTABLE_DISTR | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
+
 # Portable Executable Distribution & Stamping Guide
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-1)
 The DevCore application has been completely decoupled from the developer's local environment. It now operates as a 100% self-contained, portable Windows executable (`.exe`). This document details the infrastructure that makes this portability possible, and the workflows for distributing customized, time-locked versions of the app to clients.
 
 ---
 
 ## 1. The Bundled Engine Architecture (Zero-Install)
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-1)
 Previously, the Python backend relied on the host computer having the Google Antigravity CLI (`agy`) installed via `pip`. This broke portability.
 - **The Solution:** During the automated SSH compilation phase, the new `Remote Compiler Module` script actively hunts down the `agy.exe` binary on the Windows build server.
 - **Nuitka Injection:** It injects `agy.exe` directly into the Nuitka compilation payload using the `--include-data-file` flag. 
@@ -14,6 +18,7 @@ Previously, the Python backend relied on the host computer having the Google Ant
 ---
 
 ## 2. Client Authentication & Quota Protection
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-2)
 To prevent distributed clients from draining the Master Developer's personal Google AI API quota, the authentication flow was overhauled:
 1. **API Key Injection:** The `login.html` screen now features a "Google API Key" input box. 
 2. **OAuth Bypass:** When a client enters their API key, the Quart server seamlessly injects it into the environment variables (`os.environ["GEMINI_API_KEY"]`) and terminates the legacy terminal-based OAuth flow. The bundled `agy` engine instantly picks up this key and uses the client's billing quota.
@@ -22,9 +27,11 @@ To prevent distributed clients from draining the Master Developer's personal Goo
 ---
 
 ## 3. The Binary Stamping Engine (Time-Locked Trials)
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-3)
 Compiling a 40MB+ Nuitka executable takes time. It is highly inefficient to recompile the entire source code every time a client needs a custom trial date. To solve this, we implemented the **Binary Stamper** (`Binary Stamping Module`).
 
 ### How it Works
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-2)
 1. **The Magic Append:** An `.exe` file can have arbitrary data appended to the very end of its binary structure without corrupting the executable. 
 2. **The Injection:** The `Binary Stamping Module` script copies the master `.exe` and appends a JSON payload wrapped in magic bytes (`---AGY_STAMP_START---` and `---AGY_STAMP_END---`) directly to the bottom of the new file. This takes 0.1 seconds.
 3. **The Reader:** When a stamped `.exe` launches, the Python code inside opens its own binary file (`sys.executable`), seeks to the end, extracts the JSON, and evaluates the `expires` timestamp.
@@ -33,6 +40,7 @@ Compiling a 40MB+ Nuitka executable takes time. It is highly inefficient to reco
 ---
 
 ## 4. Master Developer Auto-Bypass
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-4)
 *Crucial Rule: The creator must never be locked out of their own creation.*
 
 Even if the Master Developer launches a Stamped/Expired client `.exe`, the application performs a zero-trust check on the host machine. 
@@ -43,6 +51,7 @@ Even if the Master Developer launches a Stamped/Expired client `.exe`, the appli
 ---
 
 ## 5. Standard Operating Procedure: Distributing an App
+[//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-5)
 When you want to give a customized trial version of the app to a friend or client:
 
 **Step 1: Compile the Master EXE (Only needed when code changes)**

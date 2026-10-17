@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-00 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Master Documentation Index: Bashbootrc & Automated Git Operations
 
 Welcome to the comprehensive, beginner-friendly technical documentation suite for **Linux Shell Boot Configuration (`~/.bashrc` / "bashbootrc")**, **Virtual Environment Orchestration**, and **Automated Git Operations & Cross-OS Synchronization**.
@@ -7,6 +9,7 @@ This modular documentation suite is engineered to be 100% accessible, screen-rea
 ---
 
 ## Master Documentation Directory Tree
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-1)
 
 | Pillar | File Path | Role & Summary |
 | :--- | :--- | :--- |
@@ -28,6 +31,7 @@ This modular documentation suite is engineered to be 100% accessible, screen-rea
 ---
 
 ## System File Map
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-2)
 
 | File / Component | Relative Location | Responsibility |
 | :--- | :--- | :--- |
@@ -41,8 +45,10 @@ This modular documentation suite is engineered to be 100% accessible, screen-rea
 ---
 
 ## 10-Second Quick-Reference Commands
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-3)
 
 ### Environment Navigation
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-4)
 - **Automatic Switching**: Simply type `cd <folder_name>`. Navigating into a secondary project directory automatically activates its environment; navigating into DevCore automatically switches to `devcore_env`.
 - **Direct Jump to DevCore**:
   ```bash
@@ -54,6 +60,7 @@ This modular documentation suite is engineered to be 100% accessible, screen-rea
   ```
 
 ### Automated Git Operations
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-5)
 - **Start a Fresh Working Day**:
   ```bash
   start-day
@@ -68,6 +75,7 @@ This modular documentation suite is engineered to be 100% accessible, screen-rea
 ---
 
 ## Orientation for Beginners
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-6)
 
 If you are new to Linux shell startup scripts, Python virtual environments, or Git automation, start by reading the two foundational primers:
 1. **[`00_PRIMERS/00A_BEGINNER_GUIDE_TO_BASHBOOTRC_AND_VENVS.md`](./00_PRIMERS/00A_BEGINNER_GUIDE_TO_BASHBOOTRC_AND_VENVS.md)**

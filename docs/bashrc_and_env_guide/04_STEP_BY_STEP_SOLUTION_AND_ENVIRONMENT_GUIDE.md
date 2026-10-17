@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-04 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Chapter 4: Step-by-Step Solution & Future Environment Guide
 
 - **Previous**: [`03_DIAGNOSTIC_TESTS_AND_CONCLUSIONS.md`](./03_DIAGNOSTIC_TESTS_AND_CONCLUSIONS.md)
@@ -7,6 +9,7 @@
 ---
 
 ## Overview of the Complete 5-Part Engineering Solution
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-1)
 
 To completely separate **DevCore** and a secondary project environment while making everyday terminal usage effortless, our final architecture combines five components that work together seamlessly:
 
@@ -28,6 +31,7 @@ To completely separate **DevCore** and a secondary project environment while mak
 ---
 
 ## Why the Top-to-Bottom Execution Order in `~/.bashrc` Is Mandatory
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-2)
 
 The lines inside `~/.bashrc` must follow this exact 6-step order from top to bottom:
 
@@ -43,12 +47,14 @@ The lines inside `~/.bashrc` must follow this exact 6-step order from top to bot
 ---
 
 ## How to Add a 3rd Project Environment in the Future (Copy-Paste Recipe)
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-3)
 
 Suppose six months from now you start a brand-new Python project called **`AudioStudio`** located in `/mnt/c/Users/<username>/Documents/AudioStudio`, and you want it to have its own isolated virtual environment and automatic folder switching.
 
 Here are the 3 steps to do it yourself:
 
 ### Step 1: Create the New Virtual Environment Inside `~/.venvs/`
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-4)
 Open your WSL terminal and run:
 ```bash
 python3 -m venv "$HOME/.venvs/audiostudio"
@@ -57,6 +63,7 @@ pip install --upgrade pip
 ```
 
 ### Step 2: Add a 5-Line Case Block Inside `_auto_venv_hook()` in `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-5)
 Open `~/.bashrc` and add your new project's folder pattern right below `*/DevCore*)`:
 ```bash
 _auto_venv_hook() {
@@ -81,6 +88,7 @@ _auto_venv_hook() {
 ```
 
 ### Step 3: Reload `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-6)
 Run:
 ```bash
 source ~/.bashrc
@@ -90,8 +98,10 @@ That's it! From that moment on, every time you `cd` into `AudioStudio`, your ter
 ---
 
 ## Beginner Coder Q&A: Understanding the Architecture in Chapter 4
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-7)
 
 ### 1. "What happens when I am inside `DevCore` (so `devcore_env` is active) and I `cd ~` back to the home directory?"
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-1)
 - In `_auto_venv_hook()`, it checks `*/secondary-env*)` and `*/DevCore*)`.
 - If you are working on DevCore and you briefly `cd /tmp` or `cd ~` to check a file, `_auto_venv_hook()` intentionally leaves your current environment active so your workflow isn't disrupted.
 - The moment you `cd` into another project, `_auto_venv_hook()` immediately switches to that project's environment. And if you ever want to manually turn off all virtual environments completely, you can type:
@@ -100,6 +110,7 @@ That's it! From that moment on, every time you `cd` into `AudioStudio`, your ter
   ```
 
 ### 2. "Why do we put new virtual environments inside a hidden `~/.venvs/` folder (`$HOME/.venvs/devcore_env`) instead of scattering them in `/home/<username>/`?"
+[//]: # (SECTION_ID: SIRA-DOC-04-SEC-2)
 - If you create a new folder directly in your home directory for every project (`~/devcore-env`, `~/audio-env`, `~/test-env`), your home directory quickly becomes crowded and hard to navigate with a screen reader.
 - Grouping virtual environments neatly inside `~/.venvs/<project_name>` keeps your home directory completely clean while storing all environments on fast native Linux `ext4` storage.
 

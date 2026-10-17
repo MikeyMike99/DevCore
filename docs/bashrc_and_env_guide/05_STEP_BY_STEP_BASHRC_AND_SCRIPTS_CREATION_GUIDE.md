@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-05 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Chapter 5: Beginner's Step-by-Step Guide to Creating the `~/.bashrc` Block & Shell Scripts From Scratch
 
 - **Previous**: [`04_STEP_BY_STEP_SOLUTION_AND_ENVIRONMENT_GUIDE.md`](./04_STEP_BY_STEP_SOLUTION_AND_ENVIRONMENT_GUIDE.md)
@@ -6,6 +8,7 @@
 ---
 
 ## Introduction (From One Beginner Coder to Another)
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-1)
 
 When you first open `~/.bashrc`, [`scripts/start_server.sh`](../../scripts/start_server.sh), or [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh) as a beginner developer, seeing syntax like `#!/usr/bin/env bash`, `set -e`, `case "$PWD" in`, `builtin cd "$@" || return $?`, `${DEVCORE_VENV:-$HOME/.venvs/devcore_env}`, and `PROMPT_COMMAND` can look intimidating.
 
@@ -19,10 +22,12 @@ This guide walks you through building **every single part from scratch, one smal
 ---
 
 ## Step 0: Three Golden Safety Rules Before Editing `.bashrc` or Creating `.sh` Scripts
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-2)
 
 Before typing a single line of Bash code, every beginner developer should know these three life-saving rules:
 
 ### Rule 1: Always Make a 1-Second Backup Before Editing `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-3)
 Before you edit `~/.bashrc`, run this single command in your terminal:
 ```bash
 cp ~/.bashrc ~/.bashrc.backup
@@ -30,6 +35,7 @@ cp ~/.bashrc ~/.bashrc.backup
 - **Why?** If you accidentally make a typo in `~/.bashrc`, you can restore your original working file in one second by typing `cp ~/.bashrc.backup ~/.bashrc`!
 
 ### Rule 2: Beware the Windows Notepad Line-Ending Trap (`CRLF` vs. `LF`)
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-4)
 - On **Windows**, pressing `Enter` at the end of a line inserts **two** invisible characters: Carriage Return + Line Feed (`\r\n`, called `CRLF`).
 - On **Linux (WSL)**, pressing `Enter` inserts only **one** character: Line Feed (`\n`, called `LF`).
 - **The Trap**: If you edit `~/.bashrc` or a `.sh` script using an old Windows editor that saves `CRLF` (`\r\n`), Bash sees the invisible `\r` at the end of every line and throws bizarre errors like `$'\r': command not found` or `syntax error near unexpected token $'in\r'`.
@@ -39,6 +45,7 @@ cp ~/.bashrc ~/.bashrc.backup
   ```
 
 ### Rule 3: Remember `chmod +x` When Creating a New `.sh` Script
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-5)
 On Windows, naming a file `.bat` automatically makes it runnable. On Linux, creating a new `.sh` file starts out as a regular text file that cannot be executed directly until you give it **"Execute Permission" (`+x`)**:
 ```bash
 chmod +x scripts/start_server.sh
@@ -47,10 +54,12 @@ chmod +x scripts/start_server.sh
 ---
 
 ## Part 1: Building the `~/.bashrc` ("bashbootrc") Auto-Switcher Block Step by Step
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-6)
 
 Below is how to write the auto-environment switching block at the bottom of `~/.bashrc` from scratch, broken into 5 small, easy-to-follow steps.
 
 ### Step 1.1: Add User Binary Directories to `$PATH` and Load Helper Toolkits
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-7)
 At the bottom of the default `.bashrc`, add these lines first:
 
 ```bash
@@ -74,6 +83,7 @@ fi
 ---
 
 ### Step 1.2: Create the Secondary Project Jump & Activate Command
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-8)
 Next, write the function that lets you type a quick shortcut from anywhere to activate the secondary environment and jump straight into its project folder:
 
 ```bash
@@ -101,6 +111,7 @@ alias activate-work='work-env'
 ---
 
 ### Step 1.3: Create the DevCore Jump & Activate Command
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-9)
 Right below the secondary jump alias, write the DevCore jump function with dynamic Windows path detection:
 
 ```bash
@@ -138,6 +149,7 @@ alias devcore='devcore-env'
 ---
 
 ### Step 1.4: Write the Smart Folder Watcher `_auto_venv_hook()`
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-10)
 Now write the heart of the automatic environment switcher:
 
 ```bash
@@ -172,6 +184,7 @@ _auto_venv_hook() {
 ---
 
 ### Step 1.5: Connect `_auto_venv_hook` to `cd` and `PROMPT_COMMAND`
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-11)
 Finally, add these lines at the very bottom of `~/.bashrc`:
 
 ```bash
@@ -196,6 +209,7 @@ fi
 ---
 
 ## Part 2: Building `scripts/start_server.sh` From Scratch (8 Lines)
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-12)
 
 **Target File**: [`scripts/start_server.sh`](../../scripts/start_server.sh)
 
@@ -213,6 +227,7 @@ exec python3 server.py
 ```
 
 ### Beginner Line-by-Line Explanation
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-13)
 1. **`#!/bin/bash`**:
    The shebang line telling Linux to use Bash.
 2. **`cd "$(dirname "$0")/.." || exit 1`**:
@@ -225,12 +240,14 @@ exec python3 server.py
 ---
 
 ## Part 3: Building `scripts/cleanup_dependencies.sh` Step by Step
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-14)
 
 **Target File**: [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh)
 
 Here is how its 4 building blocks work:
 
 ### Block 1: Safety Header, Default Variables, and Command Flags
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-15)
 ```bash
 #!/usr/bin/env bash
 set -e
@@ -250,6 +267,7 @@ fi
 ```
 
 ### Block 2: Step 1 — Preflight Health Check on Dedicated Environment
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-16)
 ```bash
 if ! "$DEVCORE_VENV/bin/python3" -c "
 import quart, hypercorn, spacy, presidio_analyzer, playwright, mcp, cryptography
@@ -260,6 +278,7 @@ fi
 ```
 
 ### Block 3: Step 2 — Kernel `/proc` Inspection of the Live Server Process
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-17)
 ```bash
 check_server() {
     SERVER_PID="none"
@@ -280,6 +299,7 @@ check_server() {
 ```
 
 ### Block 4: Steps 3 & 4 — Dependency Purge Loop & Health Verification
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-18)
 ```bash
 SCRATCHED_COUNT=0
 for pkg in "${PACKAGES_TO_SCRATCH[@]}"; do
@@ -294,6 +314,7 @@ done
 ---
 
 ## Summary Checklist: How to Verify Your Setup Anytime in 10 Seconds
+[//]: # (SECTION_ID: SIRA-DOC-05-SEC-19)
 
 Whenever you want to verify that your environment setup is working properly:
 

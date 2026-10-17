@@ -1,8 +1,11 @@
+[//]: # (DOC_ID: SIRA-MAN-README | VERSION: v1.1 | SCOPE: Siraugga / DevCore Framework)
+
 # The Developer's Manifesto
 
 Welcome to the definitive history of this ecosystem.
 
 ### The Volumes
+[//]: # (SECTION_ID: SIRA-MAN-README-SEC-1)
 0. [Foreword: The Cost of Memory](./00_Foreword.md) - *Why this manifesto exists.*
 1. [Chapter 1: Echoes in the Dark (The True Origin)](./01_Echoes_in_the_Void.md) - *Escaping the terminal and building the first movement grid.*
 2. [Chapter 2: The Core Architecture](./02_The_Core_Architecture.md) - *Forging the state manager over Christmas (GAME & MAIN_MENU).*

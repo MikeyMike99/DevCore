@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Chapter 1: The Five Problems We Encountered
 
 - **Previous**: [`00A_BEGINNER_GUIDE_TO_BASHRC_AND_VIRTUAL_ENVIRONMENTS.md`](./00A_BEGINNER_GUIDE_TO_BASHRC_AND_VIRTUAL_ENVIRONMENTS.md)
@@ -6,6 +8,7 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-1)
 
 When separating **DevCore** and a secondary project environment (`secondary-env`) into clean, independent Python virtual environments while configuring `~/.bashrc` ("bashbootrc") to switch environments automatically, five distinct obstacles appeared.
 
@@ -14,8 +17,10 @@ Understanding each problem and why it happened is essential so you never get cau
 ---
 
 ## Problem 1: Mixed Dependencies & The Live Port 5000 Zero-Downtime Trap
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-2)
 
 ### What Happened
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-3)
 Originally, the machine had a single Python virtual environment at `$HOME/secondary-env`. Over time, packages for two completely unrelated projects had been installed together inside that shared environment:
 - **Secondary Project packages**: `asciinema`, `checkov`, `boto3`, `cyclonedx-python-lib`, and cloud security tools.
 - **DevCore Web Portal packages**: `quart`, `hypercorn`, `presidio-analyzer`, `presidio-anonymizer`, `spacy`, `en_core_web_lg`, `playwright`, `mcp`, `cryptography`, `pypdf`, `markdown-pdf`, and `accessible-output2`.
@@ -23,6 +28,7 @@ Originally, the machine had a single Python virtual environment at `$HOME/second
 Even worse, the live **DevCore Web Server (`server.py`)** was actively running on **Port 5000** using Python from that shared environment to host our active web session!
 
 ### Why It Was a Problem
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-4)
 1. **We Could Not Immediately Delete DevCore Packages From the Shared Environment**:
    Because the running DevCore server was still executing inside the shared environment, uninstalling `quart`, `hypercorn`, or `spacy` while the server was still running there could break hot-reloads or crash the active session.
 2. **We Could Not Kill Port 5000 Mid-Session**:
@@ -33,11 +39,14 @@ Even worse, the live **DevCore Web Server (`server.py`)** was actively running o
 ---
 
 ## Problem 2: Forcing a Default Virtual Environment at Boot vs. Automatic Folder-Based Switching in `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-5)
 
 ### What Happened
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-6)
 In our very first draft of `~/.bashrc`, we placed `source "$HOME/.venvs/devcore_env/bin/activate"` unconditionally at the bottom of `~/.bashrc` so the primary project environment would be the default whenever a terminal opened.
 
 ### Why It Was a Problem
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-7)
 1. **Unwanted Hijacking of New Terminals**:
    If you open a terminal to work on the secondary project (or general Linux tasks), having the primary environment forced on by default means every terminal starts inside that environment whether you are working on it or not.
 2. **Manual Activation Friction**:
@@ -50,13 +59,16 @@ In our very first draft of `~/.bashrc`, we placed `source "$HOME/.venvs/devcore_
 ---
 
 ## Problem 3: Hardcoded Absolute User Paths Across WSL and Windows
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-8)
 
 ### What Happened
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-9)
 Across both `~/.bashrc` and external project helper scripts, several paths were originally hardcoded to a specific username:
 - Hardcoded Linux paths like `/home/<username>/secondary-env/...`
 - Hardcoded Windows mount paths like `/mnt/c/Users/<username>/Documents/DevCore` and `/mnt/c/Users/<username>/Videos/Captures`
 
 ### Why It Was a Problem
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-10)
 1. **Zero Portability Across Machines or User Accounts**:
    If you copy `~/.bashrc` or helper scripts to another computer (or run under a different Linux or Windows username), every hardcoded path breaks immediately with `No such file or directory`.
 2. **WSL Username vs. Windows Username Mismatch**:
@@ -69,8 +81,10 @@ Across both `~/.bashrc` and external project helper scripts, several paths were 
 ---
 
 ## Problem 4: The Null-Byte `/proc/$pid/environ` Trap When Inspecting the Live Server
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-11)
 
 ### What Happened
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-12)
 When writing [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh), Step 2 needed to inspect the currently running `python3 server.py` process (via its Linux process ID, `PID`) and check its `VIRTUAL_ENV` environment variable inside `/proc/$pid/environ`.
 
 When we first tested reading `/proc/$pid/environ` with standard `grep`:
@@ -80,6 +94,7 @@ grep "^VIRTUAL_ENV=" /proc/$pid/environ
 `grep` failed to return the clean `VIRTUAL_ENV=...` line (or complained `Binary file /proc/$pid/environ matches`).
 
 ### Why It Happened
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-13)
 1. **Linux `/proc/$pid/environ` Uses Null Bytes (`\0`), Not Newlines (`\n`)**:
    Inside the Linux kernel's `/proc` filesystem, a process's environment variables are stored as a single contiguous block of bytes separated by **null characters (`\0`, ASCII `0x00`)** instead of line breaks (`\n`).
 2. **Why Standard `grep` Fails on Null-Delimited Data**:
@@ -94,8 +109,10 @@ grep "^VIRTUAL_ENV=" /proc/$pid/environ
 ---
 
 ## Problem 5: Home Directory (`~`) Clutter & Keeping Tool Helpers Strictly Separated
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-14)
 
 ### What Happened
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-15)
 When inspecting the root home directory (`~`) during the environment audit, we discovered leftover files consuming significant disk space sitting directly in the root of the home folder:
 - Large split archive chunks left over from previous tool downloads.
 - Multiple single-use scratch files and test logs (`scratch_patch.py`, `temp_test.py`, `scratch_verification.py`, `temp_log.log`).
@@ -103,6 +120,7 @@ When inspecting the root home directory (`~`) during the environment audit, we d
 Additionally, we needed to ensure that external project helper scripts and documentation remained **100% dedicated to their respective tools** with zero cross-contamination with DevCore.
 
 ### How We Solved It
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-16)
 1. **Safe Dry-Run Audit First**: We audited all loose files and verified that active project folders (`secondary-env`, `.venvs/devcore_env`, `.local/bin`, `.gemini`, etc.) were excluded from the cleanup list.
 2. **Reclaimed Disk Space**: Removed only the leftover archive chunks and temporary scratch scripts from the root home directory, dropping loose clutter to `0` files.
 3. **Strict Boundary Verification**: Verified that external helper scripts contained zero unwanted references to DevCore.
@@ -110,16 +128,19 @@ Additionally, we needed to ensure that external project helper scripts and docum
 ---
 
 ## Beginner Coder Q&A: Understanding Chapter 1 With Zero Prior Background
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-17)
 
 If you are reading Chapter 1 as a beginner developer and wondering how all of these pieces work under the hood, here are the plain-English answers to the questions a beginner coder asks:
 
 ### 1. "Why did we put the new virtual environment in `$HOME/.venvs/devcore_env` instead of inside `<project_root>/venv` on Windows?"
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-1)
 This is one of the most important secrets of working in **WSL 2 (Windows Subsystem for Linux)**:
 - Folders starting with `/mnt/c/...` live on your **Windows NTFS hard drive**. When Linux (`python3` or `pip`) reads thousands of tiny `.py` files across the Windows-to-Linux bridge (`/mnt/c/`), file operations are **5x to 10x slower**, and Linux file permissions can behave strangely.
 - Folders starting with `/home/<username>/...` live inside **native Linux `ext4` storage**.
 - By keeping your **project code** in `/mnt/c/Users/<username>/Documents/DevCore` (so Windows tools and editors can easily see it) while keeping your **Python virtual environment** in `$HOME/.venvs/devcore_env` (on native Linux `ext4`), your server starts instantly, `pip install` runs at maximum speed, and your project folder stays clean!
 
 ### 2. "Wait—so the order of commands inside `~/.bashrc` and `start_server.sh` matters too?!"
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-2)
 **Yes!** The order of lines in Bash scripts ([`~/.bashrc`](./02_SOURCE_CODE_AND_SYSTEM_EVIDENCE.md) and [`scripts/start_server.sh`](../../scripts/start_server.sh)) is critical:
 
 1. **In `start_server.sh`, `source .../bin/activate` MUST Come Before `exec python3 server.py`**:
@@ -148,6 +169,7 @@ This is one of the most important secrets of working in **WSL 2 (Windows Subsyst
    - If you called `_auto_venv_hook` *before* `builtin cd "$@"`, `$PWD` would still be your **old** folder! Moving into the new folder first updates `$PWD`, and then `_auto_venv_hook` immediately sees your new folder and activates the matching environment.
 
 ### 3. "In Problem 4, what is a 'Null Byte' (`\0`) and why did `strings` fix it?"
+[//]: # (SECTION_ID: SIRA-DOC-01-SEC-3)
 - In a normal text file (like `.bashrc`), the computer puts a **Newline character (`\n`)** at the end of every line so programs like `grep` know where one line ends and the next line begins.
 - In Linux's internal `/proc/$pid/environ` file, the Linux kernel separates variables (`PATH=...`, `HOME=...`, `VIRTUAL_ENV=...`) using an invisible zero byte called a **Null Byte (`\0`)** instead of a newline.
 - When `grep` looks at a file with zero bytes and no line breaks, it thinks the file is a binary program rather than text, and refuses to match lines properly.

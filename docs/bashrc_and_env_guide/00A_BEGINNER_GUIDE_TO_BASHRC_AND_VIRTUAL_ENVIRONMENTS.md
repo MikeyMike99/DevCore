@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-00A | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Beginner Developer Guide: What Is `.bashrc` ("bashbootrc") & How Do Virtual Environments Work?
 
 - **Back to Index**: [`00_README_INDEX.md`](./00_README_INDEX.md)
@@ -6,6 +8,7 @@
 ---
 
 ## Introduction: Reading This Documentation as a Beginner Coder
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-1)
 
 If you are a beginner programmer opening this documentation folder for the first time—and you have never customized Linux startup files or managed multiple Python projects on the same computer—you will naturally ask several foundational questions before reading Chapters 1 through 5:
 
@@ -20,16 +23,19 @@ This guide answers every one of those questions in plain, beginner-friendly Engl
 ---
 
 ## Question 1: What Is `~/.bashrc` ("bashbootrc")?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-2)
 
 When you open your Ubuntu / WSL terminal on Windows, you are starting a program called **Bash** (the **B**ourne-**A**gain **SH**ell). Bash is the command-line interpreter that listens to the commands you type (like `ls`, `cd`, `python3`, or `git`) and runs them.
 
 Every single time you open a new interactive terminal window, Bash looks in your personal Linux home folder (`/home/<username>`, written as the shortcut `~`) for a hidden configuration file named **`.bashrc`** (short for **Bash Run Commands**, or as you can think of it, **"bashbootrc"**—the boot script for your terminal!).
 
 ### Why Does `.bashrc` Start With a Dot (`.`)?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-3)
 - In Linux, putting a period (`.`) at the very beginning of a filename marks it as a **hidden configuration file** (often called a "dotfile").
 - When you type regular `ls` in your home folder, Linux hides `.bashrc` so your folder looks tidy and you don't accidentally delete your settings. (To see hidden dotfiles, you type `ls -a` or `ll`).
 
 ### What Does `.bashrc` Actually Do When Your Terminal Boots?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-4)
 Before Bash even shows you your blinking cursor (`user@host:~$`), it silently reads `~/.bashrc` from top to bottom and executes every setup instruction inside it:
 - It sets up your command history so pressing the `Up Arrow` remembers your past commands.
 - It loads your custom keyboard/command shortcuts.
@@ -39,18 +45,21 @@ Before Bash even shows you your blinking cursor (`user@host:~$`), it silently re
 ---
 
 ## Question 2: What Is a Python Virtual Environment (`venv`), and Why Did Sharing One Cause Problems?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-5)
 
 Imagine you are a carpenter working on two completely different projects in your workshop:
 1. **Project A (`Secondary Work Project`)**: A cloud security and terminal recording project that uses tools like `asciinema` (terminal recorder), `checkov` (cloud security scanner), `boto3` (AWS SDK), and `cyclonedx` (software bill of materials).
 2. **Project B (`DevCore`)**: An accessible web portal and AI orchestration engine that runs a live web server on Port 5000 using `quart`, `hypercorn`, `playwright`, `spacy`, `presidio-analyzer`, and `accessible-output2`.
 
 ### What Happens Without Separate Virtual Environments
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-6)
 If you throw all the tools and libraries for both projects into one giant toolbox (`~/shared-env`), three bad things happen:
 1. **Tool Confusion & Bloat**: When you try to generate a list of packages needed for Project A (`pip freeze`), all heavy web server and AI packages from Project B (`quart`, `spacy`, `playwright`, etc.) pollute Project A's list!
 2. **Version Collisions**: If Project A needs version 1.0 of a library and Project B upgrades that same library to version 2.0, installing packages for Project B can suddenly break Project A.
 3. **Accidental Cross-Contamination**: Scripts in Project A might accidentally rely on Project B's files, making it impossible to share or deploy Project A cleanly on another computer.
 
 ### How a Virtual Environment (`venv`) Solves This
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-7)
 A **Python Virtual Environment** is simply a self-contained folder that holds its own private copy of `python3` and its own private `site-packages` library folder.
 - **`$HOME/secondary-env`**: Holds **only** the packages needed for the secondary project (`asciinema`, `checkov`, `boto3`, etc.).
 - **`$HOME/.venvs/devcore_env`**: Holds **only** the packages needed for DevCore (`quart`, `hypercorn`, `spacy`, `presidio`, `playwright`, `mcp`, `cryptography`, `accessible-output2`, etc.).
@@ -60,15 +69,18 @@ When you **activate** a virtual environment, your terminal temporarily points th
 ---
 
 ## Question 3: Why Did We Build an "Auto-Switcher" in `.bashrc` Instead of Just Activating One Environment at Startup?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-8)
 
 When we first created the isolated `devcore_env` virtual environment, our very first idea was to put `source ~/.venvs/devcore_env/bin/activate` at the bottom of `~/.bashrc`.
 
 ### Why That First Idea Was Flawed
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-9)
 If you force one environment to activate unconditionally at the bottom of `~/.bashrc`:
 - Every time you open a terminal to work on **Project A**, you are unexpectedly inside the **DevCore** environment!
 - If you run `python3` or `pip install` inside your Project A folder without noticing, you will install packages into DevCore (or get `ModuleNotFoundError` because Project A's libraries aren't active).
 
 ### How Our Smart Auto-Switcher (`_auto_venv_hook`) Works Better
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-10)
 Instead of forcing one default environment when the terminal boots, we taught `~/.bashrc` to look at **which folder you are currently standing in (`$PWD`)**:
 1. If you open a terminal in your neutral home folder (`$HOME`), neither environment is forced on you.
 2. The moment you navigate (`cd`) into **any** folder inside the secondary project (for example, `cd ~/secondary-env/secondary_project`), `~/.bashrc` sees `*/secondary-env*` in your path and **automatically activates that environment for you**!
@@ -78,6 +90,7 @@ Instead of forcing one default environment when the terminal boots, we taught `~
 ---
 
 ## Question 4: Plain-English Glossary of Bash & Linux Terms Used in Chapters 1–5
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-11)
 
 When reading the rest of this documentation, you will see several Bash and Linux terms. Here is what each one means in plain English:
 
@@ -105,6 +118,7 @@ When reading the rest of this documentation, you will see several Bash and Linux
 ---
 
 ## Question 5: Does the Order of Lines in `~/.bashrc` Matter?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-12)
 
 **Yes—100%!** Bash reads `~/.bashrc` **strictly from top to bottom**.
 
@@ -131,6 +145,7 @@ There are four specific reasons why the order of lines in `~/.bashrc` is critica
 ---
 
 ## Question 6: How Will This Documentation Help Me as a Beginner Developer in Future Projects?
+[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-13)
 
 Whenever you start an additional Python project in the future, you will never again have to tangle your packages together or manually type long `source .../bin/activate` commands:
 

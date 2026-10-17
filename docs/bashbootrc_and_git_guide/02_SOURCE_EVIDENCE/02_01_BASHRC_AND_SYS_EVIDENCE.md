@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-02_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 02.1: Source Code & System Evidence: Shell Boot & Process Management
 
 - **Back to Master Index**: [`../00_README_INDEX.md`](../00_README_INDEX.md)
@@ -6,12 +8,14 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-1)
 
 Every architectural decision in our shell boot configuration and process supervision was verified directly against the live files and Linux kernel process tables (`/proc`). Below are the primary code excerpts, line numbers, and technical proofs.
 
 ---
 
 ## Source 1: Interactive Guard & Local Tool Path Registration in `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-2)
 
 **Source File**: `~/.bashrc` (Lines 1–9 and 119–125)
 
@@ -34,6 +38,7 @@ fi
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-3)
 1. **Interactive Flag Verification (`case $- in *i*)`)**:
    `$-` contains the active flags of the shell session. When a script runs non-interactively (`bash -c "..."`), `$-` does not contain `i`, so line 8 immediately executes `return;;`. This prevents background commands (`scp`, `rsync`) from choking on custom shell output.
 2. **Dynamic User Tool Discovery**:
@@ -42,6 +47,7 @@ fi
 ---
 
 ## Source 2: Auto-Environment Detection & Dynamic Windows Profile Resolution
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-4)
 
 **Source File**: `~/.bashrc` (Auto-Switcher Block)
 
@@ -90,6 +96,7 @@ fi
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-5)
 1. **Dynamic Path Bridge**: `cmd.exe /c "echo %USERPROFILE%"` query combined with `wslpath -u` bridges Windows user profile paths into WSL without any hardcoded usernames.
 2. **Wildcard Directory Detection**: `case "$PWD" in */DevCore*)` guarantees that navigating into the root or any subfolder triggers environment activation.
 
@@ -97,6 +104,7 @@ fi
 ---
 
 ## Source 3: Dedicated Server Boot Wrapper (`scripts/start_server.sh`)
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-6)
 
 **Source File**: [`scripts/start_server.sh`](../../scripts/start_server.sh)
 
@@ -110,12 +118,14 @@ exec python3 server.py
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-7)
 - **Process Replacement**: `exec python3 server.py` replaces the shell process entirely with Python, ensuring no lingering wrapper shells remain in memory.
 - **Location Independence**: `cd "$(dirname "$0")/.."` guarantees the server boots in the project root regardless of where the launcher was invoked.
 
 ---
 
 ## Source 4: Kernel Process Inspection in `scripts/cleanup_dependencies.sh`
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-8)
 
 **Source File**: [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh)
 
@@ -139,17 +149,21 @@ check_server() {
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-9)
 - Inspects `/proc/$pid/cwd` to confirm the process belongs to DevCore.
 - Uses `strings "/proc/$pid/environ"` to parse null-byte-separated environment blocks and identify the running virtual environment before allowing package removals.
 
 ---
 
 ## Beginner Coder Q&A: Source Code & System Evidence
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-10)
 
 ### 1. "What is `tr -d '\r\n'` on line 6 of the Windows resolution block?"
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-1)
 Windows text ends with Carriage Return + Line Feed (`\r\n`). Linux only uses Line Feed (`\n`). Piping Windows output through `tr -d '\r\n'` deletes the invisible Windows `\r` character so it doesn't corrupt Linux path variables.
 
 ### 2. "Why does `check_server()` check `[ "$pid" != "$$" ]`?"
+[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-2)
 In Bash, `$$` represents the Process ID of the script currently running. Checking `"$pid" != "$$"` ensures the script doesn't mistake itself for the server process!
 
 ---

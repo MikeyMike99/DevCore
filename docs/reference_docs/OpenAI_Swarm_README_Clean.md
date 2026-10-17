@@ -1,4 +1,4 @@
-
+[//]: # (DOC_ID: SIRA-DOC-OPENAI_SWARM_R | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
 
 # Swarm (experimental, educational)
 
@@ -8,6 +8,7 @@
 > We recommend migrating to the Agents SDK for all production use cases.
 
 ## Install
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-1)
 
 Requires Python 3.10+
 
@@ -22,6 +23,7 @@ pip install git+https://github.com/openai/swarm.git
 ```
 
 ## Usage
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-2)
 
 ```python
 from swarm import Swarm, Agent
@@ -57,6 +59,7 @@ What can I assist?
 ```
 
 ## Table of Contents
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-3)
 
 - Overview
 - Examples
@@ -80,6 +83,7 @@ These primitives are powerful enough to express rich dynamics between tools and 
 > Swarm Agents are not related to Assistants in the Assistants API. They are named similarly for convenience, but are otherwise completely unrelated. Swarm is entirely powered by the Chat Completions API and is hence stateless between calls.
 
 ## Why Swarm
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-4)
 
 Swarm explores patterns that are lightweight, scalable, and highly customizable by design. Approaches similar to Swarm are best suited for situations dealing with a large number of independent capabilities and instructions that are difficult to encode into a single prompt.
 
@@ -99,6 +103,7 @@ Check out `/examples` for inspiration! Learn more about each one in its README.
 # Documentation
 
 ## Running Swarm
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-5)
 
 Start by instantiating a Swarm client (which internally just instantiates an `OpenAI` client).
 
@@ -109,6 +114,7 @@ client = Swarm()
 ```
 
 ### `client.run()`
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-6)
 
 Swarm's `run()` function is analogous to the `chat.completions.create()` function in the Chat Completions API – it takes `messages` and returns `messages` and saves no state between calls. Importantly, however, it also handles Agent function execution, hand-offs, context variable references, and can take multiple turns before returning to the user.
 
@@ -144,12 +150,14 @@ Once `client.run()` is finished (after potentially multiple calls to agents and 
 | **context_variables** | `dict`  | The same as the input variables, plus any changes.                                                                                                                                                                                                                           |
 
 ## Agents
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-7)
 
 An `Agent` simply encapsulates a set of `instructions` with a set of `functions` (plus some additional settings below), and has the capability to hand off execution to another `Agent`.
 
 While it's tempting to personify an `Agent` as "someone who does X", it can also be used to represent a very specific workflow or step defined by a set of `instructions` and `functions` (e.g. a set of steps, a complex retrieval, single step of data transformation, etc). This allows `Agent`s to be composed into a network of "agents", "workflows", and "tasks", all represented by the same primitive.
 
 ## `Agent` Fields
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-8)
 
 | Field            | Type                     | Description                                                                   | Default                      |
 | ---------------- | ------------------------ | ----------------------------------------------------------------------------- | ---------------------------- |
@@ -160,6 +168,7 @@ While it's tempting to personify an `Agent` as "someone who does X", it can also
 | **tool_choice**  | `str`                    | The tool choice for the agent, if any.                                        | `None`                       |
 
 ### Instructions
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-9)
 
 `Agent` `instructions` are directly converted into the `system` prompt of a conversation (as the first message). Only the `instructions` of the active `Agent` will be present at any given time (e.g. if there is an `Agent` handoff, the `system` prompt will change, but the chat history will not.)
 
@@ -192,6 +201,7 @@ Hi John, how can I assist you today?
 ```
 
 ## Functions
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-10)
 
 - Swarm `Agent`s can call python functions directly.
 - Function should usually return a `str` (values will be attempted to be cast as a `str`).
@@ -224,6 +234,7 @@ Hola, John!
 - If multiple functions are called by the `Agent`, they will be executed in that order.
 
 ### Handoffs and Updating Context Variables
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-11)
 
 An `Agent` can hand off to another `Agent` by returning it in a `function`.
 
@@ -276,6 +287,7 @@ Sales Agent
 > If an `Agent` calls multiple functions to hand-off to an `Agent`, only the last handoff function will be used.
 
 ### Function Schemas
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-12)
 
 Swarm automatically converts functions into a JSON Schema that is passed into Chat Completions `tools`.
 
@@ -316,6 +328,7 @@ def greet(name, age: int, location: str = "New York"):
 ```
 
 ## Streaming
+[//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-13)
 
 ```python
 stream = client.run(agent, messages, stream=True)

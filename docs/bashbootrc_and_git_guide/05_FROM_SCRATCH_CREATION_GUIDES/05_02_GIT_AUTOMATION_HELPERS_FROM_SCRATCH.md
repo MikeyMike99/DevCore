@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-05_02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 05.2: From-Scratch Creation Guide: Git Automation Helpers
 
 - **Back to Master Index**: [`../00_README_INDEX.md`](../00_README_INDEX.md)
@@ -7,6 +9,7 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-1)
 
 This guide walks you through building `helpers.sh`, a centralized Git automation toolsuite, from a completely blank text file.
 
@@ -18,6 +21,7 @@ By following this guide, you will implement three production-grade commands:
 ---
 
 ## Directory Setup
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-2)
 
 Create the tools directory in your user home folder:
 
@@ -29,8 +33,10 @@ nano "$HOME/tools/recording/helpers.sh"
 ---
 
 ## Step-by-Step Implementation
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-3)
 
 ### Step 1: Add the File Header and Base Options
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-4)
 At the top of `helpers.sh`, define the script header:
 
 ```bash
@@ -42,6 +48,7 @@ At the top of `helpers.sh`, define the script header:
 ```
 
 ### Step 2: Implement the `start-day` Command
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-5)
 Add the morning branch bootstrapper:
 
 ```bash
@@ -73,6 +80,7 @@ start-day() {
 ```
 
 ### Step 3: Implement the `save-work` Command with Stash Safety
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-6)
 Add the interactive commit engine with branch-hopping protection:
 
 ```bash
@@ -127,6 +135,7 @@ save-work() {
 ```
 
 ### Step 4: Implement Cross-OS Mirror Sync (`sync-win-repo`)
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-7)
 Add the Windows mirroring function:
 
 ```bash
@@ -149,6 +158,7 @@ sync-win-repo() {
 ```
 
 ### Step 5: Make Executable & Register in `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-8)
 Run the following commands in your terminal:
 
 ```bash
@@ -160,6 +170,7 @@ source ~/.bashrc
 ---
 
 ## Why Order Matters in Git Automation
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-9)
 
 1. **Pull Main Before Branching**:
    - `start-day` updates `main` *before* cutting a new branch. Branching from stale local code causes merge conflicts later.
@@ -173,12 +184,16 @@ source ~/.bashrc
 ---
 
 ## Beginner Coder Q&A
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-10)
 
 ### Q: Why do we use `git stash push -u` instead of just `git stash`?
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-11)
 **A:** Standard `git stash` only saves files that Git is already tracking. The `-u` (untracked) flag ensures brand-new files you created today are also safely stashed.
 
 ### Q: What is `tr -d '\r'` doing in the Windows path helper?
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-12)
 **A:** `cmd.exe` outputs text with Windows carriage returns (`\r\n`). `tr -d '\r'` strips the invisible `\r` so the Linux path resolves without syntax errors.
 
 ### Q: What happens if `git merge` encounters a conflict in `save-work`?
+[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-13)
 **A:** Git stops and asks you to resolve the conflict. Because the branch is not deleted until after a successful push, your work is never lost.

@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-02_02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 02.2: Source Code Evidence: Automated Git Operations & Synchronization
 
 - **Previous Evidence Chapter**: [`02_01_BASHRC_AND_SYS_EVIDENCE.md`](./02_01_BASHRC_AND_SYS_EVIDENCE.md)
@@ -7,12 +9,14 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-1)
 
 Automated Git flow helpers protect developers from data loss, detached HEAD states, and cross-filesystem corruption. Below are the actual source code excerpts, line numbers, and technical proofs from `helpers.sh`.
 
 ---
 
 ## Source 1: Dynamic Branch Creation & Upstream Tracking in `start-day`
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-2)
 
 **Source File**: `<secondary_repo>/tools/recording/helpers.sh` (Lines 103–135)
 
@@ -35,6 +39,7 @@ start-day() {
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-3)
 1. **Dynamic Developer Identity**: `git config user.name` is extracted dynamically and sanitized (`tr -cd 'a-z0-9_-'`) to prevent malformed branch names.
 2. **Main Synchronization**: If on `main`, it pulls the latest remote code *before* branching.
 3. **Immediate Upstream Link**: `git push -u origin "$branch_name"` links the new local branch to the remote repository on day one, eliminating "no upstream branch" errors later.
@@ -42,6 +47,7 @@ start-day() {
 ---
 
 ## Source 2: Automated Stash Buffering During Branch Switches in `save-work`
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-4)
 
 **Source File**: `<secondary_repo>/tools/recording/helpers.sh` (Lines 426–445 and 496–505)
 
@@ -65,6 +71,7 @@ fi
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-5)
 1. **Dirty Worktree Protection**: `git diff --quiet || git diff --cached --quiet` detects both unstaged and staged modifications.
 2. **Untracked Inclusion**: `git stash push -u` bundles untracked new files into the stash pocket.
 3. **Reversible Safety Net**: If `git checkout main` fails, the script immediately runs `git stash pop` before returning, ensuring zero edits are ever lost.
@@ -72,6 +79,7 @@ fi
 ---
 
 ## Source 3: Protected Feature Merge & Verified Remote Deletion
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-6)
 
 **Source File**: `<secondary_repo>/tools/recording/helpers.sh` (Lines 448–475)
 
@@ -95,12 +103,14 @@ fi
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-7)
 1. **Guarded Branch Retirement**: Deleting local (`git branch -d`) and remote (`git push origin --delete`) feature branches occurs **only after** `git push origin main` returns success.
 2. **Automatic Conflict Rollback**: If a conflict occurs, `git merge --abort` restores the repository to a clean state and returns to the feature branch.
 
 ---
 
 ## Source 4: Cross-OS Synchronization With Git Database Protection
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-8)
 
 **Source File**: `<secondary_repo>/tools/recording/helpers.sh` (Lines 638–644)
 
@@ -114,17 +124,21 @@ sync-win-repo() {
 ```
 
 ### What This Source Proves
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-9)
 - The `--exclude=".git"` flag prevents mirroring Linux `ext4` Git internal files into Windows `NTFS`, preserving repository database integrity across operating systems.
 
 ---
 
 ## Beginner Coder Q&A: Git Source Evidence
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-10)
 
 ### 1. "What does `2>/dev/null || true` mean in `git push -u origin ...`?"
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-1)
 - `2>/dev/null` silences any network error text.
 - `|| true` guarantees that if the push fails (e.g., if you are currently offline on an airplane), the script does **not** crash and allows you to keep working locally!
 
 ### 2. "Why does `git merge` include the `-m` flag?"
+[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-2)
 Without `-m "message"`, Git pops open a terminal text editor (like Vim or Nano) asking you to type a merge commit message. For beginners who do not know how to exit Vim (`:wq`), this feels like the terminal is frozen. Passing `-m` writes the message automatically and completes the merge instantly.
 
 ---

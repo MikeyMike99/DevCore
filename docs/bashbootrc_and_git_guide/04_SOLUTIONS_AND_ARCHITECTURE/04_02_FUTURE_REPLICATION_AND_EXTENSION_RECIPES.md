@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-04_02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 04.2: Future Replication & Extension Recipes
 
 - **Back to Master Index**: [`../00_README_INDEX.md`](../00_README_INDEX.md)
@@ -7,6 +9,7 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-1)
 
 As projects grow, developers frequently need to add a third or fourth virtual environment or create custom Git automation commands. 
 
@@ -15,18 +18,22 @@ This guide provides tested, copy-paste recipes for extending both the shell boot
 ---
 
 ## Recipe 1: Adding a 3rd Virtual Environment to `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-2)
 
 Suppose you create a new game or data science project located at `/mnt/c/Users/<username>/Documents/GameDev` and its dedicated virtual environment lives at `~/.venvs/gamedev_env`.
 
 ### Step 1: Open `~/.bashrc` in Your Terminal
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-3)
 ```bash
 nano ~/.bashrc
 ```
 
 ### Step 2: Locate the `_auto_venv_hook()` Function
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-4)
 Scroll down to the `_auto_venv_hook()` block.
 
 ### Step 3: Add the New Path Match Rule
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-5)
 Insert the new `elif` branch before the default deactivation fallback:
 
 ```bash
@@ -59,6 +66,7 @@ _auto_venv_hook() {
 ```
 
 ### Step 4: Reload Your Shell Configuration
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-6)
 ```bash
 source ~/.bashrc
 ```
@@ -66,15 +74,18 @@ source ~/.bashrc
 ---
 
 ## Recipe 2: Adding a Custom Git Workflow Command to `helpers.sh`
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-7)
 
 Suppose your team needs an automated command `check-sync` that tells you if your local branch is behind GitHub before you start coding.
 
 ### Step 1: Open `helpers.sh`
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-8)
 ```bash
 nano "$HOME/tools/recording/helpers.sh"
 ```
 
 ### Step 2: Append the New Helper Function
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-9)
 Add this function to the bottom of `helpers.sh`:
 
 ```bash
@@ -102,6 +113,7 @@ check-sync() {
 ```
 
 ### Step 3: Refresh Active Shell Session
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-10)
 ```bash
 source "$HOME/tools/recording/helpers.sh"
 ```
@@ -109,6 +121,7 @@ source "$HOME/tools/recording/helpers.sh"
 ---
 
 ## Why Order Matters in Extension Recipes
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-11)
 
 1. **Specific Folders Before Generic Fallbacks**:
    - In `_auto_venv_hook()`, nested folders or specific projects must be evaluated before broad parent paths.
@@ -123,6 +136,7 @@ source "$HOME/tools/recording/helpers.sh"
 ---
 
 ## Extension Verification Checklist
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-12)
 
 | Test Item | Command / Action | Expected Result |
 | :--- | :--- | :--- |
@@ -134,12 +148,16 @@ source "$HOME/tools/recording/helpers.sh"
 ---
 
 ## Beginner Coder Q&A
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-13)
 
 ### Q: What happens if I create a new project folder inside DevCore?
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-14)
 **A:** Because `_auto_venv_hook()` uses wildcard pattern matching (`*"/DevCore"*`), any subfolder inside DevCore will automatically remain in `devcore_env`. If you want a specific subfolder inside DevCore to use a separate environment, place that specific subfolder check **above** the main DevCore check.
 
 ### Q: Why do we write `2>/dev/null` after `deactivate` and `source`?
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-15)
 **A:** `2>/dev/null` silences standard error messages. If no virtual environment is active, calling `deactivate` prints `deactivate: command not found`. Redirecting errors keeps your terminal prompt clean and quiet during navigation.
 
 ### Q: Do I need to restart my computer when updating `helpers.sh`?
+[//]: # (SECTION_ID: SIRA-DOC-04_02-SEC-16)
 **A:** No. Simply run `source ~/.bashrc` or `source "$HOME/tools/recording/helpers.sh"`. Changes take effect instantly in that terminal window.

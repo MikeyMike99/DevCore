@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Chapter 2: Source Code & System Evidence
 
 - **Previous**: [`01_PROBLEMS_WE_ENCOUNTERED.md`](./01_PROBLEMS_WE_ENCOUNTERED.md)
@@ -6,12 +8,14 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-1)
 
 Every engineering decision we made was backed by inspecting the live files on disk and the Linux kernel process table (`/proc`). Below are the source code blocks, relative file paths, and line numbers from the files that power our setup, followed by a plain-English analysis of what each block does.
 
 ---
 
 ## Evidence 1: The Interactive Guard & External Helper Sourcing in `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-2)
 
 **Source File**: `~/.bashrc` (Lines 1–9 and Lines 119–125)
 
@@ -39,6 +43,7 @@ fi
 ```
 
 ### What This Proves
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-3)
 1. **Why Non-Interactive `bash -c` Subshells Exit Early (`case $- in *i*)`)**:
    Line 6 checks the special Bash flags variable `$-`. When a terminal is interactive (has a human typing or uses `bash -i`), `$-` contains the letter `i` (`*i*`), so Bash continues reading `.bashrc`. When a script runs non-interactively (`bash -c "..."` without `-i`), line 8 immediately executes `return;;` and stops reading `.bashrc`!
 2. **Dynamic `$HOME` Path for External Helpers**:
@@ -47,6 +52,7 @@ fi
 ---
 
 ## Evidence 2: Manual Jump Commands & Automatic Folder-Based Switching in `~/.bashrc`
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-4)
 
 **Source File**: `~/.bashrc` (Auto-Environment Switcher Block)
 
@@ -109,6 +115,7 @@ fi
 ```
 
 ### Line-by-Line Technical Breakdown
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-5)
 1. **Jump Functions and Aliases**:
    - Checks that the virtual environment activation script exists (`[ -f ... ]`).
    - Runs `source .../bin/activate` to activate the virtual environment.
@@ -127,6 +134,7 @@ fi
 ---
 
 ## Evidence 3: The Dedicated Server Startup Script (`scripts/start_server.sh`)
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-6)
 
 **Source File**: [`scripts/start_server.sh`](../../scripts/start_server.sh)
 
@@ -142,6 +150,7 @@ exec python3 server.py
 ```
 
 ### Line-by-Line Technical Breakdown
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-7)
 - **`cd "$(dirname "$0")/.." || exit 1`**:
   `"$0"` is the path to `start_server.sh` itself. `dirname "$0"` gets the `scripts` folder, and `/..` steps one level up into the root project directory—regardless of which folder the user was standing in when calling the script.
 - **`source "$HOME/.venvs/devcore_env/bin/activate"`**:
@@ -152,6 +161,7 @@ exec python3 server.py
 ---
 
 ## Evidence 4: The Live Process Inspector & Dependency Cleanup Script (`scripts/cleanup_dependencies.sh`)
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-8)
 
 **Source File**: [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh)
 
@@ -217,6 +227,7 @@ done
 ```
 
 ### What This Proves
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-9)
 1. **Kernel-Level Process Identification (`check_server()`)**:
    - `pgrep -f "python.*server\.py"` finds running Python server processes.
    - `readlink -f "/proc/$pid/cwd"` verifies the working directory.
@@ -227,6 +238,7 @@ done
 ---
 
 ## Evidence 5: Dynamic Windows Path Resolution in External Helper Scripts
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-10)
 
 **Source File**: `<secondary_repo>/tools/recording/helpers.sh`
 
@@ -250,15 +262,18 @@ _get_win_dest() {
 ```
 
 ### What This Proves
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-11)
 - Rather than hardcoding usernames, `_get_win_dest()` dynamically queries Windows for `%USERPROFILE%`, converts it with `wslpath -u`, and falls back to `/mnt/c/Users/$USER/Videos/Captures`.
 
 ---
 
 ## Beginner Coder Q&A: Understanding the Source Code in Chapter 2
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-12)
 
 When a beginner coder reads the Bash code in Chapter 2 for the first time, several symbols stand out. Here is what they mean in plain English:
 
 ### 1. "What does `2>/dev/null` mean? Why is it on so many lines?"
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-1)
 In Linux, every command has two output channels:
 - **Channel `1` (`stdout`)**: Normal output messages.
 - **Channel `2` (`stderr`)**: Error messages (like `Warning: folder not found`).
@@ -266,11 +281,13 @@ In Linux, every command has two output channels:
 - Therefore, **`2>/dev/null`** simply means: *"If this command prints a noisy error message on Channel 2, throw that error message into the silent trash can so it doesn't clutter the user's screen or interrupt their screen reader!"*
 
 ### 2. "What does `>/dev/null 2>&1` mean?"
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-2)
 - `>/dev/null` sends **Channel 1 (normal output)** to `/dev/null`.
 - `2>&1` sends **Channel 2 (error output)** to the exact same place as Channel 1.
 - Together, `>/dev/null 2>&1` means: *"Run this check completely silently—don't print normal output and don't print error output; I only care whether the command succeeded (`True`) or failed (`False`)!"*
 
 ### 3. "In `_auto_venv_hook()`, why are there asterisks around `*/DevCore*`?"
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-3)
 In a Bash `case` block, the asterisk (`*`) is a **wildcard** that means *"any characters before or after this word"*:
 - Because we wrote `*/DevCore*` with an asterisk at both the front and the back, it matches:
   - `/mnt/c/Users/<username>/Documents/DevCore` (the main folder)
@@ -279,6 +296,7 @@ In a Bash `case` block, the asterisk (`*`) is a **wildcard** that means *"any ch
 - Putting `*` on both ends guarantees that no matter how deep inside the project you navigate, Bash recognizes which project you are in.
 
 ### 4. "Why do we check `if [[ ! "$PROMPT_COMMAND" =~ "_auto_venv_hook" ]]` before adding `_auto_venv_hook`?"
+[//]: # (SECTION_ID: SIRA-DOC-02-SEC-4)
 - If you edit `~/.bashrc` and type `source ~/.bashrc` multiple times in a session to reload your changes, without that check `_auto_venv_hook` would get appended multiple times to `PROMPT_COMMAND`.
 - That check ensures the hook is only added once, maintaining clean and predictable terminal behavior.
 

@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-05_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 05.1: From-Scratch Creation Guide: Bash Boot Auto-Switcher
 
 - **Back to Master Index**: [`../00_README_INDEX.md`](../00_README_INDEX.md)
@@ -6,6 +8,7 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-1)
 
 This guide teaches beginner developers how to build an automated, directory-aware Python virtual environment switcher inside `~/.bashrc` ("bashbootrc") from a blank file on any clean Linux or WSL distribution.
 
@@ -14,6 +17,7 @@ By the end of this tutorial, your terminal will automatically activate the corre
 ---
 
 ## Prerequisites & Directory Setup
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-2)
 
 Before editing `~/.bashrc`, prepare the isolated virtual environment directories on your system:
 
@@ -31,13 +35,16 @@ python3 -m venv "$HOME/secondary_env"
 ---
 
 ## Step-by-Step Implementation
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-3)
 
 ### Step 1: Open `~/.bashrc` in Nano
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-4)
 ```bash
 nano ~/.bashrc
 ```
 
 ### Step 2: Add the Non-Interactive Guard
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-5)
 At the very top of `~/.bashrc`, verify or paste the interactive session guard:
 
 ```bash
@@ -49,6 +56,7 @@ esac
 ```
 
 ### Step 3: Add the Auto-Switching Hook Logic
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-6)
 Scroll to the bottom of `~/.bashrc` and paste the core auto-switching engine:
 
 ```bash
@@ -78,6 +86,7 @@ _auto_venv_hook() {
 ```
 
 ### Step 4: Wrap the Built-In `cd` Command & Register Prompt Hook
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-7)
 Directly beneath `_auto_venv_hook()`, add the trigger mechanisms:
 
 ```bash
@@ -91,6 +100,7 @@ PROMPT_COMMAND="_auto_venv_hook${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 ```
 
 ### Step 5: Save and Reload
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-8)
 1. Press `Ctrl + O` and hit `Enter` to save in Nano.
 2. Press `Ctrl + X` to exit Nano.
 3. Reload your terminal session:
@@ -101,6 +111,7 @@ PROMPT_COMMAND="_auto_venv_hook${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 ---
 
 ## Why Order Matters in `~/.bashrc` Setup
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-9)
 
 1. **Guard Before Script Execution**:
    - The interactive guard (`case $- in *i*)`) must precede all prints and hooks. If commands run during automated non-interactive tasks (like file transfers), output corrupts data streams.
@@ -114,6 +125,7 @@ PROMPT_COMMAND="_auto_venv_hook${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 ---
 
 ## Verification & Testing
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-10)
 
 Verify that your auto-switcher functions correctly by running these tests:
 
@@ -137,12 +149,16 @@ echo "$VIRTUAL_ENV"
 ---
 
 ## Beginner Coder Q&A
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-11)
 
 ### Q: Why do we use `builtin cd` instead of just `cd` inside the wrapper function?
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-12)
 **A:** If a function named `cd()` calls `cd`, it calls itself in an endless loop until the shell crashes with a stack overflow error. `builtin cd` tells Bash to run the real Linux command instead of the custom function.
 
 ### Q: Why do we need both `cd()` and `PROMPT_COMMAND`?
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-13)
 **A:** `cd()` catches normal directory hopping. `PROMPT_COMMAND` runs every time the terminal prepares to display the command prompt, catching other navigation tools like `pushd`, `popd`, or startup terminal restores.
 
 ### Q: What should I do if my terminal says `command not found: deactivate`?
+[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-14)
 **A:** This happens if no environment was active yet. Adding `2>/dev/null` suppresses this message safely.

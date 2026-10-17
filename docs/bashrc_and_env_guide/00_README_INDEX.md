@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-00 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Bashrc ("bashbootrc") & Virtual Environment Separation Documentation Index
 
 Welcome to the technical documentation and future setup guide for the **WSL `~/.bashrc` ("bashbootrc") Automatic Environment Switcher** and **Project vs. Secondary Virtual Environment Separation**.
@@ -7,6 +9,7 @@ This folder documents the complete investigation, system and source code evidenc
 ---
 
 ## Documentation Directory Contents
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-1)
 
 The documentation is organized into seven focused, screen-reader-friendly guides:
 
@@ -59,6 +62,7 @@ The documentation is organized into seven focused, screen-reader-friendly guides
 ---
 
 ## System & Project File Map
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-2)
 
 | File / Directory | Location | Role |
 | :--- | :--- | :--- |
@@ -72,10 +76,12 @@ The documentation is organized into seven focused, screen-reader-friendly guides
 ---
 
 ## Quick-Reference Everyday Commands
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-3)
 
 Once your terminal is open, you have two ways to switch environments:
 
 ### Option A: Automatic Switching (Just `cd` Into Any Project Folder)
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-4)
 - Navigate anywhere inside the secondary project:
   ```bash
   cd ~/secondary-env/secondary_project
@@ -88,6 +94,7 @@ Once your terminal is open, you have two ways to switch environments:
   *Result*: `~/.bashrc` automatically detects `*/DevCore*` and activates `($HOME/.venvs/devcore_env)`.
 
 ### Option B: Instant One-Word Jump Commands (From Anywhere)
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-5)
 - Type **`work-env`** (or **`activate-work`**):
   Activates `~/secondary-env` and immediately jumps (`cd`) into `~/secondary-env/secondary_project`.
 - Type **`devcore`** (or **`devcore-env`**):
@@ -96,5 +103,6 @@ Once your terminal is open, you have two ways to switch environments:
 ---
 
 ## New to Bash Startup Files or Virtual Environments? Start Here First!
+[//]: # (SECTION_ID: SIRA-DOC-00-SEC-6)
 
 If you are a beginner developer reading this documentation for the first time—and you did not write `~/.bashrc` and have never built an automatic virtual environment switcher before—read **[`00A_BEGINNER_GUIDE_TO_BASHRC_AND_VIRTUAL_ENVIRONMENTS.md`](./00A_BEGINNER_GUIDE_TO_BASHRC_AND_VIRTUAL_ENVIRONMENTS.md)** before diving into Chapter 1.

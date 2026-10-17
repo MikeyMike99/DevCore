@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-CHATDEV_README | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
+
 # ChatDev 2.0 - DevAll
 
     
@@ -9,12 +11,14 @@
     【📚 Developers | 👥 Contributors｜⭐️ ChatDev 1.0 (Legacy)】
 
 ## 📖 Overview
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-1)
 ChatDev has evolved from a specialized software development multi-agent system into a comprehensive multi-agent orchestration platform.
 
 - **ChatDev 2.0 (DevAll)** is a **Zero-Code Multi-Agent Platform** for "Developing Everything". It empowers users to rapidly build and execute customized multi-agent systems through simple configuration. No coding is required—users can define agents, workflows, and tasks to orchestrate complex scenarios such as data visualization, 3D generation, and deep research.
 - **ChatDev 1.0 (Legacy)** operates as a **Virtual Software Company**. It utilizes various intelligent agents (e.g., CEO, CTO, Programmer) participating in specialized functional seminars to automate the entire software development life cycle—including designing, coding, testing, and documenting. It serves as the foundational paradigm for communicative agent collaboration.
 
 ## 🎉 News
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-2)
 • **Jan 07, 2026: 🚀 We are excited to announce the official release of ChatDev 2.0 (DevAll)!** This version introduces a zero-code multi-agent orchestration platform. The classic ChatDev (v1.x) has been moved to the `chatdev1.0` branch for maintenance. More details about ChatDev 2.0 can be found on our official post.
 
 Old News
@@ -89,8 +93,10 @@ See our paper in Multi-Agent Collaboration via Evolving Orchestration.
 • June 30, 2023: The initial version of the ChatDev repository was released.
 
 ## 🚀 Quick Start
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-3)
 
 ### 📋 Prerequisites
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-4)
 
 *   **OS**: macOS / Linux / WSL / Windows
 *   **Python**: 3.12+
@@ -98,6 +104,7 @@ See our paper in Multi-Agent Collaboration via Evolving Orchestration.
 *   **Package Manager**: uv
 
 ### 📦 Installation
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-5)
 
 1.  **Backend Dependencies** (Python managed by `uv`):
     ```bash
@@ -110,6 +117,7 @@ See our paper in Multi-Agent Collaboration via Evolving Orchestration.
     ```
 
 ### 🔑 Configuration
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-6)
 
 *   **Environment Variables**:
     ```bash
@@ -119,6 +127,7 @@ See our paper in Multi-Agent Collaboration via Evolving Orchestration.
 *   **YAML placeholders**: Use `${VAR}`（e.g., `${API_KEY}`）in configuration files to reference these variables.
 
 ### ⚡️ Run the Application
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-7)
 
 #### Using Makefile (Recommended)
 
@@ -172,6 +181,7 @@ make dev
     Checks all YAML files for syntax and schema errors.
 
 ### 🦞 Run with OpenClaw
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-8)
 OpenClaw can integrate with ChatDev by invoking existing agent teams or dynamically creating new agent teams within ChatDev.
 To get started:
 1. Start the ChatDev 2.0 backend.
@@ -194,6 +204,7 @@ To get started:
   ```
 
 ### 🐳 Run with Docker
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-9)
 Alternatively, you can run the entire application using Docker Compose. This method simplifies dependency management and provides a consistent environment.
 
 1.  **Prerequisites**:
@@ -215,8 +226,10 @@ Alternatively, you can run the entire application using Docker Compose. This met
 ---
 
 ## 💡 How to Use
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-10)
 
 ### 🖥️ Web Console
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-11)
 
 The DevAll interface provides a seamless experience for both construction and execution
 
@@ -228,6 +241,7 @@ The DevAll interface provides a seamless experience for both construction and ex
 *   **Launch**: Initiate workflows, monitor real-time logs, inspect intermediate artifacts, and provide human-in-the-loop feedback.
 
 ### 🧰 Python SDK
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-12)
 For automation and batch processing, use our lightweight Python SDK to execute workflows programmatically and retrieve results directly.
 
 ```python
@@ -250,6 +264,7 @@ if result.final_message:
 ---
 
 ## ⚙️ For Developers
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-13)
 
 **For secondary development and extensions, please proceed with this section.**
 
@@ -267,11 +282,13 @@ Relevant reference documentation:
 ---
 
 ## 🌟 Featured Workflows
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-14)
 We provide robust, out-of-the-box templates for common scenarios. All runnable workflow configs are located in `yaml_instance/`.
 *   **Demos**: Files named `demo_*.yaml` showcase specific features or modules.
 *   **Implementations**: Files named directly (e.g., `ChatDev_v1.yaml`) are full in-house or recreated workflows. As follows:
 
 ### 📋 Workflow Collection
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-15)
 
 | Category | Workflow                                                                                                    | Case | 
 | :--- |:------------------------------------------------------------------------------------------------------------| :--- | 
@@ -284,6 +301,7 @@ We provide robust, out-of-the-box templates for common scenarios. All runnable w
 ---
 
 ### 💡 Usage Guide
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-16)
 For those implementations, you can use the **Launch** tab to execute them.
 1.  **Select**: Choose a workflow in the **Launch** tab.
 2.  **Upload**: Upload necessary files (e.g., `.csv` for data analysis) if required.
@@ -292,12 +310,14 @@ For those implementations, you can use the **Launch** tab to execute them.
 ---
 
 ## 🤝 Contributing
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-17)
 
 We welcome contributions from the community! Whether you're fixing bugs, adding new workflow templates, or sharing high-quality cases/artifacts produced by DevAll, your help is much appreciated. Feel free to contribute by submitting **Issues** or **Pull Requests**.
 
 By contributing to DevAll, you'll be recognized in our **Contributors** list below. Check out our Developer Guide to get started!
 
 ### 👥 Contributors
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-18)
 
 #### Primary Contributors
 
@@ -336,12 +356,14 @@ By contributing to DevAll, you'll be recognized in our **Contributors** list bel
   
 
 ## 🤝 Acknowledgments
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-19)
 
 &nbsp;&nbsp;
 &nbsp;&nbsp;
 &nbsp;&nbsp;
 
 ## 🔎 Citation
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-20)
 
 ```
 @article{chatdev,
@@ -386,5 +408,6 @@ By contributing to DevAll, you'll be recognized in our **Contributors** list bel
 ```
 
 ## 📬 Contact
+[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-21)
 
 If you have any questions, feedback, or would like to get in touch, please feel free to reach out to us via email at qianc62@gmail.com

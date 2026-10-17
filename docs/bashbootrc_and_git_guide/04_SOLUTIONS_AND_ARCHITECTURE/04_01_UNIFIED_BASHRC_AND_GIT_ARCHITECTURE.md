@@ -1,3 +1,5 @@
+[//]: # (DOC_ID: SIRA-DOC-04_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+
 # Pillar 04.1: Unified Architecture Blueprint: Shell Boot & Git Operations
 
 - **Back to Master Index**: [`../00_README_INDEX.md`](../00_README_INDEX.md)
@@ -6,6 +8,7 @@
 ---
 
 ## Overview
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-1)
 
 The integration between **`~/.bashrc` ("bashbootrc")**, **isolated virtual environments**, and **automated Git operations** creates a unified, self-healing developer workflow across WSL Linux and Windows.
 
@@ -14,6 +17,7 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 ---
 
 ## Unified System Architecture Diagram
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-2)
 
 ```text
 +-------------------------------------------------------------------------------+
@@ -65,8 +69,10 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 ---
 
 ## The 4 Core Workflow Lifecycles
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-3)
 
 ### 1. The Terminal Navigation Lifecycle
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-1)
 1. **User types `cd /mnt/c/.../DevCore`**:
 2. The `cd()` wrapper calls `builtin cd "$@"` to perform the folder navigation.
 3. If navigation succeeds, `_auto_venv_hook` inspects `$PWD`.
@@ -74,12 +80,14 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 5. The prompt displays `(.venvs/devcore_env) user@host:~/DevCore$`.
 
 ### 2. The Daily Git Feature Branch Lifecycle
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-2)
 1. **User types `start-day`**:
 2. Checks out `main` and pulls latest changes from GitHub (`git pull origin main`).
 3. Generates a sanitized branch name: `feature/<username>-<date>`.
 4. Creates the branch (`git checkout -b`) and establishes upstream tracking immediately (`git push -u origin <branch>`).
 
 ### 3. The Safe Commit & Merge Lifecycle (`save-work`)
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-3)
 1. **User types `save-work` and selects Option 4 (Merge into `main`)**:
 2. Commits any local work on the feature branch.
 3. Stashes any untracked or auxiliary files (`git stash push -u`).
@@ -89,6 +97,7 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 7. Restores the stash pocket (`git stash pop`).
 
 ### 4. Cross-OS Synchronization Lifecycle (`sync-win-repo`)
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-4)
 1. Calls `_get_win_dest()` to dynamically query Windows for `%USERPROFILE%`.
 2. Converts Windows path to `/mnt/c/Users/<user>/...` using `wslpath -u`.
 3. Runs `rsync -rtv --delete --exclude=".git"`.
@@ -97,12 +106,15 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 ---
 
 ## Beginner Coder Q&A: System Architecture
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-4)
 
 ### 1. "Why do we keep `helpers.sh` separate from `~/.bashrc` instead of pasting all 700 lines into `.bashrc`?"
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-1)
 - Putting hundreds of lines of project-specific code directly into `~/.bashrc` bloats your terminal startup time.
 - Keeping `helpers.sh` in its own repository file means you can update or share your Git automation scripts without modifying your personal operating system dotfiles. `~/.bashrc` simply includes it via `source`.
 
 ### 2. "Why does `start_server.sh` use `exec` instead of just running `python3 server.py`?"
+[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-2)
 When a script runs `python3 server.py`, Linux keeps both the shell wrapper and the Python program in memory. Writing `exec python3 server.py` tells Linux: *"Replace the shell wrapper with Python directly."* This saves system memory and ensures signals (like shutdown or restart) reach the web server directly.
 
 ---
