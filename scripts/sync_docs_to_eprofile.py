@@ -169,7 +169,20 @@ def classify_metadata(slug: str, title: str, content: str, category: str):
         is_latest = True
         order_score += 5000
 
-    return project, project_label, topics, order_score, is_latest
+    # --- Dimension 4: Proprietary & Access Clearance ---
+    is_proprietary = False
+    if category in ["manual", "guides"] and slug != "USER_MANUAL":
+        is_proprietary = True
+    elif category == "devlog" and ("02_" in slug or "05_" in slug):
+        is_proprietary = True
+    elif category == "audio_suite" and ("02_" in slug or "05_" in slug):
+        is_proprietary = True
+    elif any(k in text_lower for k in ["kms mnemonic", "seed phrase recovery", "thought vector obfuscator", "binary stamper and pe trailer", "offline password crack", "mcp key map"]):
+        is_proprietary = True
+        
+    clearance = "proprietary" if is_proprietary else "public"
+
+    return project, project_label, topics, order_score, is_latest, is_proprietary, clearance
 
 def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict:
     """Extracts title, summary, classification, and word count from a markdown document."""
@@ -207,7 +220,7 @@ def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict
     except Exception:
         pass
         
-    project, project_label, topics, order_score, is_latest = classify_metadata(relative_slug, title, content, category)
+    project, project_label, topics, order_score, is_latest, is_proprietary, clearance = classify_metadata(relative_slug, title, content, category)
 
     return {
         "slug": relative_slug,
@@ -220,6 +233,8 @@ def extract_metadata(file_path: Path, relative_slug: str, category: str) -> dict
         "topics": topics,
         "order_score": order_score,
         "is_latest": is_latest,
+        "is_proprietary": is_proprietary,
+        "clearance": clearance,
         "rel_path": str(file_path.relative_to(DOCS_DEST)).replace('\\', '/')
     }
 
