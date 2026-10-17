@@ -14,6 +14,7 @@ from pathlib import Path
 
 DEVCORE_ROOT = Path("/mnt/c/Users/michael/Documents/DevCore")
 EPROFILE_ROOT = Path("/mnt/c/Users/michael/Documents/e_profile")
+AUDIO_SUITE_ROOT = Path("/mnt/c/Users/michael/Documents/Audio_pllayback_suite")
 
 DOCS_SRC = DEVCORE_ROOT / "docs"
 DOCS_DEST = EPROFILE_ROOT / "content" / "docs"
@@ -24,6 +25,7 @@ COLLECTIONS = {
     "manual": DOCS_SRC / "Siraugga_Master_Manual",
     "manifesto": DOCS_SRC / "The_Manifesto",
     "story": DOCS_SRC / "DEVLOG.md",
+    "audio_suite": AUDIO_SUITE_ROOT / "docs",
     "guides": [
         DOCS_SRC / "USER_MANUAL.md",
         DOCS_SRC / "SECURITY.md",
@@ -46,18 +48,27 @@ def sanitize_content(raw_text: str, category: str) -> str:
     text = re.sub(r'file:///mnt/c/Users/michael/Documents/DevCore/docs/The_Manifesto/([a-zA-Z0-9_]+)\.md', r'/docs/manifesto/\1', text)
     text = re.sub(r'file:///mnt/c/Users/michael/Documents/DevCore/docs/DEVLOG\.md', r'/docs/story/DEVLOG', text)
     text = re.sub(r'file:///mnt/c/Users/michael/Documents/DevCore/docs/([a-zA-Z0-9_]+)\.md', r'/docs/guides/\1', text)
+    text = re.sub(r'file:///mnt/c/Users/michael/Documents/Audio_pllayback_suite/docs/([a-zA-Z0-9_]+)\.md', r'/docs/audio_suite/\1', text)
     
     # Generic local path scrubbing
     text = re.sub(r'file:///mnt/c/Users/michael/Documents/DevCore/([a-zA-Z0-9_./-]+)', r'/\1', text)
+    text = re.sub(r'file:///mnt/c/Users/michael/Documents/Audio_pllayback_suite/([a-zA-Z0-9_./-]+)', r'/\1', text)
     text = re.sub(r'file:///home/michael/\.gemini/antigravity-cli/brain/[a-zA-Z0-9_-]+/[a-zA-Z0-9_./-]+', r'[SANITY_REDACTED_BRAIN_SESSION]', text)
     text = re.sub(r'/mnt/c/Users/michael/Documents/DevCore/', r'/', text)
+    text = re.sub(r'/mnt/c/Users/michael/Documents/Audio_pllayback_suite/', r'/', text)
+    text = re.sub(r'C:\\Users\\michael\\Documents\\Audio_pllayback_suite\\', r'/', text)
     text = re.sub(r'/home/michael/\.gemini/antigravity-cli/brain/', r'[LOCAL_BRAIN_VAULT]/', text)
+    
+    # Sanitize executable/script link targets in markdown
+    text = re.sub(r'\[`([^`]+)`\]\(\.\./([^)]+)\)', r'`\1` (\2)', text)
     
     # 2. Normalize relative markdown links between devlog pillars
     def normalize_link(match):
         target = match.group(1)
         if target.endswith('.md'):
             basename = os.path.basename(target)[:-3]
+            if category == "audio_suite":
+                return f'(/docs/audio_suite/{basename})'
             if "01_" in target or "02_" in target or "03_" in target or "04_" in target or "05_" in target:
                 return f'(/docs/devlog/{basename})'
             elif "Chapter_" in target or "Module_" in target or "Checkpoint_" in target:
@@ -78,13 +89,16 @@ def classify_metadata(slug: str, title: str, content: str, category: str):
     text_lower = (slug + " " + title + " " + content[:2500]).lower()
     
     # --- Dimension 1: Project Ownership ---
-    if category == "story":
+    if category == "audio_suite" or any(k in slug.lower() for k in ["01_38", "01_39", "02_34", "02_35", "03_11", "03_31", "03_32", "04_34", "04_35", "05_37", "05_38"]) or any(k in text_lower for k in ["joshy", "audio_pllayback_suite", "audio playback suite", "accessible_output2", "headless spotify", "spotify controller", "compile_joshy", "nvda_client_data"]):
+        project = "audio_suite"
+        project_label = "JOSHY Audio Suite"
+    elif category == "story":
         project = "siraugga"
         project_label = "Siraugga / DevCore Framework"
     elif any(k in text_lower for k in ["callebrate_sound", "spatial trigonometry", "slot_meshine", "3d coordinate", "8-way compass", "movement grid"]) or (category == "manifesto" and any(k in text_lower for k in ["echoes", "audio game"])):
         project = "echoes"
         project_label = "Echoes of the World (Audio Game)"
-    elif any(k in text_lower for k in ["video player", "exam application", "exam engine", "spotify", "pywebview", "manifesto_reader", "chunk reader"]):
+    elif any(k in text_lower for k in ["video player", "exam application", "exam engine", "pywebview", "manifesto_reader", "chunk reader"]):
         project = "accessible_apps"
         project_label = "Accessible Applications"
     elif any(k in text_lower for k in ["e_profile", "portfolio", "admin surgery", "profile management"]):
@@ -106,15 +120,15 @@ def classify_metadata(slug: str, title: str, content: str, category: str):
         topics.append("infrastructure")
         
     # Layout, UI & Accessibility
-    if any(k in text_lower for k in ["screen reader", "accessibility", "wcag", "aria", "nvda", "tolk", "speech", "tts", "combobox", "live region", "flip card", "reader", "narrator", "audio feed"]):
+    if any(k in text_lower for k in ["screen reader", "accessibility", "wcag", "aria", "nvda", "tolk", "speech", "tts", "combobox", "live region", "flip card", "reader", "narrator", "audio feed", "accessible_output2"]):
         topics.append("accessibility_ui")
         
     # Workflow & Automation
-    if any(k in text_lower for k in ["workflow", "hot-patch", "zero-downtime", "git", "automation", "clean workspace", "piped", "ephemeral", "reload", "blueprint sync", "mcp", "line editor"]):
+    if any(k in text_lower for k in ["workflow", "hot-patch", "zero-downtime", "git", "automation", "clean workspace", "piped", "ephemeral", "reload", "blueprint sync", "mcp", "line editor", "batch file"]):
         topics.append("workflow")
         
     # Limitations & Traps
-    if any(k in text_lower for k in ["limitation", "quota", "rate limit", "cache trap", "bloat", "memory leak", "amnesia", "tearing", "zombie", "exhaustion", "timeout", "dropout", "reset", "disconnect"]):
+    if any(k in text_lower for k in ["limitation", "quota", "rate limit", "cache trap", "bloat", "memory leak", "amnesia", "tearing", "zombie", "exhaustion", "timeout", "dropout", "reset", "disconnect", "fallback bug"]):
         topics.append("limitations")
         
     # Origins & Journey
@@ -122,7 +136,7 @@ def classify_metadata(slug: str, title: str, content: str, category: str):
         topics.append("origin_story")
         
     # Changelog / Sprint Notes
-    if category in ["devlog", "story"] or "01_" in slug or "chapter" in slug:
+    if category in ["devlog", "story"] or "01_" in slug or "chapter" in slug or category == "audio_suite":
         topics.append("changelog")
         
     if not topics:
@@ -141,12 +155,17 @@ def classify_metadata(slug: str, title: str, content: str, category: str):
     if ch_match:
         order_score = int(ch_match.group(1))
         
+    # Audio Suite standalone guides (00 to 05)
+    if category == "audio_suite":
+        audio_ch = re.search(r'0(\d)', slug)
+        order_score = 8000 + (int(audio_ch.group(1)) * 50 if audio_ch else 0)
+        
     # Story (DEVLOG.md has Chapter 73!)
     if category == "story":
         order_score = 7300
         
     is_latest = False
-    if "01_43" in slug or "02_39" in slug or "03_36" in slug or "04_39" in slug or "05_42" in slug or category == "story":
+    if "01_43" in slug or "02_39" in slug or "03_36" in slug or "04_39" in slug or "05_42" in slug or category == "story" or (category == "audio_suite" and "05_" in slug):
         is_latest = True
         order_score += 5000
 
@@ -343,7 +362,30 @@ def sync():
             meta = extract_metadata(dest_f, slug, "guides")
             catalog.append(meta)
 
-    # 7. Write docs_catalog.json sorted by recency / order_score descending
+    # 7. Sync Audio Suite Dedicated Docs
+    print("[*] Synchronizing Standalone Audio Playback Suite Guides...")
+    dest_audio = DOCS_DEST / "audio_suite"
+    dest_audio.mkdir(parents=True, exist_ok=True)
+    
+    audio_src = COLLECTIONS["audio_suite"]
+    if audio_src.exists():
+        for fn in sorted(os.listdir(audio_src)):
+            if fn.endswith('.md'):
+                src_f = audio_src / fn
+                slug = fn[:-3]
+                content = src_f.read_text(encoding='utf-8', errors='replace')
+                sanitized = sanitize_content(content, "audio_suite")
+                
+                dest_f = dest_audio / fn
+                dest_f.write_text(sanitized, encoding='utf-8')
+                synced_count += 1
+                
+                meta = extract_metadata(dest_f, slug, "audio_suite")
+                meta["project"] = "audio_suite"
+                meta["project_label"] = "JOSHY Audio Suite"
+                catalog.append(meta)
+
+    # 8. Write docs_catalog.json sorted by recency / order_score descending
     catalog_path = DOCS_DEST / "docs_catalog.json"
     catalog.sort(key=lambda x: x["order_score"], reverse=True)
     
