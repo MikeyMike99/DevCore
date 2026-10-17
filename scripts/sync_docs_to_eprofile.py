@@ -59,9 +59,6 @@ def sanitize_content(raw_text: str, category: str) -> str:
     text = re.sub(r'C:\\Users\\michael\\Documents\\Audio_pllayback_suite\\', r'/', text)
     text = re.sub(r'/home/michael/\.gemini/antigravity-cli/brain/', r'[LOCAL_BRAIN_VAULT]/', text)
     
-    # Sanitize executable/script link targets in markdown
-    text = re.sub(r'\[`([^`]+)`\]\(\.\./([^)]+)\)', r'`\1` (\2)', text)
-    
     # 2. Normalize relative markdown links between devlog pillars
     def normalize_link(match):
         target = match.group(1)
@@ -78,6 +75,9 @@ def sanitize_content(raw_text: str, category: str) -> str:
 
     text = re.sub(r'\(\./([^)]+\.md)\)', normalize_link, text)
     text = re.sub(r'\(\.\./([^)]+\.md)\)', normalize_link, text)
+
+    # Sanitize executable/script link targets in markdown (exclude .md)
+    text = re.sub(r'\[`([^`]+)`\]\(\.\./([^)]+\.(?:exe|bat|iss|py|dll|json|pka|sh))\)', r'`\1` (\2)', text)
     
     return text
 
