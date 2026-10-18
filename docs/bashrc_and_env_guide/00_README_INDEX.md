@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-00 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-ENV_INDEX | VERSION: v1.0 | SCOPE: DEV)
 
 # Bashrc ("bashbootrc") & Virtual Environment Separation Documentation Index
 
@@ -8,6 +8,7 @@ This folder documents the complete investigation, system and source code evidenc
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-ENV_INDEX-SEC-1)
 ## Documentation Directory Contents
 [//]: # (SECTION_ID: SIRA-DOC-00-SEC-1)
 
@@ -61,6 +62,7 @@ The documentation is organized into seven focused, screen-reader-friendly guides
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-ENV_INDEX-SEC-2)
 ## System & Project File Map
 [//]: # (SECTION_ID: SIRA-DOC-00-SEC-2)
 
@@ -75,11 +77,13 @@ The documentation is organized into seven focused, screen-reader-friendly guides
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-ENV_INDEX-SEC-3)
 ## Quick-Reference Everyday Commands
 [//]: # (SECTION_ID: SIRA-DOC-00-SEC-3)
 
 Once your terminal is open, you have two ways to switch environments:
 
+[//]: # (SECTION_ID: SIRA-DEV-ENV_INDEX-SEC-4)
 ### Option A: Automatic Switching (Just `cd` Into Any Project Folder)
 [//]: # (SECTION_ID: SIRA-DOC-00-SEC-4)
 - Navigate anywhere inside the secondary project:
@@ -93,6 +97,7 @@ Once your terminal is open, you have two ways to switch environments:
   ```
   *Result*: `~/.bashrc` automatically detects `*/DevCore*` and activates `($HOME/.venvs/devcore_env)`.
 
+[//]: # (SECTION_ID: SIRA-DEV-ENV_INDEX-SEC-5)
 ### Option B: Instant One-Word Jump Commands (From Anywhere)
 [//]: # (SECTION_ID: SIRA-DOC-00-SEC-5)
 - Type **`work-env`** (or **`activate-work`**):
@@ -102,6 +107,7 @@ Once your terminal is open, you have two ways to switch environments:
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-ENV_INDEX-SEC-6)
 ## New to Bash Startup Files or Virtual Environments? Start Here First!
 [//]: # (SECTION_ID: SIRA-DOC-00-SEC-6)
 

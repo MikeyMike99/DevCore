@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-04_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOT_04_01 | VERSION: v1.0 | SCOPE: DEV)
 
 # Pillar 04.1: Unified Architecture Blueprint: Shell Boot & Git Operations
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-1)
 
@@ -16,6 +17,7 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-2)
 ## Unified System Architecture Diagram
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-2)
 
@@ -68,8 +70,9 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-3)
 ## The 4 Core Workflow Lifecycles
-[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-3)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-1)
 
 ### 1. The Terminal Navigation Lifecycle
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-1)
@@ -79,6 +82,7 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 4. The pattern `*/DevCore*)` matches. It checks `$VIRTUAL_ENV`. Since it is not already `devcore_env`, it silently sources `$HOME/.venvs/devcore_env/bin/activate`.
 5. The prompt displays `(.venvs/devcore_env) user@host:~/DevCore$`.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-2)
 ### 2. The Daily Git Feature Branch Lifecycle
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-2)
 1. **User types `start-day`**:
@@ -86,6 +90,7 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 3. Generates a sanitized branch name: `feature/<username>-<date>`.
 4. Creates the branch (`git checkout -b`) and establishes upstream tracking immediately (`git push -u origin <branch>`).
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-3)
 ### 3. The Safe Commit & Merge Lifecycle (`save-work`)
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-3)
 1. **User types `save-work` and selects Option 4 (Merge into `main`)**:
@@ -96,6 +101,7 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 6. **Only after push success**: Deletes the local feature branch and deletes the remote branch from GitHub.
 7. Restores the stash pocket (`git stash pop`).
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-4)
 ### 4. Cross-OS Synchronization Lifecycle (`sync-win-repo`)
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-4)
 1. Calls `_get_win_dest()` to dynamically query Windows for `%USERPROFILE%`.
@@ -105,14 +111,16 @@ Below is the complete architectural blueprint detailing the lifecycle, data flow
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-4)
 ## Beginner Coder Q&A: System Architecture
-[//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-4)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-1)
 
 ### 1. "Why do we keep `helpers.sh` separate from `~/.bashrc` instead of pasting all 700 lines into `.bashrc`?"
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-1)
 - Putting hundreds of lines of project-specific code directly into `~/.bashrc` bloats your terminal startup time.
 - Keeping `helpers.sh` in its own repository file means you can update or share your Git automation scripts without modifying your personal operating system dotfiles. `~/.bashrc` simply includes it via `source`.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_04_01-SEC-2)
 ### 2. "Why does `start_server.sh` use `exec` instead of just running `python3 server.py`?"
 [//]: # (SECTION_ID: SIRA-DOC-04_01-SEC-2)
 When a script runs `python3 server.py`, Linux keeps both the shell wrapper and the Python program in memory. Writing `exec python3 server.py` tells Linux: *"Replace the shell wrapper with Python directly."* This saves system memory and ensures signals (like shutdown or restart) reach the web server directly.

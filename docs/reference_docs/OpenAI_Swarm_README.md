@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-OPENAI_SWARM_R | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-OPENAI_SWARM_READM | VERSION: v1.3 | SCOPE: DEV)
 
 ![Swarm Logo](assets/logo.png)
 
@@ -9,6 +9,7 @@
 >
 > We recommend migrating to the Agents SDK for all production use cases.
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-1)
 ## Install
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-1)
 
@@ -24,6 +25,7 @@ or
 pip install git+https://github.com/openai/swarm.git
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-2)
 ## Usage
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-2)
 
@@ -61,6 +63,7 @@ New paths converge gracefully,
 What can I assist?
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-3)
 ## Table of Contents
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-3)
 
@@ -85,6 +88,7 @@ These primitives are powerful enough to express rich dynamics between tools and 
 > [!NOTE]
 > Swarm Agents are not related to Assistants in the Assistants API. They are named similarly for convenience, but are otherwise completely unrelated. Swarm is entirely powered by the Chat Completions API and is hence stateless between calls.
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-4)
 ## Why Swarm
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-4)
 
@@ -107,6 +111,7 @@ Check out `/examples` for inspiration! Learn more about each one in its README.
 
 ![Swarm Diagram](assets/swarm_diagram.png)
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-5)
 ## Running Swarm
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-5)
 
@@ -118,6 +123,7 @@ from swarm import Swarm
 client = Swarm()
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-6)
 ### `client.run()`
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-6)
 
@@ -154,6 +160,7 @@ Once `client.run()` is finished (after potentially multiple calls to agents and 
 | **agent**             | `Agent` | The last agent to handle a message.                                                                                                                                                                                                                                          |
 | **context_variables** | `dict`  | The same as the input variables, plus any changes.                                                                                                                                                                                                                           |
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-7)
 ## Agents
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-7)
 
@@ -161,6 +168,7 @@ An `Agent` simply encapsulates a set of `instructions` with a set of `functions`
 
 While it's tempting to personify an `Agent` as "someone who does X", it can also be used to represent a very specific workflow or step defined by a set of `instructions` and `functions` (e.g. a set of steps, a complex retrieval, single step of data transformation, etc). This allows `Agent`s to be composed into a network of "agents", "workflows", and "tasks", all represented by the same primitive.
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-8)
 ## `Agent` Fields
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-8)
 
@@ -172,6 +180,7 @@ While it's tempting to personify an `Agent` as "someone who does X", it can also
 | **functions**    | `List`                   | A list of functions that the agent can call.                                  | `[]`                         |
 | **tool_choice**  | `str`                    | The tool choice for the agent, if any.                                        | `None`                       |
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-9)
 ### Instructions
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-9)
 
@@ -205,6 +214,7 @@ print(response.messages[-1]["content"])
 Hi John, how can I assist you today?
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-10)
 ## Functions
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-10)
 
@@ -238,6 +248,7 @@ Hola, John!
 - If an `Agent` function call has an error (missing function, wrong argument, error) an error response will be appended to the chat so the `Agent` can recover gracefully.
 - If multiple functions are called by the `Agent`, they will be executed in that order.
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-11)
 ### Handoffs and Updating Context Variables
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-11)
 
@@ -291,6 +302,7 @@ Sales Agent
 > [!NOTE]
 > If an `Agent` calls multiple functions to hand-off to an `Agent`, only the last handoff function will be used.
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-12)
 ### Function Schemas
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-12)
 
@@ -332,6 +344,7 @@ def greet(name, age: int, location: str = "New York"):
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-OPENAI_SWARM_READM-SEC-13)
 ## Streaming
 [//]: # (SECTION_ID: SIRA-DOC-OPENAI_SWARM_R-SEC-13)
 

@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-05_02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-ARCH-BOOT_05_02 | VERSION: v1.0 | SCOPE: ARCH)
 
 # Pillar 05.2: From-Scratch Creation Guide: Git Automation Helpers
 
@@ -8,6 +8,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-1)
 
@@ -20,6 +21,7 @@ By following this guide, you will implement three production-grade commands:
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-2)
 ## Directory Setup
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-2)
 
@@ -32,8 +34,9 @@ nano "$HOME/tools/recording/helpers.sh"
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-3)
 ## Step-by-Step Implementation
-[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-3)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-4)
 
 ### Step 1: Add the File Header and Base Options
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-4)
@@ -47,6 +50,7 @@ At the top of `helpers.sh`, define the script header:
 # ==============================================================================
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-5)
 ### Step 2: Implement the `start-day` Command
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-5)
 Add the morning branch bootstrapper:
@@ -79,6 +83,7 @@ start-day() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-6)
 ### Step 3: Implement the `save-work` Command with Stash Safety
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-6)
 Add the interactive commit engine with branch-hopping protection:
@@ -134,6 +139,7 @@ save-work() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-7)
 ### Step 4: Implement Cross-OS Mirror Sync (`sync-win-repo`)
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-7)
 Add the Windows mirroring function:
@@ -157,6 +163,7 @@ sync-win-repo() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-8)
 ### Step 5: Make Executable & Register in `~/.bashrc`
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-8)
 Run the following commands in your terminal:
@@ -169,6 +176,7 @@ source ~/.bashrc
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-9)
 ## Why Order Matters in Git Automation
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-9)
 
@@ -183,17 +191,20 @@ source ~/.bashrc
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-10)
 ## Beginner Coder Q&A
-[//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-10)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-11)
 
 ### Q: Why do we use `git stash push -u` instead of just `git stash`?
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-11)
 **A:** Standard `git stash` only saves files that Git is already tracking. The `-u` (untracked) flag ensures brand-new files you created today are also safely stashed.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-12)
 ### Q: What is `tr -d '\r'` doing in the Windows path helper?
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-12)
 **A:** `cmd.exe` outputs text with Windows carriage returns (`\r\n`). `tr -d '\r'` strips the invisible `\r` so the Linux path resolves without syntax errors.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_02-SEC-13)
 ### Q: What happens if `git merge` encounters a conflict in `save-work`?
 [//]: # (SECTION_ID: SIRA-DOC-05_02-SEC-13)
 **A:** Git stops and asks you to resolve the conflict. Because the branch is not deleted until after a successful push, your work is never lost.

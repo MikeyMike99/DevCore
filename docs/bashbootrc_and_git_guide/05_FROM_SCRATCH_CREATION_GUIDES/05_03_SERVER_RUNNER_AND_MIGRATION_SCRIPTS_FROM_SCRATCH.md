@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-05_03 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-ARCH-BOOT_05_03 | VERSION: v1.0 | SCOPE: ARCH)
 
 # Pillar 05.3: From-Scratch Creation Guide: Server Runner & Migration Scripts
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-1)
 
@@ -16,13 +17,15 @@ This guide details how to build two essential production maintenance scripts fro
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-2)
 ## Script 1: Deterministic Server Runner (`start_server.sh`)
-[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-2)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-3)
 
 ### Purpose
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-3)
 When servers are started manually or by background daemons, the current working directory or shell environment might not be configured properly. This script guarantees correct execution every time.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-4)
 ### Implementation
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-4)
 Create `scripts/start_server.sh`:
@@ -63,13 +66,15 @@ chmod +x scripts/start_server.sh
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-5)
 ## Script 2: Safe Dependency Migration (`cleanup_dependencies.sh`)
-[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-5)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-6)
 
 ### Purpose
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-6)
 When separating a monolithic Python environment into isolated environments, you must verify that no live production server is actively using the environment before uninstalling packages.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-7)
 ### Implementation
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-7)
 Create `scripts/cleanup_dependencies.sh`:
@@ -135,6 +140,7 @@ chmod +x scripts/cleanup_dependencies.sh
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-8)
 ## Why Order Matters in Runner & Migration Scripts
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-8)
 
@@ -149,17 +155,20 @@ chmod +x scripts/cleanup_dependencies.sh
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-9)
 ## Beginner Coder Q&A
-[//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-9)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-10)
 
 ### Q: Why use `exec python3 server.py` instead of just `python3 server.py`?
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-10)
 **A:** `exec` replaces the wrapper shell process with Python. This ensures system signals (such as `Ctrl+C` or daemon restart signals) reach Python directly without getting trapped or delayed by an intermediary Bash shell.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-11)
 ### Q: What is `/proc/<pid>/environ`?
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-11)
 **A:** Linux stores live diagnostic information about every running program inside the virtual `/proc` directory. Reading `/proc/<pid>/environ` lets you see the exact environment variables (like `$VIRTUAL_ENV`) that the process was launched with.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_03-SEC-12)
 ### Q: Will `pip uninstall` delete files from other virtual environments?
 [//]: # (SECTION_ID: SIRA-DOC-05_03-SEC-12)
 **A:** No. Because we explicitly activated `secondary_env` in Stage 2, `pip` only removes packages located inside that specific environment's folder.

@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-02_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOT_02_01 | VERSION: v1.0 | SCOPE: DEV)
 
 # Pillar 02.1: Source Code & System Evidence: Shell Boot & Process Management
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-1)
 
@@ -14,6 +15,7 @@ Every architectural decision in our shell boot configuration and process supervi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-2)
 ## Source 1: Interactive Guard & Local Tool Path Registration in `~/.bashrc`
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-2)
 
@@ -37,6 +39,7 @@ if [ -f "$HOME/secondary-env/secondary_project/tools/recording/helpers.sh" ]; th
 fi
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-3)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-3)
 1. **Interactive Flag Verification (`case $- in *i*)`)**:
@@ -46,6 +49,7 @@ fi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-4)
 ## Source 2: Auto-Environment Detection & Dynamic Windows Profile Resolution
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-4)
 
@@ -95,6 +99,7 @@ if [[ ! "$PROMPT_COMMAND" =~ "_auto_venv_hook" ]]; then
 fi
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-5)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-5)
 1. **Dynamic Path Bridge**: `cmd.exe /c "echo %USERPROFILE%"` query combined with `wslpath -u` bridges Windows user profile paths into WSL without any hardcoded usernames.
@@ -103,6 +108,7 @@ fi
 3. **Idempotent Prompt Hook**: Checking `[[ ! "$PROMPT_COMMAND" =~ "_auto_venv_hook" ]]` prevents duplicate registration when reloading `.bashrc`.
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-6)
 ## Source 3: Dedicated Server Boot Wrapper (`scripts/start_server.sh`)
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-6)
 
@@ -117,6 +123,7 @@ fi
 exec python3 server.py
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-7)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-7)
 - **Process Replacement**: `exec python3 server.py` replaces the shell process entirely with Python, ensuring no lingering wrapper shells remain in memory.
@@ -124,6 +131,7 @@ exec python3 server.py
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-8)
 ## Source 4: Kernel Process Inspection in `scripts/cleanup_dependencies.sh`
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-8)
 
@@ -148,6 +156,7 @@ check_server() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-9)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-9)
 - Inspects `/proc/$pid/cwd` to confirm the process belongs to DevCore.
@@ -155,13 +164,15 @@ check_server() {
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-10)
 ## Beginner Coder Q&A: Source Code & System Evidence
-[//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-10)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-1)
 
 ### 1. "What is `tr -d '\r\n'` on line 6 of the Windows resolution block?"
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-1)
 Windows text ends with Carriage Return + Line Feed (`\r\n`). Linux only uses Line Feed (`\n`). Piping Windows output through `tr -d '\r\n'` deletes the invisible Windows `\r` character so it doesn't corrupt Linux path variables.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_01-SEC-2)
 ### 2. "Why does `check_server()` check `[ "$pid" != "$$" ]`?"
 [//]: # (SECTION_ID: SIRA-DOC-02_01-SEC-2)
 In Bash, `$$` represents the Process ID of the script currently running. Checking `"$pid" != "$$"` ensures the script doesn't mistake itself for the server process!

@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-05_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-ARCH-BOOT_05_01 | VERSION: v1.0 | SCOPE: ARCH)
 
 # Pillar 05.1: From-Scratch Creation Guide: Bash Boot Auto-Switcher
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-1)
 
@@ -16,6 +17,7 @@ By the end of this tutorial, your terminal will automatically activate the corre
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-2)
 ## Prerequisites & Directory Setup
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-2)
 
@@ -34,8 +36,9 @@ python3 -m venv "$HOME/secondary_env"
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-3)
 ## Step-by-Step Implementation
-[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-3)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-4)
 
 ### Step 1: Open `~/.bashrc` in Nano
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-4)
@@ -43,6 +46,7 @@ python3 -m venv "$HOME/secondary_env"
 nano ~/.bashrc
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-5)
 ### Step 2: Add the Non-Interactive Guard
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-5)
 At the very top of `~/.bashrc`, verify or paste the interactive session guard:
@@ -55,6 +59,7 @@ case $- in
 esac
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-6)
 ### Step 3: Add the Auto-Switching Hook Logic
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-6)
 Scroll to the bottom of `~/.bashrc` and paste the core auto-switching engine:
@@ -85,6 +90,7 @@ _auto_venv_hook() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-7)
 ### Step 4: Wrap the Built-In `cd` Command & Register Prompt Hook
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-7)
 Directly beneath `_auto_venv_hook()`, add the trigger mechanisms:
@@ -99,6 +105,7 @@ cd() {
 PROMPT_COMMAND="_auto_venv_hook${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 ```
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-8)
 ### Step 5: Save and Reload
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-8)
 1. Press `Ctrl + O` and hit `Enter` to save in Nano.
@@ -110,6 +117,7 @@ PROMPT_COMMAND="_auto_venv_hook${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-9)
 ## Why Order Matters in `~/.bashrc` Setup
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-9)
 
@@ -124,6 +132,7 @@ PROMPT_COMMAND="_auto_venv_hook${PROMPT_COMMAND:+; $PROMPT_COMMAND}"
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-10)
 ## Verification & Testing
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-10)
 
@@ -148,17 +157,20 @@ echo "$VIRTUAL_ENV"
 
 ---
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-11)
 ## Beginner Coder Q&A
-[//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-11)
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-12)
 
 ### Q: Why do we use `builtin cd` instead of just `cd` inside the wrapper function?
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-12)
 **A:** If a function named `cd()` calls `cd`, it calls itself in an endless loop until the shell crashes with a stack overflow error. `builtin cd` tells Bash to run the real Linux command instead of the custom function.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-13)
 ### Q: Why do we need both `cd()` and `PROMPT_COMMAND`?
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-13)
 **A:** `cd()` catches normal directory hopping. `PROMPT_COMMAND` runs every time the terminal prepares to display the command prompt, catching other navigation tools like `pushd`, `popd`, or startup terminal restores.
 
+[//]: # (SECTION_ID: SIRA-ARCH-BOOT_05_01-SEC-14)
 ### Q: What should I do if my terminal says `command not found: deactivate`?
 [//]: # (SECTION_ID: SIRA-DOC-05_01-SEC-14)
 **A:** This happens if no environment was active yet. Adding `2>/dev/null` suppresses this message safely.

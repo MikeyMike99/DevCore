@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-02_02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOT_02_02 | VERSION: v1.0 | SCOPE: DEV)
 
 # Pillar 02.2: Source Code Evidence: Automated Git Operations & Synchronization
 
@@ -8,6 +8,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-1)
 
@@ -15,6 +16,7 @@ Automated Git flow helpers protect developers from data loss, detached HEAD stat
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-2)
 ## Source 1: Dynamic Branch Creation & Upstream Tracking in `start-day`
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-2)
 
@@ -38,6 +40,7 @@ start-day() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-3)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-3)
 1. **Dynamic Developer Identity**: `git config user.name` is extracted dynamically and sanitized (`tr -cd 'a-z0-9_-'`) to prevent malformed branch names.
@@ -46,6 +49,7 @@ start-day() {
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-4)
 ## Source 2: Automated Stash Buffering During Branch Switches in `save-work`
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-4)
 
@@ -70,6 +74,7 @@ fi
 [ "$has_stash" = "true" ] && git stash pop >/dev/null 2>&1 || true
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-5)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-5)
 1. **Dirty Worktree Protection**: `git diff --quiet || git diff --cached --quiet` detects both unstaged and staged modifications.
@@ -78,6 +83,7 @@ fi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-6)
 ## Source 3: Protected Feature Merge & Verified Remote Deletion
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-6)
 
@@ -102,6 +108,7 @@ else
 fi
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-7)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-7)
 1. **Guarded Branch Retirement**: Deleting local (`git branch -d`) and remote (`git push origin --delete`) feature branches occurs **only after** `git push origin main` returns success.
@@ -109,6 +116,7 @@ fi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-8)
 ## Source 4: Cross-OS Synchronization With Git Database Protection
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-8)
 
@@ -123,20 +131,23 @@ sync-win-repo() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-9)
 ### What This Source Proves
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-9)
 - The `--exclude=".git"` flag prevents mirroring Linux `ext4` Git internal files into Windows `NTFS`, preserving repository database integrity across operating systems.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-10)
 ## Beginner Coder Q&A: Git Source Evidence
-[//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-10)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-1)
 
 ### 1. "What does `2>/dev/null || true` mean in `git push -u origin ...`?"
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-1)
 - `2>/dev/null` silences any network error text.
 - `|| true` guarantees that if the push fails (e.g., if you are currently offline on an airplane), the script does **not** crash and allows you to keep working locally!
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_02_02-SEC-2)
 ### 2. "Why does `git merge` include the `-m` flag?"
 [//]: # (SECTION_ID: SIRA-DOC-02_02-SEC-2)
 Without `-m "message"`, Git pops open a terminal text editor (like Vim or Nano) asking you to type a merge commit message. For beginners who do not know how to exit Vim (`:wq`), this feels like the terminal is frozen. Passing `-m` writes the message automatically and completes the merge instantly.

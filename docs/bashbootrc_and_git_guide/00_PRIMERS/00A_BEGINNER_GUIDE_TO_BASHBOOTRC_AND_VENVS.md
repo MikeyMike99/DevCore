@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-00A | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOT_00A | VERSION: v1.0 | SCOPE: DEV)
 
 # Pillar 00A: Beginner Guide to Bashbootrc & Virtual Environments
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-1)
 ## Introduction: Reading This Guide as a Beginner Coder
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-1)
 
@@ -21,6 +22,7 @@ This primer explains the foundational concepts in plain, everyday language.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-2)
 ## Question 1: What Is `~/.bashrc` ("bashbootrc")?
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-2)
 
@@ -28,10 +30,12 @@ When you open your Linux terminal (or WSL terminal on Windows), you are starting
 
 Every time Bash boots an interactive terminal window, it automatically reads a hidden text file in your home directory called **`.bashrc`** (short for "Bash Run Commands", or as we call it, **"bashbootrc"**).
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-3)
 ### Why Does the Filename Start With a Dot (`.`)?
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-3)
 In Linux, putting a period (`.`) at the start of a filename marks it as a **hidden file** (a "dotfile"). Typing regular `ls` hides it so your home folder stays clean. Typing `ls -a` reveals hidden files.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-4)
 ### What Does `.bashrc` Actually Do?
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-4)
 Before showing you the blinking command prompt, Bash executes every instruction inside `~/.bashrc` from line 1 to the end:
@@ -42,11 +46,13 @@ Before showing you the blinking command prompt, Bash executes every instruction 
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-5)
 ## Question 2: What Is a Python Virtual Environment (`venv`)?
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-5)
 
 When you install a Python package (like `pip install quart` or `pip install boto3`), Python normally places that package into a shared system-wide folder.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-6)
 ### The Conflict Problem
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-6)
 Imagine you work on two different projects:
@@ -58,6 +64,7 @@ If you install both projects' packages into one shared folder:
 2. **Version Clashes**: If Project A requires Library X version 2.0, but Project B requires Library X version 1.0, upgrading one breaks the other.
 3. **Unexpected Breakage**: Updating one project's tools can silently break the web server running on Port 5000.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-7)
 ### How Virtual Environments Solve This
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-7)
 A **Virtual Environment** is simply a private directory holding its own isolated copy of `python3` and its own private `site-packages/` folder.
@@ -68,17 +75,20 @@ When you **activate** an environment, your terminal temporarily re-points the `p
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-8)
 ## Question 3: Why Build an "Auto-Switcher" Instead of a Default Boot Venv?
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-8)
 
 Our initial instinct was to force DevCore to activate at terminal boot by placing `source ~/.venvs/devcore_env/bin/activate` at the bottom of `~/.bashrc`.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-9)
 ### The Problem With a Boot Default
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-9)
 If an environment is forced at boot:
 - Opening a terminal to work on secondary Git tools starts inside `devcore_env` by surprise.
 - Running `pip install` inside the wrong folder accidentally pollutes the other project.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-10)
 ### How the Smart Auto-Switcher Works
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-10)
 Instead of forcing one environment at boot:
@@ -89,6 +99,7 @@ Instead of forcing one environment at boot:
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-11)
 ## Question 4: Why Does the Order of Lines in `~/.bashrc` Matter?
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-11)
 
@@ -109,17 +120,20 @@ Just like recipe steps, Bash executes `.bashrc` strictly from **top to bottom**:
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-12)
 ## Beginner Coder Q&A: Understanding Bashbootrc & Venvs
-[//]: # (SECTION_ID: SIRA-DOC-00A-SEC-12)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-1)
 
 ### 1. "What does `source` mean when activating an environment?"
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-1)
 Normally, when you run a script (`bash script.sh`), Linux creates a temporary child process, runs the script, and closes it. Any variable changes vanish when the script ends. The command `source <file>` tells Bash: *"Run these commands right here inside my active window so the environment changes stay active."*
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-2)
 ### 2. "Why use `$HOME` instead of `/home/<username>`?"
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-2)
 `$HOME` is a built-in variable that automatically resolves to the home folder of whoever is logged in. Using `$HOME` means your configuration script works on any computer without editing usernames.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_00A-SEC-3)
 ### 3. "What does `builtin cd "$@"` mean inside our custom `cd` function?"
 [//]: # (SECTION_ID: SIRA-DOC-00A-SEC-3)
 Because we named our custom function `cd`, typing `cd` would call our function again in an infinite loop! Writing `builtin cd` forces Bash to execute the real, original Linux `cd` command first, and then run our auto-venv check.

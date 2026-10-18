@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-04 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-04_STEP_BY_STEP_SO | VERSION: v1.0 | SCOPE: DEV)
 
 # Chapter 4: Step-by-Step Solution & Future Environment Guide
 
@@ -8,6 +8,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-1)
 ## Overview of the Complete 5-Part Engineering Solution
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-1)
 
@@ -30,6 +31,7 @@ To completely separate **DevCore** and a secondary project environment while mak
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-2)
 ## Why the Top-to-Bottom Execution Order in `~/.bashrc` Is Mandatory
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-2)
 
@@ -46,6 +48,7 @@ The lines inside `~/.bashrc` must follow this exact 6-step order from top to bot
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-3)
 ## How to Add a 3rd Project Environment in the Future (Copy-Paste Recipe)
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-3)
 
@@ -53,6 +56,7 @@ Suppose six months from now you start a brand-new Python project called **`Audio
 
 Here are the 3 steps to do it yourself:
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-4)
 ### Step 1: Create the New Virtual Environment Inside `~/.venvs/`
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-4)
 Open your WSL terminal and run:
@@ -62,6 +66,7 @@ source "$HOME/.venvs/audiostudio/bin/activate"
 pip install --upgrade pip
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-5)
 ### Step 2: Add a 5-Line Case Block Inside `_auto_venv_hook()` in `~/.bashrc`
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-5)
 Open `~/.bashrc` and add your new project's folder pattern right below `*/DevCore*)`:
@@ -87,6 +92,7 @@ _auto_venv_hook() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-6)
 ### Step 3: Reload `~/.bashrc`
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-6)
 Run:
@@ -97,8 +103,9 @@ That's it! From that moment on, every time you `cd` into `AudioStudio`, your ter
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-7)
 ## Beginner Coder Q&A: Understanding the Architecture in Chapter 4
-[//]: # (SECTION_ID: SIRA-DOC-04-SEC-7)
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-1)
 
 ### 1. "What happens when I am inside `DevCore` (so `devcore_env` is active) and I `cd ~` back to the home directory?"
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-1)
@@ -109,6 +116,7 @@ That's it! From that moment on, every time you `cd` into `AudioStudio`, your ter
   deactivate
   ```
 
+[//]: # (SECTION_ID: SIRA-DEV-04_STEP_BY_STEP_SO-SEC-2)
 ### 2. "Why do we put new virtual environments inside a hidden `~/.venvs/` folder (`$HOME/.venvs/devcore_env`) instead of scattering them in `/home/<username>/`?"
 [//]: # (SECTION_ID: SIRA-DOC-04-SEC-2)
 - If you create a new folder directly in your home directory for every project (`~/devcore-env`, `~/audio-env`, `~/test-env`), your home directory quickly becomes crowded and hard to navigate with a screen reader.

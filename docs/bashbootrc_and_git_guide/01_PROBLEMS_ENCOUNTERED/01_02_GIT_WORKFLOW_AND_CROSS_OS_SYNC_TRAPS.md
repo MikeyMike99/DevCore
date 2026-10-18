@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-01_02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOT_01_02 | VERSION: v1.0 | SCOPE: DEV)
 
 # Pillar 01.2: Git Workflow Traps & Cross-OS Synchronization Issues
 
@@ -8,6 +8,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-1)
 
@@ -17,8 +18,9 @@ Below is the plain-English breakdown of five specific Git traps encountered in e
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-2)
 ## Problem 1: Uncommitted Worktree Collisions During Branch Checkout
-[//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-2)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-3)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-3)
@@ -29,6 +31,7 @@ Please commit your changes or stash them before you switch branches.
 Aborting
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-4)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-4)
 1. **Uncommitted State**: Git refuses to let you switch branches if any uncommitted changes in your working tree would be overwritten by files on the target branch.
@@ -37,8 +40,9 @@ Aborting
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-5)
 ## Problem 2: The Detached HEAD Trap
-[//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-5)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-6)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-6)
@@ -48,6 +52,7 @@ You are in 'detached HEAD' state. You can look around, make experimental changes
 ```
 When the developer makes commits in this state, those commits do not belong to any branch. When they switch back to `main`, their new commits become invisible and will eventually be permanently deleted by Git's garbage collection!
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-7)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-7)
 - A remote tracking reference (`origin/<branch>`) is a read-only snapshot. Checking it out directly detaches `HEAD` from any local branch.
@@ -55,8 +60,9 @@ When the developer makes commits in this state, those commits do not belong to a
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-8)
 ## Problem 3: Missing Upstream Tracking Information
-[//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-8)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-9)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-9)
@@ -67,6 +73,7 @@ To push the current branch and set the remote as upstream, use
     git push --set-upstream origin feature/my-task
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-10)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-10)
 - By default, Git does not know which remote branch matches a newly created local branch until you set up an upstream tracking reference.
@@ -74,8 +81,9 @@ To push the current branch and set the remote as upstream, use
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-11)
 ## Problem 4: The `.git` Directory Corruption Trap During Windows-WSL Sync
-[//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-11)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-12)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-12)
@@ -85,6 +93,7 @@ fatal: not a git repository (or any of the parent directories): .git
 ```
 Or warned that all file permissions changed from `100644` to `100755`.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-13)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-13)
 1. **Filesystem Metadata Incompatibility**: Linux `ext4` and Windows `NTFS` handle file permissions, ownership, and symlinks differently.
@@ -97,13 +106,15 @@ Or warned that all file permissions changed from `100644` to `100755`.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-14)
 ## Problem 5: Accidental Branch Deletion Before Upstream Verification
-[//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-14)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-15)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-15)
 After merging a feature branch locally, a developer deletes the branch (`git branch -D feature/xyz`) before pushing `main` to GitHub. If the push fails due to a network glitch or branch protection rule, the feature branch is gone and cannot be easily restored.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-16)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-16)
 - Premature local cleanup leaves no safety net.
@@ -111,14 +122,16 @@ After merging a feature branch locally, a developer deletes the branch (`git bra
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-17)
 ## Beginner Coder Q&A: Git Workflow Traps
-[//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-17)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-1)
 
 ### 1. "What is the difference between `git branch -d` and `git branch -D`?"
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-1)
 - `-d` (lowercase) is **safe delete**: Git checks if the branch has been fully merged into `main`. If unmerged commits exist, Git refuses to delete it.
 - `-D` (uppercase) is **force delete**: Git deletes the branch regardless of whether work was merged. Our automated script uses `-d` first, and only falls back to `-D` if the merge was verified.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_02-SEC-2)
 ### 2. "Why does `git stash push` need the `-u` flag?"
 [//]: # (SECTION_ID: SIRA-DOC-01_02-SEC-2)
 By default, `git stash` only saves files that Git is already tracking. If you created a brand-new file (like `new_module.py`), normal stash ignores it! Adding **`-u` (untracked)** tells Git: *"Save everything, including brand-new files, so nothing gets left behind."*

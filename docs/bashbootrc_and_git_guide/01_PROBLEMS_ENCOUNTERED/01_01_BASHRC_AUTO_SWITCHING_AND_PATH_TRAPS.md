@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-01_01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOT_01_01 | VERSION: v1.0 | SCOPE: DEV)
 
 # Pillar 01.1: Shell Boot Configuration & Virtual Environment Traps
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-1)
 
@@ -16,8 +17,9 @@ Below is the plain-English breakdown of what went wrong, why it occurred, and ho
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-2)
 ## Problem 1: Mixed Shared Dependencies & The Live Port 5000 Zero-Downtime Trap
-[//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-2)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-3)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-3)
@@ -27,6 +29,7 @@ Originally, the workstation had a single Python virtual environment (`$HOME/seco
 
 The live web server (`server.py`) was actively running on **Port 5000** using that shared environment to host our active developer web session.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-4)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-4)
 1. **Zero-Restart Architecture Constraint**: We could not kill Port 5000 mid-session without dropping active WebSocket streams and disconnecting the browser.
@@ -35,13 +38,15 @@ The live web server (`server.py`) was actively running on **Port 5000** using th
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-5)
 ## Problem 2: Boot Default Environment vs. Automatic Folder-Based Switching
-[//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-5)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-6)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-6)
 In our first `.bashrc` draft, we placed `source ~/.venvs/devcore_env/bin/activate` unconditionally at the bottom of the file.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-7)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-7)
 - Forcing one environment at boot hijacked every new terminal. Opening a terminal to work on the secondary project placed the user inside `devcore_env` unexpectedly.
@@ -49,13 +54,15 @@ In our first `.bashrc` draft, we placed `source ~/.venvs/devcore_env/bin/activat
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-8)
 ## Problem 3: Hardcoded Absolute User Paths Across WSL and Windows
-[//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-8)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-9)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-9)
 Scripts originally contained hardcoded paths like `/home/<user>/...` and `/mnt/c/Users/<user>/Documents/DevCore`. When moving between computers or user accounts, scripts crashed with `No such file or directory`.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-10)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-10)
 1. **WSL Username Disconnect**: In WSL, the Linux user name does not always match the Windows user folder name (`C:\Users\<WindowsUser>`).
@@ -66,13 +73,15 @@ Scripts originally contained hardcoded paths like `/home/<user>/...` and `/mnt/c
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-11)
 ## Problem 4: The Null-Byte `/proc/$pid/environ` Trap
-[//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-11)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-12)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-12)
 When [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh) needed to inspect the live `server.py` process to check its `VIRTUAL_ENV`, standard `grep "^VIRTUAL_ENV=" /proc/$pid/environ` failed or reported `Binary file matches`.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-13)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-13)
 1. **Kernel Null-Byte Delimiters**: In Linux, `/proc/$pid/environ` separates environment variables using null bytes (`\0`) instead of newline characters (`\n`).
@@ -85,13 +94,15 @@ When [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-14)
 ## Problem 5: Root Home Directory (`~`) Clutter & Script Independence
-[//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-14)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-15)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-15)
 The home directory (`~`) had accumulated 56 loose files (over 200 MB), including split archive chunks and temporary scratch test scripts. Furthermore, secondary project scripts needed to remain 100% independent of DevCore.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-16)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-16)
 - Temporary test scripts from past debugging sessions had been left behind.
@@ -99,13 +110,15 @@ The home directory (`~`) had accumulated 56 loose files (over 200 MB), including
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-17)
 ## Beginner Coder Q&A: Shell & Environment Traps
-[//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-17)
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-1)
 
 ### 1. "Why did we put the dedicated venv in `~/.venvs/` instead of inside the Windows folder?"
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-1)
 Folders under `/mnt/c/` live on Windows NTFS. Running thousands of small Python file operations across the Windows-to-WSL bridge is 5x to 10x slower. Putting virtual environments inside `~/.venvs/` (native Linux `ext4`) makes `python3` and `pip` run at maximum native speed.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOT_01_01-SEC-2)
 ### 2. "Why does `_auto_venv_hook` check `[ "$VIRTUAL_ENV" != ... ]` before activating?"
 [//]: # (SECTION_ID: SIRA-DOC-01_01-SEC-2)
 Activating a virtual environment takes several milliseconds because it updates environment variables. If you `cd` between subfolders inside the same project, the check realizes that environment is *already* active and does nothing, preventing terminal lag.

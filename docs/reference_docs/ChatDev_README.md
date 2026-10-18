@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-CHATDEV_README | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-CHATDEV_README | VERSION: v1.3 | SCOPE: DEV)
 
 # ChatDev 2.0 - DevAll
 
@@ -18,6 +18,7 @@
     【📚 <a href="#developers">Developers</a> | 👥 <a href="#primary-contributors">Contributors</a>｜⭐️ <a href="https://github.com/OpenBMB/ChatDev/tree/chatdev1.0">ChatDev 1.0 (Legacy)</a>】
 </p>
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-1)
 ## 📖 Overview
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-1)
 ChatDev has evolved from a specialized software development multi-agent system into a comprehensive multi-agent orchestration platform.
@@ -25,6 +26,7 @@ ChatDev has evolved from a specialized software development multi-agent system i
 - <a href="https://github.com/OpenBMB/ChatDev/tree/main">**ChatDev 2.0 (DevAll)**</a> is a **Zero-Code Multi-Agent Platform** for "Developing Everything". It empowers users to rapidly build and execute customized multi-agent systems through simple configuration. No coding is required—users can define agents, workflows, and tasks to orchestrate complex scenarios such as data visualization, 3D generation, and deep research.
 - <a href="https://github.com/OpenBMB/ChatDev/tree/chatdev1.0">**ChatDev 1.0 (Legacy)**</a> operates as a **Virtual Software Company**. It utilizes various intelligent agents (e.g., CEO, CTO, Programmer) participating in specialized functional seminars to automate the entire software development life cycle—including designing, coding, testing, and documenting. It serves as the foundational paradigm for communicative agent collaboration.
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-2)
 ## 🎉 News
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-2)
 • **Jan 07, 2026: 🚀 We are excited to announce the official release of ChatDev 2.0 (DevAll)!** This version introduces a zero-code multi-agent orchestration platform. The classic ChatDev (v1.x) has been moved to the [`chatdev1.0`](https://github.com/OpenBMB/ChatDev/tree/chatdev1.0) branch for maintenance. More details about ChatDev 2.0 can be found on [our official post](https://x.com/OpenBMB/status/2008916790399701335).
@@ -103,8 +105,9 @@ See our paper in [Multi-Agent Collaboration via Evolving Orchestration](https://
 </details>
 
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-3)
 ## 🚀 Quick Start
-[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-3)
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-4)
 
 ### 📋 Prerequisites
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-4)
@@ -114,6 +117,7 @@ See our paper in [Multi-Agent Collaboration via Evolving Orchestration](https://
 *   **Node.js**: 18+
 *   **Package Manager**: [uv](https://docs.astral.sh/uv/)
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-5)
 ### 📦 Installation
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-5)
 
@@ -127,6 +131,7 @@ See our paper in [Multi-Agent Collaboration via Evolving Orchestration](https://
     cd frontend && npm install
     ```
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-6)
 ### 🔑 Configuration
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-6)
 
@@ -137,6 +142,7 @@ See our paper in [Multi-Agent Collaboration via Evolving Orchestration](https://
 *   **Model Keys**: Set `API_KEY` and `BASE_URL` in `.env` for your LLM provider.
 *   **YAML placeholders**: Use `${VAR}`（e.g., `${API_KEY}`）in configuration files to reference these variables.
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-7)
 ### ⚡️ Run the Application
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-7)
 
@@ -191,6 +197,7 @@ make dev
     ```
     Checks all YAML files for syntax and schema errors.
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-8)
 ### 🦞 Run with OpenClaw
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-8)
 OpenClaw can integrate with ChatDev by invoking existing agent teams or dynamically creating new agent teams within ChatDev.
@@ -215,6 +222,7 @@ To get started:
   ```
 
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-9)
 ### 🐳 Run with Docker
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-9)
 Alternatively, you can run the entire application using Docker Compose. This method simplifies dependency management and provides a consistent environment.
@@ -237,8 +245,9 @@ Alternatively, you can run the entire application using Docker Compose. This met
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-10)
 ## 💡 How to Use
-[//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-10)
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-11)
 
 ### 🖥️ Web Console
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-11)
@@ -254,6 +263,7 @@ The DevAll interface provides a seamless experience for both construction and ex
 *   **Launch**: Initiate workflows, monitor real-time logs, inspect intermediate artifacts, and provide human-in-the-loop feedback.
 <img src="assets/launch.gif"/>
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-12)
 ### 🧰 Python SDK
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-12)
 For automation and batch processing, use our lightweight Python SDK to execute workflows programmatically and retrieve results directly.
@@ -278,6 +288,7 @@ if result.final_message:
 ---
 
 <a id="developers"></a>
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-13)
 ## ⚙️ For Developers
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-13)
 
@@ -296,12 +307,14 @@ Relevant reference documentation:
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-14)
 ## 🌟 Featured Workflows
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-14)
 We provide robust, out-of-the-box templates for common scenarios. All runnable workflow configs are located in `yaml_instance/`.
 *   **Demos**: Files named `demo_*.yaml` showcase specific features or modules.
 *   **Implementations**: Files named directly (e.g., `ChatDev_v1.yaml`) are full in-house or recreated workflows. As follows:
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-15)
 ### 📋 Workflow Collection
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-15)
 
@@ -315,6 +328,7 @@ We provide robust, out-of-the-box templates for common scenarios. All runnable w
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-16)
 ### 💡 Usage Guide
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-16)
 For those implementations, you can use the **Launch** tab to execute them.
@@ -324,6 +338,7 @@ For those implementations, you can use the **Launch** tab to execute them.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-17)
 ## 🤝 Contributing
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-17)
 
@@ -331,6 +346,7 @@ We welcome contributions from the community! Whether you're fixing bugs, adding 
 
 By contributing to DevAll, you'll be recognized in our **Contributors** list below. Check out our [Developer Guide](#developers) to get started!
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-18)
 ### 👥 Contributors
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-18)
 
@@ -373,6 +389,7 @@ By contributing to DevAll, you'll be recognized in our **Contributors** list bel
   </tr>
 </table>
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-19)
 ## 🤝 Acknowledgments
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-19)
 
@@ -384,6 +401,7 @@ By contributing to DevAll, you'll be recognized in our **Contributors** list bel
 <a href="www.teachmaster.cn"><img src="assets/teachmaster.png" height=50pt></a>
 <a href="https://github.com/OpenBMB/AppCopilot"><img src="assets/appcopilot.png" height=50pt></a>
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-20)
 ## 🔎 Citation
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-20)
 
@@ -429,6 +447,7 @@ By contributing to DevAll, you'll be recognized in our **Contributors** list bel
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-CHATDEV_README-SEC-21)
 ## 📬 Contact
 [//]: # (SECTION_ID: SIRA-DOC-CHATDEV_README-SEC-21)
 

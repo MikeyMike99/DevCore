@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-03 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-03_DIAGNOSTIC_TEST | VERSION: v1.0 | SCOPE: DEV)
 
 # Chapter 3: Diagnostic Tests & How We Reached Our Conclusions
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-1)
 
@@ -14,17 +15,20 @@ Before modifying `~/.bashrc`, [`scripts/start_server.sh`](../../scripts/start_se
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-2)
 ## Test 1: AST Static Import Scan Across the Entire Codebase
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-2)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-3)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-3)
 Before creating the dedicated virtual environment, we needed to know the **exact** list of third-party Python libraries imported anywhere inside the DevCore codebase (including `server.py`, `core/`, `agents/`, `security/`, and plugins) versus which packages in the shared environment belonged exclusively to secondary project tools.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-4)
 ### What We Executed
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-4)
 We ran a Python `ast` (Abstract Syntax Tree) scanner across all `.py` files in the project directory and compared the discovered top-level imports against `pip list`.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-5)
 ### Output & Findings
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-5)
 - **DevCore Required Packages Identified**:
@@ -32,19 +36,22 @@ We ran a Python `ast` (Abstract Syntax Tree) scanner across all `.py` files in t
 - **Secondary-Exclusive Packages Identified**:
   `asciinema`, `checkov`, `boto3`, `botocore`, `cyclonedx-python-lib`, `bc-python-hcl2`, `cloudsplaining`, `policyuniverse`, `dpath`, `dockerfile-parse`.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-6)
 ### Conclusion 1
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-6)
 This proved which packages had to be installed into the new dedicated virtual environment and which packages could later be safely removed from the shared environment without harming secondary project tools.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-7)
 ## Test 2: Verifying All 4 Core Managers Inside the Dedicated Environment
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-7)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-8)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-8)
 After creating the new virtual environment with `python3 -m venv $HOME/.venvs/devcore_env` and installing all project dependencies + `en_core_web_lg`, we had to prove that the engine could import every dependency and initialize all four core managers before touching the live server.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-9)
 ### Command Executed
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-9)
 ```bash
@@ -61,20 +68,23 @@ print('ALL DEVCORE MANAGERS & SPACY MODEL LOADED SUCCESSFULLY IN:', sys.prefix)
 "
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-10)
 ### Exact Output
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-10)
 ```text
 ALL DEVCORE MANAGERS & SPACY MODEL LOADED SUCCESSFULLY IN: /home/<username>/.venvs/devcore_env
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-11)
 ### Conclusion 2
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-11)
 The new virtual environment was 100% functional and ready to host the web server.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-12)
 ## Test 3: The 5-Scenario Interactive Subshell Test of `~/.bashrc` Auto-Switching
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-12)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-13)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-13)
@@ -85,6 +95,7 @@ After writing `_auto_venv_hook()`, `cd()`, and jump functions in `~/.bashrc`, we
 4. Running the secondary jump shortcut activates the secondary environment and changes directory.
 5. Running the DevCore jump shortcut activates `devcore_env` and jumps to the DevCore workspace.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-14)
 ### Command Executed
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-14)
 ```bash
@@ -103,6 +114,7 @@ echo "5. After devcore jump: VIRTUAL_ENV=$VIRTUAL_ENV (PWD=$PWD)"
 '
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-15)
 ### Output
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-15)
 ```text
@@ -113,19 +125,22 @@ echo "5. After devcore jump: VIRTUAL_ENV=$VIRTUAL_ENV (PWD=$PWD)"
 5. After devcore jump: VIRTUAL_ENV=/home/<username>/.venvs/devcore_env (PWD=/mnt/c/Users/<username>/Documents/DevCore)
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-16)
 ### Conclusion 3
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-16)
 All five scenarios passed with 100% precision: neither environment hijacks the home directory at boot, `cd` switches environments seamlessly based on folder path, and jump shortcuts switch and navigate on command.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-17)
 ## Test 4: Dynamic Windows `%USERPROFILE%` + `wslpath -u` Path Resolution Test
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-17)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-18)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-18)
 To eliminate hardcoded paths in both `~/.bashrc` and external scripts, we tested querying Windows `cmd.exe` for `%USERPROFILE%` and converting it via `wslpath -u`.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-19)
 ### Command Executed
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-19)
 ```bash
@@ -135,26 +150,30 @@ echo "Resolved _get_win_dest: $(_get_win_dest)"
 '
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-20)
 ### Output
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-20)
 ```text
 Resolved _get_win_dest: /mnt/c/Users/<username>/Videos/Captures
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-21)
 ### Conclusion 4
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-21)
 Dynamic Windows profile detection works reliably across the WSL-Windows boundary without any hardcoded username strings in the script.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-22)
 ## Test 5: Live Server `/proc/<pid>/environ` Inspection Before vs. After Reboot
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-22)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-23)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-23)
 When testing [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh), we ran it with `--check` to see which virtual environment the live server process on Port 5000 was using.
 - Pipelining `strings "/proc/$pid/environ" | grep "^VIRTUAL_ENV=" | cut -d= -f2-` reliably extracts the live server's active `VIRTUAL_ENV`.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-24)
 ### Output Before Server Reboot
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-24)
 ```text
@@ -166,6 +185,7 @@ NOTICE: Server is currently running in: /home/<username>/secondary-env
 It has NOT yet booted inside the new DevCore environment (/home/<username>/.venvs/devcore_env).
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-25)
 ### Output After Server Reboot via `scripts/start_server.sh`
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-25)
 Once the server was restarted using [`scripts/start_server.sh`](../../scripts/start_server.sh), we ran the check again:
@@ -177,19 +197,22 @@ SUCCESS: DevCore environment is healthy with all core dependencies intact.
 SUCCESS: Server is verified running in /home/<username>/.venvs/devcore_env.
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-26)
 ### Conclusion 5
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-26)
 The safety lock in the transition script worked as designed: it blocked uninstalling packages while the server was still running in the shared environment, and automatically unlocked as soon as the server booted inside the dedicated environment.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-27)
 ## Test 6: Executing the Dependency Cleanup Script
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-27)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-28)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-28)
 With the live server confirmed running in the dedicated environment, we executed [`scripts/cleanup_dependencies.sh`](../../scripts/scratch_devcore_from_alp.sh) to remove all project-exclusive packages from the shared environment and verify that secondary tools remained healthy.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-29)
 ### Output
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-29)
 ```text
@@ -206,19 +229,22 @@ Python functional: 3.14.4
 SUCCESS: Secondary environment remains fully operational.
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-30)
 ### Conclusion 6
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-30)
 All 27 exclusive packages were cleanly removed from the shared environment, while `asciinema 2.4.0` and the secondary Python environment remained 100% intact.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-31)
 ## Test 7: Home Directory (`~`) File Audit & Cleanup Verification
-[//]: # (SECTION_ID: SIRA-DOC-03-SEC-31)
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-32)
 
 ### Why We Ran This Test
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-32)
 To clean up the root home directory safely without touching any active project directories or dotfiles, we first ran a dry-run check, deleted leftover archive chunks and temporary scratch scripts, and verified the directory state afterward.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-33)
 ### Verification Output
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-33)
 - **Space Reclaimed**: Over `200 MB` of leftover temporary archives and scratch files removed.
@@ -227,22 +253,26 @@ To clean up the root home directory safely without touching any active project d
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-34)
 ## Beginner Coder Q&A: Understanding the Tests in Chapter 3
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-34)
 
 If you are reading Chapter 3 as a beginner developer, here are the plain-English answers to common questions about these tests:
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-1)
 ### 1. "In Test 1, what is an 'AST Static Import Scan' and why didn't we just read `requirements.txt`?"
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-1)
 - Often, as a project grows, developers install new Python packages and import them in code, but forget to write every single one down in `requirements.txt`.
 - **AST (Abstract Syntax Tree)** reads every `.py` file in your project and lists every single `import` and `from ... import` statement in the actual code—without running the code.
 - By scanning the real `.py` files with `ast`, we guaranteed that not a single library was missed when building the dedicated environment.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-2)
 ### 2. "In Test 3, why did we have to run `bash -i -c` with the `-i` flag instead of normal `bash -c`?"
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-2)
 - At the top of `~/.bashrc`, lines check if the shell is interactive (`case $- in *i*)`). Non-interactive shells (`bash -c`) exit early to avoid printing noisy text in automated pipelines.
 - Adding the **`-i` flag (`bash -i -c`)** tells Bash to run in **interactive mode**, allowing `~/.bashrc` to load completely just like when you open a real terminal window.
 
+[//]: # (SECTION_ID: SIRA-DEV-03_DIAGNOSTIC_TEST-SEC-3)
 ### 3. "In Test 5, why did the server process have to reboot?"
 [//]: # (SECTION_ID: SIRA-DOC-03-SEC-3)
 - A running program cannot swap out its Python virtual environment in memory mid-flight without restarting.

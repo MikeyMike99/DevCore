@@ -1,7 +1,8 @@
-[//]: # (DOC_ID: SIRA-DOC-PREFLIGHT | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH | VERSION: v1.0 | SCOPE: DEV)
 
 # Bootstrap Pre-Flight Self-Healing & Dual-Layer Uptime Architecture
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-1)
 ## Executive Summary
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-1)
 
@@ -15,6 +16,7 @@ To mathematically eliminate this failure mode, the platform implements a **Dual-
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-1)
 ## 1. Why Rogue or Hallucinating Agents Threaten System Uptime
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-1)
 
@@ -26,6 +28,7 @@ Even highly capable frontier models exhibit failure modes under complex multi-fi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-2)
 ## 2. The Two Layers of Uptime Protection
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-2)
 
@@ -53,6 +56,7 @@ flowchart TD
     end
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-2)
 ### Layer 1: The Self-Healing Pre-Flight Supervisor & Persistent Gateway
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-2)
 Layer 1 executes automatically before the backend engine binds its listener port, during manual pre-flight audits, and immediately following any unexpected runtime crash:
@@ -75,6 +79,7 @@ Layer 1 executes automatically before the backend engine binds its listener port
    - Sits in front of the backend engine and maintains a permanent WebSocket bridge and 4-second keep-alive heartbeat with the browser client.
    - When the backend reloads or recovers from a crash, the gateway **never cancels the client listener task**. Instead, it emits a status notification (*"Engine reloading or running tasks. Connection preserved by Bootstrap Gateway..."*), buffers any prompts sent by the user while the backend is offline, and automatically replays those queued messages the instant the backend reconnects.
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-3)
 ### Layer 2: The Zero-Downtime In-Memory Hot-Patch Engine
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-3)
 While Layer 1 guards startup, crash recovery, and socket persistence, Layer 2 governs live code mutations while the server is actively handling traffic:
@@ -90,6 +95,7 @@ While Layer 1 guards startup, crash recovery, and socket persistence, Layer 2 go
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-3)
 ## 3. Defense Matrix: How the Two Layers Defeat Rogue Agent Failures
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-3)
 
@@ -104,6 +110,7 @@ While Layer 1 guards startup, crash recovery, and socket persistence, Layer 2 go
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-BOOTSTRAP_PREFLIGH-SEC-4)
 ## 4. Non-Destructive 4-Stage Verification Harness
 [//]: # (SECTION_ID: SIRA-DOC-PREFLIGHT-SEC-4)
 

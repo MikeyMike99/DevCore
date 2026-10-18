@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-01 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-01_PROBLEMS_WE_ENC | VERSION: v1.0 | SCOPE: DEV)
 
 # Chapter 1: The Five Problems We Encountered
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-1)
 
@@ -16,8 +17,9 @@ Understanding each problem and why it happened is essential so you never get cau
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-2)
 ## Problem 1: Mixed Dependencies & The Live Port 5000 Zero-Downtime Trap
-[//]: # (SECTION_ID: SIRA-DOC-01-SEC-2)
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-3)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-3)
@@ -27,6 +29,7 @@ Originally, the machine had a single Python virtual environment at `$HOME/second
 
 Even worse, the live **DevCore Web Server (`server.py`)** was actively running on **Port 5000** using Python from that shared environment to host our active web session!
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-4)
 ### Why It Was a Problem
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-4)
 1. **We Could Not Immediately Delete DevCore Packages From the Shared Environment**:
@@ -38,13 +41,15 @@ Even worse, the live **DevCore Web Server (`server.py`)** was actively running o
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-5)
 ## Problem 2: Forcing a Default Virtual Environment at Boot vs. Automatic Folder-Based Switching in `~/.bashrc`
-[//]: # (SECTION_ID: SIRA-DOC-01-SEC-5)
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-6)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-6)
 In our very first draft of `~/.bashrc`, we placed `source "$HOME/.venvs/devcore_env/bin/activate"` unconditionally at the bottom of `~/.bashrc` so the primary project environment would be the default whenever a terminal opened.
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-7)
 ### Why It Was a Problem
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-7)
 1. **Unwanted Hijacking of New Terminals**:
@@ -58,8 +63,9 @@ In our very first draft of `~/.bashrc`, we placed `source "$HOME/.venvs/devcore_
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-8)
 ## Problem 3: Hardcoded Absolute User Paths Across WSL and Windows
-[//]: # (SECTION_ID: SIRA-DOC-01-SEC-8)
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-9)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-9)
@@ -67,6 +73,7 @@ Across both `~/.bashrc` and external project helper scripts, several paths were 
 - Hardcoded Linux paths like `/home/<username>/secondary-env/...`
 - Hardcoded Windows mount paths like `/mnt/c/Users/<username>/Documents/DevCore` and `/mnt/c/Users/<username>/Videos/Captures`
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-10)
 ### Why It Was a Problem
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-10)
 1. **Zero Portability Across Machines or User Accounts**:
@@ -80,8 +87,9 @@ Across both `~/.bashrc` and external project helper scripts, several paths were 
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-11)
 ## Problem 4: The Null-Byte `/proc/$pid/environ` Trap When Inspecting the Live Server
-[//]: # (SECTION_ID: SIRA-DOC-01-SEC-11)
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-12)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-12)
@@ -93,6 +101,7 @@ grep "^VIRTUAL_ENV=" /proc/$pid/environ
 ```
 `grep` failed to return the clean `VIRTUAL_ENV=...` line (or complained `Binary file /proc/$pid/environ matches`).
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-13)
 ### Why It Happened
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-13)
 1. **Linux `/proc/$pid/environ` Uses Null Bytes (`\0`), Not Newlines (`\n`)**:
@@ -108,8 +117,9 @@ grep "^VIRTUAL_ENV=" /proc/$pid/environ
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-14)
 ## Problem 5: Home Directory (`~`) Clutter & Keeping Tool Helpers Strictly Separated
-[//]: # (SECTION_ID: SIRA-DOC-01-SEC-14)
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-15)
 
 ### What Happened
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-15)
@@ -119,6 +129,7 @@ When inspecting the root home directory (`~`) during the environment audit, we d
 
 Additionally, we needed to ensure that external project helper scripts and documentation remained **100% dedicated to their respective tools** with zero cross-contamination with DevCore.
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-16)
 ### How We Solved It
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-16)
 1. **Safe Dry-Run Audit First**: We audited all loose files and verified that active project folders (`secondary-env`, `.venvs/devcore_env`, `.local/bin`, `.gemini`, etc.) were excluded from the cleanup list.
@@ -127,11 +138,13 @@ Additionally, we needed to ensure that external project helper scripts and docum
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-17)
 ## Beginner Coder Q&A: Understanding Chapter 1 With Zero Prior Background
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-17)
 
 If you are reading Chapter 1 as a beginner developer and wondering how all of these pieces work under the hood, here are the plain-English answers to the questions a beginner coder asks:
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-1)
 ### 1. "Why did we put the new virtual environment in `$HOME/.venvs/devcore_env` instead of inside `<project_root>/venv` on Windows?"
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-1)
 This is one of the most important secrets of working in **WSL 2 (Windows Subsystem for Linux)**:
@@ -139,6 +152,7 @@ This is one of the most important secrets of working in **WSL 2 (Windows Subsyst
 - Folders starting with `/home/<username>/...` live inside **native Linux `ext4` storage**.
 - By keeping your **project code** in `/mnt/c/Users/<username>/Documents/DevCore` (so Windows tools and editors can easily see it) while keeping your **Python virtual environment** in `$HOME/.venvs/devcore_env` (on native Linux `ext4`), your server starts instantly, `pip install` runs at maximum speed, and your project folder stays clean!
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-2)
 ### 2. "Wait—so the order of commands inside `~/.bashrc` and `start_server.sh` matters too?!"
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-2)
 **Yes!** The order of lines in Bash scripts ([`~/.bashrc`](./02_SOURCE_CODE_AND_SYSTEM_EVIDENCE.md) and [`scripts/start_server.sh`](../../scripts/start_server.sh)) is critical:
@@ -168,6 +182,7 @@ This is one of the most important secrets of working in **WSL 2 (Windows Subsyst
    - Why does `builtin cd "$@"` have to be first? Because `_auto_venv_hook` inspects `$PWD` (the folder you are standing in right now).
    - If you called `_auto_venv_hook` *before* `builtin cd "$@"`, `$PWD` would still be your **old** folder! Moving into the new folder first updates `$PWD`, and then `_auto_venv_hook` immediately sees your new folder and activates the matching environment.
 
+[//]: # (SECTION_ID: SIRA-DEV-01_PROBLEMS_WE_ENC-SEC-3)
 ### 3. "In Problem 4, what is a 'Null Byte' (`\0`) and why did `strings` fix it?"
 [//]: # (SECTION_ID: SIRA-DOC-01-SEC-3)
 - In a normal text file (like `.bashrc`), the computer puts a **Newline character (`\n`)** at the end of every line so programs like `grep` know where one line ends and the next line begins.

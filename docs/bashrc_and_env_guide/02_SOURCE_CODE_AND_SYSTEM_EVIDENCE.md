@@ -1,4 +1,4 @@
-[//]: # (DOC_ID: SIRA-DOC-02 | VERSION: v1.0 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-02_SOURCE_CODE_AND | VERSION: v1.0 | SCOPE: DEV)
 
 # Chapter 2: Source Code & System Evidence
 
@@ -7,6 +7,7 @@
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-1)
 
@@ -14,6 +15,7 @@ Every engineering decision we made was backed by inspecting the live files on di
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-2)
 ## Evidence 1: The Interactive Guard & External Helper Sourcing in `~/.bashrc`
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-2)
 
@@ -42,6 +44,7 @@ if [ -f "$HOME/secondary-env/secondary_project/tools/recording/helpers.sh" ]; th
 fi
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-3)
 ### What This Proves
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-3)
 1. **Why Non-Interactive `bash -c` Subshells Exit Early (`case $- in *i*)`)**:
@@ -51,6 +54,7 @@ fi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-4)
 ## Evidence 2: Manual Jump Commands & Automatic Folder-Based Switching in `~/.bashrc`
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-4)
 
@@ -114,6 +118,7 @@ if [[ ! "$PROMPT_COMMAND" =~ "_auto_venv_hook" ]]; then
 fi
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-5)
 ### Line-by-Line Technical Breakdown
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-5)
 1. **Jump Functions and Aliases**:
@@ -133,6 +138,7 @@ fi
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-6)
 ## Evidence 3: The Dedicated Server Startup Script (`scripts/start_server.sh`)
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-6)
 
@@ -149,6 +155,7 @@ fi
 exec python3 server.py
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-7)
 ### Line-by-Line Technical Breakdown
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-7)
 - **`cd "$(dirname "$0")/.." || exit 1`**:
@@ -160,6 +167,7 @@ exec python3 server.py
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-8)
 ## Evidence 4: The Live Process Inspector & Dependency Cleanup Script (`scripts/cleanup_dependencies.sh`)
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-8)
 
@@ -226,6 +234,7 @@ for pkg in "${PACKAGES_TO_SCRATCH[@]}"; do
 done
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-9)
 ### What This Proves
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-9)
 1. **Kernel-Level Process Identification (`check_server()`)**:
@@ -237,6 +246,7 @@ done
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-10)
 ## Evidence 5: Dynamic Windows Path Resolution in External Helper Scripts
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-10)
 
@@ -261,17 +271,20 @@ _get_win_dest() {
 }
 ```
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-11)
 ### What This Proves
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-11)
 - Rather than hardcoding usernames, `_get_win_dest()` dynamically queries Windows for `%USERPROFILE%`, converts it with `wslpath -u`, and falls back to `/mnt/c/Users/$USER/Videos/Captures`.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-12)
 ## Beginner Coder Q&A: Understanding the Source Code in Chapter 2
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-12)
 
 When a beginner coder reads the Bash code in Chapter 2 for the first time, several symbols stand out. Here is what they mean in plain English:
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-1)
 ### 1. "What does `2>/dev/null` mean? Why is it on so many lines?"
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-1)
 In Linux, every command has two output channels:
@@ -280,12 +293,14 @@ In Linux, every command has two output channels:
 - **`/dev/null`**: A special "black hole" trash can built into Linux. Anything sent to `/dev/null` disappears silently.
 - Therefore, **`2>/dev/null`** simply means: *"If this command prints a noisy error message on Channel 2, throw that error message into the silent trash can so it doesn't clutter the user's screen or interrupt their screen reader!"*
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-2)
 ### 2. "What does `>/dev/null 2>&1` mean?"
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-2)
 - `>/dev/null` sends **Channel 1 (normal output)** to `/dev/null`.
 - `2>&1` sends **Channel 2 (error output)** to the exact same place as Channel 1.
 - Together, `>/dev/null 2>&1` means: *"Run this check completely silently—don't print normal output and don't print error output; I only care whether the command succeeded (`True`) or failed (`False`)!"*
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-3)
 ### 3. "In `_auto_venv_hook()`, why are there asterisks around `*/DevCore*`?"
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-3)
 In a Bash `case` block, the asterisk (`*`) is a **wildcard** that means *"any characters before or after this word"*:
@@ -295,6 +310,7 @@ In a Bash `case` block, the asterisk (`*`) is a **wildcard** that means *"any ch
   - `/mnt/c/Users/<username>/Documents/DevCore/scripts` (another subfolder)
 - Putting `*` on both ends guarantees that no matter how deep inside the project you navigate, Bash recognizes which project you are in.
 
+[//]: # (SECTION_ID: SIRA-DEV-02_SOURCE_CODE_AND-SEC-4)
 ### 4. "Why do we check `if [[ ! "$PROMPT_COMMAND" =~ "_auto_venv_hook" ]]` before adding `_auto_venv_hook`?"
 [//]: # (SECTION_ID: SIRA-DOC-02-SEC-4)
 - If you edit `~/.bashrc` and type `source ~/.bashrc` multiple times in a session to reload your changes, without that check `_auto_venv_hook` would get appended multiple times to `PROMPT_COMMAND`.

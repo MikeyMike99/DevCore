@@ -1,13 +1,15 @@
-[//]: # (DOC_ID: SIRA-DOC-PORTABLE_DISTR | VERSION: v1.3 | SCOPE: Siraugga / DevCore Framework)
+[//]: # (DOC_ID: SIRA-DEV-PORTABLE_DISTRIBUT | VERSION: v1.3 | SCOPE: DEV)
 
 # Portable Executable Distribution & Stamping Guide
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-1)
 ## Overview
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-1)
 The DevCore application has been completely decoupled from the developer's local environment. It now operates as a 100% self-contained, portable Windows executable (`.exe`). This document details the infrastructure that makes this portability possible, and the workflows for distributing customized, time-locked versions of the app to clients.
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-1)
 ## 1. The Bundled Engine Architecture (Zero-Install)
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-1)
 Previously, the Python backend relied on the host computer having the Google Antigravity CLI (`agy`) installed via `pip`. This broke portability.
@@ -17,6 +19,7 @@ Previously, the Python backend relied on the host computer having the Google Ant
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-2)
 ## 2. Client Authentication & Quota Protection
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-2)
 To prevent distributed clients from draining the Master Developer's personal Google AI API quota, the authentication flow was overhauled:
@@ -26,10 +29,12 @@ To prevent distributed clients from draining the Master Developer's personal Goo
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-3)
 ## 3. The Binary Stamping Engine (Time-Locked Trials)
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-3)
 Compiling a 40MB+ Nuitka executable takes time. It is highly inefficient to recompile the entire source code every time a client needs a custom trial date. To solve this, we implemented the **Binary Stamper** (`Binary Stamping Module`).
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-2)
 ### How it Works
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-2)
 1. **The Magic Append:** An `.exe` file can have arbitrary data appended to the very end of its binary structure without corrupting the executable. 
@@ -39,6 +44,7 @@ Compiling a 40MB+ Nuitka executable takes time. It is highly inefficient to reco
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-4)
 ## 4. Master Developer Auto-Bypass
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-4)
 *Crucial Rule: The creator must never be locked out of their own creation.*
@@ -50,6 +56,7 @@ Even if the Master Developer launches a Stamped/Expired client `.exe`, the appli
 
 ---
 
+[//]: # (SECTION_ID: SIRA-DEV-PORTABLE_DISTRIBUT-SEC-5)
 ## 5. Standard Operating Procedure: Distributing an App
 [//]: # (SECTION_ID: SIRA-DOC-PORTABLE_DISTR-SEC-5)
 When you want to give a customized trial version of the app to a friend or client:
@@ -67,4 +74,4 @@ python3 Binary Stamping Module --source Siraugga.exe --dest Client_John.exe --id
 ```
 
 **Step 3: Distribute**
-Hand `Client_John.exe` to John. When John runs it, it will politely ask him for his Google API key, allow him to use it for exactly 7 days, and then permanently lock itself. 
+Hand `Client_John.exe` to John. When John runs it, it will politely ask him for his Google API key, allow him to use it for exactly 7 days, and then permanently lock itself.
