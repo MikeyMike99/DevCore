@@ -161,7 +161,18 @@ def _is_writable_via_resolver(key: str, real_path: str, mod_entry: dict, sym_ent
         return (
             False,
             "DENIED_SELF_PROTECTION",
-            f"Key '{key}' is locked by the Raugus Self-Protection Firewall and cannot be modified.",
+            (
+                "[RAUGUS SELF-PROTECTION FIREWALL]\n"
+                f"Direct modification of key '{key}' is blocked by design.\n\n"
+                "WHY THIS WAS BLOCKED (ZERO-TRUST INTEGRITY):\n"
+                "The Raugus Resolver is intentionally built to block direct modification of core security "
+                "components to prevent unauthorized parameter overrides, circular tampering, and prompt escalation.\n\n"
+                "REQUIRED CORRECTION (HUMAN IN THE LOOP):\n"
+                "1. Human in the Loop: Changes to core security components require explicit human authorization and review.\n"
+                "2. Pull from Git: Core security updates must be committed through version control and pulled from Git, "
+                "never modified directly in place by autonomous agents.\n"
+                "3. Information Protection: Physical host filesystem paths and internal configuration locations are shielded."
+            ),
         )
 
     bname = os.path.basename(real_path or "").lower()
@@ -672,6 +683,86 @@ def refresh_key_map(user_tier: int = 5) -> str:
         })
     except Exception as e:
         return _json_response({"status": "ERROR", "reason": str(e)})
+
+
+
+@mcp.tool()
+def workspace_pipeline(
+    action: str = "status",
+    commit_msg: str = "",
+    no_push: bool = False,
+    commit_devcore: bool = False,
+    user_tier: int = 5,
+) -> str:
+    """
+    Executes the unified cross-repository workspace pipeline (Central_Docs, e_profile, DevCore)
+    in a single tool call to eliminate repetitive commands and conserve tokens.
+
+    Actions:
+    - 'status': Consolidated git status across Central_Docs, e_profile, and DevCore.
+    - 'audit': Runs documentation quality, category structure, and security audits across repositories.
+    - 'commit': Executes full validation, syncs Central_Docs to e_profile, and commits/pushes atomically.
+    """
+    if int(user_tier) < 3:
+        return _json_response({
+            "status": "DENIED",
+            "reason": "Access Denied: Tier 3 clearance required to invoke the workspace pipeline.",
+        })
+
+    pipeline_script = os.path.join(DEVCORE_ROOT, "scripts", "workspace_pipeline.py")
+    if not os.path.exists(pipeline_script):
+        pipeline_script = "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py"
+
+    cmd = [sys.executable, pipeline_script]
+    if action == "status":
+        cmd.append("--status")
+    elif action == "audit":
+        cmd.append("--audit")
+    elif action == "commit":
+        if not commit_msg:
+            return _json_response({
+                "status": "ERROR",
+                "reason": "Parameter 'commit_msg' is required for action 'commit'.",
+            })
+        cmd.extend(["--commit", commit_msg])
+        if no_push:
+            cmd.append("--no-push")
+        if commit_devcore:
+            cmd.append("--commit-devcore")
+    else:
+        return _json_response({
+            "status": "ERROR",
+            "reason": f"Unknown action '{action}'. Supported actions: 'status', 'audit', 'commit'.",
+        })
+
+    try:
+        import subprocess
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            timeout=180,
+        )
+        scrubbed = _scrub_paths(proc.stdout)
+        return _json_response({
+            "status": "GRANTED" if proc.returncode == 0 else "FAILED",
+            "action": action,
+            "exit_code": proc.returncode,
+            "output": scrubbed.strip(),
+        })
+    except subprocess.TimeoutExpired:
+        return _json_response({
+            "status": "TIMEOUT",
+            "action": action,
+            "reason": "Pipeline execution timed out after 180 seconds.",
+        })
+    except Exception as e:
+        return _json_response({
+            "status": "ERROR",
+            "action": action,
+            "reason": str(e),
+        })
 
 
 if __name__ == "__main__":

@@ -17,3 +17,6 @@ You have access to the **Raugus Resolver (`raugus-resolver`)** MCP Server, which
    - Update a specific function, class, variable (`module_key::symbol_name`), or module (`module_key`) by key. Automatically validates AST syntax, enforces function-level write locks, and routes live backend engine updates through the Zero-Downtime Hot-Patch staging sequence without exposing physical paths.
 5. **`refresh_key_map(user_tier=5)`**:
    - Re-index workspace AST keys and hardware inodes in the Raugus Map after structural updates.
+6. **`workspace_pipeline(action="status", commit_msg="", no_push=False, commit_devcore=False, user_tier=5)`**:
+   - Executes the unified cross-repository workspace pipeline (`Central_Docs`, `e_profile`, `DevCore`) in a single tool call. Eliminates token bloat from repetitive status checks, manual quality/structure/security audits, and fragmented multi-repo commits.
+
