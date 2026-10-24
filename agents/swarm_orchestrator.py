@@ -49,7 +49,6 @@ class SwarmOrchestrator:
             proc = await asyncio.create_subprocess_exec(*cmd, **kwargs)
             stdout, stderr = await proc.communicate()
             output = stdout.decode("utf-8", errors="replace").strip()
-            # Try to parse stream-json if it accidentally formatted as json, otherwise assume raw text
             final_text = ""
             for line in output.split("\n"):
                 if line.startswith("{"):
@@ -62,7 +61,6 @@ class SwarmOrchestrator:
                         pass
             
             if not final_text:
-                # Fallback to raw output if json extraction didn't work (which is normal for --print without stream-json)
                 final_text = output
                 
             return final_text
@@ -80,7 +78,7 @@ class SwarmOrchestrator:
         with open(file_path, "r", encoding="utf-8") as f:
             text = f.read()
             
-        chunk_size = 30000 # ~7k tokens
+        chunk_size = 30000
         chunks = [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
         
         await self._send_status(f"Partitioned into {len(chunks)} chunks. Deploying Flash Sub-Agents in parallel...")

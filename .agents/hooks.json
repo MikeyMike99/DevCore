@@ -11,6 +11,17 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 /mnt/c/Users/michael/Documents/DevCore/.agents/raugus_post_tool.py"
+          }
+        ]
+      }
     ]
   }
 }

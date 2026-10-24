@@ -6,8 +6,6 @@ from cryptography.fernet import Fernet
 MAGIC_START = b"\n---AGY_STAMP_START---\n"
 MAGIC_END = b"\n---AGY_STAMP_END---\n"
 
-# AES-128 (Fernet) internal key for the binary stamping process
-# This prevents the payload from being read in plaintext by inspecting the binary
 STAMP_KEY = b'A4l7KaUtSVz1kvIS0SPXP2olNkyY6XVLNOhrEtTvkrc='
 
 def get_cipher():
@@ -23,14 +21,11 @@ def stamp_exe(source_exe: str, dest_exe: str, payload: dict):
     if not os.path.exists(source_exe):
         raise FileNotFoundError(f"Source executable {source_exe} not found.")
         
-    # 1. Copy the clean master .exe
     shutil.copy2(source_exe, dest_exe)
     
-    # 2. Prepare and encrypt the payload
     payload_bytes = json.dumps(payload).encode('utf-8')
     encrypted_payload = get_cipher().encrypt(payload_bytes)
     
-    # 3. Inject the ciphertext at the end of the binary
     stamp_data = MAGIC_START + encrypted_payload + MAGIC_END
     with open(dest_exe, "ab") as f:
         f.write(stamp_data)
@@ -43,7 +38,6 @@ def read_stamp() -> dict:
     with an encrypted JSON payload. Decrypts and returns the dictionary if found in RAM.
     """
     if not getattr(sys, 'frozen', False):
-        # We are running natively in Python (not an .exe)
         return None
         
     exe_path = sys.executable
@@ -51,9 +45,8 @@ def read_stamp() -> dict:
         return None
         
     try:
-        # Read the last 4096 bytes of the binary (where our stamp would be)
         with open(exe_path, "rb") as f:
-            f.seek(0, 2) # End of file
+            f.seek(0, 2)
             file_size = f.tell()
             read_size = min(4096, file_size)
             f.seek(file_size - read_size)
@@ -63,7 +56,6 @@ def read_stamp() -> dict:
         end_idx = tail_data.rfind(MAGIC_END)
         
         if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
-            # We found a valid stamp! Decrypt it directly into volatile RAM
             encrypted_payload = tail_data[start_idx + len(MAGIC_START) : end_idx]
             decrypted_bytes = get_cipher().decrypt(encrypted_payload)
             return json.loads(decrypted_bytes.decode('utf-8'))
@@ -74,7 +66,6 @@ def read_stamp() -> dict:
     return None
 
 if __name__ == "__main__":
-    # Simple CLI for the developer to stamp an exe quickly
     import argparse
     import datetime
     

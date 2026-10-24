@@ -5,7 +5,6 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# 1. Initialize Central SIEM Logger before anything else
 from security import central_logger
 central_logger.init_central_logging()
 import json
@@ -13,8 +12,6 @@ import os
 import time
 import sys
 import httpx
-
-
 
 from quart import Quart, websocket, request, jsonify, render_template_string
 
@@ -35,11 +32,9 @@ app.register_blueprint(projects_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(system_bp)
 
-
 from security import security_headers
 security_headers.init_security_headers(app)
 
-# Initialize modular managers
 project_mgr = pm.ProjectManager()
 session_mgr = sm.SessionManager()
 agent_mgr = am.AgentTaskManager(project_manager=project_mgr)
@@ -57,16 +52,57 @@ async def execute_hot_patch_sequence(manual_trigger=False):
 async def auto_patch_daemon():
     """Runs continuously in the background to automatically patch exploits."""
     while True:
-        # Check for patches every 30 minutes
         await asyncio.sleep(1800)
-        # If a vulnerability was detected by scanners (simulated), apply the patch
         await execute_hot_patch_sequence()
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+async def raugus_map_watcher_daemon():
+    """
+    Background watcher that monitors workspace directories (playground, docs)
+    and updates raugus_map.json incrementally if modified out-of-band.
+    """
+    import os
+    import time
+    devcore_root = os.path.dirname(BASE_DIR)
+    watched_dirs = [
+        os.path.join(devcore_root, 'playground'),
+        os.path.join(devcore_root, 'docs'),
+    ]
+    seen_mtimes = {}
+    while True:
+        try:
+            await asyncio.sleep(4)
+            for wdir in watched_dirs:
+                if not os.path.exists(wdir):
+                    continue
+                for root, _, files in os.walk(wdir):
+                    for fname in files:
+                        if fname.startswith('.') or fname.endswith(('.pyc', '.tmp', '.log')):
+                            continue
+                        fpath = os.path.join(root, fname)
+                        try:
+                            mtime = os.stat(fpath).st_mtime
+                            if fpath not in seen_mtimes:
+                                seen_mtimes[fpath] = mtime
+                            elif seen_mtimes[fpath] != mtime:
+                                seen_mtimes[fpath] = mtime
+                                try:
+                                    from security.raugus_sync import sync_path
+                                    sync_path(fpath, root_dir=devcore_root)
+                                except Exception:
+                                    pass
+                        except Exception:
+                            continue
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            await asyncio.sleep(4)
 
 @app.before_serving
 async def start_background_tasks():
     app.add_background_task(auto_patch_daemon)
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    app.add_background_task(raugus_map_watcher_daemon)
 
 def get_live_override_path(rel_path):
     """
@@ -76,8 +112,6 @@ def get_live_override_path(rel_path):
     """
     import os
     import sys
-    # When running as compiled executable, sys.executable is the .exe directory
-    # or os.getcwd() if launched from there.
     exe_dir = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.getcwd()
     
     live_path = os.path.join(exe_dir, rel_path)
@@ -88,7 +122,6 @@ def get_live_override_path(rel_path):
     if os.path.exists(cwd_path):
         return cwd_path
         
-    # Fallback to the bundled extraction directory
     return os.path.join(os.path.dirname(BASE_DIR), rel_path)
 
 def read_asset(rel_path):
@@ -111,17 +144,38 @@ async def custom_static(filename):
         return data, 200, {'Content-Type': mime_type or 'application/octet-stream'}
     return "Not Found", 404
 
-
-# Dynamically load from the sandbox layer (with Live Override Support)
 TEMPLATE_FILE = get_live_override_path("sandbox/templates/index.html")
 UI_CONFIG_FILE = get_live_override_path("core/ui_config.json")
 
 CACHED_MODELS = None
 
-async def fetch_dynamic_models():
+async def fetch_dynamic_models(force_cli: bool = False):
     global CACHED_MODELS
-    if CACHED_MODELS is not None:
+    if CACHED_MODELS is not None and not force_cli:
         return CACHED_MODELS
+
+    try:
+        from core.local_model_service import discover_local_models
+        local_entries = discover_local_models()
+    except Exception:
+        local_entries = [{"value": "Local Qwen 2.5 (Offline)", "text": "Local Qwen 2.5 (Offline)"}]
+    local_values = {e["value"] for e in local_entries}
+
+    if not force_cli:
+        try:
+            ui_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_config.json")
+            if os.path.exists(ui_config_path):
+                with open(ui_config_path, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+                static_models = cfg.get("header", {}).get("models")
+                if isinstance(static_models, list) and static_models:
+                    filtered = [m for m in static_models if m.get("value") not in local_values]
+                    models_list = ([filtered[0]] + local_entries + filtered[1:]) if filtered else list(local_entries)
+                    CACHED_MODELS = models_list
+                    return CACHED_MODELS
+        except Exception:
+            pass
+
     local_agy = os.path.expanduser("~/.local/bin/agy")
     if not os.path.exists(local_agy):
         return None
@@ -146,19 +200,8 @@ async def fetch_dynamic_models():
                 if val and not val.startswith("Set-PSReadLineOption") and not val.startswith("At C:") and not val.startswith("+") and not val.startswith("CategoryInfo") and not val.startswith("FullyQualifiedErrorId") and not val.startswith("~"):
                     fetched_models.append({"value": val, "text": val})
             if fetched_models:
-                import json
-                try:
-                    ui_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_config.json")
-                    if os.path.exists(ui_config_path):
-                        with open(ui_config_path, "r", encoding="utf-8") as f:
-                            cfg = json.load(f)
-                        if cfg.get("header", {}).get("models") != fetched_models:
-                            cfg.setdefault("header", {})["models"] = fetched_models
-                            with open(ui_config_path, "w", encoding="utf-8") as f:
-                                json.dump(cfg, f, indent=4)
-                except Exception as e:
-                    pass
-                
+                filtered = [m for m in fetched_models if m.get("value") not in local_values]
+                fetched_models = ([filtered[0]] + local_entries + filtered[1:]) if filtered else list(local_entries)
                 CACHED_MODELS = fetched_models
                 return fetched_models
     except Exception:
@@ -249,6 +292,18 @@ async def plugin_exam_builder():
     rendered = await render_template_string(content)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
+@app.route('/plugin/audits')
+async def plugin_audits():
+    """Serves the System Audits Review Hub."""
+    template_bytes = read_asset("sandbox/templates/audits.html")
+    if not template_bytes:
+        template_bytes = read_asset("templates/audits.html")
+    if not template_bytes:
+        return "Audits template not found", 404
+    content = template_bytes.decode('utf-8')
+    rendered = await render_template_string(content)
+    return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
+
 @app.route('/api/exam/content', methods=['GET', 'POST'])
 async def api_exam_content():
     content_dir = os.path.join(os.getcwd(), 'plugins', 'exam_application', 'content')
@@ -313,7 +368,6 @@ async def save_artifacts():
     import subprocess
     import shlex
     
-    # 1. Enforce Authentication
     auth_header = request.headers.get("Authorization", "")
     token = auth_header.replace("Bearer ", "").strip()
     user = security_mgr.get_user_from_token(token)
@@ -335,7 +389,6 @@ async def save_artifacts():
     except Exception:
         pass
         
-    # 2. Path Traversal & Command Injection Defense
     if not path.startswith("/home/") and not path.startswith("/mnt/"):
         return jsonify({"error": "Path traversal blocked"}), 403
         
@@ -344,13 +397,10 @@ async def save_artifacts():
     if sys.platform == "win32" and path.startswith("/"):
         import tempfile
         try:
-            # Mitigation for Broken Pipes on WSL: write to a Windows temp file first
             fd, tmp_path = tempfile.mkstemp(suffix=".md")
             with os.fdopen(fd, 'w', encoding='utf-8') as f:
                 f.write(content)
             
-            # Use wsl.exe to copy the file into the Linux environment
-            # wslpath -a converts the Windows path to a WSL path
             if append_mode:
                 cmd = f"cat $(wslpath -a '{tmp_path}') >> {safe_path}"
             else:
@@ -364,7 +414,7 @@ async def save_artifacts():
             
             try:
                 os.remove(tmp_path)
-            except:
+            except Exception:
                 pass
                 
             if process.returncode == 0:
@@ -374,7 +424,6 @@ async def save_artifacts():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     else:
-        # Native save for Linux
         try:
             mode = "a" if append_mode else "w"
             with open(path, mode, encoding="utf-8") as f:
@@ -382,7 +431,6 @@ async def save_artifacts():
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
-
 
 @app.route('/api/prompt/massive', methods=['POST'])
 async def handle_massive_prompt():
@@ -401,17 +449,14 @@ async def handle_massive_prompt():
         
     try:
         import os
-        # Enforce Zero-Knowledge Data Masking (PII Scrubbing) if Presidio is installed
         try:
             from local_security import LocalSecurity
             local_sec = LocalSecurity()
             scrubbed_prompt = local_sec.scrub_text(raw_prompt)
         except ImportError:
-            # Fallback if Presidio is not installed on the system
             print("Warning: presidio-analyzer missing. Skipping PII scrubbing.")
             scrubbed_prompt = raw_prompt
         
-        # Save to disk instead of spawning hardcoded background agents
         upload_dir = os.path.join(".agents", "massive_prompts")
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, f"{conv_id}.txt")
@@ -481,12 +526,10 @@ async def ws_endpoint():
                     import subprocess
                     if sys.platform == "win32" and path.startswith("/"):
                         try:
-                            # Avoid stdin piping bugs on Windows by writing to a local temp file first
                             temp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wsl_temp_save.md")
                             with open(temp_path, "w", encoding="utf-8") as tf:
                                 tf.write(content)
                             
-                            # Convert Windows path to WSL path and copy
                             wsl_temp = subprocess.run(["wsl.exe", "wslpath", "-a", temp_path], capture_output=True, text=True, creationflags=0x08000000).stdout.strip()
                             subprocess.run(["wsl.exe", "bash", "-c", f"cp '{wsl_temp}' '{path}'"], creationflags=0x08000000)
                             
@@ -498,7 +541,8 @@ async def ws_endpoint():
                         try:
                             with open(path, 'w', encoding='utf-8') as f:
                                 f.write(content)
-                        except: pass
+                        except Exception:
+                            pass
                     continue
                 elif msg_type == "exam_ready":
                     await agent_mgr.broadcast(data)
@@ -551,8 +595,6 @@ async def ws_endpoint():
                 admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
 
             if prompt:
-                # [SECURITY] 1. SEMANTIC FIREWALL INTERCEPTION (RBAC AWARE)
-                # Tier 5 Admins require full unrestricted execution for system administration.
                 is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
                 if not is_admin:
                     try:
@@ -587,31 +629,26 @@ async def ws_endpoint():
         try:
             with open("ws_error.log", "a") as f:
                 f.write(traceback.format_exc() + "\n")
-        except: pass
+        except Exception:
+            pass
         print(f"WebSocket Error: {e}")
     finally:
         sender_task.cancel()
         await agent_mgr.unregister_client(client_queue)
 
-
-# Project API endpoints
 @app.route('/api/sounds/<sound_name>')
 async def play_sound(sound_name):
     from quart import send_file
     
-    # Base directory for internal UI sounds
     sounds_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sandbox", "static", "sounds")
     
-    # Check for supported audio extensions dynamically
     for ext in ['.wav', '.mp3', '.ogg']:
         file_path = os.path.join(sounds_dir, f"{sound_name}{ext}")
         if os.path.exists(file_path):
             return await send_file(file_path)
     
-    # Return 404 if the user hasn't placed a custom sound file yet
     return jsonify({"error": f"No custom {sound_name} audio file found in {sounds_dir}"}), 404
 
-# File & Security Management API endpoints
 async def trigger_dast_scan_internal():
     """Triggers the Red Team ZAP Docker scan natively."""
     await agent_mgr.broadcast({
@@ -621,7 +658,6 @@ async def trigger_dast_scan_internal():
     })
     
     scanner_path = r"C:\Users\michael\Documents\scanners\scanner.py"
-    # Using host.docker.internal to route the ZAP attack correctly back to WSL
     cmd = ["python3", scanner_path, "--dast", "http://host.docker.internal:5000"]
     
     try:
@@ -631,18 +667,14 @@ async def trigger_dast_scan_internal():
             stderr=asyncio.subprocess.PIPE,
             cwd=r"C:\Users\michael\Documents\scanners"
         )
-        # We don't block the event loop here. It runs as a true background task.
     except Exception as e:
         print(f"[DAST] Failed to launch Red Team engine: {e}")
 
 async def auto_red_team_daemon():
     """Biological clock: Wakes up every 12 hours to strike the server."""
     while True:
-        # 12 hours = 43200 seconds
         await asyncio.sleep(43200)
         await trigger_dast_scan_internal()
-# Register the autonomous testing biological clock safely when the event loop starts
-
 
 import signal
 
@@ -650,10 +682,6 @@ def force_shutdown(sig, frame):
     print("\n[Antigravity] Force quitting server (bypassing asyncio graceful shutdown)...")
     os._exit(0)
 
-
-# =====================================================================
-# CWE-214: Secure Proxy Server for Agent LLM Egress
-# =====================================================================
 @app.route('/api/plugin/tts', methods=['POST'])
 async def plugin_tts():
     try:
@@ -666,10 +694,10 @@ async def plugin_tts():
         import os
         sys.path.append(os.path.abspath("plugins"))
         import tts_proxy
+        from quart import Response
         
         ui_config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_config.json")
         
-        # Ensure it passes the Raugus map if needed, but since it's a proxy we just rely on the plugin
         audio_content, status_code = tts_proxy.generate_audio(text, ui_config_path)
         
         if status_code == 200:
@@ -686,7 +714,6 @@ async def proxy_gemini(subpath):
     Intercepts the Agent's API calls, replaces the dummy token with the true root 
     vault key, and forwards it to Google. The Agent never sees the real key.
     """
-    # 1. Grab the real root API key securely from the host
     real_api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not real_api_key:
         client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
@@ -700,13 +727,11 @@ async def proxy_gemini(subpath):
     if not real_api_key:
         return jsonify({"error": "No root billing key configured on server."}), 500
 
-    # 2. Reconstruct the request to the real Google API
     target_url = f"https://generativelanguage.googleapis.com/{subpath}"
     
     headers = dict(request.headers)
-    headers.pop("Host", None) # Let httpx compute correct Host for Google
+    headers.pop("Host", None)
     
-    # 3. Transparent Token Replacement
     if headers.get("x-goog-api-key") == "dummy_token_123":
         headers["x-goog-api-key"] = real_api_key
         
@@ -716,7 +741,6 @@ async def proxy_gemini(subpath):
 
     body = await request.get_data()
     
-    # 4. Forward to Google
     async with httpx.AsyncClient() as client:
         resp = await client.request(
             method=request.method,
@@ -729,7 +753,6 @@ async def proxy_gemini(subpath):
         
     from quart import Response
     return Response(resp.content, status=resp.status_code, headers=dict(resp.headers))
-
 
 if __name__ == '__main__':
     import signal
@@ -749,16 +772,19 @@ if __name__ == '__main__':
     from hypercorn.asyncio import serve
     config = Config()
     
-    # Check for TLS certificates
     import os
-    cert_path = os.path.join(os.getcwd(), "cert.pem")
-    key_path = os.path.join(os.getcwd(), "key.pem")
+    devcore_root = os.path.dirname(BASE_DIR)
+    cert_path = os.path.join(devcore_root, "cert.pem")
+    key_path = os.path.join(devcore_root, "key.pem")
+    if not (os.path.exists(cert_path) and os.path.exists(key_path)):
+        cert_path = os.path.join(os.getcwd(), "cert.pem")
+        key_path = os.path.join(os.getcwd(), "key.pem")
     if os.path.exists(cert_path) and os.path.exists(key_path):
         config.certfile = cert_path
         config.keyfile = key_path
-        config.bind = ['0.0.0.0:5001']
-        config.insecure_bind = ['0.0.0.0:5000']
+        config.bind = ['0.0.0.0:5001', '[::1]:5001']
+        config.insecure_bind = ['0.0.0.0:5000', '[::1]:5000']
     else:
-        config.bind = ['0.0.0.0:5000']
+        config.bind = ['0.0.0.0:5000', '[::1]:5000']
         
     asyncio.run(serve(app, config))

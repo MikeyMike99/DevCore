@@ -102,3 +102,15 @@ The Antigravity system intercepts artifacts generated with the `RequestFeedback:
 - **NEVER** use `RequestFeedback: true` in the `ArtifactMetadata` when generating standard Markdown documents, Devlogs, Textbook Drafts, or simple text summaries. 
 - **ONLY** use `RequestFeedback: true` when explicitly requesting the user to execute a physical Implementation Plan script.
 - If the system ever fires a `Stop hook blocked termination: The user has automatically approved...` message unexpectedly, you MUST immediately halt, stop using `RequestFeedback`, and wait for manual text confirmation from the user to break the loop.
+
+---
+
+## 9. Clean Code & Comment Hygiene (Strict Prohibition of Useless Comments)
+- **No Obvious or Conversational Inline `#` Comments**:
+  - AI agents MUST NOT write redundant, obvious, numbered-step, or decorative `#` comments in `.py` files (e.g., `# 1. Enforce Authentication`, `# Initialize managers`, `# Check if file exists`, `# --- SECTION ---`).
+  - Code should be self-documenting through clear naming and modular structure.
+- **Concise Docstrings Only When Necessary**:
+  - Use brief module, class, or function docstrings (`"""..."""`) strictly to explain non-obvious architectural contracts, security invariants, or protocol semantics.
+- **No Leftover Debug or Historical Commentary**:
+  - Never leave commented-out code, historical bug notes, or conversational remarks inside `.py` files.
+

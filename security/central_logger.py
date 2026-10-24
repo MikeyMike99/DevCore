@@ -12,7 +12,6 @@ class SIEMJsonFormatter(logging.Formatter):
         if record.name.startswith("httpx") or record.name.startswith("httpcore"):
             return ""
             
-        # Determine Advanced Event Category based on logger, level, and message content
         event_category = "SYSTEM"
         msg_lower = record.getMessage().lower()
         
@@ -111,10 +110,8 @@ def init_central_logging():
     console_handler.setFormatter(SIEMJsonFormatter())
     logger.addHandler(console_handler)
 
-    # 1. Catch all hard OS/Python crashes (FAULTS)
     sys.excepthook = handle_unhandled_exception
     
-    # 2. Catch all internal Python warnings (WARNINGS)
     warnings.showwarning = handle_warnings
 
     logging.info("Central SIEM Logger Initialized. Swarm Onion architecture is active.")

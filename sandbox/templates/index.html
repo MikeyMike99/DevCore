@@ -4,48 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ ui.title }}</title>
-    <script src="https://cdn.tailwindcss.com">
-
-    document.addEventListener("keydown", function(e) {
-        if (e.altKey && (e.key === "n" || e.key === "N")) {
-            e.preventDefault();
-            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
-            if (iframes.length > 0) {
-                var latestIframe = iframes[iframes.length - 1];
-                latestIframe.focus();
-                try {
-                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
-                    var videoTitle = innerDoc.getElementById("videoTitle");
-                    if (videoTitle) videoTitle.focus();
-                } catch(err) {}
-            } else {
-                var announcer = document.getElementById("exam-announcer");
-                if (announcer) announcer.innerText = "No active video player found.";
-            }
-        }
-    });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js">
-
-    document.addEventListener("keydown", function(e) {
-        if (e.altKey && (e.key === "n" || e.key === "N")) {
-            e.preventDefault();
-            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
-            if (iframes.length > 0) {
-                var latestIframe = iframes[iframes.length - 1];
-                latestIframe.focus();
-                try {
-                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
-                    var videoTitle = innerDoc.getElementById("videoTitle");
-                    if (videoTitle) videoTitle.focus();
-                } catch(err) {}
-            } else {
-                var announcer = document.getElementById("exam-announcer");
-                if (announcer) announcer.innerText = "No active video player found.";
-            }
-        }
-    });
-    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://unpkg.com/turndown/dist/turndown.js"></script>
     <style>
         .markdown-body { font-size: 0.95rem; line-height: 1.6; }
@@ -160,7 +120,13 @@
                 <span class="w-2 h-2 rounded-full bg-yellow-400" aria-hidden="true"></span>
                 <span id="connection-text">{{ ui.header.conn_text }}</span>
             </div>
-            <button onclick="clearHistory()" aria-label="Clear chat history display" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">Clear View</button>
+            <button id="btn-clear-history" onclick="clearHistory()" aria-label="Clear chat history display" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">Clear View</button>
+            <a href="/telemetry" id="header-telemetry-btn" aria-label="Open Token Telemetry Dashboard (Alt+T)" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
+                <span aria-hidden="true">📊</span> Telemetry
+            </a>
+            <a href="/audits" id="header-audits-btn" aria-label="Open System Audits Review Hub (Alt+A)" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
+                <span aria-hidden="true">🛡️</span> Audits
+            </a>
             <button id="settings-panel-btn" type="button" aria-controls="settings-panel" aria-expanded="false" onclick="openSettingsPanel()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
                 Settings &amp; Sessions
             </button>
@@ -222,19 +188,19 @@
                     <nav aria-label="{{ ui.nav.aria_label }}">
                         <ul class="space-y-3">
                             <li>
-                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn1.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+S">
+                                <button type="button" id="nav-shortcut-btn1" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn1.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+S">
                                     <span class="text-base">{{ ui.nav.btn1.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn1.sr_text }}</span>
                                 </button>
                             </li>
                             <li>
-                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn2.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+L">
+                                <button type="button" id="nav-shortcut-btn2" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn2.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+L">
                                     <span class="text-base">{{ ui.nav.btn2.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn2.sr_text }}</span>
                                 </button>
                             </li>
                             <li>
-                                <button type="button" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+C">
+                                <button type="button" id="nav-shortcut-btn3" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+C">
                                     <span class="text-base">{{ ui.nav.btn3.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn3.sr_text }}</span>
                                 </button>
@@ -1905,6 +1871,7 @@
                 var usage = data.usage || {};
                 var inTok = usage.input_tokens || 0;
                 var cacheTok = usage.cache_read_tokens || 0;
+                var savedTok = data.tokens_saved_estimate || 0;
                 var tokenBadge = document.getElementById('token-usage-badge');
                 if (!tokenBadge) {
                     var headerRight = document.querySelector('.header-status-area') || document.querySelector('header .flex.items-center.gap-2') || document.querySelector('header');
@@ -1919,7 +1886,9 @@
                 if (tokenBadge) {
                     var inK = (inTok / 1000).toFixed(1) + 'k';
                     var cacheK = (cacheTok / 1000).toFixed(1) + 'k';
-                    tokenBadge.innerHTML = '<span>⚡ In: ' + inK + ' | Cache: ' + cacheK + '</span>';
+                    var savedK = (savedTok / 1000).toFixed(1) + 'k';
+                    var savedSpan = savedTok > 0 ? ' | <span class="text-emerald-400 font-semibold">Saved: ' + savedK + '</span>' : '';
+                    tokenBadge.innerHTML = '<span>⚡ In: ' + inK + ' | Cache: ' + cacheK + savedSpan + '</span>';
                     if (cacheTok > 50000) {
                         tokenBadge.className = 'text-xs font-mono px-2.5 py-1 rounded bg-yellow-950/80 border border-yellow-600/50 text-yellow-300';
                     } else {
@@ -3038,6 +3007,27 @@
             });
         }
     document.addEventListener("keydown", function(e) {
+        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (e.key === "s" || e.key === "S") {
+                e.preventDefault();
+                var b1 = document.getElementById("nav-shortcut-btn1");
+                if (b1) b1.click();
+            } else if (e.key === "l" || e.key === "L") {
+                e.preventDefault();
+                var b2 = document.getElementById("nav-shortcut-btn2");
+                if (b2) b2.click();
+            } else if (e.key === "c" || e.key === "C") {
+                e.preventDefault();
+                var promptEl = document.getElementById("prompt");
+                if (promptEl) promptEl.focus();
+            } else if (e.key === "t" || e.key === "T") {
+                e.preventDefault();
+                window.location.href = "/telemetry";
+            } else if (e.key === "a" || e.key === "A") {
+                e.preventDefault();
+                window.location.href = "/audits";
+            }
+        }
         if (e.altKey && (e.key === "n" || e.key === "N")) {
             e.preventDefault();
             var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
@@ -3179,6 +3169,27 @@
         }
     });
     document.addEventListener("keydown", function(e) {
+        if (e.altKey && !e.ctrlKey && !e.metaKey) {
+            if (e.key === "s" || e.key === "S") {
+                e.preventDefault();
+                var b1 = document.getElementById("nav-shortcut-btn1");
+                if (b1) b1.click();
+            } else if (e.key === "l" || e.key === "L") {
+                e.preventDefault();
+                var b2 = document.getElementById("nav-shortcut-btn2");
+                if (b2) b2.click();
+            } else if (e.key === "c" || e.key === "C") {
+                e.preventDefault();
+                var promptEl = document.getElementById("prompt");
+                if (promptEl) promptEl.focus();
+            } else if (e.key === "t" || e.key === "T") {
+                e.preventDefault();
+                window.location.href = "/telemetry";
+            } else if (e.key === "a" || e.key === "A") {
+                e.preventDefault();
+                window.location.href = "/audits";
+            }
+        }
         if (e.altKey && (e.key === "n" || e.key === "N")) {
             e.preventDefault();
             var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');

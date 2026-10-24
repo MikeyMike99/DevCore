@@ -18,7 +18,6 @@ class EncryptedVFS:
     def load(self):
         if self.loaded: return
         
-        # Check if we are running in Nuitka, CWD, or repo root
         base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(sys.argv[0])))
         repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
         candidates = [

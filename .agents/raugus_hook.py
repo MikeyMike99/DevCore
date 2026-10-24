@@ -43,18 +43,40 @@ def log_violation(tool_name, target, reason):
     except Exception:
         pass
 
+_HOOK_DEVCORE_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+IMMUTABLE_JIT_BASENAMES = {
+    "jit_elevation.py",
+    ".jit_elevation_lease.json",
+    ".devcore_master.key",
+}
+
 PROTECTED_SECURITY_FILES = {
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_hook.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/raugus_post_tool.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/hooks.json"),
     os.path.abspath(os.path.expanduser("~/.gemini/config/hooks.json")),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.gemini/settings.json"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/raugus_resolver.py"),
+    os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/raugus_sync.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/raugus_map.json"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/generate_raugusmap.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/security/tool_security_auditor.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/raugus_resolver/server.py"),
     os.path.abspath("/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/raugus_resolver/mcp_config.json"),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "raugus_hook.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "raugus_post_tool.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "hooks.json")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".gemini", "settings.json")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "local_brain_broker.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "raugus_resolver.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "raugus_sync.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "raugus_map.json")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "generate_raugusmap.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "tool_security_auditor.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "server.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "mcp_config.json")),
 }
 
 FILE_AND_SEARCH_TOOLS = {
@@ -98,23 +120,90 @@ WRITE_TOOLS = {
 }
 
 
+def _is_jit_elevated(args: dict) -> bool:
+    """
+    Checks if a valid Human-in-the-Loop Super Admin JIT Elevation Lease/Token is currently active.
+    """
+    try:
+        for root_cand in (_HOOK_DEVCORE_ROOT, "/mnt/c/Users/michael/Documents/DevCore"):
+            if os.path.isdir(root_cand) and root_cand not in sys.path:
+                sys.path.insert(0, root_cand)
+        from security.jit_elevation import extract_token_from_text, verify_jit_elevation
+
+        raw_blob = json.dumps(args, default=str) if args else ""
+        cand_tok = (
+            (args or {}).get("elevation_token")
+            or extract_token_from_text(raw_blob)
+            or None
+        )
+        ver = verify_jit_elevation(candidate_token=cand_tok)
+        return bool(ver.get("valid") is True)
+    except Exception:
+        return False
+
+
 def check_self_protection(tool_name, args):
     """
     Prevents the AI agent from modifying, renaming, deleting, or overwriting
-    the security hook, hooks.json, Raugus map, resolver, or Local Brain Broker via file tools or bash commands.
+    the security hook, hooks.json, Raugus map, resolver, or Local Brain Broker via file tools or bash commands,
+    unless a valid Human-in-the-Loop Super Admin JIT Elevation Lease/Token is active.
+    Strictly and unconditionally blocks AI self-minting or tampering with jit_elevation.py / .devcore_master.key.
     """
     import re
+
+    # 1. Unconditional Anti-Self-Minting & Master Key Guard (Never lifted by JIT)
+    if tool_name == "read_url_content":
+        url_val = str(args.get("Url") or "")
+        if "/api/security/jit-elevate" in url_val or "/api/security/jit-revoke" in url_val:
+            return (
+                "Raugus Anti-Self-Minting Firewall: Autonomous agents are strictly forbidden from "
+                "invoking Human-in-the-Loop JIT elevation endpoints."
+            )
+
     if tool_name in WRITE_TOOLS:
         cand = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath")
         if cand:
+            bname = os.path.basename(str(cand).replace("\\", "/"))
+            if bname in IMMUTABLE_JIT_BASENAMES:
+                return (
+                    f"Raugus Anti-Self-Minting Firewall: '{bname}' is an immutable hardware/JIT authority "
+                    "file and cannot be modified even during Super Admin elevation."
+                )
             for resolved in (os.path.abspath(cand), os.path.realpath(cand)):
                 if resolved in PROTECTED_SECURITY_FILES:
+                    if _is_jit_elevated(args):
+                        try:
+                            import shutil
+                            bdir = os.path.join(_HOOK_DEVCORE_ROOT, "core", "backups")
+                            os.makedirs(bdir, exist_ok=True)
+                            if os.path.exists(resolved):
+                                shutil.copy2(resolved, os.path.join(bdir, os.path.basename(resolved)))
+                        except Exception:
+                            pass
+                        return None
                     return (
                         f"Raugus Self-Protection Firewall: Core security file '{resolved}' is strictly "
-                        "locked against AI modification, rename, or overwrite."
+                        "locked against AI modification, rename, or overwrite. "
+                        "To temporarily lift this lock for 5 minutes (Human-in-the-Loop), the Super Admin "
+                        "must run `python3 security/jit_elevation.py --mint` or click '🔓 Elevate JIT (5m)' in the DevCore UI."
                     )
     elif tool_name in COMMAND_TOOLS:
         cmd_line = args.get("CommandLine") or args.get("Input") or ""
+        if (
+            "/api/security/jit-elevate" in cmd_line
+            or "/api/security/jit-revoke" in cmd_line
+            or ".jit_elevation_lease.json" in cmd_line
+            or ".devcore_master.key" in cmd_line
+            or ("jit_elevation.py" in cmd_line and any(f in cmd_line for f in ("--mint", "--revoke", "mint_jit_token", "revoke_jit_token")))
+        ):
+            return (
+                "Raugus Anti-Self-Minting Firewall: Autonomous agents are strictly forbidden from "
+                "minting, revoking, or modifying Human-in-the-Loop JIT elevation tokens or hardware master keys."
+            )
+        if "jit_elevation.py" in cmd_line and any(x in cmd_line for x in ["sed ", "mv ", "rm ", "cp ", ">", "tee "]):
+            return (
+                "Raugus Anti-Self-Minting Firewall: Modifying or overwriting jit_elevation.py via shell commands is strictly forbidden."
+            )
         if "tool_security_auditor.py" in cmd_line and not any(x in cmd_line for x in ["sed ", "mv ", "rm ", "cp ", ">"]):
             return None
         protected_basenames = (
@@ -135,9 +224,11 @@ def check_self_protection(tool_name, args):
         )
         if any(pb in cmd_line for pb in protected_basenames):
             if any(re.search(dp, cmd_line) for dp in destructive_patterns):
+                if _is_jit_elevated(args):
+                    return None
                 return (
                     "Raugus Self-Protection Firewall: Modifying, renaming, or overwriting core security "
-                    "guard files via shell commands is strictly forbidden."
+                    "guard files via shell commands is strictly forbidden without an active Super Admin JIT Elevation Token."
                 )
     return None
 
@@ -385,8 +476,12 @@ def main():
                 f"HOW TO CONVERSE WITH THE LOCAL BRAIN (DO NOT RETRY {tool_name}):\n"
                 f"1. To ask the Local Brain to generate Exam JSON questions from this sensitive target:\n"
                 f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"{sensitive_target}\" --mode exam --count 5 --query \"Specify question types or topics here\"\n"
-                f"2. To ask the Local Brain a follow-up question or summary request about this target:\n"
-                f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"{sensitive_target}\" --mode query --query \"Your specific question here\""
+                f"2. To ask the Local Brain a follow-up question or query about this target:\n"
+                f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"{sensitive_target}\" --mode query --query \"Your specific question here\"\n"
+                f"3. To target a specific AST symbol, section tag, or VFS key directly:\n"
+                f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"<vfs_key_or_tag_id>\" --mode query --query \"...\"\n"
+                f"4. To perform zero-cost AST triage and find relevant keys/tags:\n"
+                f"   python3 /mnt/c/Users/michael/Documents/DevCore/security/local_brain_broker.py --target \"{sensitive_target}\" --mode triage --query \"keywords\""
             )
             log_violation(tool_name, sensitive_target, "Intercepted sensitive path and routed to Local Brain Broker.")
             print(json.dumps({"decision": "deny", "reason": reason}))
@@ -423,16 +518,26 @@ def main():
                 )
                 if is_live_engine_py:
                     bname = os.path.basename(target)
-                    reason = (
-                        f"Raugus Hot-Patch Enforcement: Direct in-place edits to live backend engine module '{bname}' are forbidden.\n"
-                        f"MANDATORY 3-STEP HOT-PATCH SEQUENCE:\n"
-                        f"1. Stage the complete updated Python file in '/mnt/c/Users/michael/Documents/DevCore/core/patches/{bname}' using write_to_file.\n"
-                        f"2. Trigger the validated hot-patch sequence via: curl -s -X POST http://127.0.0.1:5000/api/simulate-patch (or POST http://127.0.0.1:5000/api/reload).\n"
-                        f"3. The server will validate syntax (py_compile), snapshot core/backups/{bname}, hot-swap in memory, and roll back automatically on error."
-                    )
-                    log_violation(tool_name, target, reason)
-                    print(json.dumps({"decision": "deny", "reason": reason}))
-                    return
+                    if target in PROTECTED_SECURITY_FILES and _is_jit_elevated(args):
+                        try:
+                            import shutil
+                            bdir = os.path.join(_HOOK_DEVCORE_ROOT, "core", "backups")
+                            os.makedirs(bdir, exist_ok=True)
+                            if os.path.exists(target):
+                                shutil.copy2(target, os.path.join(bdir, bname))
+                        except Exception:
+                            pass
+                    else:
+                        reason = (
+                            f"Raugus Hot-Patch Enforcement: Direct in-place edits to live backend engine module '{bname}' are forbidden.\n"
+                            f"MANDATORY 3-STEP HOT-PATCH SEQUENCE:\n"
+                            f"1. Stage the complete updated Python file in '/mnt/c/Users/michael/Documents/DevCore/core/patches/{bname}' using write_to_file.\n"
+                            f"2. Trigger the validated hot-patch sequence via: curl -s -X POST http://127.0.0.1:5000/api/simulate-patch (or POST http://127.0.0.1:5000/api/reload).\n"
+                            f"3. The server will validate syntax (py_compile), snapshot core/backups/{bname}, hot-swap in memory, and roll back automatically on error."
+                        )
+                        log_violation(tool_name, target, reason)
+                        print(json.dumps({"decision": "deny", "reason": reason}))
+                        return
 
         if tool_name in ["replace_file_content", "edit_lines"]:
             target = args.get("TargetFile") or args.get("target_file")

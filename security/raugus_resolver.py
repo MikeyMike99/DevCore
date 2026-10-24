@@ -31,13 +31,8 @@ class RaugusResolver:
             current_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
             for alias, data in self.phonebook.items():
                 if alias.startswith("devcore."):
-                    # We can simply take the alias, remove devcore., and assume all dots EXCEPT the last one are folder separators.
-                    # Wait, no. What if a folder has a dot? Better to rely on the fact that generate_raugusmap replaced os.sep with '.'
-                    # Actually, we can just replace devcore. with empty, and then replace . with os.sep, but fix the last extension.
-                    # Easier: just use the original real_path from the JSON, find "DevCore", and take everything after it!
                     old_path = data.get("real_path", "")
                     if "DevCore" in old_path:
-                        # Extract the part after DevCore/
                         parts = old_path.split("DevCore")
                         rel_path = parts[-1].lstrip("\\/")
                         data["real_path"] = os.path.join(current_root, rel_path)
@@ -53,14 +48,6 @@ class RaugusResolver:
         Raises KeyError if alias is invalid (Blocks Path Traversal).
         Raises PermissionError if Tier is too low.
         """
-        # [REDIS MIGRATION PLACEHOLDER]
-        # if self.redis_client:
-        #     entry_str = self.redis_client.hget("raugus:aliases", alias)
-        #     if not entry_str:
-        #         logging.warning(f"[RAUGUS BLOCKED] Invalid alias requested: {alias}")
-        #         raise KeyError(f"Alias '{alias}' does not exist in Redis.")
-        #     entry = json.loads(entry_str)
-        # else:
         if alias not in self.phonebook:
             logging.warning(f"[RAUGUS BLOCKED] Invalid alias requested: {alias}. Potential traversal attack.")
             raise KeyError(f"Alias '{alias}' does not exist in the Raugus Map.")
@@ -98,20 +85,10 @@ class RaugusResolver:
         """
         target_path = os.path.abspath(path)
         
-        # [REDIS MIGRATION PLACEHOLDER]
-        # if self.redis_client:
-        #     # In a Redis architecture, path enforcement will likely involve scanning a specific index
-        #     # or resolving the active aliases bound to the workspace tier directly from the KV store.
-        #     pass
-        
-        # Find if this path (or a parent) exists in the map
         highest_tier_required = 1  # Default to Safe Workspace
         
         for alias, data in self.phonebook.items():
             real_path = os.path.abspath(data.get("real_path", ""))
-            # Check if target_path is the same or a child of real_path
-            # To be safe, we check if target_path starts with real_path
-            # e.g. target_path = /core/server.py, real_path = /core
             if target_path == real_path or target_path.startswith(real_path + os.sep):
                 req_tier = data.get("required_tier", 1)
                 if req_tier > highest_tier_required:
@@ -122,8 +99,6 @@ class RaugusResolver:
             raise PermissionError(f"Raugus Semantic Firewall: Access Denied to Tier {highest_tier_required} asset.")
         
         return True
-
-
 
     def enforce_feedback_policy(self, path: str):
         """
@@ -145,9 +120,6 @@ class RaugusResolver:
                 if ".docs." in alias or "devlog" in alias.lower() or alias.endswith(".md") or "textbook" in alias.lower() or "module" in alias.lower():
                     raise PermissionError(f"Raugus Firewall: Alias '{alias}' is classified as documentation. RequestFeedback=True is strictly forbidden.")
         
-        # Fallback for dynamic artifacts not yet in the map
-        # Allow markdown files as artifacts may require feedback
-            
         return True
 
     def is_sensitive_path(self, path: str) -> bool:
@@ -170,6 +142,36 @@ class RaugusResolver:
                 if target_path == real_path or target_path.startswith(real_path + os.sep):
                     return True
         return False
+
+    def get_block_by_tag(self, tag_or_id: str, user_tier: int = 5) -> dict:
+        """
+        Resolves an AST symbol or Markdown section block by its persistent invariant UUID (`id`)
+        or symbol/section tag name (e.g. `SEC_01_OVERVIEW` or `reload_system`),
+        enforcing RBAC tier clearance. Returns the entry dict with key or None.
+        """
+        if not tag_or_id:
+            return None
+        # 1. Direct match by UUID
+        for k, entry in self.phonebook.items():
+            if entry.get("id") == tag_or_id:
+                req_tier = int(entry.get("required_tier", 5))
+                if int(user_tier) < req_tier:
+                    raise PermissionError(f"Access Denied to tag '{tag_or_id}'. Tier {req_tier} required.")
+                res = dict(entry)
+                res["key"] = k
+                return res
+
+        # 2. Match by symbol_name or section tag
+        for k, entry in self.phonebook.items():
+            if entry.get("symbol_name") == tag_or_id or k.endswith(f"::{tag_or_id}"):
+                req_tier = int(entry.get("required_tier", 5))
+                if int(user_tier) < req_tier:
+                    raise PermissionError(f"Access Denied to symbol/section '{tag_or_id}'. Tier {req_tier} required.")
+                res = dict(entry)
+                res["key"] = k
+                return res
+
+        return None
 
 
 ONEDRIVE_GUID_MARKER = ".849C9593-D756-4E56-8D6E-42412F2A707B"
@@ -339,7 +341,6 @@ def is_path_in_onedrive(path: str):
         if norm_p == root or norm_p.startswith(root + os.sep):
             return norm_p
 
-    # Walk up ancestor directories to detect custom-named or external OneDrive sync folders
     curr = norm_p
     stop_dirs = {"/", "/mnt", "/mnt/c", "/mnt/c/Users", "/home"}
     for _ in range(15):
@@ -357,5 +358,3 @@ def is_path_in_onedrive(path: str):
 
 # Singleton instance for the application to import
 resolver = RaugusResolver()
-
-

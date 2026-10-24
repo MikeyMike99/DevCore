@@ -11,12 +11,24 @@ import tempfile
 import time
 import traceback
 import urllib.request
-import httpx
-import websockets
-from quart import Quart, websocket, request, Response, jsonify
+try:
+    import httpx
+    import websockets
+    from quart import Quart, websocket, request, Response, jsonify
+except ImportError:
+    httpx = None
+    websockets = None
+    Quart = None
+    websocket = request = Response = jsonify = None
 
 BACKEND_HTTP_URL = os.environ.get("DEVCORE_BACKEND_HTTP_URL", "http://127.0.0.1:5001")
 BACKEND_WS_URL = os.environ.get("DEVCORE_BACKEND_WS_URL", "ws://127.0.0.1:5001/ws")
+
+IMMUTABLE_JIT_BASENAMES = {
+    "jit_elevation.py",
+    ".jit_elevation_lease.json",
+    ".devcore_master.key",
+}
 
 PROTECTED_FIREWALL_BASENAMES = {
     "raugus_hook.py",
@@ -46,12 +58,25 @@ DEFAULT_ENGINE_REL_PATHS = [
     "security/local_brain_broker.py",
 ]
 
-
 def get_base_dir(base_dir=None) -> str:
     if base_dir:
         return os.path.abspath(base_dir)
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+def _is_jit_active_for_root(base_dir: str) -> bool:
+    """Checks if a valid Human-in-the-Loop JIT Elevation Lease is active in base_dir."""
+    try:
+        lease_file = os.path.join(os.path.abspath(base_dir), "security", ".jit_elevation_lease.json")
+        if not os.path.exists(lease_file):
+            return False
+        repo_root = get_base_dir()
+        if repo_root not in sys.path:
+            sys.path.insert(0, repo_root)
+        from security.jit_elevation import verify_jit_elevation
+        ver = verify_jit_elevation()
+        return bool(ver.get("valid") is True)
+    except Exception:
+        return False
 
 def get_engine_files(base_dir=None, custom_files=None) -> list:
     root = get_base_dir(base_dir)
@@ -63,7 +88,6 @@ def get_engine_files(base_dir=None, custom_files=None) -> list:
             existing.append(rel)
     return existing
 
-
 def resolve_engine_target(filename: str, base_dir=None) -> str:
     root = get_base_dir(base_dir)
     core_dir = os.path.join(root, "core")
@@ -73,12 +97,13 @@ def resolve_engine_target(filename: str, base_dir=None) -> str:
         os.path.join(root, "agents", filename),
         os.path.join(root, "agents", "mixins", filename),
         os.path.join(root, "security", filename),
+        os.path.join(root, ".agents", filename),
+        os.path.join(root, filename),
     ]
     for c in candidates:
         if os.path.exists(c):
             return c
     return os.path.join(core_dir, filename)
-
 
 def _compile_check(filepath: str) -> tuple:
     """Returns (ok: bool, error_message: str)."""
@@ -89,7 +114,6 @@ def _compile_check(filepath: str) -> tuple:
         return False, str(ce)
     except Exception as e:
         return False, str(e)
-
 
 def _promote_staged_patches(base_dir: str, quiet: bool = False) -> tuple:
     """
@@ -104,12 +128,23 @@ def _promote_staged_patches(base_dir: str, quiet: bool = False) -> tuple:
 
     promoted = []
     rejected = []
+    jit_elevated = _is_jit_active_for_root(base_dir)
 
     for patch_name in sorted(os.listdir(patch_dir)):
         if not patch_name.endswith(".py"):
             continue
         staged_path = os.path.join(patch_dir, patch_name)
-        if patch_name in PROTECTED_FIREWALL_BASENAMES:
+        if patch_name in IMMUTABLE_JIT_BASENAMES:
+            if not quiet:
+                print(f"[Bootstrap] Blocked staged patch for immutable JIT authority file: {patch_name}")
+            try:
+                os.remove(staged_path)
+            except Exception:
+                pass
+            rejected.append({"file": patch_name, "reason": "Immutable JIT authority file"})
+            continue
+
+        if patch_name in PROTECTED_FIREWALL_BASENAMES and not jit_elevated:
             if not quiet:
                 print(f"[Bootstrap] Blocked staged patch for protected guard file: {patch_name}")
             try:
@@ -134,7 +169,6 @@ def _promote_staged_patches(base_dir: str, quiet: bool = False) -> tuple:
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
         backup_path = os.path.join(backup_dir, patch_name)
 
-        # Only snapshot current live file into core/backups/ if the live file currently compiles
         if os.path.exists(target_path):
             live_ok, _ = _compile_check(target_path)
             if live_ok:
@@ -151,7 +185,6 @@ def _promote_staged_patches(base_dir: str, quiet: bool = False) -> tuple:
             print(f"[Bootstrap] Promoted validated staged patch: {patch_name} -> {os.path.relpath(target_path, base_dir)}")
 
     return promoted, rejected
-
 
 def run_preflight_checks(
     base_dir=None,
@@ -199,7 +232,6 @@ def run_preflight_checks(
 
             ok, err = _compile_check(full_path)
             if ok:
-                # Ensure a known-good backup is always seeded in core/backups/
                 if basename not in PROTECTED_FIREWALL_BASENAMES and not os.path.exists(backup_path):
                     try:
                         shutil.copy2(full_path, backup_path)
@@ -210,7 +242,6 @@ def run_preflight_checks(
             if not quiet:
                 print(f"[Bootstrap] SYNTAX ERROR in {rel_file}:\n{err}")
 
-            # --- TIER 1: Instant Restore from Staged Patch or Verified Backup ---
             staged_candidate = os.path.join(patch_dir, basename)
             if os.path.exists(staged_candidate) and basename not in PROTECTED_FIREWALL_BASENAMES:
                 s_ok, _ = _compile_check(staged_candidate)
@@ -235,7 +266,6 @@ def run_preflight_checks(
                         print(f"[Bootstrap] Tier-1 Self-Heal: Instantly restored {rel_file} from core/backups/{basename}.")
                     continue
 
-            # --- TIER 2: Emergency Auto-Repair Agent (stages into core/patches/<basename>) ---
             if spawn_agent and attempt < max_retries and basename not in PROTECTED_FIREWALL_BASENAMES:
                 if not quiet:
                     print(
@@ -315,7 +345,6 @@ def run_preflight_checks(
         "failed_files": failed_files,
     }
 
-
 def heal_crash(
     traceback_str: str,
     base_dir=None,
@@ -349,7 +378,6 @@ def heal_crash(
         print("[Bootstrap] Runtime crash self-heal skipped: No GEMINI_API_KEY in environment.")
         return False
 
-    # Identify crashing engine file from traceback if present
     file_matches = re.findall(r'File "([^"]+\.py)"', traceback_str or "")
     target_rel = None
     for candidate in reversed(file_matches):
@@ -413,12 +441,13 @@ def heal_crash(
 
     return False
 
-
-def create_gateway_app(backend_http_url: str = None, backend_ws_url: str = None) -> Quart:
+def create_gateway_app(backend_http_url: str = None, backend_ws_url: str = None):
     """
     Creates a Quart Persistent Bootstrap Gateway application configured to proxy HTTP and WebSocket
     traffic to the specified backend URLs while keeping browser connections alive across reloads.
     """
+    if Quart is None:
+        return None
     gateway_app = Quart(__name__)
     gateway_app.backend_http_url = (backend_http_url or BACKEND_HTTP_URL).rstrip("/")
     gateway_app.backend_ws_url = backend_ws_url or BACKEND_WS_URL
@@ -451,7 +480,6 @@ def create_gateway_app(backend_http_url: str = None, backend_ws_url: str = None)
         body = await request.get_data()
         params = request.args
 
-        # Retry loop: if backend is restarting, wait up to 6 seconds instead of failing
         start_wait = time.time()
         last_err = None
         while time.time() - start_wait < 6.0:
@@ -543,8 +571,6 @@ def create_gateway_app(backend_http_url: str = None, backend_ws_url: str = None)
                             return_when=asyncio.FIRST_COMPLETED,
                         )
 
-                        # IMPORTANT: Only cancel the backend forwarding tasks—NEVER cancel client_listen_task
-                        # when the backend disconnects, or the gateway will drop the browser connection!
                         for t in (fwd_to_client_task, fwd_to_backend_task):
                             if not t.done():
                                 t.cancel()
@@ -552,7 +578,6 @@ def create_gateway_app(backend_http_url: str = None, backend_ws_url: str = None)
                         if client_listen_task.done():
                             break
 
-                        # If backend_ws closed cleanly or raised inside forward_to_client, notify client
                         if fwd_to_client_task in done:
                             try:
                                 await client_ws.send(
@@ -584,9 +609,7 @@ def create_gateway_app(backend_http_url: str = None, backend_ws_url: str = None)
 
     return gateway_app
 
-
 app = create_gateway_app()
-
 
 async def _run_ephemeral_gateway_failover_test() -> tuple:
     """
@@ -648,7 +671,6 @@ async def _run_ephemeral_gateway_failover_test() -> tuple:
     try:
         await asyncio.sleep(0.4)
 
-        # 1. Verify Gateway Health & HTTP Proxy
         async with httpx.AsyncClient(timeout=5.0) as client:
             h_res = await client.get(f"http://127.0.0.1:{gw_port}/api/gateway/health")
             if h_res.status_code != 200 or not h_res.json().get("backend_reachable"):
@@ -658,27 +680,22 @@ async def _run_ephemeral_gateway_failover_test() -> tuple:
             if p_res.status_code != 200 or p_res.json().get("source") != "mock_backend":
                 return False, f"HTTP reverse proxy failed: {p_res.text}"
 
-        # 2. Connect Client WebSocket to Gateway and test failover across backend restart
         async with websockets.connect(f"ws://127.0.0.1:{gw_port}/ws") as client_ws:
             msg1 = json.loads(await asyncio.wait_for(client_ws.recv(), timeout=3.0))
             if "Connected to Antigravity Engine" not in msg1.get("message", ""):
                 return False, f"Unexpected initial WS banner: {msg1}"
 
-            # Send message through gateway to backend #1
             await client_ws.send("hello-before-restart")
             echo1 = json.loads(await asyncio.wait_for(client_ws.recv(), timeout=3.0))
             if echo1.get("received") != "hello-before-restart":
                 return False, f"Unexpected echo before restart: {echo1}"
 
-            # Simulate backend #1 dropping and shutting down while client stays connected to gateway
             drop_backend_ws.set()
             be_shutdown_1.set()
             await asyncio.wait_for(be_task_1, timeout=3.0)
 
-            # Queue a message from the browser while the backend is completely offline
             await client_ws.send("queued-while-backend-down")
 
-            # Expect gateway preservation notice
             preserved_msg = None
             for _ in range(5):
                 evt = json.loads(await asyncio.wait_for(client_ws.recv(), timeout=3.0))
@@ -688,7 +705,6 @@ async def _run_ephemeral_gateway_failover_test() -> tuple:
             if not preserved_msg:
                 return False, "Did not receive 'Connection preserved by Bootstrap Gateway' notice when backend dropped."
 
-            # Clear drop flag and boot backend #2 on the same port
             drop_backend_ws.clear()
             be_cfg_2 = Config()
             be_cfg_2.bind = [f"127.0.0.1:{be_port}"]
@@ -696,7 +712,6 @@ async def _run_ephemeral_gateway_failover_test() -> tuple:
             be_cfg_2.errorlog = None
             be_task_2 = asyncio.create_task(serve(mock_backend, be_cfg_2, shutdown_trigger=be_shutdown_2.wait))
 
-            # Expect automatic reconnection banner AND replay of the message queued while backend was offline
             reconnected = False
             replayed_echo = False
             for _ in range(10):
@@ -728,7 +743,6 @@ async def _run_ephemeral_gateway_failover_test() -> tuple:
         except Exception:
             pass
 
-
 def run_self_test() -> int:
     """
     Executes the 4-Stage Non-Destructive Bootstrap Verification Suite without touching live port 5000.
@@ -739,7 +753,6 @@ def run_self_test() -> int:
     passed = 0
     total = 4
 
-    # TEST 1: Live Engine Pre-Flight Check
     res1 = run_preflight_checks(spawn_agent=False, quiet=True)
     if res1["success"] and res1["checked_count"] >= 14:
         print(f"  [PASS] Test 1: Live Engine Pre-Flight Check ({res1['checked_count']} engine modules verified & backed up)")
@@ -747,14 +760,12 @@ def run_self_test() -> int:
     else:
         print(f"  [FAIL] Test 1: Live Engine Pre-Flight Check -> {res1}")
 
-    # TEST 2: Sandbox Syntax Corruption & Tier-1 Instant Backup Auto-Restore
     with tempfile.TemporaryDirectory(prefix="devcore_bootstrap_test_") as tmp_dir:
         os.makedirs(os.path.join(tmp_dir, "core", "backups"), exist_ok=True)
         os.makedirs(os.path.join(tmp_dir, "core", "patches"), exist_ok=True)
         target_file = os.path.join(tmp_dir, "core", "server.py")
         backup_file = os.path.join(tmp_dir, "core", "backups", "server.py")
 
-        # Write valid backup, corrupt live file
         with open(backup_file, "w", encoding="utf-8") as f:
             f.write("def healthy_server():\n    return 200\n")
         with open(target_file, "w", encoding="utf-8") as f:
@@ -773,7 +784,6 @@ def run_self_test() -> int:
         else:
             print(f"  [FAIL] Test 2: Tier-1 Instant Backup Self-Heal -> {res2}")
 
-    # TEST 3: Sandbox Staged Patch Promotion & Bad-Patch Quarantine
     with tempfile.TemporaryDirectory(prefix="devcore_patch_test_") as tmp_dir:
         os.makedirs(os.path.join(tmp_dir, "core", "backups"), exist_ok=True)
         os.makedirs(os.path.join(tmp_dir, "core", "patches"), exist_ok=True)
@@ -782,7 +792,6 @@ def run_self_test() -> int:
         staged_bad = os.path.join(tmp_dir, "core", "patches", "project_manager.py")
         staged_guard = os.path.join(tmp_dir, "core", "patches", "raugus_hook.py")
 
-        # Corrupt live file with no backup, provide valid patch in core/patches/
         with open(target_file, "w", encoding="utf-8") as f:
             f.write("class Broken(\n")
         with open(staged_good, "w", encoding="utf-8") as f:
@@ -814,7 +823,6 @@ def run_self_test() -> int:
         else:
             print(f"  [FAIL] Test 3: Staged Hot-Patch Promotion -> {res3}")
 
-    # TEST 4: Live Ephemeral HTTP & WebSocket Gateway Failover Test (15050 -> 15051)
     ok4, detail4 = asyncio.run(_run_ephemeral_gateway_failover_test())
     if ok4:
         print(f"  [PASS] Test 4: Ephemeral Gateway Failover (15050 -> 15051): {detail4}")
@@ -826,7 +834,6 @@ def run_self_test() -> int:
     print(f"  SUMMARY: {passed} / {total} Bootstrap Verification Tests Passed")
     print("=========================================================")
     return 0 if passed == total else 1
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DevCore Unified Persistent Bootstrap Gateway & Self-Healing Supervisor")

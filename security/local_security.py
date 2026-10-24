@@ -9,7 +9,6 @@ class LocalSecurity:
     sensitive data from text streams.
     """
     def __init__(self):
-        # Initialize Presidio Analyzer and Anonymizer
         self.analyzer = AnalyzerEngine()
         self.anonymizer = AnonymizerEngine()
 
@@ -17,7 +16,6 @@ class LocalSecurity:
         if not text or len(text.strip()) < 5:
             return text
             
-        # 1. Fast Semantic Egress Firewall (Catch System Rule Leaks)
         import os
         import json
         import urllib.request
@@ -36,7 +34,6 @@ class LocalSecurity:
             }
             req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers={'Content-Type': 'application/json'})
             try:
-                # Use a very short timeout since this runs on the stream
                 with urllib.request.urlopen(req, timeout=1.5) as response:
                     result = json.loads(response.read().decode('utf-8'))
                     eval_res = result['candidates'][0]['content']['parts'][0]['text'].strip().upper()
@@ -53,9 +50,8 @@ class LocalSecurity:
                             pass
                         return "[REDACTED BY FIREWALL] "
             except Exception as e:
-                pass # Fail-open silently to maintain stream performance
+                pass
 
-        # 2. Analyze the text for sensitive information (PII, credentials, etc.)
         results = self.analyzer.analyze(text=text, language='en')
         anonymized_result = self.anonymizer.anonymize(text=text, analyzer_results=results)
         
@@ -72,7 +68,7 @@ class LocalSecurity:
         
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            return "SAFE"  # Fail-open if no key available for evaluation
+            return "SAFE"
             
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
@@ -98,8 +94,7 @@ class LocalSecurity:
                 return "SAFE"
         except Exception as e:
             print(f"[Semantic Firewall] Evaluation failed: {e}")
-            return "SAFE"  # Fail-open on timeout or error
-
+            return "SAFE"
 
     async def async_evaluate_task_alignment(self, original_prompt: str, tool_name: str, paths: list) -> bool:
         """
@@ -112,7 +107,7 @@ class LocalSecurity:
         import os, json, aiohttp
         api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
-            return True # Fail-open
+            return True
             
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
         
@@ -140,4 +135,4 @@ class LocalSecurity:
                     return True
         except Exception as e:
             print(f"[SVC] Alignment evaluation failed: {e}")
-            return True # Fail-open
+            return True

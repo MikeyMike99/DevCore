@@ -31,7 +31,6 @@ class SemanticMantrap:
         safe_name = target_db_path.replace("/", "_").replace("\\", "_").replace(":", "_") + ".lock"
         lock_path = os.path.join(MANTRAP_DIR, safe_name)
         
-        # Windows msvcrt requires the file to have at least 1 byte to lock a region
         if not os.path.exists(lock_path):
             with open(lock_path, 'w') as init_f:
                 if OS_TYPE == "windows":
@@ -42,20 +41,16 @@ class SemanticMantrap:
         try:
             logging.info(f"[MANTRAP] Agent '{agent_id}' waiting at Outer Door for {target_db_path} (OS: {OS_TYPE})")
             
-            # The Outer Door: Stagger the logic flow and acquire an exclusive lock
             if OS_TYPE == "linux":
                 fcntl.flock(lock_fd, fcntl.LOCK_EX)
             elif OS_TYPE == "windows":
                 lock_fd.seek(0)
-                # LK_LOCK blocks the thread until the lock is acquired, simulating fcntl.LOCK_EX
                 msvcrt.locking(lock_fd.fileno(), msvcrt.LK_LOCK, 1)
             else:
-                # Fallback for unknown OS (mock delay, not true locking)
                 time.sleep(0.1)
             
             logging.info(f"[MANTRAP] Agent '{agent_id}' has entered the Execution Chamber for {target_db_path}")
             
-            # Yield control back to the core logic
             yield True
             
         except Exception as e:

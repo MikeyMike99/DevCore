@@ -13,7 +13,6 @@ class ProjectManager:
     DEFAULT_PROJECTS = ('game_demo', 'npc_quest')
 
     def __init__(self, base_dir=None):
-        # Default workspace directory moved to [DevCore]/playground to prevent mixing with TIER_CORE_ENGINE
         if not base_dir:
             devcore_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             base_dir = os.path.join(devcore_root, "playground")
@@ -77,7 +76,6 @@ class ProjectManager:
         
         project_dir = os.path.join(self.base_dir, name)
         
-        # Enforce Path Security against Raugus Map VFS (Tier 1: Safe Workspace)
         resolver.enforce_path_security(project_dir, user_tier=1)
         
         if os.path.exists(project_dir):
@@ -96,7 +94,6 @@ class ProjectManager:
         
         project_dir = os.path.join(self.base_dir, name)
         
-        # Enforce Path Security against Raugus Map VFS (Tier 1: Safe Workspace)
         resolver.enforce_path_security(project_dir, user_tier=1)
         
         if not self._is_valid_project_dir(name, project_dir):

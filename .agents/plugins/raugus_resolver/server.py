@@ -8,6 +8,7 @@ import re
 import shutil
 import sys
 import traceback
+import hashlib
 
 DEVCORE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 if DEVCORE_ROOT not in sys.path:
@@ -96,8 +97,9 @@ def _json_response(payload: dict) -> str:
 
 def _extract_ast_nodes(source_code: str) -> dict:
     """
-    Parses Python source code and returns a map of top-level symbol names to
+    Parses Python source code and returns a map of symbol names to
     (kind, start_line, end_line) where lines are 1-indexed inclusive.
+    Supports functions, async functions, classes, variables, and class methods/attributes (ClassName::method).
     """
     symbols = {}
     try:
@@ -109,6 +111,17 @@ def _extract_ast_nodes(source_code: str) -> dict:
                 symbols[node.name] = ("async_function", node.lineno, getattr(node, "end_lineno", node.lineno))
             elif isinstance(node, ast.ClassDef):
                 symbols[node.name] = ("class", node.lineno, getattr(node, "end_lineno", node.lineno))
+                for child in node.body:
+                    if isinstance(child, ast.FunctionDef):
+                        symbols[f"{node.name}::{child.name}"] = ("method", child.lineno, getattr(child, "end_lineno", child.lineno))
+                    elif isinstance(child, ast.AsyncFunctionDef):
+                        symbols[f"{node.name}::{child.name}"] = ("async_method", child.lineno, getattr(child, "end_lineno", child.lineno))
+                    elif isinstance(child, ast.Assign):
+                        for target in child.targets:
+                            if isinstance(target, ast.Name):
+                                symbols[f"{node.name}::{target.id}"] = ("variable", child.lineno, getattr(child, "end_lineno", child.lineno))
+                    elif isinstance(child, ast.AnnAssign) and isinstance(child.target, ast.Name):
+                        symbols[f"{node.name}::{child.target.id}"] = ("variable", child.lineno, getattr(child, "end_lineno", child.lineno))
             elif isinstance(node, ast.Assign):
                 for target in node.targets:
                     if isinstance(target, ast.Name):
@@ -120,7 +133,26 @@ def _extract_ast_nodes(source_code: str) -> dict:
     return symbols
 
 
+IMMUTABLE_JIT_BASENAMES = {
+    "jit_elevation.py",
+    ".jit_elevation_lease.json",
+    ".devcore_master.key",
+}
+
+
+def _is_immutable_jit_key(key: str, real_path: str = "") -> bool:
+    base = os.path.basename(real_path) if real_path else ""
+    if base in IMMUTABLE_JIT_BASENAMES:
+        return True
+    for g in IMMUTABLE_JIT_BASENAMES:
+        if key.endswith(f".{g}") or f".{g}::" in key or g in key:
+            return True
+    return False
+
+
 def _is_self_protected_key(key: str, real_path: str = "") -> bool:
+    if _is_immutable_jit_key(key, real_path):
+        return True
     if "raugus_resolver" in key and "plugins" in key:
         return True
     base = os.path.basename(real_path) if real_path else ""
@@ -130,6 +162,15 @@ def _is_self_protected_key(key: str, real_path: str = "") -> bool:
         if key.endswith(f".{g}") or f".{g}::" in key:
             return True
     return False
+
+
+def _check_jit_elevation(elevation_token: str = "") -> bool:
+    try:
+        from security.jit_elevation import verify_jit_elevation
+        ver = verify_jit_elevation(candidate_token=elevation_token or None)
+        return bool(ver.get("valid") is True)
+    except Exception:
+        return False
 
 
 def _is_engine_module_path(real_path: str) -> bool:
@@ -148,16 +189,37 @@ def _is_engine_module_path(real_path: str) -> bool:
     )
 
 
-def _is_writable_via_resolver(key: str, real_path: str, mod_entry: dict, sym_entry: dict, user_tier: int) -> tuple:
+def _is_writable_via_resolver(
+    key: str,
+    real_path: str,
+    mod_entry: dict,
+    sym_entry: dict,
+    user_tier: int,
+    elevation_token: str = "",
+) -> tuple:
     """
     Determines whether `key` is writable via the Raugus Resolver for `user_tier`.
-    - Self-protected guard files and sensitive vault files are never writable.
+    - Immutable JIT authority files (jit_elevation.py, .devcore_master.key) are never writable by AI.
+    - Self-protected guard files are locked by default, but unlocked for 5 minutes when a valid
+      Human-in-the-Loop Super Admin JIT Elevation Token/Lease is active.
     - Exam Application blueprints (exam_application.html, exam_builder.html, EXAM_APPLICATION.md) are strictly Read-Only.
     - Live backend engine .py modules are writable by Tier 5 Admins via automatic Hot-Patch Staging, unless the symbol is explicitly locked (`locked: true`).
     - Workspace files follow `permissions.write` in the Raugus Map.
     Returns (allowed: bool, status_code: str, reason: str).
     """
+    if _is_immutable_jit_key(key, real_path):
+        return (
+            False,
+            "DENIED_SELF_PROTECTION",
+            (
+                "[RAUGUS ANTI-SELF-MINTING FIREWALL]\n"
+                f"Key '{key}' is an immutable Human-in-the-Loop JIT authority component and cannot be modified by autonomous agents."
+            ),
+        )
+
     if _is_self_protected_key(key, real_path):
+        if int(user_tier) >= 5 and _check_jit_elevation(elevation_token):
+            return True, "ALLOWED_JIT_ELEVATED", ""
         return (
             False,
             "DENIED_SELF_PROTECTION",
@@ -168,9 +230,9 @@ def _is_writable_via_resolver(key: str, real_path: str, mod_entry: dict, sym_ent
                 "The Raugus Resolver is intentionally built to block direct modification of core security "
                 "components to prevent unauthorized parameter overrides, circular tampering, and prompt escalation.\n\n"
                 "REQUIRED CORRECTION (HUMAN IN THE LOOP):\n"
-                "1. Human in the Loop: Changes to core security components require explicit human authorization and review.\n"
-                "2. Pull from Git: Core security updates must be committed through version control and pulled from Git, "
-                "never modified directly in place by autonomous agents.\n"
+                "1. Super Admin JIT Elevation (5-Minute Window): Ask the human Super Admin to click '🔓 Elevate JIT (5m)' in the DevCore UI "
+                "or run `python3 security/jit_elevation.py --mint` in their terminal to temporarily unlock core security files.\n"
+                "2. Pull from Git: Alternatively, core security updates can be committed and pulled via Git.\n"
                 "3. Information Protection: Physical host filesystem paths and internal configuration locations are shielded."
             ),
         )
@@ -246,8 +308,12 @@ def search_keys(query: str, entry_type: str = "all", user_tier: int = 5, limit: 
             continue
 
         item_type = data.get("type", "file")
-        if etype != "all" and item_type != etype:
-            continue
+        if etype != "all":
+            if etype == "symbol":
+                if item_type not in ("symbol", "function", "async_function", "class", "method", "async_method", "variable"):
+                    continue
+            elif item_type != etype:
+                continue
 
         sym_name = data.get("symbol_name", "")
         if q and q not in alias.lower() and q not in sym_name.lower():
@@ -281,7 +347,7 @@ def search_keys(query: str, entry_type: str = "all", user_tier: int = 5, limit: 
 def list_module_keys(module_key: str, user_tier: int = 5) -> str:
     """
     Given a module VFS key (e.g. 'devcore.core.routes.system.py'), verifies RBAC rules
-    and returns all function, class, and variable VFS keys ('<module_key>::<symbol>')
+    and returns all function, class, variable, and section VFS keys ('<module_key>::<symbol>')
     inside that module without revealing physical file paths.
     """
     resolver, mod_key, _, mod_entry, _ = _resolve_module_and_symbol(module_key)
@@ -329,24 +395,49 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
     except Exception as e:
         return _json_response({"status": "ERROR", "key": mod_key, "reason": str(e)})
 
-    ast_map = _extract_ast_nodes(source)
     symbol_keys = []
-    for sym_name, (kind, s_line, e_line) in ast_map.items():
-        full_sym_key = f"{mod_key}::{sym_name}"
-        mapped_sym = resolver.phonebook.get(full_sym_key, {})
-        sym_perms = mapped_sym.get("permissions", perms)
-        w_ok, w_mode, _ = _is_writable_via_resolver(full_sym_key, real_path, mod_entry, mapped_sym, int(user_tier))
-        symbol_keys.append({
-            "key": full_sym_key,
-            "symbol_name": sym_name,
-            "kind": kind,
-            "line_span": max(1, e_line - s_line + 1),
-            "permissions": {
-                "read": bool(sym_perms.get("read", True)),
-                "write": w_ok,
-                "delivery_mode": w_mode if w_ok else "READ_ONLY",
-            },
-        })
+    if real_path.endswith(".py"):
+        ast_map = _extract_ast_nodes(source)
+        for sym_name, (kind, s_line, e_line) in ast_map.items():
+            full_sym_key = f"{mod_key}::{sym_name}"
+            mapped_sym = resolver.phonebook.get(full_sym_key, {})
+            sym_perms = mapped_sym.get("permissions", perms)
+            w_ok, w_mode, _ = _is_writable_via_resolver(full_sym_key, real_path, mod_entry, mapped_sym, int(user_tier))
+            symbol_keys.append({
+                "key": full_sym_key,
+                "symbol_name": sym_name,
+                "kind": kind,
+                "id": mapped_sym.get("id"),
+                "content_hash": mapped_sym.get("content_hash", ""),
+                "line_span": max(1, e_line - s_line + 1),
+                "permissions": {
+                    "read": bool(sym_perms.get("read", True)),
+                    "write": w_ok,
+                    "delivery_mode": w_mode if w_ok else "READ_ONLY",
+                },
+            })
+    elif real_path.endswith((".md", ".plan")):
+        prefix_colon = mod_key + "::"
+        for k, sec_data in resolver.phonebook.items():
+            if k.startswith(prefix_colon) and sec_data.get("type") == "section":
+                sec_name = sec_data.get("symbol_name", k[len(prefix_colon):])
+                s_l = int(sec_data.get("start_line", 1))
+                e_l = int(sec_data.get("end_line", s_l))
+                sec_perms = sec_data.get("permissions", perms)
+                w_ok, w_mode, _ = _is_writable_via_resolver(k, real_path, mod_entry, sec_data, int(user_tier))
+                symbol_keys.append({
+                    "key": k,
+                    "symbol_name": sec_name,
+                    "kind": "section",
+                    "id": sec_data.get("id"),
+                    "content_hash": sec_data.get("content_hash", ""),
+                    "line_span": max(1, e_l - s_l + 1),
+                    "permissions": {
+                        "read": bool(sec_perms.get("read", True)),
+                        "write": w_ok,
+                        "delivery_mode": w_mode if w_ok else "READ_ONLY",
+                    },
+                })
 
     m_w_ok, m_w_mode, _ = _is_writable_via_resolver(mod_key, real_path, mod_entry, None, int(user_tier))
     return _json_response({
@@ -366,7 +457,7 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
 @mcp.tool()
 def read_by_key(key: str, user_tier: int = 5) -> str:
     """
-    Access a file, function, class, or variable strictly by its Raugus VFS Key
+    Access a file, function, class, variable, or section strictly by its Raugus VFS Key
     (e.g. 'devcore.core.routes.system.py::reload_system' or 'devcore.core.project_manager.py').
     Verifies all Raugus Map rules and returns ONLY the granted code/value result without revealing file paths.
     """
@@ -418,11 +509,31 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
             "reason": f"Read permission is disabled for key '{key}'.",
         })
 
-    if not real_path or not os.path.isfile(real_path):
+    if not real_path or not (os.path.isfile(real_path) or os.path.isdir(real_path)):
         return _json_response({
             "status": "DENIED",
             "key": key,
-            "reason": f"Key '{key}' does not resolve to a readable module.",
+            "reason": f"Key '{key}' does not resolve to a readable asset.",
+        })
+
+    w_ok, w_mode, _ = _is_writable_via_resolver(key, real_path, mod_entry, sym_entry, int(user_tier))
+
+    if mod_entry.get("type") == "directory" or os.path.isdir(real_path):
+        prefix_dot = mod_key + "."
+        prefix_colon = mod_key + "::"
+        child_keys = [k for k in resolver.phonebook if k != mod_key and (k.startswith(prefix_dot) or k.startswith(prefix_colon))]
+        return _json_response({
+            "status": "GRANTED",
+            "key": mod_key,
+            "type": "directory",
+            "child_count": len(child_keys),
+            "children": child_keys[:100],
+            "permissions": {
+                "read": True,
+                "write": w_ok,
+                "delivery_mode": w_mode if w_ok else "READ_ONLY",
+            },
+            "result": f"Directory container with {len(child_keys)} registered children.",
         })
 
     try:
@@ -432,30 +543,36 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
     except Exception as e:
         return _json_response({"status": "ERROR", "key": key, "reason": str(e)})
 
-    w_ok, w_mode, _ = _is_writable_via_resolver(key, real_path, mod_entry, sym_entry, int(user_tier))
-
     if symbol_name:
-        ast_map = _extract_ast_nodes(full_source)
+        ast_map = _extract_ast_nodes(full_source) if real_path.endswith(".py") else {}
         if symbol_name in ast_map:
             kind, s_line, e_line = ast_map[symbol_name]
         elif sym_entry and "start_line" in sym_entry and "end_line" in sym_entry:
-            kind = "symbol"
+            kind = sym_entry.get("type", "section" if real_path.endswith((".md", ".plan")) else "symbol")
             s_line = int(sym_entry["start_line"])
             e_line = int(sym_entry["end_line"])
         else:
             return _json_response({
                 "status": "DENIED",
                 "key": key,
-                "reason": f"Symbol '{symbol_name}' was not found inside module key '{mod_key}'.",
+                "reason": f"Symbol or section '{symbol_name}' was not found inside module key '{mod_key}'.",
             })
 
         snippet = "".join(lines[max(0, s_line - 1): e_line])
+        content_hash = sym_entry.get("content_hash") if sym_entry else None
+        if not content_hash:
+            content_hash = hashlib.sha256(snippet.encode("utf-8")).hexdigest()[:12]
+
         return _json_response({
             "status": "GRANTED",
             "key": key,
             "module_key": mod_key,
             "symbol_name": symbol_name,
             "kind": kind,
+            "id": sym_entry.get("id") if sym_entry else None,
+            "content_hash": content_hash,
+            "start_line": s_line,
+            "end_line": e_line,
             "line_count": max(1, e_line - s_line + 1),
             "permissions": {
                 "read": True,
@@ -465,12 +582,23 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
             "result": _scrub_paths(snippet),
         })
 
-    ast_map = _extract_ast_nodes(full_source)
-    child_keys = [f"{mod_key}::{name}" for name in ast_map.keys()]
+    ast_map = _extract_ast_nodes(full_source) if real_path.endswith(".py") else {}
+    if ast_map:
+        child_keys = [f"{mod_key}::{name}" for name in ast_map.keys()]
+    else:
+        prefix_colon = mod_key + "::"
+        child_keys = [k for k in resolver.phonebook if k.startswith(prefix_colon)]
+
+    file_hash = mod_entry.get("content_hash")
+    if not file_hash:
+        file_hash = hashlib.sha256(full_source.encode("utf-8")).hexdigest()[:12]
+
     return _json_response({
         "status": "GRANTED",
         "key": mod_key,
-        "type": "file",
+        "type": mod_entry.get("type", "file"),
+        "id": mod_entry.get("id"),
+        "content_hash": file_hash,
         "line_count": len(lines),
         "symbol_keys": child_keys,
         "permissions": {
@@ -483,12 +611,44 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
 
 
 @mcp.tool()
-def write_by_key(key: str, new_code: str, user_tier: int = 5) -> str:
+def get_block_by_tag(tag_or_id: str, user_tier: int = 5) -> str:
+    """
+    Resolves an AST symbol or Markdown section block by its persistent invariant UUID ('id')
+    or symbol/section tag name (e.g. 'SEC_01_OVERVIEW' or 'reload_system'),
+    enforcing RBAC tier clearance without exposing file paths.
+    """
+    resolver = _get_resolver()
+    try:
+        entry = resolver.get_block_by_tag(tag_or_id, int(user_tier))
+        if not entry:
+            return _json_response({
+                "status": "NOT_FOUND",
+                "tag_or_id": tag_or_id,
+                "reason": f"No block found with tag or id '{tag_or_id}'."
+            })
+        k = entry.get("key", "")
+        return read_by_key(k, user_tier=int(user_tier))
+    except PermissionError as pe:
+        return _json_response({
+            "status": "DENIED",
+            "tag_or_id": tag_or_id,
+            "reason": str(pe)
+        })
+    except Exception as e:
+        return _json_response({
+            "status": "ERROR",
+            "tag_or_id": tag_or_id,
+            "reason": str(e)
+        })
+
+@mcp.tool()
+def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: str = "") -> str:
     """
     Modify a specific function, class, variable ('module_key::symbol_name'), or module ('module_key')
     strictly via its Raugus VFS Key without exposing physical file paths.
     Enforces RBAC tier, Self-Protection locks, Read-Only blueprints, AST symbol locks, and syntax validation,
     and automatically stages & promotes live engine updates through the Zero-Downtime Hot-Patch sequence.
+    When modifying a core security guard file, requires an active 5-minute Human-in-the-Loop Super Admin JIT Elevation Token/Lease.
     """
     resolver, mod_key, symbol_name, mod_entry, sym_entry = _resolve_module_and_symbol(key)
     if not mod_entry:
@@ -525,7 +685,9 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5) -> str:
         })
 
     # 2. Self-Protection, Read-Only Blueprint, and AST Symbol Lock Evaluation
-    w_allowed, w_status, w_reason = _is_writable_via_resolver(key, real_path, mod_entry, sym_entry, int(user_tier))
+    w_allowed, w_status, w_reason = _is_writable_via_resolver(
+        key, real_path, mod_entry, sym_entry, int(user_tier), elevation_token=elevation_token
+    )
     if not w_allowed:
         return _json_response({
             "status": w_status,
@@ -612,11 +774,22 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5) -> str:
                     _sync_live_blueprint_routes()
                 except Exception:
                     pass
-                delivery_mode = "HOT_PATCH_PROMOTED"
+                delivery_mode = "JIT_HOT_PATCH_PROMOTED" if w_status == "ALLOWED_JIT_ELEVATED" else "HOT_PATCH_PROMOTED"
             else:
+                if w_status == "ALLOWED_JIT_ELEVATED":
+                    backup_dir = os.path.join(DEVCORE_ROOT, "core", "backups")
+                    os.makedirs(backup_dir, exist_ok=True)
+                    shutil.copy2(real_path, os.path.join(backup_dir, os.path.basename(real_path)))
                 with open(real_path, "w", encoding="utf-8") as wf:
                     wf.write(candidate_source)
-                delivery_mode = "WORKSPACE_UPDATED"
+                delivery_mode = "JIT_ELEVATED_UPDATED" if w_status == "ALLOWED_JIT_ELEVATED" else "WORKSPACE_UPDATED"
+
+            # Incrementally sync to raugus_map.json on disk
+            try:
+                from security.raugus_sync import sync_path
+                sync_path(real_path)
+            except Exception:
+                pass
 
             # Refresh in-memory symbol coordinates for this module
             updated_ast = _extract_ast_nodes(candidate_source)
@@ -626,10 +799,11 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5) -> str:
                 if s_key in resolver.phonebook:
                     resolver.phonebook[s_key]["start_line"] = s_l
                     resolver.phonebook[s_key]["end_line"] = e_l
+                    resolver.phonebook[s_key]["type"] = s_kind
                 else:
                     resolver.phonebook[s_key] = {
                         "real_path": real_path,
-                        "type": "symbol",
+                        "type": s_kind,
                         "symbol_name": s_name,
                         "start_line": s_l,
                         "end_line": e_l,
@@ -673,13 +847,14 @@ def refresh_key_map(user_tier: int = 5) -> str:
         resolver = _get_resolver()
         resolver._load_phonebook()
         total = len(resolver.phonebook)
-        sym_count = sum(1 for v in resolver.phonebook.values() if v.get("type") == "symbol")
-        file_count = sum(1 for v in resolver.phonebook.values() if v.get("type") == "file")
+        counts = {}
+        for v in resolver.phonebook.values():
+            t = v.get("type", "unknown")
+            counts[t] = counts.get(t, 0) + 1
         return _json_response({
             "status": "GRANTED",
             "total_keys": total,
-            "file_keys": file_count,
-            "symbol_keys": sym_count,
+            "counts_by_type": counts,
         })
     except Exception as e:
         return _json_response({"status": "ERROR", "reason": str(e)})

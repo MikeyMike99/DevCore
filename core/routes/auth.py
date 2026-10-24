@@ -1,27 +1,77 @@
 import asyncio
-GLOBAL_AUTH_PROC = None
+import json
+import os
+import time
 from quart import Blueprint, request, jsonify, current_app, Response
-import os, json
+
+GLOBAL_AUTH_PROC = None
+_AUTH_CHECK_CACHE = {"result": None, "ts": 0.0}
+AUTH_CACHE_TTL_SECONDS = 300.0
 
 auth_bp = Blueprint('auth_bp', __name__)
 
 
+def invalidate_auth_check_cache():
+    _AUTH_CHECK_CACHE["result"] = None
+    _AUTH_CHECK_CACHE["ts"] = 0.0
+
+
+def _has_local_cli_credentials() -> bool:
+    if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
+        return True
+    credential_candidates = [
+        os.path.expanduser("~/.gemini/antigravity-cli/antigravity-oauth-token"),
+        os.path.expanduser("~/.devcore_client_key.txt"),
+        os.path.expanduser("~/.gemini/antigravity/credentials.json"),
+        os.path.expanduser("~/.config/antigravity/credentials.json"),
+        os.path.expanduser("~/.gemini/credentials.json"),
+        os.path.expanduser("~/.config/gcloud/application_default_credentials.json"),
+    ]
+    for path in credential_candidates:
+        try:
+            if os.path.exists(path) and os.path.getsize(path) > 8:
+                return True
+        except Exception:
+            pass
+    return False
+
+
 @auth_bp.route('/api/auth_check')
 async def auth_check():
-    """Proactively tests if the CLI needs authentication by running a dummy command."""
+    """Fast-path local credential verification with optional deep CLI fallback."""
+    deep_probe = request.args.get("deep") == "1"
+    now = time.time()
+
+    if not deep_probe:
+        if _AUTH_CHECK_CACHE["result"] is not None and (now - _AUTH_CHECK_CACHE["ts"]) < AUTH_CACHE_TTL_SECONDS:
+            return jsonify(_AUTH_CHECK_CACHE["result"])
+
+        if _has_local_cli_credentials():
+            fast_res = {"authenticated": True, "fast_path": True}
+            _AUTH_CHECK_CACHE["result"] = fast_res
+            _AUTH_CHECK_CACHE["ts"] = now
+            return jsonify(fast_res)
+
+        try:
+            if hasattr(current_app, "security_mgr") and current_app.security_mgr.check_master_signature():
+                fast_res = {"authenticated": True, "fast_path": True}
+                _AUTH_CHECK_CACHE["result"] = fast_res
+                _AUTH_CHECK_CACHE["ts"] = now
+                return jsonify(fast_res)
+        except Exception:
+            pass
+
     def run_check():
         global GLOBAL_AUTH_PROC
         import subprocess
-        import os
         import re
         import shutil
         import sys
-        
-        # Resolve agy executable
+
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         bundled_exe = os.path.join(base_dir, "agy.exe")
         bundled_linux = os.path.join(base_dir, "agy")
-        
+
         real_agy = None
         cand = shutil.which("agy")
         if cand and os.path.exists(cand) and os.path.getsize(cand) > 1024:
@@ -36,73 +86,99 @@ async def auth_check():
                 real_agy = local_agy
         elif sys.platform == "win32":
             try:
-                wsl_agy = subprocess.check_output(["wsl.exe", "-e", "bash", "-lc", "which agy"], text=True, stderr=subprocess.DEVNULL).strip()
+                wsl_agy = subprocess.check_output(
+                    ["wsl.exe", "-e", "bash", "-lc", "which agy"],
+                    text=True,
+                    stderr=subprocess.DEVNULL,
+                    timeout=3,
+                ).strip()
                 if wsl_agy and wsl_agy.startswith("/"):
                     real_agy = wsl_agy
             except Exception:
                 pass
-                
-        if not real_agy:
-            return {"authenticated": True} # Fallback to native gemini if no CLI found
 
-        # Kill any existing dangling process
+        if not real_agy:
+            return {"authenticated": True}
+
         if GLOBAL_AUTH_PROC:
-            try: GLOBAL_AUTH_PROC.kill()
-            except: pass
-            
+            try:
+                GLOBAL_AUTH_PROC.kill()
+            except Exception:
+                pass
+
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
         env["WSLENV"] = "PYTHONUNBUFFERED/u"
-        
+
         cmd = [real_agy, '--print', 'ping']
         if sys.platform == 'win32' and not real_agy.endswith('.exe'):
             cmd = ['wsl.exe', '-e'] + cmd
-            
+
         try:
-            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env)
-            
-            # Read line by line synchronously
-            for _ in range(15): # Don't read forever
+            proc = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=env,
+            )
+
+            for _ in range(15):
                 line = proc.stdout.readline()
                 if not line:
                     break
-                
-                if "Authentication required" in line or "oauth2" in line or "Waiting for authentication" in line or "https://accounts.google.com" in line:
+
+                if (
+                    "Authentication required" in line
+                    or "oauth2" in line
+                    or "Waiting for authentication" in line
+                    or "https://accounts.google.com" in line
+                ):
                     match = re.search(r'(https://accounts\.google\.com/[^\s]+)', line)
                     if match:
                         GLOBAL_AUTH_PROC = proc
                         return {"authenticated": False, "url": match.group(1)}
-                        
+
                 if "pong" in line.lower():
-                    try: proc.kill()
-                    except: pass
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
                     GLOBAL_AUTH_PROC = None
                     return {"authenticated": True}
-                    
-            try: proc.kill()
-            except: pass
+
+            try:
+                proc.kill()
+            except Exception:
+                pass
             GLOBAL_AUTH_PROC = None
             return {"authenticated": False, "url": "#"}
         except Exception as e:
             print(f"Auth check error in thread: {e}")
             return {"authenticated": False, "url": "#"}
-            
+
     try:
         result = await asyncio.to_thread(run_check)
+        _AUTH_CHECK_CACHE["result"] = result
+        _AUTH_CHECK_CACHE["ts"] = time.time()
         return jsonify(result)
     except Exception as e:
         print(f"Auth check error: {e}")
         return jsonify({"authenticated": False, "url": "#"})
 
 
-
 @auth_bp.route('/login')
 async def login_page():
-    template_bytes = read_asset("sandbox/templates/login.html")
+    import sys
+    main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
+    read_fn = getattr(main_mod, "read_asset", None)
+    if read_fn is None:
+        from core.server import read_asset as read_fn
+    template_bytes = read_fn("sandbox/templates/login.html")
     if not template_bytes:
         return "Login template not found", 404
     return template_bytes.decode('utf-8'), 200, {'Content-Type': 'text/html; charset=utf-8'}
-
 
 
 @auth_bp.route('/api/set_api_key', methods=['POST'])
@@ -111,16 +187,16 @@ async def set_api_key():
     api_key = data.get('api_key', '').strip()
     if not api_key:
         return jsonify({"success": False, "error": "No API key provided"})
-    
+
     os.environ["GEMINI_API_KEY"] = api_key
     client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
     try:
         with open(client_key_path, "w", encoding="utf-8") as f:
             f.write(api_key)
+        invalidate_auth_check_cache()
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)})
-
 
 
 @auth_bp.route('/api/auth_submit', methods=['POST'])
@@ -131,51 +207,69 @@ async def auth_submit():
     if not token:
         print("[auth_submit] No token provided")
         return jsonify({"success": False, "error": "No token provided"})
-        
+
     def run_submit():
         global GLOBAL_AUTH_PROC
         if not GLOBAL_AUTH_PROC:
             return {"success": False, "error": "No auth check process running"}
-            
+
         proc = GLOBAL_AUTH_PROC
         try:
             proc.stdin.write(token + "\n")
             proc.stdin.flush()
-            
-            for _ in range(15): # Max 15 lines
+
+            for _ in range(15):
                 line = proc.stdout.readline()
                 if not line:
                     break
-                    
+
                 out = line.lower()
-                if "authentication failed" in out or "invalid code" in out or "error" in out or "timed out" in out or "invalid_grant" in out or "malformed" in out:
-                    try: proc.kill()
-                    except: pass
+                if (
+                    "authentication failed" in out
+                    or "invalid code" in out
+                    or "error" in out
+                    or "timed out" in out
+                    or "invalid_grant" in out
+                    or "malformed" in out
+                ):
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
                     GLOBAL_AUTH_PROC = None
                     return {"success": False}
-                    
-                if "authentication successful" in out or "select " in out or "project" in out or "workspace" in out or "pong" in out:
-                    try: proc.kill()
-                    except: pass
+
+                if (
+                    "authentication successful" in out
+                    or "select " in out
+                    or "project" in out
+                    or "workspace" in out
+                    or "pong" in out
+                ):
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
                     GLOBAL_AUTH_PROC = None
                     return {"success": True}
-                    
-            try: proc.kill()
-            except: pass
+
+            try:
+                proc.kill()
+            except Exception:
+                pass
             GLOBAL_AUTH_PROC = None
             return {"success": True}
         except Exception as e:
             GLOBAL_AUTH_PROC = None
             return {"success": False, "error": str(e)}
-            
+
     try:
         result = await asyncio.to_thread(run_submit)
+        invalidate_auth_check_cache()
         return jsonify(result)
     except Exception as e:
         print(f"[auth_submit] Exception: {e}")
         return jsonify({"success": False, "error": str(e)})
-
-
 
 
 @auth_bp.route('/api/auth/keys', methods=['GET'])
@@ -186,32 +280,29 @@ async def list_keys():
     return jsonify(current_app.security_mgr.get_all_keys())
 
 
-
 @auth_bp.route('/api/auth/scrub', methods=['POST'])
 async def scrub_auth():
     """Removes all Google OAuth and Gemini API key configuration to test fresh state."""
-    import os
-    import sys
-    import subprocess
-    
     if 'GEMINI_API_KEY' in os.environ:
         del os.environ['GEMINI_API_KEY']
-        
+
     paths = [
         os.path.expanduser('~/.devcore_client_key.txt'),
         os.path.expanduser('~/.config/gcloud/application_default_credentials.json'),
         os.path.expanduser('~/.gemini/credentials.json'),
         os.path.expanduser('~/.gemini/antigravity/credentials.json'),
         os.path.expanduser('~/.config/antigravity/credentials.json'),
-        os.path.expandvars('%APPDATA%/gcloud/application_default_credentials.json')
+        os.path.expandvars('%APPDATA%/gcloud/application_default_credentials.json'),
     ]
     for p in paths:
         if os.path.exists(p):
-            try: os.remove(p)
-            except: pass
-            
-    return jsonify({"success": True, "message": "Host Authentication scrubbed. You can now test the setup flow."})
+            try:
+                os.remove(p)
+            except Exception:
+                pass
 
+    invalidate_auth_check_cache()
+    return jsonify({"success": True, "message": "Host Authentication scrubbed. You can now test the setup flow."})
 
 
 @auth_bp.route('/api/auth/keys', methods=['POST'])
@@ -224,10 +315,9 @@ async def create_key():
     name = data.get("name", "New User")
     allowed_projects = data.get("allowed_projects")
     expires_in_days = float(data.get("expires_in_days", 30))
-    
+
     new_key = current_app.security_mgr.generate_key(role, name, allowed_projects, expires_in_days)
     return jsonify({"success": True, "key": new_key})
-
 
 
 @auth_bp.route('/api/auth/keys/<key_id>', methods=['DELETE'])
@@ -239,14 +329,12 @@ async def delete_key(key_id):
     return jsonify({"success": success})
 
 
-
-
-
 @auth_bp.route('/api/auth/system-status', methods=['GET'])
 async def auth_system_status():
     """First-Time Setup System Status Check."""
     is_super = current_app.security_mgr.check_master_signature()
     return jsonify({"super_admin": is_super})
+
 
 @auth_bp.route('/api/auth/login', methods=['POST'])
 async def auth_login():
@@ -263,13 +351,11 @@ async def auth_login():
     return jsonify({"error": "Invalid username or password"}), 401
 
 
-
 @auth_bp.route('/api/auth/logout', methods=['POST'])
 async def auth_logout():
     token = request.headers.get('Authorization', '').replace('Bearer ', '').strip()
     current_app.security_mgr.logout(token)
     return jsonify({"success": True})
-
 
 
 @auth_bp.route('/api/auth/me', methods=['GET'])
@@ -279,8 +365,6 @@ async def auth_me():
     if user:
         return jsonify({"user": user})
     return jsonify({"error": "Unauthorized"}), 401
-
-
 
 
 def get_current_user():

@@ -14,8 +14,6 @@ async def list_projects():
     root_name = "Workspaces"
     return jsonify({"projects": projects, "active": active, "root_name": root_name})
 
-
-
 @projects_bp.route('/api/projects', methods=['POST'])
 async def create_project():
     user = get_current_user()
@@ -28,8 +26,6 @@ async def create_project():
         return jsonify({"success": True, "project": name})
     except (ValueError, FileExistsError, PermissionError) as e:
         return jsonify({"error": str(e)}), 400
-
-
 
 @projects_bp.route('/api/projects/active', methods=['POST'])
 async def set_active_project():
@@ -46,7 +42,6 @@ async def set_active_project():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-
 @projects_bp.route('/api/conversations', methods=['GET'])
 async def list_conversations():
     user = get_current_user()
@@ -55,7 +50,6 @@ async def list_conversations():
 
     limit = request.args.get('limit', default=10, type=int)
     current_app.project_mgr.get_active_workspace_path()
-    # Threaded to prevent connection blocking
     convos, has_more = await asyncio.to_thread(
         current_app.session_mgr.list_conversations,
         current_app.project_mgr.active_project,
@@ -63,8 +57,6 @@ async def list_conversations():
         limit
     )
     return jsonify({"conversations": convos, "has_more": has_more})
-
-
 
 @projects_bp.route('/api/conversations/<conv_id>', methods=['GET'])
 async def get_conversation(conv_id):
@@ -77,16 +69,14 @@ async def get_conversation(conv_id):
         if not ok:
             return jsonify({"error": "Failed to rename session"}), 400
         return jsonify({"success": True, "title": rename_to.strip()})
-    # Threaded to prevent connection blocking
     try:
         items = await asyncio.to_thread(current_app.session_mgr.get_conversation_transcript, conv_id, user)
-        return jsonify({"items": items})
+        rollover = await asyncio.to_thread(current_app.session_mgr.get_rollover_info, conv_id, user)
+        return jsonify({"items": items, "rollover": rollover})
     except PermissionError as e:
         return jsonify({"error": str(e)}), 403
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
-
 
 @projects_bp.route('/api/conversations/<conv_id>/rename', methods=['POST'])
 async def rename_conversation(conv_id):
@@ -105,8 +95,6 @@ async def rename_conversation(conv_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-
 @projects_bp.route('/api/conversations/<conv_id>', methods=['DELETE'])
 async def delete_conversation(conv_id):
     user = get_current_user()
@@ -121,8 +109,6 @@ async def delete_conversation(conv_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-
 @projects_bp.route('/api/projects/active/conversations', methods=['DELETE'])
 async def clear_project_sessions():
     user = get_current_user()
@@ -133,10 +119,8 @@ async def clear_project_sessions():
     active_proj = current_app.project_mgr.active_project
 
     try:
-        # Threaded deletion prevents connection timeouts (supports both specific project and root workspace)
         await asyncio.to_thread(current_app.session_mgr.delete_project_sessions, active_proj, user)
         return jsonify({"success": True, "project": active_proj})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 

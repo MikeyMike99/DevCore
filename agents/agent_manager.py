@@ -3,7 +3,6 @@ from .mixins import comms_mixin as _cm_mod
 from .mixins import execution_mixin as _em_mod
 from .mixins import transcript_mixin as _tm_mod
 
-# Ensure hot-reloading agent_manager also hot-reloads its mixin modules
 importlib.reload(_cm_mod)
 importlib.reload(_em_mod)
 importlib.reload(_tm_mod)
@@ -22,7 +21,6 @@ import random
 import re
 import traceback
 
-
 def _find_existing_agent_mgr():
     for mod_name in ("__main__", "core.server"):
         mod = sys.modules.get(mod_name)
@@ -34,7 +32,6 @@ def _find_existing_agent_mgr():
             if app_obj is not None and getattr(app_obj, "agent_mgr", None) is not None:
                 return app_obj.agent_mgr
     return None
-
 
 class AgentTaskManager(CommsMixin, ExecutionMixin, TranscriptMixin):
     """
@@ -82,21 +79,19 @@ class AgentTaskManager(CommsMixin, ExecutionMixin, TranscriptMixin):
         self.active_task_owner: str = None
         self.current_conversation_id: str = None
 
-        # Mid-Task Steering & Queued Follow-Up State
         self.queued_prompts: list = []
         self._steering_interrupt: bool = False
         self._steer_lock: asyncio.Lock = asyncio.Lock()
         self.last_user: dict = None
         self.last_admin_override: bool = False
 
-        # Guaranteed Delivery & ACK Queue
         self.current_seq: int = 0
-        self.message_queue: list = []  # [{ "seq": int, "msg": dict }]
+        self.message_queue: list = []
         self.max_queue_size: int = 1000
         self._lock = asyncio.Lock()
         self._local_sec = None
 
-        self.rate_limits = {}  # type: dict
+        self.rate_limits = {}
 
     @property
     def active_task_id(self):
@@ -122,8 +117,6 @@ class AgentTaskManager(CommsMixin, ExecutionMixin, TranscriptMixin):
     def is_running(self) -> bool:
         return self.active_proc is not None and self.active_proc.returncode is None
 
-
-# Upgrade any already-instantiated live singleton on module reload
 _live_mgr = _find_existing_agent_mgr()
 if _live_mgr is not None:
     _live_mgr.__class__ = AgentTaskManager

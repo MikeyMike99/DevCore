@@ -21,7 +21,6 @@ class KeychainManager:
         with open(self.master_key_path, "r", encoding="utf-8") as f:
             raw_master = f.read().strip().encode('utf-8')
             
-        # Use PBKDF2 to derive a strong AES Key Encryption Key
         kdf = PBKDF2HMAC(
             algorithm=hashes.SHA256(),
             length=32,
@@ -35,7 +34,6 @@ class KeychainManager:
             print("[Keychain] No keychain found. Initializing new keychain.")
             initial_dek = Fernet.generate_key()
             
-            # Inject the legacy static key so old transcripts can still be decrypted
             legacy_dek = b'A4l7KaUtSVz1kvIS0SPXP2olNkyY6XVLNOhrEtTvkrc='
             
             payload = {

@@ -19,10 +19,8 @@ class SwarmFlowLogger:
     def log_tuple(modder_id: str, agent_id: str, target_namespace: str, model_tier: str, token_volume: int):
         setup_logger()
         
-        # Chrono-Syncing (NTP): Rigid UTC timestamping
         timestamp = datetime.now(timezone.utc).isoformat()
         
-        # The Agentic 5-Tuple Record
         record = {
             "timestamp": timestamp,
             "modder_id": modder_id,

@@ -12,7 +12,6 @@ def lock_brain():
     if not os.path.exists(brain_dir):
         return
 
-    # Delay import so it doesn't break if run standalone without context
     from security.keychain import KeychainManager
     km = KeychainManager()
     cipher = km.get_active_cipher()
@@ -23,7 +22,6 @@ def lock_brain():
             with open(file_path, 'rb') as f:
                 data = f.read()
             
-            # Don't double encrypt
             if data.startswith(b'gAAAAA'): 
                 continue
                 
@@ -34,7 +32,7 @@ def lock_brain():
             try:
                 with os.fdopen(fd, 'wb') as f:
                     f.write(encrypted)
-                os.replace(tmp_path, file_path) # Atomic swap
+                os.replace(tmp_path, file_path)
                 print(f"[Cold Storage] Locked: {file_path}")
             except Exception as e:
                 if os.path.exists(tmp_path):
@@ -61,7 +59,6 @@ def unlock_brain():
             
             if data.startswith(b'gAAAAA'):
                 decrypted = None
-                # Try all keys in the keychain
                 for cipher in ciphers:
                     try:
                         decrypted = cipher.decrypt(data)
@@ -78,7 +75,7 @@ def unlock_brain():
                 try:
                     with os.fdopen(fd, 'wb') as f:
                         f.write(decrypted)
-                    os.replace(tmp_path, file_path) # Atomic swap
+                    os.replace(tmp_path, file_path)
                     print(f"[Cold Storage] Unlocked: {file_path}")
                 except Exception as e:
                     if os.path.exists(tmp_path):

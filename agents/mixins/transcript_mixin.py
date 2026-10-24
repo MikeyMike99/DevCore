@@ -17,16 +17,13 @@ class TranscriptMixin:
         import os
         import re
         s = str(text)
-        # Convert markdown links [label](url) -> label
         s = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', s)
-        # Strip bare file:// URIs to basename without line anchors
         s = re.sub(
             r'file:///[^\s)>\]]+',
             lambda m: os.path.basename(re.sub(r'#L\d+(?:-L?\d+)?', '', m.group(0)).rstrip('/')),
             s,
             flags=re.IGNORECASE,
         )
-        # Collapse raw Unix/Windows paths (/mnt/c/.../foo.py#L10-L20, /home/.../bar.py) to basename only
         s = re.sub(
             r'(?:/mnt/[a-zA-Z]/|/home/|/var/|/tmp/|/etc/|/opt/|/usr/|[A-Za-z]:\\)[^\s)>\]"\'`,;]+',
             lambda m: os.path.basename(
@@ -34,7 +31,6 @@ class TranscriptMixin:
             ),
             s,
         )
-        # Strip line number anchors and line range phrases
         s = re.sub(r'#L\d+(?:-L?\d+)?\b', '', s, flags=re.IGNORECASE)
         s = re.sub(r'(\.[a-zA-Z0-9]{1,6}):\d+(?:-\d+)?\b', r'\1', s)
         s = re.sub(r'\(\s*lines?\s+L?\d+(?:\s*(?:-|–|to)\s*L?\d+)?\s*\)', '', s, flags=re.IGNORECASE)
@@ -44,6 +40,74 @@ class TranscriptMixin:
         s = re.sub(r'[*`#_()\[\]{}]', '', s)
         return re.sub(r'\s+', ' ', s).strip()
 
+    @staticmethod
+    def _normalize_tool_name(name: str) -> str:
+        if not name:
+            return ""
+        return str(name).split(":")[-1].split("__")[-1].strip().lower()
+
+    @staticmethod
+    def prune_transcript_symbol_blocks(transcript_path: str) -> dict:
+        """
+        Safely inspects transcript.jsonl and replaces bulky tool dumps (> 80 lines)
+        with [CACHED_BLOCK: <ref> | HASH: <hash>] markers, preserving JSON Lines structure
+        and returning statistics on tokens/bytes pruned.
+        """
+        if not os.path.exists(transcript_path):
+            return {
+                "success": False,
+                "error": f"Transcript not found at {transcript_path}",
+                "lines_processed": 0,
+                "blocks_pruned": 0,
+                "bytes_saved": 0,
+                "tokens_saved_estimate": 0,
+            }
+
+        import hashlib
+        pruned_lines = []
+        blocks_pruned = 0
+        bytes_saved = 0
+        lines_processed = 0
+
+        with open(transcript_path, "r", encoding="utf-8") as f:
+            for line in f:
+                lines_processed += 1
+                stripped = line.strip()
+                if not stripped:
+                    pruned_lines.append(line)
+                    continue
+                try:
+                    data = json.loads(stripped)
+                    content = data.get("content")
+                    if isinstance(content, str):
+                        lines = content.splitlines()
+                        if len(lines) > 80:
+                            content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:12]
+                            match = re.search(r'(?:Path|TargetFile|target_file|key)["\s:=]+([^"\s,\n\\]+)', content)
+                            ref_label = match.group(1) if match else "tool_dump"
+                            new_content = f"[CACHED_BLOCK: {ref_label} | HASH: {content_hash}]"
+                            old_bytes = len(content.encode("utf-8"))
+                            new_bytes = len(new_content.encode("utf-8"))
+                            data["content"] = new_content
+                            blocks_pruned += 1
+                            bytes_saved += max(0, old_bytes - new_bytes)
+                    pruned_lines.append(json.dumps(data) + "\n")
+                except Exception:
+                    pruned_lines.append(line)
+
+        if blocks_pruned > 0:
+            with open(transcript_path, "w", encoding="utf-8") as f:
+                f.writelines(pruned_lines)
+
+        return {
+            "success": True,
+            "transcript_path": transcript_path,
+            "lines_processed": lines_processed,
+            "blocks_pruned": blocks_pruned,
+            "bytes_saved": bytes_saved,
+            "tokens_saved_estimate": int(bytes_saved / 4),
+        }
+
     async def _get_narrative_context(self, conversation_id, expected_tool_name=None):
         deep_insight = ""
         tool_args = {}
@@ -51,9 +115,31 @@ class TranscriptMixin:
             import json, os, re, time
             from collections import deque
             conv_id = getattr(self, "current_conversation_id", None) or conversation_id
-            t_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript_full.jsonl")
-            
-            for _ in range(10): # Poll up to 1 second
+            if not conv_id:
+                return "", {}
+
+            candidate_dirs = [
+                os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs"),
+                os.path.expanduser(f"~/.gemini/antigravity/brain/{conv_id}/.system_generated/logs"),
+                f"/mnt/c/Users/michael/.gemini/antigravity/brain/{conv_id}/.system_generated/logs",
+                f"/mnt/c/Users/michael/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs",
+            ]
+            t_path = None
+            for c_dir in candidate_dirs:
+                full_cand = os.path.join(c_dir, "transcript_full.jsonl")
+                norm_cand = os.path.join(c_dir, "transcript.jsonl")
+                if os.path.exists(full_cand):
+                    t_path = full_cand
+                    break
+                elif os.path.exists(norm_cand):
+                    t_path = norm_cand
+                    break
+            if not t_path:
+                return "", {}
+
+            norm_expected = self._normalize_tool_name(expected_tool_name)
+
+            for _ in range(10):
                 if os.path.exists(t_path):
                     with open(t_path, 'r', encoding='utf-8') as tf:
                         last_lines = deque(tf, maxlen=100)
@@ -63,31 +149,41 @@ class TranscriptMixin:
                                 if d.get("type") == "PLANNER_RESPONSE":
                                     tool_calls = d.get("tool_calls", [])
                                     if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
-                                        # Try to find the matching tool call
                                         for t in reversed(tool_calls):
-                                            if expected_tool_name and t.get("name") != expected_tool_name:
+                                            t_norm = self._normalize_tool_name(t.get("name"))
+                                            if norm_expected and t_norm != norm_expected:
                                                 continue
-                                            if "thinking" in d:
-                                                deep_insight = d["thinking"]
-                                            tool_args = t.get("args", {})
+                                            if not tool_args:
+                                                tool_args = t.get("args", {}) or {}
+                                            if not deep_insight and d.get("thinking"):
+                                                deep_insight = d.get("thinking")
                                             break
-                                        if tool_args:
-                                            break
-                            except:
+
+                                    if not deep_insight and d.get("thinking"):
+                                        deep_insight = d.get("thinking")
+
+                                    if tool_args and deep_insight:
+                                        break
+                            except Exception:
                                 pass
                 if deep_insight:
                     break
-                await asyncio.sleep(0.1)
-                
+                await asyncio.sleep(0.08)
+
             if deep_insight:
                 deep_insight = re.sub(r'CRITICAL INSTRUCTION.*?\n', '', deep_insight)
                 deep_insight = re.sub(r'<planning_mode>.*?</planning_mode>', '', deep_insight, flags=re.DOTALL)
                 deep_insight = re.sub(r'<bash_command_reminder>.*?</bash_command_reminder>', '', deep_insight, flags=re.DOTALL)
+                deep_insight = re.sub(r'<[^>]+>', '', deep_insight)
                 paras = [p.strip() for p in deep_insight.split('\n') if p.strip()]
                 if paras:
                     deep_insight = self._strip_aria_noise(" ".join(paras))
-                    if len(deep_insight) > 600:
-                        deep_insight = deep_insight[:600] + "..." 
+                    if len(deep_insight) > 1200:
+                        last_period = deep_insight[:1200].rfind('.')
+                        if last_period > 200:
+                            deep_insight = deep_insight[:last_period + 1]
+                        else:
+                            deep_insight = deep_insight[:1200] + "..."
         except Exception:
             pass
         return deep_insight, tool_args
@@ -112,10 +208,7 @@ class TranscriptMixin:
         import os
         import platform
         
-        # Always read from the WSL path since Antigravity runs in WSL
         wsl_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl")
-        
-        # Wait a brief moment to allow the conversation to initialize
         await asyncio.sleep(2)
         
         if platform.system() == 'Windows':
@@ -151,6 +244,5 @@ class TranscriptMixin:
             logging.error(f"[TranscriptMixin] Transcript tailer failed: {e}")
             try:
                 process.terminate()
-            except:
+            except Exception:
                 pass
-
