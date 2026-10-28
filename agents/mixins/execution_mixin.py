@@ -158,6 +158,7 @@ class ExecutionMixin:
         self.output_buffer = []
         self.actions = []
         self._last_deep_insight = ""
+        self._last_thought_step = None
         if conversation_id:
             self.current_conversation_id = conversation_id
 
@@ -165,7 +166,8 @@ class ExecutionMixin:
             "type": "task_started",
             "prompt": display_prompt or prompt,
             "model": self.current_model,
-            "start_time": self.start_time
+            "start_time": self.start_time,
+            "initial_announcement": f"Task started with {self.current_model}. Analyzing request..."
         }
         if queued_user_prompt:
             task_started_event["queued_user_prompt"] = queued_user_prompt
@@ -179,22 +181,24 @@ class ExecutionMixin:
         """Sends periodic real-time progress heartbeats with dynamic context."""
         try:
             last_announced_phase = ""
+            last_silent_tick_time = start_time
             while True:
                 await asyncio.sleep(3)
                 elapsed = int(time.time() - start_time)
                 running_act = self.actions[-1] if self.actions and self.actions[-1].get("status") == "running" else None
 
+                should_announce = False
                 if running_act:
                     current_desc = running_act.get("announcement") or running_act.get("friendly_name") or running_act.get("tool", "Operation")
                     msg = f"{current_desc} ({elapsed}s elapsed)"
+                    if current_desc != last_announced_phase:
+                        should_announce = True
+                        last_announced_phase = current_desc
+                    last_silent_tick_time = time.time()
                 else:
-                    current_desc = "Reasoning and planning next steps"
-                    msg = f"Reasoning and planning next steps ({elapsed}s elapsed)"
-
-                should_announce = False
-                if current_desc != last_announced_phase:
-                    should_announce = True
-                    last_announced_phase = current_desc
+                    current_desc = "Reasoning"
+                    msg = ""
+                    should_announce = False
 
                 await self.broadcast({
                     "type": "heartbeat",
@@ -396,7 +400,11 @@ class ExecutionMixin:
 
             watchdog_task = asyncio.create_task(soft_timeout_watchdog())
 
-            await self.broadcast({"type": "agent_start", "model": model})
+            await self.broadcast({
+                "type": "agent_start",
+                "model": model,
+                "message": f"Agent initialized with {model}."
+            })
 
             while True:
                 line = await proc.stdout.readline()
@@ -566,6 +574,8 @@ class ExecutionMixin:
                                 summary = _clean_val(raw_params.get("toolSummary") or raw_params.get("tool_summary") or raw_params.get("summary"))
 
                                 deep_insight, tool_args = await self._get_narrative_context(conversation_id, expected_tool_name=clean_tool_name)
+                                if deep_insight:
+                                    self._last_deep_insight = deep_insight
                                 if not action and tool_args:
                                     action = _clean_val(tool_args.get("toolAction") or tool_args.get("tool_action") or tool_args.get("action"))
                                 if not summary and tool_args:
@@ -755,6 +765,19 @@ class ExecutionMixin:
                                     self.current_model = fallback_model
 
                         elif stype == "agent_response":
+                            curr_step_index = step.get("step_index")
+                            if getattr(self, "_last_thought_step", None) != curr_step_index:
+                                self._last_thought_step = curr_step_index
+                                deep_insight, _ = await self._get_narrative_context(conversation_id, expected_tool_name=None)
+                                if deep_insight and deep_insight != getattr(self, "_last_deep_insight", ""):
+                                    self._last_deep_insight = deep_insight
+                                    await self.broadcast({
+                                        "type": "agent_thought",
+                                        "thought": deep_insight,
+                                        "announcement": f"Thinking: {deep_insight}",
+                                        "step_index": curr_step_index
+                                    })
+
                             delta = step.get("text_delta", step.get("text", ""))
                             if delta:
                                 if not is_admin:

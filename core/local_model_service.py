@@ -2,6 +2,7 @@ import argparse
 import ast
 import asyncio
 from datetime import datetime, timezone
+import fnmatch
 import hashlib
 import json
 import os
@@ -704,10 +705,24 @@ def local_read_file(workspace_dir: str, rel_path: str, user: dict = None, sec_mg
         except Exception:
             pass
 
+    is_admin = False
+    if sec_mgr and hasattr(sec_mgr, "is_admin_user"):
+        is_admin = sec_mgr.is_admin_user(user)
+    elif user and user.get("role") == "admin":
+        is_admin = True
+
     full_path = os.path.realpath(os.path.join(workspace_dir, clean_path))
     real_base = os.path.realpath(workspace_dir)
+    if not os.path.exists(full_path) and is_admin:
+        alt_path = os.path.realpath(os.path.join(DEVCORE_ROOT, clean_path))
+        if os.path.exists(alt_path):
+            full_path = alt_path
+
     if not full_path.startswith(real_base):
-        return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
+        if is_admin and (full_path == os.path.realpath(DEVCORE_ROOT) or full_path.startswith(os.path.realpath(DEVCORE_ROOT) + os.sep)):
+            pass
+        else:
+            return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
 
     if not os.path.isfile(full_path):
         return False, f"File not found: {clean_path}"
@@ -976,10 +991,24 @@ def local_write_file(workspace_dir: str, rel_path: str, content: str, user: dict
         except Exception:
             pass
 
+    is_admin = False
+    if sec_mgr and hasattr(sec_mgr, "is_admin_user"):
+        is_admin = sec_mgr.is_admin_user(user)
+    elif user and user.get("role") == "admin":
+        is_admin = True
+
     full_path = os.path.realpath(os.path.join(workspace_dir, clean_path))
     real_base = os.path.realpath(workspace_dir)
+    if not os.path.exists(full_path) and is_admin:
+        alt_path = os.path.realpath(os.path.join(DEVCORE_ROOT, clean_path))
+        if os.path.exists(alt_path):
+            full_path = alt_path
+
     if not full_path.startswith(real_base):
-        return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
+        if is_admin and (full_path == os.path.realpath(DEVCORE_ROOT) or full_path.startswith(os.path.realpath(DEVCORE_ROOT) + os.sep)):
+            pass
+        else:
+            return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
 
     try:
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -988,6 +1017,118 @@ def local_write_file(workspace_dir: str, rel_path: str, content: str, user: dict
         return True, f"Successfully wrote {len(content)} bytes to {clean_path}."
     except Exception as e:
         return False, f"Error writing file {clean_path}: {str(e)}"
+
+
+def local_search_files(workspace_dir: str, query: str = "", user: dict = None, sec_mgr = None, max_results: int = 50) -> tuple:
+    """Safely searches workspace files recursively matching a filename pattern or query substring. Returns (success: bool, results_str: str)."""
+    if not workspace_dir or not os.path.isdir(workspace_dir):
+        return False, "Workspace directory does not exist."
+
+    clean_query = (query or "").strip().strip("'\"`")
+    if not clean_query:
+        clean_query = "*"
+
+    query_map = {
+        "python": "*.py",
+        "python files": "*.py",
+        "python scripts": "*.py",
+        "all python files": "*.py",
+        "json": "*.json",
+        "json files": "*.json",
+        "all json files": "*.json",
+        "markdown": "*.md",
+        "markdown files": "*.md",
+        "md files": "*.md",
+        "javascript": "*.js",
+        "js files": "*.js",
+        "html": "*.html",
+        "html files": "*.html",
+        "css": "*.css",
+        "css files": "*.css",
+    }
+    pattern = query_map.get(clean_query.lower(), clean_query)
+
+    is_admin = False
+    if sec_mgr and hasattr(sec_mgr, "is_admin_user"):
+        is_admin = sec_mgr.is_admin_user(user)
+    elif user and user.get("role") == "admin":
+        is_admin = True
+
+    real_base = os.path.realpath(workspace_dir)
+
+    forbidden_names = {
+        ".git", "venv", ".venv", "node_modules", "__pycache__",
+        ".gemini", ".pytest_cache", ".coverage", ".mypy_cache",
+        ".DS_Store", "desktop.ini", ".849c9593-d756-4e56-8d6e-42412f2a707b",
+    }
+    if sec_mgr and hasattr(sec_mgr, "FORBIDDEN_NAMES"):
+        forbidden_names.update(sec_mgr.FORBIDDEN_NAMES)
+
+    matched_files = []
+    is_glob = any(char in pattern for char in ("*", "?", "["))
+    low_pat = pattern.lower()
+
+    for root, dirs, files in os.walk(real_base):
+        dirs[:] = [
+            d for d in dirs
+            if d not in forbidden_names
+            and not d.startswith(".")
+        ]
+
+        for fname in sorted(files):
+            if fname.startswith(".") or fname in forbidden_names:
+                continue
+
+            full_path = os.path.join(root, fname)
+            rel_path = os.path.relpath(full_path, real_base).replace("\\", "/")
+
+            if sec_mgr and hasattr(sec_mgr, "classify_file"):
+                try:
+                    tier = sec_mgr.classify_file(rel_path)
+                    if tier == sec_mgr.TIER_FORBIDDEN:
+                        continue
+                    if not is_admin and tier in (sec_mgr.TIER_CORE_ENGINE, sec_mgr.TIER_ADMIN_LOG):
+                        continue
+                except Exception:
+                    pass
+
+            matched = False
+            if is_glob:
+                if fnmatch.fnmatch(fname.lower(), low_pat) or fnmatch.fnmatch(rel_path.lower(), low_pat):
+                    matched = True
+            else:
+                if low_pat in fname.lower() or low_pat in rel_path.lower():
+                    matched = True
+
+            if matched:
+                try:
+                    sz = os.path.getsize(full_path)
+                    if sz < 1024:
+                        sz_str = f"{sz} B"
+                    elif sz < 1024 * 1024:
+                        sz_str = f"{sz / 1024:.1f} KB"
+                    else:
+                        sz_str = f"{sz / (1024 * 1024):.1f} MB"
+                    matched_files.append((rel_path, sz_str))
+                except Exception:
+                    matched_files.append((rel_path, "unknown size"))
+
+            if len(matched_files) >= max_results:
+                break
+        if len(matched_files) >= max_results:
+            break
+
+    if not matched_files:
+        return True, f"No files found matching '{clean_query}' in workspace."
+
+    lines = [f"Found {len(matched_files)} file(s) matching '{clean_query}':"]
+    for rpath, sz_str in matched_files:
+        lines.append(f"- {rpath} ({sz_str})")
+
+    if len(matched_files) >= max_results:
+        lines.append(f"... [Truncated at {max_results} results]")
+
+    return True, "\n".join(lines)
 
 
 def local_list_directory(workspace_dir: str, rel_path: str = "", user: dict = None, sec_mgr = None, max_items: int = 50) -> tuple:
@@ -999,10 +1140,25 @@ def local_list_directory(workspace_dir: str, rel_path: str = "", user: dict = No
     if clean_path.startswith("..") or "/../" in clean_path or "\\..\\" in clean_path:
         return False, f"Access Denied: Path traversal forbidden ({clean_path})"
 
+    is_admin = False
+    if sec_mgr and hasattr(sec_mgr, "is_admin_user"):
+        is_admin = sec_mgr.is_admin_user(user)
+    elif user and user.get("role") == "admin":
+        is_admin = True
+
     real_base = os.path.realpath(workspace_dir)
     target_dir = os.path.realpath(os.path.join(workspace_dir, clean_path)) if clean_path else real_base
+    if not os.path.exists(target_dir) and is_admin and clean_path:
+        alt_dir = os.path.realpath(os.path.join(DEVCORE_ROOT, clean_path))
+        if os.path.exists(alt_dir):
+            target_dir = alt_dir
+            real_base = os.path.realpath(DEVCORE_ROOT)
+
     if not (target_dir == real_base or target_dir.startswith(real_base + os.sep)):
-        return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
+        if is_admin and (target_dir == os.path.realpath(DEVCORE_ROOT) or target_dir.startswith(os.path.realpath(DEVCORE_ROOT) + os.sep)):
+            pass
+        else:
+            return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
 
     if not os.path.exists(target_dir):
         return False, f"Directory not found: {clean_path or '.'}"
@@ -1182,11 +1338,12 @@ def _append_planner_response(transcript_path: str, step_idx: int, response: str,
 LOCAL_AGENT_SYSTEM_PROMPT = (
     "You are the DevCore Local AI Assistant running offline on the user's machine with direct filesystem tools.\n"
     "CRITICAL RULES:\n"
-    "1. You HAVE direct access to browse directories, read files, and write files in the active workspace.\n"
+    "1. You HAVE direct access to search files, browse directories, read files, and write files in the active workspace.\n"
     "2. NEVER apologize, refuse, or claim that you lack filesystem access.\n"
-    "3. When the user asks to inspect, list, read, or write files or directories, immediately emit a tool call.\n"
+    "3. When the user asks to inspect, search, list, read, or write files or directories, immediately emit a tool call.\n"
     "4. For targeted code inspection, prefer read_symbol over read_file to keep context small and fast.\n"
     "AVAILABLE TOOLS:\n"
+    "- Search files: `<tool_call>{\"action\": \"search_files\", \"query\": \"*.py\"}</tool_call>` (or `[SEARCH_FILES: pattern]`)\n"
     "- Browse directory: `<tool_call>{\"action\": \"list_dir\", \"path\": \".\"}</tool_call>` (or `[LIST_DIR: path]`)\n"
     "- Read file: `<tool_call>{\"action\": \"read_file\", \"path\": \"filename.ext\"}</tool_call>` (or `[READ_FILE: path]`)\n"
     "- Read symbol/block: `<tool_call>{\"action\": \"read_symbol\", \"path\": \"file.py\", \"symbol\": \"func_name\"}</tool_call>` (or `[READ_SYMBOL: file.py::func_name]`)\n"
@@ -1194,6 +1351,8 @@ LOCAL_AGENT_SYSTEM_PROMPT = (
     "- Write file: `<tool_call>{\"action\": \"write_file\", \"path\": \"filename.ext\", \"content\": \"...\"}</tool_call>` "
     "(or `[WRITE_FILE: path]content[/WRITE_FILE]`)\n\n"
     "EXAMPLES:\n"
+    "User: search for all python files\n"
+    "Assistant: <tool_call>{\"action\": \"search_files\", \"query\": \"*.py\"}</tool_call>\n\n"
     "User: what is in my directory?\n"
     "Assistant: <tool_call>{\"action\": \"list_dir\", \"path\": \".\"}</tool_call>\n\n"
     "User: read function reload_system in system.py\n"
@@ -1209,6 +1368,74 @@ LOCAL_AGENT_SYNTHESIS_SYSTEM = (
     "Provide a helpful, clear, and friendly conversational response summarizing the tool results to answer the user's request. "
     "Do not emit any tool calls in this response."
 )
+
+
+def parse_search_intent(prompt: str) -> tuple:
+    """Detects user intent to search workspace files by filename, extension glob, or pattern. Returns (has_intent: bool, search_query: str | None)."""
+    clean = (prompt or "").strip()
+    low = clean.lower()
+
+    if any(k in low for k in ["search for all python files", "find all python files", "search python files", "find python files", "search for python files", "list all python files", "show all python files"]):
+        return True, "*.py"
+
+    if any(k in low for k in ["search for all json files", "find all json files", "search json files", "find json files", "search for json files", "list all json files"]):
+        return True, "*.json"
+
+    # Targeted pattern search: "search for files matching *.py", "find files named test"
+    m_search = re.search(
+        r"(?:search|find|locate)\s+(?:for\s+)?(?:all\s+)?(?:the\s+)?(?:files?\s+|scripts?\s+)?"
+        r"(?:matching|named|with\s+name|with\s+pattern|called)\s+"
+        r"['\"`]?([a-zA-Z0-9_\-\.\*\?]+)['\"`]?",
+        clean,
+        re.IGNORECASE
+    )
+    if m_search:
+        target = m_search.group(1).strip()
+        if target.lower() not in ("all", "the", "files", "file", "scripts", "workspace", "directory", "dir", "here", "in", "for"):
+            return True, target
+
+    m_ext = re.search(r"(?:search|find|locate)\s+(?:for\s+)?(?:all\s+)?(?:the\s+)?([a-zA-Z0-9_\-]+)\s+(?:files?|scripts?)", clean, re.IGNORECASE)
+    if m_ext:
+        ext = m_ext.group(1).lower().strip()
+        if ext not in ("all", "the", "my", "our", "this", "these", "some", "any", "for", "in", "workspace"):
+            if ext in ("python", "py"):
+                return True, "*.py"
+            elif ext in ("json",):
+                return True, "*.json"
+            elif ext in ("markdown", "md"):
+                return True, "*.md"
+            elif ext in ("javascript", "js"):
+                return True, "*.js"
+            elif ext in ("html",):
+                return True, "*.html"
+            elif ext in ("css",):
+                return True, "*.css"
+            else:
+                return True, f"*.{ext}"
+
+    m_direct = re.match(r"^(?:search|find|locate)\s+['\"`]?([a-zA-Z0-9_\-\.\*\?]+)['\"`]?$", clean, re.IGNORECASE)
+    if m_direct:
+        q = m_direct.group(1).strip()
+        if q.lower() not in ("files", "directory", "dir", "workspace", "folder"):
+            return True, q
+
+    m_where = re.search(r"where\s+is\s+(?:the\s+file\s+|file\s+)?['\"`]?([a-zA-Z0-9_\-\.\*\?]+)['\"`]?", clean, re.IGNORECASE)
+    if m_where:
+        q = m_where.group(1).strip()
+        if q.lower() not in ("the", "file", "it", "this"):
+            return True, q
+
+    m_in_ws = re.search(
+        r"(?:search|find|locate)\s+['\"`]?([a-zA-Z0-9_\-\.\*\?]+)['\"`]?\s+(?:in|across|under)\s+(?:the\s+)?(?:workspace|directory|folder|repo|project)",
+        clean,
+        re.IGNORECASE
+    )
+    if m_in_ws:
+        target = m_in_ws.group(1).strip()
+        if target.lower() not in ("all", "files", "the", "everything"):
+            return True, target
+
+    return False, None
 
 
 def parse_directory_intent(prompt: str) -> tuple:
@@ -1316,16 +1543,41 @@ def parse_read_intent(prompt: str, with_symbol: bool = False) -> tuple:
 
 def parse_write_intent(prompt: str) -> tuple:
     clean = (prompt or "").strip()
-    m = re.search(r"(?:create|write|save|update|add|generate)\s+(?:a\s+)?(?:new\s+)?(?:file\s+)?(?:named\s+)?['\"`]?([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9_]+)['\"`]?(?:\s+(?:with|containing|holding)\s+['\"`]?([\s\S]*?)['\"`]?$)?", clean, re.IGNORECASE)
-    if m:
-        path = m.group(1).strip()
-        content = m.group(2).strip() if m.group(2) else ""
+
+    # Pattern 1: Explicit content clause (with / containing / holding / content:)
+    m_with = re.search(
+        r"(?:create|write|save|update|add|generate|make)\s+(?:a\s+)?(?:new\s+)?(?:python\s+|lua\s+|shell\s+|bash\s+|js\s+|text\s+)?(?:file|script|document)?\s*(?:named|called)?\s*['\"`]?([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9_]+)['\"`]?\s+(?:with|containing|holding|content:?)\s+['\"`]?([\s\S]+?)['\"`]?$",
+        clean,
+        re.IGNORECASE
+    )
+    if m_with:
+        path = m_with.group(1).strip()
+        content = m_with.group(2).strip()
         return True, path, content
-    m2 = re.search(r"(?:write|save)\s+['\"`]?([\s\S]+?)['\"`]?\s+to\s+(?:the\s+file\s+|file\s+)?['\"`]?([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9_]+)['\"`]?", clean, re.IGNORECASE)
-    if m2:
-        content = m2.group(1).strip()
-        path = m2.group(2).strip()
-        return True, path, content
+
+    # Pattern 2: "write 'content' to file.ext"
+    m_to = re.search(
+        r"(?:write|save)\s+['\"`]?([\s\S]+?)['\"`]?\s+to\s+(?:the\s+file\s+|file\s+)?['\"`]?([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9_]+)['\"`]?",
+        clean,
+        re.IGNORECASE
+    )
+    if m_to:
+        content = m_to.group(1).strip()
+        path = m_to.group(2).strip()
+        if len(content) > 0 and path:
+            return True, path, content
+
+    # Pattern 3: Generative file creation request without inline content
+    m_gen = re.search(
+        r"(?:create|write|save|update|add|generate|make)\s+(?:a\s+)?(?:new\s+)?(?:python\s+|lua\s+|shell\s+|bash\s+|js\s+|text\s+)?(?:file|script|document)?\s*(?:named|called)?\s*['\"`]?([a-zA-Z0-9_\-\./\\]+\.[a-zA-Z0-9_]+)['\"`]?",
+        clean,
+        re.IGNORECASE
+    )
+    if m_gen:
+        path = m_gen.group(1).strip()
+        if "." in path and not path.endswith("."):
+            return True, path, ""
+
     return False, None, None
 
 
@@ -1407,6 +1659,13 @@ def extract_local_tool_calls(response: str) -> list:
             seen.add(sig)
             calls.append({"action": "search_symbols", "query": clean_q})
 
+    for q in re.findall(r"\[SEARCH_FILES:\s*([^\]]+)\]", response, re.IGNORECASE):
+        clean_q = q.strip()
+        sig = f"search_files:{clean_q}:"
+        if clean_q and sig not in seen:
+            seen.add(sig)
+            calls.append({"action": "search_files", "query": clean_q})
+
     for p in re.findall(r"\[LIST_DIR:\s*([^\]]*)\]", response, re.IGNORECASE):
         clean_p = p.strip() or "."
         sig = f"list_dir:{clean_p}:"
@@ -1459,9 +1718,10 @@ def clean_local_model_display_text(response: str) -> str:
     cleaned = re.sub(r"\[READ_FILE:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[READ_SYMBOL:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[SEARCH_SYMBOLS:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\[SEARCH_FILES:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[LIST_DIR:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"</?tool_call>", "", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\[/?(?:WRITE_FILE|READ_FILE|READ_SYMBOL|SEARCH_SYMBOLS|LIST_DIR)[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\[/?(?:WRITE_FILE|READ_FILE|READ_SYMBOL|SEARCH_SYMBOLS|SEARCH_FILES|LIST_DIR)[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     return cleaned.strip()
 
 
@@ -1529,40 +1789,75 @@ async def execute_local_agent_task(
     file_context_blocks = []
     executed_actions_log = []
 
-    has_dir_query, dir_target = parse_directory_intent(clean_prompt)
-    if has_dir_query:
-        d_ok, d_text = local_list_directory(workspace_dir, dir_target or "", user=user, sec_mgr=sec_mgr)
-        if d_ok:
-            act_id = str(uuid.uuid4())[:8]
-            display_target = dir_target if dir_target else "workspace root"
-            await agent_mgr.broadcast({
-                "type": "action_start",
-                "action": {
-                    "id": act_id,
-                    "tool": "list_directory",
-                    "params": {"path": dir_target or "."},
-                    "status": "running",
-                    "friendly_name": "Browse Directory",
-                    "thought": f"Listing directory contents of '{display_target}' for local analysis",
-                    "announcement": f"Browsing directory {display_target}..."
-                }
-            })
-            await asyncio.sleep(0.05)
-            await agent_mgr.broadcast({
-                "type": "action_done",
-                "action": {
-                    "id": act_id,
-                    "tool": "list_directory",
-                    "params": {"path": dir_target or "."},
-                    "output": d_text[:2000] + ("\n... [truncated]" if len(d_text) > 2000 else ""),
-                    "duration": 0.05,
-                    "status": "done",
-                    "friendly_name": "Browse Directory",
-                    "announcement": f"Completed browsing {display_target}."
-                }
-            })
-            file_context_blocks.append(f"--- Directory Listing: {dir_target or '.'} ---\n{d_text}")
-            executed_actions_log.append(f"> 📁 **Directory Browsed:** `{display_target}`")
+    has_search_query, search_target = parse_search_intent(clean_prompt)
+    if has_search_query:
+        s_ok, s_text = local_search_files(workspace_dir, search_target or "*", user=user, sec_mgr=sec_mgr)
+        act_id = str(uuid.uuid4())[:8]
+        display_query = search_target if search_target else "*"
+        await agent_mgr.broadcast({
+            "type": "action_start",
+            "action": {
+                "id": act_id,
+                "tool": "search_files",
+                "params": {"query": display_query},
+                "status": "running",
+                "friendly_name": "Search Files",
+                "thought": f"Searching workspace for files matching '{display_query}'",
+                "announcement": f"Searching files for {display_query}..."
+            }
+        })
+        await asyncio.sleep(0.05)
+        await agent_mgr.broadcast({
+            "type": "action_done",
+            "action": {
+                "id": act_id,
+                "tool": "search_files",
+                "params": {"query": display_query},
+                "output": s_text[:2000] + ("\n... [truncated]" if len(s_text) > 2000 else ""),
+                "duration": 0.05,
+                "status": "done" if s_ok else "error",
+                "friendly_name": "Search Files",
+                "announcement": f"Completed file search for {display_query}."
+            }
+        })
+        file_context_blocks.append(f"--- File Search Results: {display_query} ---\n{s_text}")
+        executed_actions_log.append(f"> 🔍 **Files Searched:** `{display_query}`")
+
+    if not has_search_query:
+        has_dir_query, dir_target = parse_directory_intent(clean_prompt)
+        if has_dir_query:
+            d_ok, d_text = local_list_directory(workspace_dir, dir_target or "", user=user, sec_mgr=sec_mgr)
+            if d_ok:
+                act_id = str(uuid.uuid4())[:8]
+                display_target = dir_target if dir_target else "workspace root"
+                await agent_mgr.broadcast({
+                    "type": "action_start",
+                    "action": {
+                        "id": act_id,
+                        "tool": "list_directory",
+                        "params": {"path": dir_target or "."},
+                        "status": "running",
+                        "friendly_name": "Browse Directory",
+                        "thought": f"Listing directory contents of '{display_target}' for local analysis",
+                        "announcement": f"Browsing directory {display_target}..."
+                    }
+                })
+                await asyncio.sleep(0.05)
+                await agent_mgr.broadcast({
+                    "type": "action_done",
+                    "action": {
+                        "id": act_id,
+                        "tool": "list_directory",
+                        "params": {"path": dir_target or "."},
+                        "output": d_text[:2000] + ("\n... [truncated]" if len(d_text) > 2000 else ""),
+                        "duration": 0.05,
+                        "status": "done",
+                        "friendly_name": "Browse Directory",
+                        "announcement": f"Completed browsing {display_target}."
+                    }
+                })
+                file_context_blocks.append(f"--- Directory Listing: {dir_target or '.'} ---\n{d_text}")
+                executed_actions_log.append(f"> 📁 **Directory Browsed:** `{display_target}`")
 
     has_read_query, req_read_file, req_read_symbol = parse_read_intent(clean_prompt, with_symbol=True)
     if has_read_query:
@@ -1672,12 +1967,16 @@ async def execute_local_agent_task(
     history_str = "\n".join(dialogue_lines) if dialogue_lines else ""
     file_context_str = "\n\n".join(file_context_blocks) if file_context_blocks else ""
 
+    write_hint = ""
+    if has_write_query and not prompt_target_content and prompt_target_file:
+        write_hint = f"\n\n[INSTRUCTION: Please generate the full code for '{prompt_target_file}' in a markdown code block (```python ... ```) or emit a write_file tool call.]"
+
     if file_context_str:
         system_prompt = LOCAL_AGENT_SYNTHESIS_SYSTEM
-        query_payload = f"WORKSPACE FILE CONTENT:\n{file_context_str}\n\nUSER REQUEST:\n{clean_prompt}"
+        query_payload = f"WORKSPACE FILE CONTENT:\n{file_context_str}\n\nUSER REQUEST:\n{clean_prompt}{write_hint}"
     else:
         system_prompt = LOCAL_AGENT_SYSTEM_PROMPT
-        query_payload = clean_prompt
+        query_payload = f"{clean_prompt}{write_hint}"
 
     if history_str:
         query_payload = f"PREVIOUS CONVERSATION HISTORY:\n{history_str}\n\nCURRENT REQUEST:\n{query_payload}"
@@ -1876,6 +2175,39 @@ async def execute_local_agent_task(
             })
             executed_actions_log.append(f"> 🔍 **Symbols Searched:** `{q}` ({len(matches)} matches)")
             newly_discovered_contexts.append(f"--- Symbol Search Results for '{q}' ---\n{res_str}")
+        elif action in ("search_files", "find_files", "locate_files"):
+            q = tc_data.get("query") or tc_data.get("pattern") or tc_data.get("path") or "*"
+            s_ok, s_text = local_search_files(workspace_dir, q, user=user, sec_mgr=sec_mgr)
+            act_id = str(uuid.uuid4())[:8]
+            await agent_mgr.broadcast({
+                "type": "action_start",
+                "action": {
+                    "id": act_id,
+                    "tool": "search_files",
+                    "params": {"query": q},
+                    "status": "running",
+                    "friendly_name": "Search Files",
+                    "thought": f"Searching workspace for files matching '{q}'",
+                    "announcement": f"Searching files for {q}..."
+                }
+            })
+            await asyncio.sleep(0.05)
+            await agent_mgr.broadcast({
+                "type": "action_done",
+                "action": {
+                    "id": act_id,
+                    "tool": "search_files",
+                    "params": {"query": q},
+                    "output": s_text[:2000] + ("\n... [truncated]" if len(s_text) > 2000 else ""),
+                    "duration": 0.05,
+                    "status": "done" if s_ok else "error",
+                    "friendly_name": "Search Files",
+                    "announcement": f"Completed search for {q}."
+                }
+            })
+            executed_actions_log.append(f"> 🔍 **Files Searched:** `{q}`")
+            if s_ok:
+                newly_discovered_contexts.append(f"--- File Search Results for '{q}' ---\n{s_text}")
         elif action in ("list_dir", "browse_directory", "list_directory", "list_files", "ls", "dir"):
             dir_path = (path or "").strip()
             l_ok, l_text = local_list_directory(workspace_dir, dir_path, user=user, sec_mgr=sec_mgr)
@@ -1911,7 +2243,11 @@ async def execute_local_agent_task(
             if l_ok:
                 newly_discovered_contexts.append(f"--- Directory Listing: {dir_path or '.'} ---\n{l_text}")
 
-    if prompt_target_file and not executed_actions_log:
+    already_written = any(
+        f"`{prompt_target_file}`" in act and ("Written" in act or "Created" in act or "Updated" in act)
+        for act in executed_actions_log
+    )
+    if prompt_target_file and not already_written:
         code_block_match = re.search(r"```(?:[a-zA-Z0-9_\-]+)?\n([\s\S]*?)```", response)
         if code_block_match:
             extracted_code = code_block_match.group(1).rstrip()
@@ -2047,6 +2383,7 @@ run_local_qwen = run_dynamic_local_qwen
 try:
     _lbb_module.run_local_qwen = run_dynamic_local_qwen
     _lbb_module.local_list_directory = local_list_directory
+    _lbb_module.local_search_files = local_search_files
 except Exception:
     pass
 

@@ -147,23 +147,28 @@ class TranscriptMixin:
                             try:
                                 d = json.loads(line)
                                 if d.get("type") == "PLANNER_RESPONSE":
-                                    tool_calls = d.get("tool_calls", [])
-                                    if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
-                                        for t in reversed(tool_calls):
-                                            t_norm = self._normalize_tool_name(t.get("name"))
-                                            if norm_expected and t_norm != norm_expected:
-                                                continue
-                                            if not tool_args:
-                                                tool_args = t.get("args", {}) or {}
-                                            if not deep_insight and d.get("thinking"):
-                                                deep_insight = d.get("thinking")
+                                    if not norm_expected:
+                                        if d.get("thinking"):
+                                            deep_insight = d.get("thinking")
                                             break
+                                    else:
+                                        tool_calls = d.get("tool_calls", [])
+                                        if tool_calls and isinstance(tool_calls, list) and len(tool_calls) > 0:
+                                            for t in reversed(tool_calls):
+                                                t_norm = self._normalize_tool_name(t.get("name"))
+                                                if norm_expected and t_norm != norm_expected:
+                                                    continue
+                                                if not tool_args:
+                                                    tool_args = t.get("args", {}) or {}
+                                                if not deep_insight and d.get("thinking"):
+                                                    deep_insight = d.get("thinking")
+                                                break
 
-                                    if not deep_insight and d.get("thinking"):
-                                        deep_insight = d.get("thinking")
+                                        if not deep_insight and d.get("thinking"):
+                                            deep_insight = d.get("thinking")
 
-                                    if tool_args and deep_insight:
-                                        break
+                                        if tool_args and deep_insight:
+                                            break
                             except Exception:
                                 pass
                 if deep_insight:

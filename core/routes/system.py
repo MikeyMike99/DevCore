@@ -240,6 +240,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         try:
             dynamic_endpoints = [
                 ('/telemetry', 'system_bp.telemetry_page', telemetry_page, ['GET']),
+                ('/plugin/telemetry', 'system_bp.telemetry_page_plugin', telemetry_page, ['GET']),
                 ('/api/telemetry/tokens', 'system_bp.api_token_telemetry', api_token_telemetry, ['GET']),
                 ('/audits', 'system_bp.audits_page', audits_page, ['GET']),
                 ('/plugin/audits', 'system_bp.audits_page_plugin', audits_page, ['GET']),
@@ -457,6 +458,7 @@ async def api_jit_revoke():
         return jsonify({"success": False, "error": str(e)}), 500
 
 @system_bp.route('/telemetry', methods=['GET'])
+@system_bp.route('/plugin/telemetry', methods=['GET'])
 async def telemetry_page():
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     candidates = [

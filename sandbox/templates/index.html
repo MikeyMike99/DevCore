@@ -121,10 +121,10 @@
                 <span id="connection-text">{{ ui.header.conn_text }}</span>
             </div>
             <button id="btn-clear-history" onclick="clearHistory()" aria-label="Clear chat history display" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">Clear View</button>
-            <a href="/telemetry" id="header-telemetry-btn" aria-label="Open Token Telemetry Dashboard (Alt+T)" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
+            <a href="/telemetry" id="header-telemetry-btn" aria-label="Open Token Telemetry Dashboard" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
                 <span aria-hidden="true">📊</span> Telemetry
             </a>
-            <a href="/audits" id="header-audits-btn" aria-label="Open System Audits Review Hub (Alt+A)" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
+            <a href="/audits" id="header-audits-btn" aria-label="Open System Audits Review Hub" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
                 <span aria-hidden="true">🛡️</span> Audits
             </a>
             <button id="settings-panel-btn" type="button" aria-controls="settings-panel" aria-expanded="false" onclick="openSettingsPanel()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
@@ -205,6 +205,18 @@
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn3.sr_text }}</span>
                                 </button>
                             </li>
+                            <li>
+                                <a href="/telemetry" id="quick-action-telemetry" aria-label="Open Token Telemetry Dashboard" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-teal-800/60 rounded-lg text-teal-300 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center justify-between">
+                                    <span class="text-base flex items-center gap-2"><span aria-hidden="true">📊</span> Token Telemetry Dashboard</span>
+                                    <span class="text-xs text-teal-400 font-mono">Usage &amp; Cache Metrics</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="/audits" id="quick-action-audits" aria-label="Open System Audits Review Hub" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-emerald-800/60 rounded-lg text-emerald-300 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center justify-between">
+                                    <span class="text-base flex items-center gap-2"><span aria-hidden="true">🛡️</span> System Audits Review Hub</span>
+                                    <span class="text-xs text-emerald-400 font-mono">Diagnostics &amp; Health</span>
+                                </a>
+                            </li>
                         </ul>
                     </nav>
                 </div>
@@ -250,6 +262,14 @@
                         <button type="button" role="option" id="slash-item-3" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/builder">
                             <div class="font-bold text-teal-400 text-sm">/builder</div>
                             <div class="text-xs text-slate-300 mt-1">Spawns the Visual Exam Builder Dashboard</div>
+                        </button>
+                        <button type="button" role="option" id="slash-item-4" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/telemetry">
+                            <div class="font-bold text-teal-400 text-sm">/telemetry</div>
+                            <div class="text-xs text-slate-300 mt-1">Opens the Real-Time Token Telemetry Dashboard</div>
+                        </button>
+                        <button type="button" role="option" id="slash-item-5" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/audits">
+                            <div class="font-bold text-emerald-400 text-sm">/audits</div>
+                            <div class="text-xs text-slate-300 mt-1">Opens the System Audits Review Hub</div>
                         </button>
                     </div>
 
@@ -338,6 +358,8 @@
             <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-800">
                 <!-- Admin override moved to backend environment variable -->
                 <button type="button" onclick="newConversation()" aria-label="Start a new chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">✨ New Session</button>
+                <a href="/telemetry" aria-label="Open Token Telemetry Dashboard" class="w-full text-center text-sm px-3 py-2 text-teal-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-teal-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>📊</span> Token Telemetry Dashboard</a>
+                <a href="/audits" aria-label="Open System Audits Review Hub" class="w-full text-center text-sm px-3 py-2 text-emerald-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-emerald-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>🛡️</span> System Audits Review Hub</a>
                 <button type="button" onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">↻ Reload Scripts</button>
                 <button type="button" onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="w-full text-sm px-3 py-2 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded-lg border border-amber-700/60 transition-colors font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">🛡️ Auto-Patch Event</button>
             </div>
@@ -1773,6 +1795,15 @@
                 if (isTaskRunning && timerDisplay) {
                     taskBanner.classList.remove('hidden');
                 }
+                if (currentAgentArticle) {
+                    var typingInd = currentAgentArticle.querySelector('.typing-indicator');
+                    if (typingInd && data.message) {
+                        typingInd.innerHTML = '<span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> ' + escapeHtml(data.message);
+                    }
+                }
+                if (data.progress_tick && data.message) {
+                    announce(data.message);
+                }
                 return;
             }
             else if (data.type === 'task_last_result') {
@@ -1965,6 +1996,40 @@
                 if (!currentAgentArticle) {
                     currentAgentArticle = appendAgentMessageContainer(data.model);
                 }
+                if (data.message) {
+                    announce(data.message);
+                }
+            }
+            else if (data.type === 'agent_thought') {
+                if (data.announcement) {
+                    announce(data.announcement);
+                } else if (data.thought) {
+                    announce('Thinking: ' + data.thought);
+                }
+                if (!currentAgentArticle) {
+                    currentAgentArticle = appendAgentMessageContainer();
+                }
+                var existingThought = currentAgentArticle.querySelector('.agent-thought-container');
+                if (!existingThought) {
+                    var thoughtContainer = document.createElement('details');
+                    thoughtContainer.className = 'agent-thought-container mb-2.5 border border-cyan-800/60 rounded-lg bg-cyan-950/20 overflow-hidden';
+                    thoughtContainer.innerHTML = `
+                        <summary class="px-3 py-1.5 text-xs text-cyan-400 font-mono cursor-pointer hover:text-cyan-300 hover:bg-cyan-900/30 select-none flex items-center justify-between">
+                            <span class="flex items-center gap-1.5"><i class="fas fa-brain text-[11px]"></i> Agent Reasoning</span>
+                            <span class="text-[10px] text-cyan-500 font-sans">Click to expand</span>
+                        </summary>
+                        <div class="p-3 text-xs text-slate-300 font-mono bg-slate-950/60 border-t border-cyan-900/40 whitespace-pre-wrap leading-relaxed thought-text">${escapeHtml(data.thought)}</div>
+                    `;
+                    var agentText = currentAgentArticle.querySelector('.agent-text');
+                    if (agentText && agentText.parentNode) {
+                        agentText.parentNode.insertBefore(thoughtContainer, agentText);
+                    }
+                } else {
+                    var tt = existingThought.querySelector('.thought-text');
+                    if (tt) {
+                        tt.textContent = data.thought;
+                    }
+                }
             }
             else if (data.type === 'action_start') {
                 if (!currentAgentArticle) {
@@ -2043,17 +2108,17 @@
             }
             
             currentTaskPromptEl.innerText = displayPrompt;
-            if (taskModelBadge) {
-                var rawModel = model || (modelSelector ? modelSelector.value : 'Gemini');
-                var modelDisplay = rawModel;
-                if (modelSelector) {
-                    for (var i = 0; i < modelSelector.options.length; i++) {
-                        if (modelSelector.options[i].value === rawModel) {
-                            modelDisplay = modelSelector.options[i].text;
-                            break;
-                        }
+            var rawModel = model || (modelSelector ? modelSelector.value : 'Gemini');
+            var modelDisplay = rawModel;
+            if (modelSelector) {
+                for (var i = 0; i < modelSelector.options.length; i++) {
+                    if (modelSelector.options[i].value === rawModel) {
+                        modelDisplay = modelSelector.options[i].text;
+                        break;
                     }
                 }
+            }
+            if (taskModelBadge) {
                 taskModelBadge.innerText = modelDisplay;
             }
             taskBanner.classList.remove('hidden');
@@ -2080,7 +2145,7 @@
             clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 500);
 
-            announce("Task started: " + displayPrompt + ". Press Enter in the chat box to steer immediately or Alt+Enter to queue follow-up context.");
+            announce("Task started with " + modelDisplay + ". Analyzing request...");
 
             window.onbeforeunload = function() {
                 return "Task is running in the background. It will continue safely.";
@@ -2379,6 +2444,7 @@
             var dotColor = isDone ? 'bg-emerald-400' : 'bg-cyan-400 animate-pulse';
             var durationText = action.duration ? (action.duration + 's') : (isDone ? 'done' : 'running...');
 
+            var thoughtFormatted = action.thought || '';
             var paramsFormatted = '';
             if (action.params && Object.keys(action.params).length > 0) {
                 paramsFormatted = typeof action.params === 'string' ? action.params : JSON.stringify(action.params, null, 2);
@@ -2394,6 +2460,7 @@
                     <span class="text-[11px] text-slate-400 font-sans">${durationText} • Click for logs</span>
                 </summary>
                 <div class="p-3 bg-slate-950 border-t border-slate-800 font-mono text-[12px] text-slate-400 space-y-2 max-h-48 overflow-y-auto">
+                    ${thoughtFormatted ? '<div><div class="text-cyan-400 font-semibold text-[11px] mb-0.5"><i class="fas fa-brain mr-1"></i> Reasoning / Rationale:</div><div class="bg-cyan-950/30 p-2 rounded border border-cyan-800/50 text-cyan-200 text-xs font-sans whitespace-pre-wrap leading-relaxed">' + escapeHtml(thoughtFormatted) + '</div></div>' : ''}
                     ${paramsFormatted ? '<div><div class="text-teal-400 font-semibold text-[11px] mb-0.5">Parameters:</div><pre class="bg-slate-900/80 p-2 rounded border border-slate-800/60 overflow-x-auto whitespace-pre-wrap">' + escapeHtml(paramsFormatted) + '</pre></div>' : ''}
                     ${outputFormatted ? '<div><div class="text-slate-400 font-semibold text-[11px] mb-0.5">Execution Log:</div><pre class="bg-slate-900/80 p-2 rounded border border-slate-800/60 overflow-x-auto whitespace-pre-wrap">' + escapeHtml(outputFormatted) + '</pre></div>' : ''}
                 </div>
@@ -2545,6 +2612,22 @@
             if (e) e.preventDefault();
             var prompt = inputEl.value.trim();
             if (!prompt) return;
+
+            if (prompt === '/telemetry') {
+                inputEl.value = '';
+                window.location.href = '/telemetry';
+                return;
+            }
+            if (prompt === '/audits') {
+                inputEl.value = '';
+                window.location.href = '/audits';
+                return;
+            }
+            if (prompt === '/clear') {
+                inputEl.value = '';
+                clearHistory();
+                return;
+            }
 
             // Play sound when sending a message
             if (typeof playIncomingSound === 'function') {
@@ -3136,9 +3219,9 @@
         }
     });
 
-    // Global shortcut to jump to the latest embedded Iframe Exam (Alt+T)
+    // Global shortcut to jump to the latest embedded Iframe Exam (Alt+E)
     document.addEventListener('keydown', function(e) {
-        if (e.altKey && (e.key === 't' || e.key === 'T')) {
+        if (e.altKey && (e.key === 'e' || e.key === 'E')) {
             e.preventDefault();
             var iframes = document.querySelectorAll('iframe[src*="/plugin/exam"]');
             if (iframes.length > 0) {
@@ -3165,45 +3248,6 @@
                 } else if (typeof announceScreenReader === 'function') {
                     announceScreenReader("No active exam frame found.");
                 }
-            }
-        }
-    });
-    document.addEventListener("keydown", function(e) {
-        if (e.altKey && !e.ctrlKey && !e.metaKey) {
-            if (e.key === "s" || e.key === "S") {
-                e.preventDefault();
-                var b1 = document.getElementById("nav-shortcut-btn1");
-                if (b1) b1.click();
-            } else if (e.key === "l" || e.key === "L") {
-                e.preventDefault();
-                var b2 = document.getElementById("nav-shortcut-btn2");
-                if (b2) b2.click();
-            } else if (e.key === "c" || e.key === "C") {
-                e.preventDefault();
-                var promptEl = document.getElementById("prompt");
-                if (promptEl) promptEl.focus();
-            } else if (e.key === "t" || e.key === "T") {
-                e.preventDefault();
-                window.location.href = "/telemetry";
-            } else if (e.key === "a" || e.key === "A") {
-                e.preventDefault();
-                window.location.href = "/audits";
-            }
-        }
-        if (e.altKey && (e.key === "n" || e.key === "N")) {
-            e.preventDefault();
-            var iframes = document.querySelectorAll('iframe[src*="video_temp"], iframe[src*="plugin/media"]');
-            if (iframes.length > 0) {
-                var latestIframe = iframes[iframes.length - 1];
-                latestIframe.focus();
-                try {
-                    var innerDoc = latestIframe.contentDocument || latestIframe.contentWindow.document;
-                    var videoTitle = innerDoc.getElementById("videoTitle");
-                    if (videoTitle) videoTitle.focus();
-                } catch(err) {}
-            } else {
-                var announcer = document.getElementById("exam-announcer");
-                if (announcer) announcer.innerText = "No active video player found.";
             }
         }
     });
@@ -3264,8 +3308,13 @@
     (function() {
         const inputEl = document.getElementById('prompt');
         const menuEl = document.getElementById('slash-command-menu');
-        const items = menuEl.querySelectorAll('.slash-item');
         let activeIndex = -1;
+
+        function getVisibleItems() {
+            return Array.from(menuEl.querySelectorAll('.slash-item')).filter(function(item) {
+                return !item.classList.contains('hidden');
+            });
+        }
 
         function showMenu() {
             menuEl.classList.remove('hidden');
@@ -3277,11 +3326,15 @@
             inputEl.setAttribute('aria-expanded', 'false');
             inputEl.removeAttribute('aria-activedescendant');
             activeIndex = -1;
-            updateActiveItem();
+            menuEl.querySelectorAll('.slash-item').forEach(function(item) {
+                item.classList.remove('hidden', 'bg-slate-700');
+                item.setAttribute('aria-selected', 'false');
+            });
         }
 
         function updateActiveItem() {
-            items.forEach((item, index) => {
+            const visible = getVisibleItems();
+            visible.forEach((item, index) => {
                 if (index === activeIndex) {
                     item.classList.add('bg-slate-700');
                     item.setAttribute('aria-selected', 'true');
@@ -3293,21 +3346,53 @@
             });
         }
 
-        function selectItem(index) {
-            if (index >= 0 && index < items.length) {
-                inputEl.value = items[index].getAttribute('data-command') + ' ';
+        function selectItem(targetItem) {
+            if (!targetItem) return;
+            const cmd = targetItem.getAttribute('data-command');
+            if (cmd === '/telemetry') {
                 hideMenu();
-                inputEl.focus();
+                inputEl.value = '';
+                window.location.href = '/telemetry';
+                return;
             }
+            if (cmd === '/audits') {
+                hideMenu();
+                inputEl.value = '';
+                window.location.href = '/audits';
+                return;
+            }
+            if (cmd === '/clear') {
+                hideMenu();
+                inputEl.value = '';
+                clearHistory();
+                return;
+            }
+            inputEl.value = cmd + ' ';
+            hideMenu();
+            inputEl.focus();
         }
 
         inputEl.addEventListener('input', function(e) {
             const val = inputEl.value;
-            if (val === '/') {
-                showMenu();
-            } else if (val.startsWith('/') && val.length > 1) {
-                // Future feature: filter the menu items based on text
-                showMenu();
+            if (val.startsWith('/')) {
+                const query = val.toLowerCase();
+                let matched = 0;
+                menuEl.querySelectorAll('.slash-item').forEach(function(item) {
+                    const cmd = (item.getAttribute('data-command') || '').toLowerCase();
+                    if (cmd.startsWith(query) || query === '/') {
+                        item.classList.remove('hidden');
+                        matched++;
+                    } else {
+                        item.classList.add('hidden');
+                    }
+                });
+                if (matched > 0) {
+                    showMenu();
+                    activeIndex = 0;
+                    updateActiveItem();
+                } else {
+                    hideMenu();
+                }
             } else {
                 hideMenu();
             }
@@ -3315,21 +3400,23 @@
 
         inputEl.addEventListener('keydown', function(e) {
             if (!menuEl.classList.contains('hidden')) {
+                const visible = getVisibleItems();
                 if (e.key === 'ArrowDown') {
                     e.preventDefault();
-                    activeIndex = (activeIndex + 1) % items.length;
-                    updateActiveItem();
+                    if (visible.length > 0) {
+                        activeIndex = (activeIndex + 1) % visible.length;
+                        updateActiveItem();
+                    }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
-                    activeIndex = (activeIndex - 1 + items.length) % items.length;
-                    updateActiveItem();
+                    if (visible.length > 0) {
+                        activeIndex = (activeIndex - 1 + visible.length) % visible.length;
+                        updateActiveItem();
+                    }
                 } else if (e.key === 'Enter') {
-                    if (activeIndex >= 0) {
+                    if (activeIndex >= 0 && visible[activeIndex]) {
                         e.preventDefault();
-                        selectItem(activeIndex);
-                    } else if (inputEl.value.trim() === '/help exam') {
-                        // Let sendPrompt handle it
-                        hideMenu();
+                        selectItem(visible[activeIndex]);
                     }
                 } else if (e.key === 'Escape') {
                     hideMenu();
@@ -3337,10 +3424,11 @@
             }
         });
 
-        items.forEach((item, index) => {
-            item.addEventListener('click', () => selectItem(index));
+        menuEl.querySelectorAll('.slash-item').forEach((item) => {
+            item.addEventListener('click', () => selectItem(item));
             item.addEventListener('mouseenter', () => {
-                activeIndex = index;
+                const visible = getVisibleItems();
+                activeIndex = visible.indexOf(item);
                 updateActiveItem();
             });
         });
