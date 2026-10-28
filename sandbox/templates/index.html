@@ -127,6 +127,9 @@
             <a href="/audits" id="header-audits-btn" aria-label="Open System Audits Review Hub" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
                 <span aria-hidden="true">🛡️</span> Audits
             </a>
+            <button id="header-demo-auth-btn" type="button" onclick="handleDemoAuthenticate()" title="1-Click Demo Authentication" class="text-sm px-3.5 py-2 bg-gradient-to-r from-teal-800 to-teal-700 hover:from-teal-700 hover:to-teal-600 border border-teal-500/50 rounded-lg text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm">
+                <span class="text-amber-300">⚡</span> Demo Auth
+            </button>
             <button id="settings-panel-btn" type="button" aria-controls="settings-panel" aria-expanded="false" onclick="openSettingsPanel()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
                 Settings &amp; Sessions
             </button>
@@ -326,6 +329,7 @@
                 <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-xs font-bold bg-teal-900 text-teal-300 w-fit">SUPER_ADMIN</span>
                 <span id="user-display-name" class="font-medium text-slate-200">Guest</span>
                 <div class="flex gap-2 mt-1">
+                    <button type="button" onclick="handleDemoAuthenticate()" class="flex-1 text-xs text-white font-bold bg-teal-700 hover:bg-teal-600 px-2 py-1.5 rounded border border-teal-500/50 flex items-center justify-center gap-1 focus:ring-2 focus:ring-teal-500 focus:outline-none"><span class="text-amber-300">⚡</span> Demo Auth</button>
                     <button type="button" onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-xs text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-teal-800/50 focus:ring-2 focus:ring-teal-500 focus:outline-none">Login</button>
                     <button type="button" onclick="logout()" id="logout-btn" class="hidden flex-1 text-xs text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-2 py-1.5 rounded border border-rose-800/50 focus:ring-2 focus:ring-rose-500 focus:outline-none">Logout</button>
                 </div>
@@ -3011,6 +3015,46 @@
             alert('Logged out. Active role is now Guest.');
         }
 
+        async function handleDemoAuthenticate() {
+            try {
+                let res = await fetch('/api/auth_demo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (res.status === 404) {
+                    res = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ demo: true })
+                    });
+                }
+                const data = await res.json();
+                if (data.token) {
+                    sessionStorage.removeItem('agy_manual_logout');
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('agy_auth_token', authToken);
+                    localStorage.setItem('agy_user', JSON.stringify(currentUser));
+                    updateUserUI();
+                    var modal = document.getElementById('login-modal');
+                    if (modal && modal.open) modal.close();
+                    await initProjects();
+                    await initConversations(10);
+                    await loadChatHistory();
+                    if (typeof renderToast === 'function') {
+                        renderToast('Authenticated Demo Mode as ' + (currentUser.name || currentUser.username) + '. Ready to use!', 'success');
+                    } else {
+                        alert('Authenticated Demo Mode as ' + (currentUser.name || currentUser.username) + '. You can now use the agent!');
+                    }
+                } else {
+                    alert('Demo auth failed: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                console.error('Demo auth failed', e);
+                alert('Demo authentication failed: ' + e.message);
+            }
+        }
+
         async function quickLogin(u, p) {
             try {
                 var res = await fetch('/api/auth/login', {
@@ -3137,6 +3181,19 @@
                 <h2 id="modal-title" class="text-base font-bold text-white">Login / Switch Role</h2>
                 <button type="button" onclick="toggleLoginModal()" aria-label="Close login dialog" class="text-slate-400 hover:text-white text-lg px-2 py-0.5 rounded focus:ring-2 focus:ring-teal-500 focus:outline-none">&times;</button>
             </div>
+            
+            <!-- 1-Click Demo Authentication Card -->
+            <div class="p-3 bg-gradient-to-r from-teal-950/90 to-slate-800 border border-teal-500/40 rounded-xl shadow-md">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="fas fa-bolt text-amber-300"></i> Instant Demo Testing</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-teal-900 text-teal-300 border border-teal-600/40">1-Click</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mb-2">Instantly authenticate pre-authorized demo privileges and start chatting with the agent.</p>
+                <button type="button" id="modal-demo-auth-btn" onclick="handleDemoAuthenticate()" class="w-full py-2 px-3 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white rounded-lg font-bold text-xs shadow flex items-center justify-center gap-1.5 transition focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer">
+                    <i class="fas fa-play text-[10px]"></i> Authenticate Demo &amp; Start
+                </button>
+            </div>
+
             <p class="text-xs text-slate-400">Quick-switch test accounts for role-based testing:</p>
             <div class="grid grid-cols-3 gap-2">
                 <button type="button" onclick="quickLogin('admin','admin')" class="bg-slate-800 hover:bg-teal-950 hover:border-teal-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-teal-500 focus:outline-none">

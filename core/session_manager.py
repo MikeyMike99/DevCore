@@ -845,6 +845,16 @@ def _sync_live_blueprint_routes():
                     fn_name = ep.split(".", 1)[1]
                     if hasattr(auth_mod, fn_name):
                         live_app.view_functions[ep] = getattr(auth_mod, fn_name)
+            if hasattr(auth_mod, "auth_demo") and "auth_bp.auth_demo" not in [r.endpoint for r in live_app.url_map.iter_rules()]:
+                try:
+                    live_app.add_url_rule(
+                        '/api/auth_demo',
+                        endpoint='auth_bp.auth_demo',
+                        view_func=auth_mod.auth_demo,
+                        methods=['GET', 'POST']
+                    )
+                except Exception:
+                    pass
 
         if "core.routes.files" in sys.modules:
             files_mod = importlib.reload(sys.modules["core.routes.files"])
