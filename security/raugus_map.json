@@ -149351,5 +149351,543 @@
             "execute": true
         },
         "id": "9aa94b8d-a3a9-4bbf-b76e-591bb5a1145f"
+    },
+    "devcore....e_profile.file_mod.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "inode": 4222124650740400,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "c7bd2f696433",
+        "id": "11aa3891-e1b1-4f3c-b9a8-4acced68015b"
+    },
+    "devcore....e_profile.file_mod.py::config": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "config",
+        "start_line": 11,
+        "end_line": 11,
+        "content_hash": "ca3ab891cb04",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9c8e7399-8b6a-4acc-9251-2fd6fb5eb93e"
+    },
+    "devcore....e_profile.file_mod.py::file_manager_bp": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "file_manager_bp",
+        "start_line": 13,
+        "end_line": 13,
+        "content_hash": "4f7c6bd31079",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "984ac766-e5bd-490c-96e7-880e2cbbb624"
+    },
+    "devcore....e_profile.file_mod.py::BASE_SAFE_ZONE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "BASE_SAFE_ZONE",
+        "start_line": 15,
+        "end_line": 15,
+        "content_hash": "b1ae4082c058",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7a9a4216-319f-44f4-aa77-1a15cccf83ad"
+    },
+    "devcore....e_profile.file_mod.py::get_safe_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "get_safe_path",
+        "start_line": 17,
+        "end_line": 34,
+        "content_hash": "0d28d978ff0a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c574fe11-2086-4e52-8bb9-154f6a4360d1"
+    },
+    "devcore....e_profile.file_mod.py::explorer_view": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "explorer_view",
+        "start_line": 39,
+        "end_line": 41,
+        "content_hash": "c38306896a60",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f581f7da-74a3-499f-a77c-654820dd76ed"
+    },
+    "devcore....e_profile.file_mod.py::get_structure": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "get_structure",
+        "start_line": 44,
+        "end_line": 86,
+        "content_hash": "253137152d03",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "52da1e3f-61ff-4ba2-b9e4-6010e428ec8b"
+    },
+    "devcore....e_profile.file_mod.py::terminal_command": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "terminal_command",
+        "start_line": 89,
+        "end_line": 237,
+        "content_hash": "1b37f28cb0f1",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b1afab35-d9b6-4992-beb7-0ec0eeec5606"
+    },
+    "devcore....e_profile.file_mod.py::git_sync": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
+        "symbol_name": "git_sync",
+        "start_line": 240,
+        "end_line": 407,
+        "content_hash": "b2f1ab763e40",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "43425cfb-0722-48b6-b9fa-981c92c5d4b0"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "inode": 26740122787647685,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "9008cb5e7dd9",
+        "id": "76535039-90d2-4169-84fe-efb3e15e1762"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::CENTRAL_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "CENTRAL_ROOT",
+        "start_line": 31,
+        "end_line": 31,
+        "content_hash": "025bfb7dd4d2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b177caf7-1475-4066-a226-aefe26e0a1b4"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::DOCUMENTS_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "DOCUMENTS_ROOT",
+        "start_line": 32,
+        "end_line": 32,
+        "content_hash": "39ad0f59660c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fd89753c-4baa-4858-bdb3-fe97ca8811e2"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::EPROFILE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "EPROFILE_ROOT",
+        "start_line": 33,
+        "end_line": 33,
+        "content_hash": "5b3025722b98",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "449a97ec-a8b5-4478-ae5f-9026384c1c94"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::DEVCORE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "DEVCORE_ROOT",
+        "start_line": 34,
+        "end_line": 34,
+        "content_hash": "c86c14100ccb",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bed97b45-e5e0-459d-9aa2-48143ccef0c4"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::PLAYGROUND_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "PLAYGROUND_ROOT",
+        "start_line": 35,
+        "end_line": 35,
+        "content_hash": "bf31f0d4bda9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4d0f6843-4c14-43b8-ab58-96437d83c373"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::AUDIO_SUITE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "AUDIO_SUITE_ROOT",
+        "start_line": 36,
+        "end_line": 36,
+        "content_hash": "ba292bbd477d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fa16a6d1-afd8-4682-9c66-f487042b30e2"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::STRUCTURE_AUDITOR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "STRUCTURE_AUDITOR",
+        "start_line": 38,
+        "end_line": 38,
+        "content_hash": "938a40f9e3ca",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "059813dd-50fb-4407-ac09-5195f2e520ea"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::SYNC_BRIDGE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "SYNC_BRIDGE",
+        "start_line": 39,
+        "end_line": 39,
+        "content_hash": "c26fe148532f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "94ecd93d-20f4-487e-8534-99c12ad3fbfb"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::SECURITY_AUDITOR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "SECURITY_AUDITOR",
+        "start_line": 40,
+        "end_line": 40,
+        "content_hash": "bb6d9b36c169",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d899764b-8e55-4896-8ffa-14813dc071fd"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::THREAT_AUDITOR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "THREAT_AUDITOR",
+        "start_line": 41,
+        "end_line": 41,
+        "content_hash": "301a27becd15",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "66c7c736-f3fe-47e6-86bc-e8663c063543"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::ENV_BASE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "ENV_BASE",
+        "start_line": 43,
+        "end_line": 43,
+        "content_hash": "fbdb3b2b690b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f46b26db-705a-42d8-9108-01e7f669d90b"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::run_command": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "run_command",
+        "start_line": 46,
+        "end_line": 59,
+        "content_hash": "53cbd7e3f19f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "caa77dcf-2bec-4aa0-b646-1e95f70daaa8"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::get_git_info": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "get_git_info",
+        "start_line": 62,
+        "end_line": 89,
+        "content_hash": "e3faa7699459",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "543aee29-72a8-478b-a6b6-0bc1a890c38b"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::check_scratch_hygiene": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "check_scratch_hygiene",
+        "start_line": 92,
+        "end_line": 106,
+        "content_hash": "2ef40b8226a4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f14911a2-040b-4960-bfec-d00de48a65f6"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::run_stage_structure_audit": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "run_stage_structure_audit",
+        "start_line": 109,
+        "end_line": 134,
+        "content_hash": "2685a9be7654",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fdbf5f1f-b96c-4e81-b27d-26cc6b53b83f"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::run_stage_sync_eprofile": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "run_stage_sync_eprofile",
+        "start_line": 137,
+        "end_line": 157,
+        "content_hash": "fb3e0861fe6f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "78ac0a42-0eaf-40e7-b331-55b47d4a1ac2"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::run_stage_security_audit": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "run_stage_security_audit",
+        "start_line": 160,
+        "end_line": 178,
+        "content_hash": "09fc3d2cf98f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "56538a41-4832-49c0-a069-4e9116eb314e"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::run_stage_threat_vector_audit": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "run_stage_threat_vector_audit",
+        "start_line": 181,
+        "end_line": 194,
+        "content_hash": "251948b8259a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9d32a24d-54bf-4a7e-b3d0-6ba23e1390fe"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::git_commit_and_push": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "git_commit_and_push",
+        "start_line": 197,
+        "end_line": 247,
+        "content_hash": "100f4be43168",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6395c7b4-0d43-42b9-a459-84cfc64bdff9"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::print_status_dashboard": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "print_status_dashboard",
+        "start_line": 250,
+        "end_line": 278,
+        "content_hash": "6dcaf9f72ae1",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2275fe32-5031-41cf-856a-79fdcca8b671"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::execute_full_pipeline": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "execute_full_pipeline",
+        "start_line": 281,
+        "end_line": 371,
+        "content_hash": "7b9c7aa88d30",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "97038345-bb50-4502-9b4e-99b492e42f36"
+    },
+    "devcore....Central_Docs.scripts.workspace_pipeline.py::main": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
+        "symbol_name": "main",
+        "start_line": 374,
+        "end_line": 421,
+        "content_hash": "54d7e926737e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5f167976-ca02-4d93-93c2-4cbe5efd53d1"
+    },
+    "devcore....e_profile.post_sync.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/post_sync.py",
+        "inode": 6192449488317330,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "ec3be07f8da3",
+        "id": "d732c589-f5ba-48c3-b847-545b9b66b3c8"
+    },
+    "devcore....e_profile.post_sync.py::main": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/post_sync.py",
+        "symbol_name": "main",
+        "start_line": 6,
+        "end_line": 41,
+        "content_hash": "34dfbfc5e982",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7d95d041-419a-46f9-9f5c-78aa4fc81fae"
     }
 }
