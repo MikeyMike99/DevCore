@@ -214,10 +214,36 @@ class ExecutionMixin:
 
     async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False, _from_steer_or_queue: bool = False):
         hb_task = asyncio.create_task(self._heartbeat_worker(task_time))
+        model_aliases = {
+            "gemini-2.5-pro": "Gemini 4 Argon (High)",
+            "gemini-2.5-flash": "Gemini 3.8 Flash (High)",
+            "gemini-3-pro": "Gemini 4 Argon (High)",
+            "gemini-3-flash": "Gemini 3.8 Flash (High)",
+            "gemini-3.8-flash-high": "Gemini 3.8 Flash (High)",
+            "gemini-3.8-flash-medium": "Gemini 3.8 Flash (Medium)",
+            "gemini-3.8-flash-low": "Gemini 3.8 Flash (Low)",
+            "gemini-4-argon-high": "Gemini 4 Argon (High)",
+            "gemini-4-argon-medium": "Gemini 4 Argon (Medium)",
+            "gemini-4-argon-low": "Gemini 4 Argon (Low)",
+            "claude-3.7-sonnet": "Claude Sonnet 5.5 (Medium)",
+            "claude-sonnet-4.6": "Claude Sonnet 5.5 (Medium)",
+            "claude-opus-4.6": "Claude Opus 5.5 (High)",
+            "gpt-oss-120b": "GPT-OSS 120B (Medium)",
+            "Gemini 3.1 Pro (High)": "Gemini 4 Argon (High)",
+            "Gemini 3.1 Pro (Low)": "Gemini 4 Argon (Low)",
+            "Gemini 3 Flash": "Gemini 3.8 Flash (High)",
+            "Claude Sonnet 4.6 (Thinking)": "Claude Sonnet 5.5 (High)",
+            "Claude Opus 4.6 (Thinking)": "Claude Opus 5.5 (High)",
+        }
+        if model in model_aliases:
+            model = model_aliases[model]
+
         is_local_model = (
             model == "Local Qwen 2.5 (Offline)"
             or (isinstance(model, str) and (
                 model.startswith("Local ")
+                or model.lower().startswith("ollama:")
+                or "ollama" in model.lower()
                 or "(offline)" in model.lower()
                 or "local" in model.lower()
                 or "llama" in model.lower()
@@ -233,13 +259,18 @@ class ExecutionMixin:
                 self.active_task = None
                 self.start_time = None
         try:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            token_scope = (user.get("token_scope") if isinstance(user, dict) else None) or "root"
             workspace_dir = None
             if self.project_manager:
                 workspace_dir = self.project_manager.get_active_workspace_path()
             if not workspace_dir:
-                workspace_dir = os.path.dirname(os.path.abspath(__file__))
+                workspace_dir = base_dir
             auto_rollover_enabled = os.environ.get("ENABLE_AUTO_SESSION_ROLLOVER", "true").lower() == "true"
             is_ongoing_midconversation = _from_steer_or_queue or bool(getattr(self, "queued_prompts", []))
+
+            if conversation_id and str(conversation_id).startswith("conv-"):
+                conversation_id = None
 
             if conversation_id and auto_rollover_enabled:
                 if is_ongoing_midconversation:
@@ -294,9 +325,91 @@ class ExecutionMixin:
             }
             safe_env["PYTHONUNBUFFERED"] = "1"
             safe_env["PYTHONIOENCODING"] = "utf-8"
-            safe_env["GEMINI_API_KEY"] = "dummy_token_123"
-            safe_env["GOOGLE_API_KEY"] = "dummy_token_123"
-            safe_env["GEMINI_BASE_URL"] = "http://127.0.0.1:5000/api/proxy"
+
+            is_pa = False
+            try:
+                import socket as _socket
+                _socket.gethostbyname("proxy.server")
+                is_pa = True
+            except Exception:
+                pass
+            if not is_pa:
+                is_pa = (
+                    "PYTHONANYWHERE_DOMAIN" in os.environ
+                    or "PYTHONANYWHERE_SITE" in os.environ
+                    or os.path.exists("/var/www")
+                )
+
+            if is_pa:
+                pa_proxy = "http://proxy.server:3128"
+                safe_env["http_proxy"] = pa_proxy
+                safe_env["https_proxy"] = pa_proxy
+                safe_env["HTTP_PROXY"] = pa_proxy
+                safe_env["HTTPS_PROXY"] = pa_proxy
+                safe_env["all_proxy"] = pa_proxy
+                safe_env["ALL_PROXY"] = pa_proxy
+                safe_env["no_proxy"] = "localhost,127.0.0.1"
+                safe_env["NO_PROXY"] = "localhost,127.0.0.1"
+
+            if token_scope == "demo":
+                demo_candidates = [
+                    os.path.join(base_dir, "demo"),
+                    os.path.abspath(os.path.join(base_dir, "..", "..", "demo")),
+                ]
+                demo_dir = demo_candidates[0]
+                for cand_d in demo_candidates:
+                    if os.path.exists(cand_d):
+                        demo_dir = cand_d
+                        break
+                os.makedirs(demo_dir, exist_ok=True)
+                workspace_dir = demo_dir
+                safe_env["HOME"] = demo_dir
+                safe_env["GEMINI_CLI_HOME"] = demo_dir
+                vis_tok = os.path.join(demo_dir, "antigravity-oauth-token")
+                cli_tok = os.path.join(demo_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token")
+                try:
+                    if os.path.exists(vis_tok) and not os.path.exists(cli_tok):
+                        os.makedirs(os.path.dirname(cli_tok), exist_ok=True)
+                        shutil.copy2(vis_tok, cli_tok)
+                    elif os.path.exists(cli_tok) and not os.path.exists(vis_tok):
+                        shutil.copy2(cli_tok, vis_tok)
+                except Exception:
+                    pass
+                if os.path.exists(cli_tok) and os.path.getsize(cli_tok) > 8:
+                    safe_env.pop("GEMINI_API_KEY", None)
+                    safe_env.pop("GOOGLE_API_KEY", None)
+                else:
+                    for kname in (".devcore_client_key.txt", "gemini_api_key.txt"):
+                        kp = os.path.join(demo_dir, kname)
+                        if os.path.exists(kp):
+                            try:
+                                with open(kp, "r", encoding="utf-8") as kf:
+                                    kval = kf.read().strip()
+                                    if kval:
+                                        safe_env["GEMINI_API_KEY"] = kval
+                                        break
+                            except Exception:
+                                pass
+            elif is_pa:
+                oauth_tok = os.path.expanduser("~/.gemini/antigravity-cli/antigravity-oauth-token")
+                if os.path.exists(oauth_tok) and os.path.getsize(oauth_tok) > 8:
+                    safe_env.pop("GEMINI_API_KEY", None)
+                    safe_env.pop("GOOGLE_API_KEY", None)
+                else:
+                    client_key_path = os.path.expanduser("~/.devcore_client_key.txt")
+                    if os.path.exists(client_key_path):
+                        try:
+                            with open(client_key_path, "r", encoding="utf-8") as kf:
+                                kval = kf.read().strip()
+                                if kval:
+                                    safe_env["GEMINI_API_KEY"] = kval
+                        except Exception:
+                            pass
+            else:
+                safe_env["GEMINI_API_KEY"] = "dummy_token_123"
+                safe_env["GOOGLE_API_KEY"] = "dummy_token_123"
+                safe_env["GEMINI_BASE_URL"] = "http://127.0.0.1:5000/api/proxy"
+
             local_bin = os.path.expanduser("~/.local/bin")
             if "PATH" in safe_env and local_bin not in safe_env["PATH"]:
                 safe_env["PATH"] = f"{local_bin}:{safe_env['PATH']}"
@@ -304,7 +417,7 @@ class ExecutionMixin:
                 safe_env["PATH"] = local_bin
 
             env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
-            is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override
+            is_admin = (bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override) and (token_scope != "demo")
             if is_admin:
                 perm_flag = "--dangerously-skip-permissions"
             else:
@@ -314,7 +427,7 @@ class ExecutionMixin:
             if is_admin:
                 sys_msg += "1. You are running with ADMIN privileges.\n"
                 sys_msg += "2. DO NOT execute stuff in the sandbox.\n"
-                sys_msg += "3. MANDATORY HOT-PATCH SEQUENCE: Never edit live backend engine .py files directly in place. Stage complete updated .py files in /mnt/c/Users/michael/Documents/DevCore/core/patches/ and trigger POST http://127.0.0.1:5000/api/simulate-patch (or /api/reload).\n"
+                sys_msg += "3. MANDATORY HOT-PATCH SEQUENCE: Never edit live backend engine .py files directly in place. Stage complete updated .py files in <RAUGUS_VFS_ROOT>/core/patches/ and trigger POST http://127.0.0.1:5000/api/simulate-patch (or /api/reload).\n"
                 sys_msg += "4. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
                 sys_msg += "5. CRITICAL RULE: You MUST always output a final conversational text response to the user. Do NOT end your execution without giving a final summary or explanation in text.\n"
                 sys_msg += "6. TOKEN CONSERVATION PROTOCOL: For inspecting code or documentation, always prioritize surgical reads via `read_by_key('<module>::<symbol>')` or `get_block_by_tag('<tag>')` rather than loading entire files. Update code surgically via `write_by_key('<module>::<symbol>', new_code)` to prevent token inflation.\n"
@@ -327,7 +440,6 @@ class ExecutionMixin:
             sys_msg += "</SYSTEM_MESSAGE>\n\n"
             prompt = sys_msg + prompt
 
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             bundled_exe = os.path.join(base_dir, "agy.exe")
             bundled_linux = os.path.join(base_dir, "agy")
             
@@ -477,7 +589,6 @@ class ExecutionMixin:
                                     self._session_tokens_saved = getattr(self, "_session_tokens_saved", 0) + 2800
                                 
                                 try:
-                                    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
                                     if base_dir not in sys.path:
                                         sys.path.insert(0, base_dir)
                                     from security.raugus_resolver import resolver
@@ -906,8 +1017,6 @@ class ExecutionMixin:
             
             is_steered_exit = bool(getattr(self, "_steering_interrupt", False))
             if not is_steered_exit:
-                if hasattr(self, "message_queue") and isinstance(self.message_queue, list):
-                    self.message_queue.clear()
                 if not locals().get("was_cancelled", False) and getattr(self, "queued_prompts", None):
                     asyncio.create_task(self._drain_queued_prompts())
 

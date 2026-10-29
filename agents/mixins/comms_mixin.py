@@ -10,6 +10,12 @@ class CommsMixin:
 
     async def broadcast(self, message: dict):
         msg_type = message.get("type")
+        if hasattr(self, "message_queue") and isinstance(self.message_queue, list):
+            self.current_seq = getattr(self, "current_seq", 0) + 1
+            self.message_queue.append({"seq": self.current_seq, "msg": message})
+            max_q = getattr(self, "max_queue_size", 1000)
+            if len(self.message_queue) > max_q:
+                del self.message_queue[:-max_q]
         payload = json.dumps(message)
         is_system_msg = msg_type in ("system", "agent_stop", "agent_start", "heartbeat", "init_conv_id", "model_fallback")
         for client_queue, username in list(self.connected_clients.items()):

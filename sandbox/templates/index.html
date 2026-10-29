@@ -1149,6 +1149,17 @@
 
         });
 
+        var API_BASE = window.location.pathname.indexOf('/ai_agent') === 0 ? '/ai_agent' : '';
+        (function() {
+            var origFetch = window.fetch.bind(window);
+            window.fetch = function(input, init) {
+                if (typeof input === 'string' && API_BASE && (input.indexOf('/api/') === 0 || input.indexOf('/plugin/') === 0)) {
+                    input = API_BASE + input;
+                }
+                return origFetch(input, init);
+            };
+        })();
+
         var ws = null;
         var chatFeed = document.getElementById('chat-feed');
         var initialWelcomeHTML = chatFeed ? chatFeed.innerHTML : '';
@@ -1585,10 +1596,22 @@
             }
         }
 
-        // Restore model preference
+        // Restore model preference (verified against available environment models)
         var savedModel = localStorage.getItem('agy_selected_model');
         if (savedModel && modelSelector) {
-            modelSelector.value = savedModel;
+            var hasSavedOpt = false;
+            for (var mIdx = 0; mIdx < modelSelector.options.length; mIdx++) {
+                if (modelSelector.options[mIdx].value === savedModel) {
+                    hasSavedOpt = true;
+                    break;
+                }
+            }
+            if (hasSavedOpt) {
+                modelSelector.value = savedModel;
+            } else if (modelSelector.options.length > 0) {
+                modelSelector.selectedIndex = 0;
+                localStorage.setItem('agy_selected_model', modelSelector.value);
+            }
         }
 
         // Load saved chat from localStorage on startup
@@ -1679,10 +1702,92 @@
         }
 
         var pingInterval = null;
+        var streamPollInterval = null;
         var lastReceivedSeq = 0;
         var announcedActions = new Set();
 
+        function startHttpStreamPolling() {
+            if (pingInterval) clearInterval(pingInterval);
+            if (streamPollInterval) clearInterval(streamPollInterval);
+
+            ws = {
+                readyState: WebSocket.OPEN,
+                close: function() {
+                    if (streamPollInterval) clearInterval(streamPollInterval);
+                },
+                send: function(raw) {
+                    try {
+                        var payload = JSON.parse(raw);
+                        if (payload.type === 'ping' || payload.type === 'sync' || payload.type === 'ack') {
+                            return;
+                        }
+                        if (payload.type === 'cancel') {
+                            fetch('/api/kill', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
+                                }
+                            }).catch(function(err) { console.error("Kill error:", err); });
+                            return;
+                        }
+                        if (payload.type === 'cli_input') {
+                            fetch('/api/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
+                                },
+                                body: JSON.stringify({
+                                    type: 'cli_input',
+                                    text: payload.input || payload.text || ''
+                                })
+                            }).catch(function(err) { console.error("CLI input error:", err); });
+                            return;
+                        }
+                        if (payload.type === 'prompt') {
+                            fetch('/api/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': 'Bearer ' + (payload.token || localStorage.getItem('agy_auth_token') || '')
+                                },
+                                body: JSON.stringify(payload)
+                            }).catch(function(err) { console.error("Chat error:", err); });
+                        }
+                    } catch (e) {
+                        console.error("HTTP transport send error:", e);
+                    }
+                }
+            };
+
+            reconnectAttempts = 0;
+            setConnectionStatus('connected');
+            if (!isTaskRunning && sendBtn) {
+                sendBtn.disabled = false;
+            }
+
+            streamPollInterval = setInterval(async function() {
+                try {
+                    var res = await fetch('/api/stream', {
+                        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                    });
+                    if (!res.ok) return;
+                    var data = await res.json();
+                    if (data && Array.isArray(data.messages)) {
+                        data.messages.forEach(function(msg) {
+                            handleServerMessage(msg);
+                        });
+                    }
+                } catch (e) {}
+            }, 1000);
+        }
+
         function connectWebSocket() {
+            if (API_BASE === '/ai_agent') {
+                startHttpStreamPolling();
+                return;
+            }
             var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
             var wsUrl = protocol + '//' + location.host + '/ws';
             ws = new WebSocket(wsUrl);
@@ -1710,6 +1815,10 @@
                 setConnectionStatus('reconnecting');
                 sendBtn.disabled = true;
                 reconnectAttempts++;
+                if (reconnectAttempts >= 3 && API_BASE) {
+                    startHttpStreamPolling();
+                    return;
+                }
                 var delay = Math.min(2000, 500 * reconnectAttempts);
                 setTimeout(connectWebSocket, delay);
             };

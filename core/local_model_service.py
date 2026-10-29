@@ -54,10 +54,60 @@ def resolve_gguf_model_path(model_label: str = "") -> str:
         return MODEL_PATH
 
 
+def is_cloud_hosted_environment() -> bool:
+    """Detects whether Siraugga is running in a cloud-hosted WSGI environment such as PythonAnywhere."""
+    if os.environ.get("SIRAUGGA_CLOUD_ONLY", "").lower() in ("1", "true", "yes"):
+        return True
+    return (
+        "PYTHONANYWHERE_DOMAIN" in os.environ
+        or "PYTHONANYWHERE_SITE" in os.environ
+        or os.path.exists("/var/www")
+    )
+
+
 def discover_local_models() -> list:
-    """Discovers installed GGUF models in ~/.local/models/ for the UI model selector."""
-    models_dir = os.path.expanduser("~/.local/models")
+    """Discovers local Ollama models and ~/.local/models/*.gguf weights when running locally; returns [] on PythonAnywhere."""
+    if is_cloud_hosted_environment():
+        return []
+
     discovered = []
+    try:
+        import urllib.request
+        req = urllib.request.Request("http://127.0.0.1:11434/api/tags", method="GET")
+        with urllib.request.urlopen(req, timeout=0.5) as resp:
+            payload = json.loads(resp.read().decode("utf-8", errors="replace"))
+            for m in payload.get("models", []):
+                m_name = (m.get("name") or "").strip()
+                if m_name:
+                    val = f"Ollama: {m_name}"
+                    if not any(d["value"] == val for d in discovered):
+                        discovered.append({"value": val, "text": f"Ollama: {m_name} (Local)"})
+    except Exception:
+        try:
+            import shutil as _shutil
+            ollama_bin = _shutil.which("ollama")
+            if ollama_bin:
+                res = subprocess.run(
+                    [ollama_bin, "list"],
+                    stdin=subprocess.DEVNULL,
+                    capture_output=True,
+                    text=True,
+                    timeout=1.5,
+                )
+                if res.returncode == 0 and res.stdout:
+                    for idx, line in enumerate(res.stdout.strip().splitlines()):
+                        if idx == 0 and "NAME" in line.upper():
+                            continue
+                        parts = line.split()
+                        if parts:
+                            m_name = parts[0].strip()
+                            val = f"Ollama: {m_name}"
+                            if not any(d["value"] == val for d in discovered):
+                                discovered.append({"value": val, "text": f"Ollama: {m_name} (Local)"})
+        except Exception:
+            pass
+
+    models_dir = os.path.expanduser("~/.local/models")
     if os.path.isdir(models_dir):
         try:
             for fname in sorted(os.listdir(models_dir)):
@@ -76,15 +126,71 @@ def discover_local_models() -> list:
         except Exception:
             pass
 
-    defaults = [
-        {"value": "Local Qwen 2.5 (Offline)", "text": "Local Qwen 2.5 (Offline)"},
-        {"value": "Local LLaMA (Offline)", "text": "Local LLaMA (Offline)"},
-    ]
-    for d in defaults:
-        if not any(item["value"] == d["value"] for item in discovered):
-            discovered.append(d)
+    if os.path.isdir(models_dir) or os.path.exists(MODEL_PATH):
+        defaults = [
+            {"value": "Local Qwen 2.5 (Offline)", "text": "Local Qwen 2.5 (Offline)"},
+            {"value": "Local LLaMA (Offline)", "text": "Local LLaMA (Offline)"},
+        ]
+        for d in defaults:
+            if not any(item["value"] == d["value"] for item in discovered):
+                discovered.append(d)
 
     return discovered
+
+
+def run_local_ollama_model(
+    system_prompt: str,
+    user_prompt: str,
+    model_label: str = "",
+    max_tokens: int = 1400,
+    target_label: str = "portal_chat",
+) -> str:
+    """Executes local inference against the local Ollama daemon."""
+    if is_cloud_hosted_environment():
+        return "[LOCAL_BRAIN_UNAVAILABLE] Local Ollama models are disabled in cloud-hosted environments."
+
+    raw_name = (model_label or "").strip()
+    if raw_name.lower().startswith("ollama:"):
+        raw_name = raw_name.split(":", 1)[1].strip()
+    if raw_name.endswith("(Local)"):
+        raw_name = raw_name[:-len("(Local)")].strip()
+    ollama_model = raw_name or "qwen2.5:1.5b"
+
+    try:
+        import urllib.request
+        body = json.dumps({
+            "model": ollama_model,
+            "system": system_prompt,
+            "prompt": user_prompt,
+            "stream": False,
+            "options": {
+                "num_predict": max_tokens,
+                "temperature": 0.2,
+            },
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "http://127.0.0.1:11434/api/generate",
+            data=body,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            data = json.loads(resp.read().decode("utf-8", errors="replace"))
+            out = (data.get("response") or "").strip()
+            if out:
+                est_tokens = max(1, (len(user_prompt) + len(out)) // 4)
+                SwarmFlowLogger.log_tuple(
+                    modder_id="LocalPrivacyBroker",
+                    agent_id=f"Ollama-{ollama_model}",
+                    target_namespace=target_label,
+                    model_tier=f"Ollama: {ollama_model}",
+                    token_volume=est_tokens,
+                )
+                return out
+    except Exception as e:
+        return f"[LOCAL_BRAIN_ERROR] Ollama inference failed for '{ollama_model}': {e}"
+
+    return f"[LOCAL_BRAIN_UNAVAILABLE] Ollama returned an empty response for '{ollama_model}'."
 
 
 def get_system_resource_profile() -> dict:
@@ -1737,6 +1843,19 @@ async def execute_local_agent_task(
     """Executes a Web Portal prompt directly on the local model with autonomous file I/O tools and continuous conversation."""
     await agent_mgr.broadcast({"type": "agent_start", "model": model})
 
+    if is_cloud_hosted_environment():
+        err_msg = "⚠️ **Local & Ollama Models Unavailable on Cloud Host**: Please select a cloud model (such as Gemini 3.8 Flash or Gemini 4 Argon) when running on PythonAnywhere."
+        agent_mgr.output_buffer.append(err_msg)
+        await agent_mgr.broadcast({"type": "agent_chunk", "chunk": err_msg})
+        await agent_mgr.broadcast({
+            "type": "agent_done",
+            "exit_code": 1,
+            "elapsed": round(time.time() - task_time, 1),
+            "status": "ERROR",
+            "cancelled": False,
+        })
+        return
+
     if not conversation_id or str(conversation_id).startswith("conv-"):
         conversation_id = str(uuid.uuid4())
     agent_mgr.current_conversation_id = conversation_id
@@ -1982,18 +2101,30 @@ async def execute_local_agent_task(
         query_payload = f"PREVIOUS CONVERSATION HISTORY:\n{history_str}\n\nCURRENT REQUEST:\n{query_payload}"
 
     loop = asyncio.get_running_loop()
+    is_ollama = isinstance(model, str) and (model.lower().startswith("ollama:") or "ollama" in model.lower())
     active_gguf = resolve_gguf_model_path(model)
 
-    response = await loop.run_in_executor(
-        None,
-        run_dynamic_local_qwen,
-        system_prompt,
-        query_payload,
-        1400,
-        "portal_chat",
-        0,
-        active_gguf,
-    )
+    if is_ollama:
+        response = await loop.run_in_executor(
+            None,
+            run_local_ollama_model,
+            system_prompt,
+            query_payload,
+            model,
+            1400,
+            "portal_chat",
+        )
+    else:
+        response = await loop.run_in_executor(
+            None,
+            run_dynamic_local_qwen,
+            system_prompt,
+            query_payload,
+            1400,
+            "portal_chat",
+            0,
+            active_gguf,
+        )
 
     newly_discovered_contexts = []
     extracted_calls = extract_local_tool_calls(response)
@@ -2291,16 +2422,27 @@ async def execute_local_agent_task(
             f"USER REQUEST:\n{clean_prompt}\n\n"
             "Based on the tool results above, provide a clear, helpful response answering the user's request."
         )
-        second_response = await loop.run_in_executor(
-            None,
-            run_dynamic_local_qwen,
-            LOCAL_AGENT_SYNTHESIS_SYSTEM,
-            synthesis_prompt,
-            800,
-            "portal_chat_synthesis",
-            0,
-            active_gguf,
-        )
+        if is_ollama:
+            second_response = await loop.run_in_executor(
+                None,
+                run_local_ollama_model,
+                LOCAL_AGENT_SYNTHESIS_SYSTEM,
+                synthesis_prompt,
+                model,
+                800,
+                "portal_chat_synthesis",
+            )
+        else:
+            second_response = await loop.run_in_executor(
+                None,
+                run_dynamic_local_qwen,
+                LOCAL_AGENT_SYNTHESIS_SYSTEM,
+                synthesis_prompt,
+                800,
+                "portal_chat_synthesis",
+                0,
+                active_gguf,
+            )
         cleaned_2nd = clean_local_model_display_text(second_response)
         if cleaned_2nd:
             clean_display_response = cleaned_2nd
@@ -2311,7 +2453,6 @@ async def execute_local_agent_task(
 
     if not clean_display_response:
         clean_display_response = response
-
 
     if not is_admin and sec_mgr:
         clean_display_response = sec_mgr.scrub_text(clean_display_response)
