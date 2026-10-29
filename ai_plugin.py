@@ -1,5 +1,6 @@
 """Central Flask WSGI Blueprint adapter mounting the Siraugga Framework into e_profile."""
-from flask import Blueprint, jsonify, request, render_template, session, redirect
+from flask import Blueprint, jsonify, request, render_template, render_template_string, session, redirect
+from pathlib import Path
 import sys
 import os
 import time
@@ -10,7 +11,8 @@ import asyncio
 import shutil
 import subprocess
 
-ai_path = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_DIR = Path(__file__).resolve().parent
+ai_path = str(PLUGIN_DIR)
 if ai_path not in sys.path:
     sys.path.insert(0, ai_path)
 
@@ -28,15 +30,102 @@ agent_mgr = AgentTaskManager(project_manager=project_mgr)
 security_mgr = SecurityManager()
 
 
-def _get_ui_config() -> dict:
-    cfg_path = os.path.join(ai_path, "core", "ui_config.json")
-    ui_cfg = {}
-    if os.path.exists(cfg_path):
+def _iter_relative_roots():
+    seen = set()
+    for cand in (
+        PLUGIN_DIR,
+        Path.cwd(),
+        PLUGIN_DIR.parent,
+        PLUGIN_DIR.parent.parent,
+        PLUGIN_DIR.parent.parent.parent,
+        Path.home(),
+    ):
         try:
-            with open(cfg_path, "r", encoding="utf-8") as f:
-                ui_cfg = json.load(f)
+            resolved = cand.resolve()
+            if resolved not in seen and resolved.exists():
+                seen.add(resolved)
+                yield resolved
+        except Exception:
+            continue
+
+
+def _get_runtime_dir() -> Path:
+    rt = PLUGIN_DIR / ".runtime"
+    try:
+        rt.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    return rt
+
+
+def _get_sock_path() -> str:
+    rt_sock = _get_runtime_dir() / "agy_auth.sock"
+    s_path = str(rt_sock)
+    if not s_path.startswith("/mnt/") and len(s_path) < 95:
+        return s_path
+    return "/tmp/agy_auth.sock"
+
+
+def _get_state_path() -> Path:
+    return _get_runtime_dir() / "agy_auth_state.json"
+
+
+def _get_daemon_log_path() -> Path:
+    return _get_runtime_dir() / "auth_daemon.log"
+
+
+def _find_agy_binary():
+    for root in _iter_relative_roots():
+        for rel in (
+            Path(".local/bin/agy_real"),
+            Path(".local/bin/agy"),
+            Path("agy_real"),
+            Path("agy"),
+            Path("bin/agy"),
+            Path("agy.exe"),
+        ):
+            cand = root / rel
+            try:
+                if cand.is_file() and cand.stat().st_size > 50:
+                    if cand.name == "agy" and (cand.parent / "agy_real").is_file() and cand.stat().st_size < 4096:
+                        return str(cand.parent / "agy_real")
+                    return str(cand)
+            except Exception:
+                continue
+    which_agy = shutil.which("agy")
+    if which_agy and os.path.exists(which_agy) and os.path.getsize(which_agy) > 50:
+        return which_agy
+    return None
+
+
+def _render_ai_template(template_name: str, **context):
+    for rel_dir in (Path("sandbox/templates"), Path("templates")):
+        tpl_path = PLUGIN_DIR / rel_dir / template_name
+        if tpl_path.is_file():
+            return render_template_string(tpl_path.read_text(encoding="utf-8"), **context)
+    return render_template(template_name, **context)
+
+
+def _get_ui_config() -> dict:
+    cfg_path = PLUGIN_DIR / "core" / "ui_config.json"
+    ui_cfg = {}
+    if cfg_path.is_file():
+        try:
+            ui_cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
         except Exception:
             ui_cfg = {}
+
+    avail_cache = PLUGIN_DIR / "core" / ".available_models_cache.json"
+    supported_set = None
+    if avail_cache.is_file():
+        try:
+            c_data = json.loads(avail_cache.read_text(encoding="utf-8"))
+            c_models = c_data.get("models") or []
+            if c_models:
+                supported_set = set(c_models)
+        except Exception:
+            supported_set = None
+
     try:
         local_entries = discover_local_models()
     except Exception:
@@ -44,77 +133,83 @@ def _get_ui_config() -> dict:
     local_values = {e["value"] for e in local_entries}
     if "header" in ui_cfg and isinstance(ui_cfg["header"].get("models"), list):
         static_models = ui_cfg["header"]["models"]
+        if supported_set:
+            supported_models = [m for m in static_models if m.get("value") in supported_set]
+            if supported_models:
+                static_models = supported_models
         filtered = [m for m in static_models if m.get("value") not in local_values]
         ui_cfg["header"]["models"] = ([filtered[0]] + local_entries + filtered[1:]) if filtered else list(local_entries)
     return ui_cfg
 
 
 def query_auth_daemon(payload, timeout=2.0):
-    sock_path = "/tmp/agy_auth.sock"
-    if not os.path.exists(sock_path):
-        return None
-    try:
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        s.settimeout(timeout)
-        s.connect(sock_path)
-        s.sendall(json.dumps(payload).encode("utf-8") + b"\n")
-        raw = b""
-        while True:
-            chunk = s.recv(4096)
-            if not chunk:
-                break
-            raw += chunk
-            if b"\n" in raw:
-                break
-        s.close()
-        if raw:
-            return json.loads(raw.decode("utf-8"))
-    except Exception:
-        pass
+    sock_candidates = [_get_sock_path(), "/tmp/agy_auth.sock"]
+    for sock_path in dict.fromkeys(sock_candidates):
+        if not os.path.exists(sock_path):
+            continue
+        try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.settimeout(timeout)
+            s.connect(sock_path)
+            s.sendall(json.dumps(payload).encode("utf-8") + b"\n")
+            raw = b""
+            while True:
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                raw += chunk
+                if b"\n" in raw:
+                    break
+            s.close()
+            if raw:
+                return json.loads(raw.decode("utf-8"))
+        except Exception:
+            pass
     return None
 
 
 def kill_auth_daemon():
-    state_file = "/tmp/agy_auth_state.json"
-    if os.path.exists(state_file):
-        try:
-            with open(state_file, "r", encoding="utf-8") as f:
-                data = json.load(f)
+    for state_file in (_get_state_path(), Path("/tmp/agy_auth_state.json")):
+        if state_file.exists():
+            try:
+                data = json.loads(state_file.read_text(encoding="utf-8"))
                 pid = data.get("pid")
                 if pid:
                     try:
                         os.kill(pid, 15)
                     except Exception:
                         pass
-        except Exception:
-            pass
-        try:
-            os.unlink(state_file)
-        except Exception:
-            pass
-    sock_path = "/tmp/agy_auth.sock"
-    if os.path.exists(sock_path):
-        try:
-            os.unlink(sock_path)
-        except Exception:
-            pass
+            except Exception:
+                pass
+            try:
+                state_file.unlink()
+            except Exception:
+                pass
+    for sock_path in (_get_sock_path(), "/tmp/agy_auth.sock"):
+        if os.path.exists(sock_path):
+            try:
+                os.unlink(sock_path)
+            except Exception:
+                pass
 
 
 def spawn_auth_daemon():
     kill_auth_daemon()
     py_bin = shutil.which("python3") or "/usr/bin/python3" or sys.executable
-    daemon_script = os.path.join(ai_path, "auth_daemon.py")
+    daemon_script = str(PLUGIN_DIR / "auth_daemon.py")
+    log_path = _get_daemon_log_path()
     try:
-        log_fp = open("/tmp/auth_daemon.log", "w", encoding="utf-8")
+        log_fp = open(log_path, "w", encoding="utf-8")
         subprocess.Popen(
             [py_bin, daemon_script],
             stdout=log_fp,
             stderr=subprocess.STDOUT,
+            cwd=str(PLUGIN_DIR),
             start_new_session=True,
         )
     except Exception as e:
         try:
-            with open("/tmp/auth_daemon.log", "a", encoding="utf-8") as f:
+            with open(log_path, "a", encoding="utf-8") as f:
                 f.write(f"spawn_auth_daemon error: {e}\n")
         except Exception:
             pass
@@ -141,19 +236,38 @@ def run_ai_loop():
 threading.Thread(target=run_ai_loop, daemon=True).start()
 
 DEMO_TOKEN_TTL_SECONDS = 7 * 24 * 3600
-DEMO_DIRS = [
-    os.path.join(ai_path, "demo"),
-    os.path.abspath(os.path.join(ai_path, "..", "e_profile", "content", "projects", "demo")),
-    os.path.abspath(os.path.join(ai_path, "..", "..", "demo")),
-]
-EPROFILE_ROOT = os.path.abspath(os.path.join(ai_path, "..", "e_profile"))
-if not os.path.isdir(EPROFILE_ROOT):
-    EPROFILE_ROOT = os.path.abspath(os.path.join(ai_path, "..", "..", ".."))
+
+
+def _get_demo_dirs() -> list:
+    candidates = [
+        PLUGIN_DIR / "demo",
+        Path.cwd() / "content" / "projects" / "demo",
+        PLUGIN_DIR.parent.parent / "demo",
+        Path.cwd() / "demo",
+    ]
+    out = []
+    seen = set()
+    for c in candidates:
+        try:
+            r = str(c.resolve())
+        except Exception:
+            r = str(c)
+        if r not in seen:
+            seen.add(r)
+            out.append(str(c))
+    return out
+
+
+def _get_eprofile_root() -> Path:
+    for root in _iter_relative_roots():
+        if (root / "server.py").is_file() and (root / "projects_mod.py").is_file():
+            return root
+    return PLUGIN_DIR.parent
 
 
 def _cleanup_expired_demo_tokens():
     now = time.time()
-    for d_dir in DEMO_DIRS:
+    for d_dir in _get_demo_dirs():
         if not os.path.exists(d_dir):
             continue
         try:
@@ -187,7 +301,7 @@ def _resolve_token_scope() -> str:
 
 
 def _sync_demo_oauth_token():
-    for d_dir in DEMO_DIRS:
+    for d_dir in _get_demo_dirs():
         visible_token = os.path.join(d_dir, "antigravity-oauth-token")
         cli_token = os.path.join(d_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token")
         try:
@@ -207,7 +321,7 @@ def _has_local_cli_credentials(scope: str = None) -> bool:
 
     if active_scope == "demo":
         _sync_demo_oauth_token()
-        for d_dir in DEMO_DIRS:
+        for d_dir in _get_demo_dirs():
             demo_candidates = [
                 os.path.join(d_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
                 os.path.join(d_dir, "antigravity-oauth-token"),
@@ -224,43 +338,45 @@ def _has_local_cli_credentials(scope: str = None) -> bool:
 
     if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
         return True
-    credential_candidates = [
-        os.path.expanduser("~/.devcore_client_key.txt"),
-        os.path.expanduser("~/.gemini/antigravity-cli/antigravity-oauth-token"),
-        os.path.join(EPROFILE_ROOT, ".devcore_client_key.txt"),
-        os.path.join(EPROFILE_ROOT, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
-        os.path.expanduser("~/.gemini/antigravity/credentials.json"),
-        os.path.expanduser("~/.config/antigravity/credentials.json"),
-        os.path.expanduser("~/.gemini/credentials.json"),
-        os.path.expanduser("~/.config/gcloud/application_default_credentials.json"),
-    ]
-    for p in credential_candidates:
-        try:
-            if os.path.exists(p) and os.path.getsize(p) > 8:
-                return True
-        except Exception:
-            pass
+    for root in _iter_relative_roots():
+        for rel in (
+            Path(".devcore_client_key.txt"),
+            Path("gemini_api_key.txt"),
+            Path("antigravity-oauth-token"),
+            Path(".gemini/antigravity-cli/antigravity-oauth-token"),
+            Path(".gemini/antigravity/credentials.json"),
+            Path(".config/antigravity/credentials.json"),
+            Path(".gemini/credentials.json"),
+            Path(".config/gcloud/application_default_credentials.json"),
+        ):
+            cand = root / rel
+            try:
+                if cand.is_file() and cand.stat().st_size > 8:
+                    return True
+            except Exception:
+                pass
     return False
 
 
 def _save_api_key_for_scope(api_key: str, scope: str):
     if scope == "demo":
-        for d_dir in DEMO_DIRS[:1]:
+        for d_dir in _get_demo_dirs()[:1]:
             os.makedirs(d_dir, exist_ok=True)
             for fname in (".devcore_client_key.txt", "gemini_api_key.txt"):
                 with open(os.path.join(d_dir, fname), "w", encoding="utf-8") as f:
                     f.write(api_key)
     else:
         os.environ["GEMINI_API_KEY"] = api_key
+        eprofile_root = _get_eprofile_root()
         root_paths = [
-            os.path.expanduser("~/.devcore_client_key.txt"),
-            os.path.join(EPROFILE_ROOT, ".devcore_client_key.txt"),
+            PLUGIN_DIR / ".devcore_client_key.txt",
+            eprofile_root / ".devcore_client_key.txt",
+            Path.home() / ".devcore_client_key.txt",
         ]
         for p in root_paths:
             try:
-                os.makedirs(os.path.dirname(p), exist_ok=True)
-                with open(p, "w", encoding="utf-8") as f:
-                    f.write(api_key)
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_text(api_key, encoding="utf-8")
             except Exception:
                 pass
 
@@ -281,6 +397,9 @@ def _resolve_active_user() -> dict:
 
 @ai_bp.route("/")
 def ai_home():
+    is_admin = bool(session.get("is_admin") or session.get("admin"))
+    if is_admin and request.args.get("demo") != "1" and request.args.get("mode") != "demo":
+        session["agent_token_scope"] = "root"
     scope = _resolve_token_scope()
     target_project = request.args.get("project", "").strip()
     if target_project and hasattr(project_mgr, "set_active_project"):
@@ -294,20 +413,20 @@ def ai_home():
 
     if scope == "demo":
         if not session.get("agent_authenticated"):
-            return redirect("/ai_agent/login?demo=1")
+            return redirect("login?demo=1")
     else:
-        if not session.get("agent_authenticated") and not session.get("is_admin") and not session.get("admin"):
-            return redirect("/ai_agent/login")
+        if not session.get("agent_authenticated") and not is_admin:
+            return redirect("login")
         session["agent_token_scope"] = "root"
         session["agent_authenticated"] = True
-    return render_template("index.html", ui=_get_ui_config())
+    return _render_ai_template("index.html", ui=_get_ui_config())
 
 
 @ai_bp.route("/demo")
 def ai_demo_entry():
     session["agent_token_scope"] = "demo"
     session.pop("agent_authenticated", None)
-    return redirect("/ai_agent/login?demo=1")
+    return redirect("login?demo=1")
 
 
 @ai_bp.route("/login")
@@ -315,7 +434,7 @@ def login_page():
     scope = _resolve_token_scope()
     if scope == "demo":
         session.pop("agent_authenticated", None)
-    return render_template("login.html")
+    return _render_ai_template("login.html")
 
 
 @ai_bp.route("/api/ui-config", methods=["GET"])
@@ -330,10 +449,7 @@ def auth_check():
     has_creds = _has_local_cli_credentials(scope)
     is_authenticated = bool(session.get("agent_authenticated")) if scope == "demo" else has_creds
 
-    agy_bin = shutil.which("agy")
-    if not agy_bin:
-        fallback = os.path.expanduser("~/.local/bin/agy")
-        agy_bin = fallback if os.path.exists(fallback) else None
+    agy_bin = _find_agy_binary()
 
     if not agy_bin:
         return jsonify({
@@ -358,12 +474,14 @@ def auth_check():
         })
 
     err_log = ""
-    if os.path.exists("/tmp/auth_daemon.log"):
-        try:
-            with open("/tmp/auth_daemon.log", "r", encoding="utf-8") as f:
-                err_log = f.read().strip()
-        except Exception:
-            pass
+    for log_cand in (_get_daemon_log_path(), Path("/tmp/auth_daemon.log")):
+        if log_cand.exists():
+            try:
+                err_log = log_cand.read_text(encoding="utf-8").strip()
+                if err_log:
+                    break
+            except Exception:
+                pass
 
     return jsonify({
         "authenticated": is_authenticated,
@@ -523,9 +641,42 @@ def start_chat():
 
 @ai_bp.route("/api/stream", methods=["GET"])
 def get_stream():
+    since_seq = request.args.get("since_seq", type=int)
+    queue_items = list(getattr(agent_mgr, "message_queue", []) or [])
+
+    shared_sf = _get_runtime_dir() / "stream_events.json"
+    if shared_sf.is_file():
+        try:
+            shared_items = json.loads(shared_sf.read_text(encoding="utf-8"))
+            if isinstance(shared_items, list):
+                existing_seqs = {it.get("seq") for it in queue_items if isinstance(it, dict)}
+                for s_it in shared_items:
+                    if isinstance(s_it, dict) and s_it.get("seq") not in existing_seqs:
+                        queue_items.append(s_it)
+                queue_items.sort(key=lambda x: x.get("seq", 0))
+        except Exception:
+            pass
+
+    if since_seq is not None:
+        messages = []
+        max_seq = since_seq
+        for item in queue_items:
+            seq_val = item.get("seq", 0)
+            if seq_val > since_seq:
+                msg_obj = dict(item.get("msg", {}))
+                msg_obj["seq"] = seq_val
+                messages.append(msg_obj)
+                if seq_val > max_seq:
+                    max_seq = seq_val
+        return jsonify({"messages": messages, "last_seq": max_seq})
+
     messages = []
     while agent_mgr.message_queue:
-        messages.append(agent_mgr.message_queue.pop(0)["msg"])
+        popped = agent_mgr.message_queue.pop(0)
+        msg_obj = dict(popped.get("msg", {}))
+        if "seq" in popped:
+            msg_obj["seq"] = popped["seq"]
+        messages.append(msg_obj)
     return jsonify({"messages": messages})
 
 
@@ -580,7 +731,7 @@ def auth_me():
 def auth_system_status():
     scope = _resolve_token_scope()
     return jsonify({
-        "cli_installed": bool(shutil.which("agy") or os.path.exists(os.path.expanduser("~/.local/bin/agy"))),
+        "cli_installed": bool(_find_agy_binary()),
         "has_api_key": _has_local_cli_credentials(scope),
         "scope": scope,
     })
