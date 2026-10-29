@@ -13403,7 +13403,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "d51616087c38",
+        "content_hash": "117cbd86fe2b",
         "id": "131d8d50-c759-4e4b-bd57-5c215ada8caf"
     },
     "devcore.ai_plugin.py::ai_path": {
@@ -13763,8 +13763,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "ai_home",
         "start_line": 283,
-        "end_line": 300,
-        "content_hash": "db9ca0a7413a",
+        "end_line": 303,
+        "content_hash": "aa0937a4292d",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -13778,8 +13778,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "ai_demo_entry",
-        "start_line": 304,
-        "end_line": 307,
+        "start_line": 307,
+        "end_line": 310,
         "content_hash": "e1b709f3ea01",
         "required_tier": 5,
         "sensitive": false,
@@ -13794,8 +13794,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "login_page",
-        "start_line": 311,
-        "end_line": 315,
+        "start_line": 314,
+        "end_line": 318,
         "content_hash": "a97db3dd24f5",
         "required_tier": 5,
         "sensitive": false,
@@ -13810,8 +13810,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_ui_config_route",
-        "start_line": 319,
-        "end_line": 320,
+        "start_line": 322,
+        "end_line": 323,
         "content_hash": "fe689826959e",
         "required_tier": 5,
         "sensitive": false,
@@ -13826,8 +13826,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_check",
-        "start_line": 324,
-        "end_line": 371,
+        "start_line": 327,
+        "end_line": 374,
         "content_hash": "4dd27a4d4110",
         "required_tier": 5,
         "sensitive": false,
@@ -13842,8 +13842,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_demo",
-        "start_line": 375,
-        "end_line": 397,
+        "start_line": 378,
+        "end_line": 400,
         "content_hash": "eacb3e23a8bf",
         "required_tier": 5,
         "sensitive": false,
@@ -13858,8 +13858,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "set_api_key",
-        "start_line": 401,
-        "end_line": 430,
+        "start_line": 404,
+        "end_line": 433,
         "content_hash": "bc29b9bea2b3",
         "required_tier": 5,
         "sensitive": false,
@@ -13874,8 +13874,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_submit",
-        "start_line": 434,
-        "end_line": 470,
+        "start_line": 437,
+        "end_line": 473,
         "content_hash": "763b980005e8",
         "required_tier": 5,
         "sensitive": false,
@@ -13890,8 +13890,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "start_chat",
-        "start_line": 474,
-        "end_line": 518,
+        "start_line": 477,
+        "end_line": 521,
         "content_hash": "43057412f64d",
         "required_tier": 5,
         "sensitive": false,
@@ -13906,8 +13906,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_stream",
-        "start_line": 522,
-        "end_line": 526,
+        "start_line": 525,
+        "end_line": 529,
         "content_hash": "5e6eac13bee6",
         "required_tier": 5,
         "sensitive": false,
@@ -13922,8 +13922,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "kill_chat",
-        "start_line": 530,
-        "end_line": 532,
+        "start_line": 533,
+        "end_line": 535,
         "content_hash": "cee76723f625",
         "required_tier": 5,
         "sensitive": false,
@@ -13938,8 +13938,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_login",
-        "start_line": 536,
-        "end_line": 552,
+        "start_line": 539,
+        "end_line": 555,
         "content_hash": "546ba6bc83cb",
         "required_tier": 5,
         "sensitive": false,
@@ -13954,8 +13954,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_logout",
-        "start_line": 556,
-        "end_line": 561,
+        "start_line": 559,
+        "end_line": 564,
         "content_hash": "81c7f5ad5107",
         "required_tier": 5,
         "sensitive": false,
@@ -13970,8 +13970,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_me",
-        "start_line": 565,
-        "end_line": 573,
+        "start_line": 568,
+        "end_line": 576,
         "content_hash": "f72085b0eb99",
         "required_tier": 5,
         "sensitive": false,
@@ -13986,8 +13986,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_system_status",
-        "start_line": 577,
-        "end_line": 583,
+        "start_line": 580,
+        "end_line": 586,
         "content_hash": "9ac549f93814",
         "required_tier": 5,
         "sensitive": false,
@@ -14002,8 +14002,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "handle_projects",
-        "start_line": 587,
-        "end_line": 599,
+        "start_line": 590,
+        "end_line": 602,
         "content_hash": "b488f8a29df7",
         "required_tier": 5,
         "sensitive": false,
@@ -14018,8 +14018,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "set_active_project",
-        "start_line": 603,
-        "end_line": 608,
+        "start_line": 606,
+        "end_line": 611,
         "content_hash": "04fb00e3afd8",
         "required_tier": 5,
         "sensitive": false,
@@ -14034,8 +14034,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_conversations",
-        "start_line": 612,
-        "end_line": 619,
+        "start_line": 615,
+        "end_line": 622,
         "content_hash": "05e1edfec079",
         "required_tier": 5,
         "sensitive": false,
@@ -14050,8 +14050,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "handle_conversation_details",
-        "start_line": 623,
-        "end_line": 630,
+        "start_line": 626,
+        "end_line": 633,
         "content_hash": "376136ef62ac",
         "required_tier": 5,
         "sensitive": false,
@@ -14066,8 +14066,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "rename_conversation",
-        "start_line": 634,
-        "end_line": 639,
+        "start_line": 637,
+        "end_line": 642,
         "content_hash": "8f08fea086dd",
         "required_tier": 5,
         "sensitive": false,
@@ -14082,8 +14082,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "delete_active_conversations",
-        "start_line": 643,
-        "end_line": 647,
+        "start_line": 646,
+        "end_line": 650,
         "content_hash": "badbee29acb6",
         "required_tier": 5,
         "sensitive": false,
@@ -14098,8 +14098,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_artifact",
-        "start_line": 651,
-        "end_line": 662,
+        "start_line": 654,
+        "end_line": 665,
         "content_hash": "eda83d031629",
         "required_tier": 5,
         "sensitive": false,
@@ -14114,8 +14114,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "save_artifact",
-        "start_line": 666,
-        "end_line": 681,
+        "start_line": 669,
+        "end_line": 684,
         "content_hash": "924a122dc42a",
         "required_tier": 5,
         "sensitive": false,
@@ -149363,7 +149363,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "c7bd2f696433",
+        "content_hash": "d2f9b7553c36",
         "id": "11aa3891-e1b1-4f3c-b9a8-4acced68015b"
     },
     "devcore....e_profile.file_mod.py::config": {
@@ -149483,8 +149483,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
         "symbol_name": "git_sync",
         "start_line": 240,
-        "end_line": 407,
-        "content_hash": "b2f1ab763e40",
+        "end_line": 410,
+        "content_hash": "24fe57f652f2",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -149505,7 +149505,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "9008cb5e7dd9",
+        "content_hash": "fcc68d0941b8",
         "id": "76535039-90d2-4169-84fe-efb3e15e1762"
     },
     "devcore....Central_Docs.scripts.workspace_pipeline.py::CENTRAL_ROOT": {
@@ -149770,7 +149770,7 @@
         "symbol_name": "run_stage_security_audit",
         "start_line": 160,
         "end_line": 178,
-        "content_hash": "09fc3d2cf98f",
+        "content_hash": "1d453e0e0e21",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -149801,8 +149801,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
         "symbol_name": "git_commit_and_push",
         "start_line": 197,
-        "end_line": 247,
-        "content_hash": "100f4be43168",
+        "end_line": 243,
+        "content_hash": "ee63fc536b23",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -149816,8 +149816,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
         "symbol_name": "print_status_dashboard",
-        "start_line": 250,
-        "end_line": 278,
+        "start_line": 246,
+        "end_line": 274,
         "content_hash": "6dcaf9f72ae1",
         "required_tier": 5,
         "sensitive": false,
@@ -149832,8 +149832,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
         "symbol_name": "execute_full_pipeline",
-        "start_line": 281,
-        "end_line": 371,
+        "start_line": 277,
+        "end_line": 367,
         "content_hash": "7b9c7aa88d30",
         "required_tier": 5,
         "sensitive": false,
@@ -149848,8 +149848,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/workspace_pipeline.py",
         "symbol_name": "main",
-        "start_line": 374,
-        "end_line": 421,
+        "start_line": 370,
+        "end_line": 417,
         "content_hash": "54d7e926737e",
         "required_tier": 5,
         "sensitive": false,
@@ -149871,16 +149871,16 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "ec3be07f8da3",
+        "content_hash": "bd4dd5c28bc0",
         "id": "d732c589-f5ba-48c3-b847-545b9b66b3c8"
     },
     "devcore....e_profile.post_sync.py::main": {
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/post_sync.py",
         "symbol_name": "main",
-        "start_line": 6,
-        "end_line": 41,
-        "content_hash": "34dfbfc5e982",
+        "start_line": 14,
+        "end_line": 77,
+        "content_hash": "98d12403a4a4",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -149889,5 +149889,1341 @@
             "execute": false
         },
         "id": "7d95d041-419a-46f9-9f5c-78aa4fc81fae"
+    },
+    "devcore....e_profile..gitmodules": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/.gitmodules",
+        "inode": 4785074604375906,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "3449a96973dd",
+        "id": "94f6c745-93dc-47e8-a27c-ecfc7ab4135d"
+    },
+    "devcore....e_profile.requirements.txt": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/requirements.txt",
+        "inode": 1688849860344497,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "f702d3f56ab4",
+        "id": "f25ac5e8-5f46-42e1-be9c-72ede9111da3"
+    },
+    "devcore....e_profile.post_sync.py::_ensure_lf": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/post_sync.py",
+        "symbol_name": "_ensure_lf",
+        "start_line": 7,
+        "end_line": 11,
+        "content_hash": "467a5b53b193",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f428a131-b285-44bc-b628-8fee31fc55fd"
+    },
+    "devcore....e_profile.server.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "inode": 29273397578158175,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "aa4a9b5388b1",
+        "id": "2237e92c-a5a2-41f6-af1c-8c4b430d11a3"
+    },
+    "devcore....e_profile.server.py::config": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "config",
+        "start_line": 24,
+        "end_line": 24,
+        "content_hash": "ca3ab891cb04",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "327fbe55-8f1c-4d17-9bbc-56c949176933"
+    },
+    "devcore....e_profile.server.py::app": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "app",
+        "start_line": 25,
+        "end_line": 25,
+        "content_hash": "d4c5c227119c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b5789098-53aa-4f60-939c-4404f46849dd"
+    },
+    "devcore....e_profile.server.py::inject_global_blogs": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "inject_global_blogs",
+        "start_line": 36,
+        "end_line": 43,
+        "content_hash": "762b01ef71da",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1879427a-561c-4f6c-b3bd-4686717fee8d"
+    },
+    "devcore....e_profile.server.py::_central_devcore": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "_central_devcore",
+        "start_line": 67,
+        "end_line": 67,
+        "content_hash": "e0b11553a2ed",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3a6aa2e6-8680-4992-9858-eab84bb5b9ba"
+    },
+    "devcore....e_profile.server.py::_submod_devcore": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "_submod_devcore",
+        "start_line": 68,
+        "end_line": 68,
+        "content_hash": "a7dc56dbe270",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c70431f6-5698-417d-a582-674597e4523f"
+    },
+    "devcore....e_profile.server.py::ai_path": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "ai_path",
+        "start_line": 69,
+        "end_line": 69,
+        "content_hash": "c5b6f78bcb37",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6f32b655-1611-4f43-952f-971d0db6c3e4"
+    },
+    "devcore....e_profile.server.py::SystemLogger": {
+        "type": "class",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "SystemLogger",
+        "start_line": 79,
+        "end_line": 89,
+        "content_hash": "527ca10a0c6a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "430c0984-42c6-4469-b97c-41628471a8e3"
+    },
+    "devcore....e_profile.server.py::SystemLogger::__init__": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "__init__",
+        "start_line": 80,
+        "end_line": 81,
+        "content_hash": "e84bf98ff22c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "42aba35d-8a26-41b0-8975-8f4858dc80a2",
+        "class_name": "SystemLogger"
+    },
+    "devcore....e_profile.server.py::SystemLogger::log": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "log",
+        "start_line": 82,
+        "end_line": 85,
+        "content_hash": "350d46ea7f03",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "90baadb6-0146-41ea-896f-56941e9ba680",
+        "class_name": "SystemLogger"
+    },
+    "devcore....e_profile.server.py::SystemLogger::error": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "error",
+        "start_line": 87,
+        "end_line": 87,
+        "content_hash": "c41ee5e78264",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "81b2829b-4422-412d-ad26-eb44efd0bd7e",
+        "class_name": "SystemLogger"
+    },
+    "devcore....e_profile.server.py::SystemLogger::info": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "info",
+        "start_line": 88,
+        "end_line": 88,
+        "content_hash": "db90ac92d1c3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "107ec7dc-a708-4040-a758-f483ee742707",
+        "class_name": "SystemLogger"
+    },
+    "devcore....e_profile.server.py::SystemLogger::warning": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "warning",
+        "start_line": 89,
+        "end_line": 89,
+        "content_hash": "f3ae9a1377eb",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2ee9821e-e8bc-4dac-90b6-64080b87afc9",
+        "class_name": "SystemLogger"
+    },
+    "devcore....e_profile.server.py::sys_log": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "sys_log",
+        "start_line": 139,
+        "end_line": 139,
+        "content_hash": "2f239aea7976",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b1407ad0-09e9-41a1-b851-91cdb1f8d09b"
+    },
+    "devcore....e_profile.server.py::ANALYTICS_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "ANALYTICS_FILE",
+        "start_line": 94,
+        "end_line": 94,
+        "content_hash": "aed82b8c3c01",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2eadeec9-6aba-45d0-a127-068e9adf93eb"
+    },
+    "devcore....e_profile.server.py::get_analytics": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "get_analytics",
+        "start_line": 96,
+        "end_line": 103,
+        "content_hash": "3eaea5cf7c4e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "deec2d13-7b2d-4ac5-aa53-7b8847fa7129"
+    },
+    "devcore....e_profile.server.py::save_analytics": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "save_analytics",
+        "start_line": 105,
+        "end_line": 109,
+        "content_hash": "c467c04e9d53",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c371e2ba-203c-4ba8-836a-faf449702db1"
+    },
+    "devcore....e_profile.server.py::log_traffic": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "log_traffic",
+        "start_line": 112,
+        "end_line": 137,
+        "content_hash": "ab720c3abd08",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0fbc72f1-fcc9-4314-bfdc-4e52267f5b57"
+    },
+    "devcore....e_profile.server.py::PROFILES_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "PROFILES_FILE",
+        "start_line": 144,
+        "end_line": 144,
+        "content_hash": "d950cfb6255b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "17dc0302-ae30-4687-aeeb-83839c8c0cf7"
+    },
+    "devcore....e_profile.server.py::load_profiles": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "load_profiles",
+        "start_line": 146,
+        "end_line": 148,
+        "content_hash": "d59f8b9b720e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5d93f208-ddc3-46ec-9364-30c40df5ca92"
+    },
+    "devcore....e_profile.server.py::save_profiles": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "save_profiles",
+        "start_line": 150,
+        "end_line": 158,
+        "content_hash": "5a4c5d71d1b9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "547f1d1b-0b58-4f05-b868-011d96fc00ac"
+    },
+    "devcore....e_profile.server.py::restrict_access": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "restrict_access",
+        "start_line": 161,
+        "end_line": 171,
+        "content_hash": "0310679354c3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b3e57362-5c00-4a08-9fd5-34046e019b32"
+    },
+    "devcore....e_profile.server.py::initialize_environment": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "initialize_environment",
+        "start_line": 173,
+        "end_line": 185,
+        "content_hash": "fa043766c84c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5660697f-88c6-4628-86c2-f796941dace3"
+    },
+    "devcore....e_profile.server.py::clean_text_filter": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "clean_text_filter",
+        "start_line": 190,
+        "end_line": 193,
+        "content_hash": "f06944e90a1e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "82c21bc7-dd0d-49b4-b17c-503639627b42"
+    },
+    "devcore....e_profile.server.py::inject_system": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "inject_system",
+        "start_line": 196,
+        "end_line": 205,
+        "content_hash": "f1afd7e4969a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2b401792-d69d-4284-85d8-addca33aabca"
+    },
+    "devcore....e_profile.server.py::dynamic_route": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "dynamic_route",
+        "start_line": 211,
+        "end_line": 289,
+        "content_hash": "4876f0186836",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c664ab9e-33e3-455c-981a-b294582a4e85"
+    },
+    "devcore....e_profile.server.py::hash_token": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "hash_token",
+        "start_line": 291,
+        "end_line": 292,
+        "content_hash": "238fe46ffb9a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b75b1c03-c1a2-44b2-8477-d90d67c77024"
+    },
+    "devcore....e_profile.server.py::magic_link": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "magic_link",
+        "start_line": 295,
+        "end_line": 321,
+        "content_hash": "4eb86929ee9d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "756d2b81-7389-4af6-ac9e-612a1d8dde57"
+    },
+    "devcore....e_profile.server.py::login": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "login",
+        "start_line": 324,
+        "end_line": 398,
+        "content_hash": "b29c58470bae",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "51a3bffc-c328-4bee-a425-5b24661ef6dc"
+    },
+    "devcore....e_profile.server.py::logout": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "logout",
+        "start_line": 401,
+        "end_line": 409,
+        "content_hash": "e1dd7d8ccdb5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8e4cb8d5-1b43-45f4-a298-46aa2c9ba21b"
+    },
+    "devcore....e_profile.server.py::admin": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin",
+        "start_line": 412,
+        "end_line": 485,
+        "content_hash": "c1a61350d220",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "70fbc793-e339-4c38-8a54-5ab23759484a"
+    },
+    "devcore....e_profile.server.py::restore_from_history": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "restore_from_history",
+        "start_line": 487,
+        "end_line": 526,
+        "content_hash": "9d8f4fa0493d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "61695876-0e9f-42b1-9b42-d0f4303fc565"
+    },
+    "devcore....e_profile.server.py::get_cert_health": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "get_cert_health",
+        "start_line": 528,
+        "end_line": 551,
+        "content_hash": "a7186800b3c8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "99b9c3bd-edcf-46ab-b0b6-a6142456efd1"
+    },
+    "devcore....e_profile.server.py::get_unindexed_changes": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "get_unindexed_changes",
+        "start_line": 554,
+        "end_line": 574,
+        "content_hash": "564432e366e2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3b487ab5-0a77-4c4e-87e9-e0a9be596aa5"
+    },
+    "devcore....e_profile.server.py::reindex_disk_state": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "reindex_disk_state",
+        "start_line": 576,
+        "end_line": 600,
+        "content_hash": "5efa4322c2da",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9c900b43-2105-4b13-9e42-5e65012faba3"
+    },
+    "devcore....e_profile.server.py::get_git_status": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "get_git_status",
+        "start_line": 602,
+        "end_line": 624,
+        "content_hash": "f2d9a1f14c9a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "450683c8-8ac6-4cd8-8d95-afa4dda3c49c"
+    },
+    "devcore....e_profile.server.py::admin_rollback_renames": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_rollback_renames",
+        "start_line": 627,
+        "end_line": 631,
+        "content_hash": "c941fe453141",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c3ac1415-e124-4f7f-accd-5dbc1f79676a"
+    },
+    "devcore....e_profile.server.py::handle_reindex": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "handle_reindex",
+        "start_line": 634,
+        "end_line": 642,
+        "content_hash": "1918c382a056",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1888089a-6d92-40a7-be6a-eca5a3e455a7"
+    },
+    "devcore....e_profile.server.py::handle_git_push": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "handle_git_push",
+        "start_line": 645,
+        "end_line": 659,
+        "content_hash": "a5689f5c28bc",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b7519376-5839-4276-adbe-51840b41bf2c"
+    },
+    "devcore....e_profile.server.py::handle_git_pull": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "handle_git_pull",
+        "start_line": 662,
+        "end_line": 672,
+        "content_hash": "5f1d9ed29d34",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "72ba2bb2-237f-4009-bf41-0dc809aa5726"
+    },
+    "devcore....e_profile.server.py::restore_quarantine": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "restore_quarantine",
+        "start_line": 675,
+        "end_line": 699,
+        "content_hash": "43072d27e935",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b50989bd-e729-4843-818b-bdedacce06b6"
+    },
+    "devcore....e_profile.server.py::delete_quarantine": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "delete_quarantine",
+        "start_line": 702,
+        "end_line": 724,
+        "content_hash": "bf4c6df0c30b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "18526dc2-1735-4545-8abe-f89a3533c092"
+    },
+    "devcore....e_profile.server.py::delete_profile": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "delete_profile",
+        "start_line": 727,
+        "end_line": 747,
+        "content_hash": "c57962daa890",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3bebcf09-d342-4962-b48a-659d8d15058b"
+    },
+    "devcore....e_profile.server.py::edit_profile": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "edit_profile",
+        "start_line": 750,
+        "end_line": 787,
+        "content_hash": "49d042544dba",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e20f0a0e-e526-4b57-b448-39ac571de447"
+    },
+    "devcore....e_profile.server.py::reset_pin": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "reset_pin",
+        "start_line": 790,
+        "end_line": 827,
+        "content_hash": "6dcb8d234bf1",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "83c3a57d-3ff3-4ade-bc99-69bd8ecf4d46"
+    },
+    "devcore....e_profile.server.py::change_password": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "change_password",
+        "start_line": 830,
+        "end_line": 835,
+        "content_hash": "3895d1c3d90a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a1592b00-f835-4924-b81b-df4b79cb0543"
+    },
+    "devcore....e_profile.server.py::admin_impersonate": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_impersonate",
+        "start_line": 838,
+        "end_line": 857,
+        "content_hash": "333d5ea54b52",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c71af7be-5c1c-4b2a-8211-78ff417e0d16"
+    },
+    "devcore....e_profile.server.py::toggle_exclusion": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "toggle_exclusion",
+        "start_line": 860,
+        "end_line": 885,
+        "content_hash": "fc2303be0893",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5d588bcc-1aa1-4f56-b578-aec4e88629e2"
+    },
+    "devcore....e_profile.server.py::AUDIO_SUITE_LICENSES_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "AUDIO_SUITE_LICENSES_FILE",
+        "start_line": 887,
+        "end_line": 887,
+        "content_hash": "049f01c149b5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3a122f91-2051-487b-bc62-ad54d9afe732"
+    },
+    "devcore....e_profile.server.py::LATEST_AUDIO_SUITE_VERSION": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "LATEST_AUDIO_SUITE_VERSION",
+        "start_line": 888,
+        "end_line": 888,
+        "content_hash": "1b72b3e3a88b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "373202a7-633f-478c-b185-481756a55cba"
+    },
+    "devcore....e_profile.server.py::AUDIO_SUITE_DOWNLOAD_URL": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "AUDIO_SUITE_DOWNLOAD_URL",
+        "start_line": 889,
+        "end_line": 889,
+        "content_hash": "9ef24b3fd000",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "18ed032e-8958-4642-b3d8-5602abb3846e"
+    },
+    "devcore....e_profile.server.py::AUDIO_SUITE_CHANGELOG": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "AUDIO_SUITE_CHANGELOG",
+        "start_line": 890,
+        "end_line": 890,
+        "content_hash": "9c0f61c69047",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ad124e67-2d2b-4873-b875-a7f1e9e5f1cb"
+    },
+    "devcore....e_profile.server.py::is_newer_version": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "is_newer_version",
+        "start_line": 893,
+        "end_line": 900,
+        "content_hash": "50c9899d5153",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ea11bf26-e146-49b5-8c5a-e3fa73abfa8c"
+    },
+    "devcore....e_profile.server.py::audio_suite_handshake": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "audio_suite_handshake",
+        "start_line": 904,
+        "end_line": 1004,
+        "content_hash": "ae3894bad1a1",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5a50a5ff-3c5e-41a2-89ef-1f8755789fc7"
+    },
+    "devcore....e_profile.server.py::AUDIO_SUITE_FEEDBACK_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "AUDIO_SUITE_FEEDBACK_FILE",
+        "start_line": 1007,
+        "end_line": 1007,
+        "content_hash": "90844df2f40b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ddf0e4e9-471b-44c1-bcbb-8bf2572c3b9c"
+    },
+    "devcore....e_profile.server.py::audio_suite_feedback": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "audio_suite_feedback",
+        "start_line": 1011,
+        "end_line": 1075,
+        "content_hash": "7c9304f385bd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "470b864f-f754-4940-b8c4-00f436aae6a2"
+    },
+    "devcore....e_profile.server.py::admin_mailbox": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_mailbox",
+        "start_line": 1080,
+        "end_line": 1099,
+        "content_hash": "898086c3f43d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4747a056-eb6d-43bc-844c-1b3eb41bd6a2"
+    },
+    "devcore....e_profile.server.py::admin_save_mailbox_settings": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_save_mailbox_settings",
+        "start_line": 1103,
+        "end_line": 1173,
+        "content_hash": "c42890ab2b7f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bcbd9a75-c9dd-4d95-8300-76c1742477bf"
+    },
+    "devcore....e_profile.server.py::admin_upload_google_json": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_upload_google_json",
+        "start_line": 1177,
+        "end_line": 1204,
+        "content_hash": "d912664dd129",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5160486d-e7ff-4666-ab5d-2b7c8748689b"
+    },
+    "devcore....e_profile.server.py::admin_send_test_email": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_send_test_email",
+        "start_line": 1208,
+        "end_line": 1250,
+        "content_hash": "0ba761a19e17",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dfc16685-918b-4401-8f90-3345375409fa"
+    },
+    "devcore....e_profile.server.py::admin_clear_mailbox": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_clear_mailbox",
+        "start_line": 1254,
+        "end_line": 1272,
+        "content_hash": "2e6d3702e410",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5f218e3e-23aa-4b77-a2ce-35d7a0076747"
+    },
+    "devcore....e_profile.server.py::admin_test_smtp_connection": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "admin_test_smtp_connection",
+        "start_line": 1276,
+        "end_line": 1294,
+        "content_hash": "5d0843cd1149",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0ba47b33-893c-42f7-9c02-178e1751be71"
+    },
+    "devcore....e_profile.server.py::api_admin_get_email": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "api_admin_get_email",
+        "start_line": 1298,
+        "end_line": 1306,
+        "content_hash": "ca9d00c4305b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a98c0999-f213-44a1-a4a7-1893b6bbb42b"
+    },
+    "devcore....e_profile.server.py::page_not_found": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "page_not_found",
+        "start_line": 1309,
+        "end_line": 1310,
+        "content_hash": "a310720cfad8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bc2f39c5-ded8-4070-8654-f2f5ba7a88ae"
+    },
+    "devcore....e_profile.security_audit.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "inode": 19421773393115028,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "d867e2ebe829",
+        "id": "7d61f6e8-6dc1-4bf4-9940-61af54112097"
+    },
+    "devcore....e_profile.security_audit.py::EPROFILE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "EPROFILE_ROOT",
+        "start_line": 32,
+        "end_line": 32,
+        "content_hash": "975735cdd1a9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "71e8abe8-ef33-471c-9613-f1617248dcfd"
+    },
+    "devcore....e_profile.security_audit.py::CANARY_SLUG": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "CANARY_SLUG",
+        "start_line": 54,
+        "end_line": 54,
+        "content_hash": "fb5b67391330",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "67dbd159-41e0-4477-a742-e5a48f36f3ed"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor": {
+        "type": "class",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "SecurityAuditor",
+        "start_line": 57,
+        "end_line": 590,
+        "content_hash": "376252d45a2f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c0a77f3d-2421-4193-9cce-f812df7f48f6"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::__init__": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "__init__",
+        "start_line": 58,
+        "end_line": 66,
+        "content_hash": "20e42b69ddc6",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2f827d62-1654-45f8-9e1e-e38fb28b9712",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::record": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "record",
+        "start_line": 68,
+        "end_line": 89,
+        "content_hash": "4b1e0366fce4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "66d58871-3bcc-4a59-96cb-1d44c2e963ad",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::run_all": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "run_all",
+        "start_line": 91,
+        "end_line": 138,
+        "content_hash": "e93950c75f0f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "83dfb998-a37c-4474-8a41-53cfe82711f3",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_1_rbac": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_1_rbac",
+        "start_line": 143,
+        "end_line": 191,
+        "content_hash": "b5333b0066ee",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ab6b8e0c-334f-49cd-92a3-adf1a47c00c5",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_2_path_traversal": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_2_path_traversal",
+        "start_line": 196,
+        "end_line": 232,
+        "content_hash": "9fda8ca5819b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3eb15309-f25a-4159-862c-81d8da8bbf48",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_3_release_staging": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_3_release_staging",
+        "start_line": 237,
+        "end_line": 289,
+        "content_hash": "4a25c9e7d2a9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ca50a42e-ba5c-44f7-ac67-efad19e54693",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_4_metadata_tagging": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_4_metadata_tagging",
+        "start_line": 294,
+        "end_line": 337,
+        "content_hash": "b9bd300c6fe1",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b81ee4cd-4190-4694-8fb1-fe5c9f71544f",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_5_inplace_editing": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_5_inplace_editing",
+        "start_line": 342,
+        "end_line": 397,
+        "content_hash": "799ddc9a99fa",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "66c10801-9c09-4414-a211-9572ab6cdba7",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_6_sync_persistence": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_6_sync_persistence",
+        "start_line": 402,
+        "end_line": 431,
+        "content_hash": "ad13b05bd23e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8515377e-6c88-4cc4-a9d3-f36d88e67e39",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::cleanup_canaries": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "cleanup_canaries",
+        "start_line": 558,
+        "end_line": 590,
+        "content_hash": "2b8a5fed96bf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "16a14dc0-2127-4acc-ae3b-5e4b85705f8d",
+        "class_name": "SecurityAuditor"
+    },
+    "devcore....e_profile.security_audit.py::main": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "main",
+        "start_line": 593,
+        "end_line": 602,
+        "content_hash": "cfa6444fb650",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "37cff588-3a20-4666-938c-d38893f0e54b"
+    },
+    "devcore....e_profile.security_audit.py::SecurityAuditor::audit_stage_7_agent_and_demo_routing": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/security_audit.py",
+        "symbol_name": "audit_stage_7_agent_and_demo_routing",
+        "start_line": 436,
+        "end_line": 553,
+        "content_hash": "9ef37fe88fdc",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a1169b49-a0c7-462d-87bc-7b9a17e84996",
+        "class_name": "SecurityAuditor"
     }
 }

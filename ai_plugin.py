@@ -285,7 +285,10 @@ def ai_home():
     target_project = request.args.get("project", "").strip()
     if target_project and hasattr(project_mgr, "set_active_project"):
         try:
-            project_mgr.set_active_project("" if target_project.lower() == "root" else target_project)
+            if target_project.lower() in ("root", "antigravity_agent", "system_core"):
+                project_mgr.set_active_project("")
+            elif target_project in project_mgr.list_projects():
+                project_mgr.set_active_project(target_project)
         except Exception:
             pass
 
