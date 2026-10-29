@@ -145,14 +145,14 @@
     </footer>
 
     <script>
-        const basePath = window.location.pathname.startsWith('/ai_agent') ? '/ai_agent' : '';
+        const basePath = window.location.pathname.replace(/\/login\/?$/, '');
         const urlParams = new URLSearchParams(window.location.search);
         let activeScope = (urlParams.get('demo') === '1' || urlParams.get('mode') === 'demo') ? 'demo' : (urlParams.get('demo') === '0' || urlParams.get('mode') === 'root' ? 'root' : '');
         const scopeQuery = activeScope === 'demo' ? 'demo=1' : (activeScope === 'root' ? 'demo=0' : '');
-        const authCheckUrl = basePath + '/api/auth_check' + (scopeQuery ? '?' + scopeQuery : '');
-        const authSubmitUrl = basePath + '/api/auth_submit';
-        const setApiKeyUrl = basePath + '/api/set_api_key';
-        const returnUrl = (basePath || '') + '/' + (activeScope === 'demo' ? '?demo=1' : '');
+        const authCheckUrl = (basePath ? basePath + '/api/auth_check' : 'api/auth_check') + (scopeQuery ? '?' + scopeQuery : '');
+        const authSubmitUrl = basePath ? basePath + '/api/auth_submit' : 'api/auth_submit';
+        const setApiKeyUrl = basePath ? basePath + '/api/set_api_key' : 'api/set_api_key';
+        const returnUrl = (basePath || '.') + '/' + (activeScope === 'demo' ? '?demo=1' : '?mode=root');
 
         document.getElementById('dashboardBtn').href = returnUrl;
         document.getElementById('continueBtn').href = returnUrl;

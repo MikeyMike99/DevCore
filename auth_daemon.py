@@ -10,9 +10,61 @@ import select
 import tempfile
 import subprocess
 import re
+from pathlib import Path
 
-SOCK_PATH = "/tmp/agy_auth.sock"
-STATE_PATH = "/tmp/agy_auth_state.json"
+BASE_DIR = Path(__file__).resolve().parent
+RUNTIME_DIR = BASE_DIR / ".runtime"
+try:
+    RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+_rt_sock = str(RUNTIME_DIR / "agy_auth.sock")
+SOCK_PATH = _rt_sock if (not _rt_sock.startswith("/mnt/") and len(_rt_sock) < 95) else "/tmp/agy_auth.sock"
+STATE_PATH = str(RUNTIME_DIR / "agy_auth_state.json")
+
+
+def _iter_relative_roots():
+    seen = set()
+    for cand in (
+        BASE_DIR,
+        Path.cwd(),
+        BASE_DIR.parent,
+        BASE_DIR.parent.parent,
+        BASE_DIR.parent.parent.parent,
+        Path.home(),
+    ):
+        try:
+            resolved = cand.resolve()
+            if resolved not in seen and resolved.exists():
+                seen.add(resolved)
+                yield resolved
+        except Exception:
+            continue
+
+
+def _find_agy_binary():
+    for root in _iter_relative_roots():
+        for rel in (
+            Path(".local/bin/agy_real"),
+            Path(".local/bin/agy"),
+            Path("agy_real"),
+            Path("agy"),
+            Path("bin/agy"),
+            Path("agy.exe"),
+        ):
+            cand = root / rel
+            try:
+                if cand.is_file() and cand.stat().st_size > 50:
+                    if cand.name == "agy" and (cand.parent / "agy_real").is_file() and cand.stat().st_size < 4096:
+                        return str(cand.parent / "agy_real")
+                    return str(cand)
+            except Exception:
+                continue
+    which_agy = shutil.which("agy")
+    if which_agy and os.path.exists(which_agy) and os.path.getsize(which_agy) > 50:
+        return which_agy
+    return None
 
 
 def cleanup(staging_dir=None, server_sock=None):
@@ -21,16 +73,18 @@ def cleanup(staging_dir=None, server_sock=None):
             server_sock.close()
         except Exception:
             pass
-    if os.path.exists(SOCK_PATH):
-        try:
-            os.unlink(SOCK_PATH)
-        except Exception:
-            pass
-    if os.path.exists(STATE_PATH):
-        try:
-            os.unlink(STATE_PATH)
-        except Exception:
-            pass
+    for sp in (SOCK_PATH, "/tmp/agy_auth.sock"):
+        if os.path.exists(sp):
+            try:
+                os.unlink(sp)
+            except Exception:
+                pass
+    for st in (STATE_PATH, "/tmp/agy_auth_state.json"):
+        if os.path.exists(st):
+            try:
+                os.unlink(st)
+            except Exception:
+                pass
     if staging_dir and os.path.exists(staging_dir):
         try:
             shutil.rmtree(staging_dir, ignore_errors=True)
@@ -40,11 +94,12 @@ def cleanup(staging_dir=None, server_sock=None):
 
 def main():
     print(f"[auth_daemon] Started at {time.time()} (pid={os.getpid()}, python={sys.executable})", flush=True)
-    if os.path.exists(SOCK_PATH):
-        try:
-            os.unlink(SOCK_PATH)
-        except Exception:
-            pass
+    for sp in (SOCK_PATH, "/tmp/agy_auth.sock"):
+        if os.path.exists(sp):
+            try:
+                os.unlink(sp)
+            except Exception:
+                pass
 
     staging_dir = tempfile.mkdtemp(prefix="agy_oauth_")
     print(f"[auth_daemon] Created staging dir: {staging_dir}", flush=True)
@@ -55,9 +110,14 @@ def main():
     env["PYTHONUNBUFFERED"] = "1"
     env["HOME"] = staging_dir
     env["GEMINI_CLI_HOME"] = staging_dir
-    local_bin = os.path.expanduser("~/.local/bin")
-    if "PATH" in env and local_bin not in env["PATH"]:
-        env["PATH"] = f"{local_bin}:{env['PATH']}"
+    for root in _iter_relative_roots():
+        bin_cand = root / ".local" / "bin"
+        if bin_cand.is_dir():
+            b_str = str(bin_cand)
+            if "PATH" in env and b_str not in env["PATH"]:
+                env["PATH"] = f"{b_str}:{env['PATH']}"
+            elif "PATH" not in env:
+                env["PATH"] = b_str
 
     pa_proxy = "http://proxy.server:3128"
     is_pa = False
@@ -71,8 +131,6 @@ def main():
         is_pa = (
             "PYTHONANYWHERE_DOMAIN" in os.environ
             or "PYTHONANYWHERE_SITE" in os.environ
-            or "mikeymike" in os.path.abspath(__file__).lower()
-            or "pythonanywhere" in os.path.abspath(__file__).lower()
             or os.path.exists("/var/www")
         )
 
@@ -86,11 +144,7 @@ def main():
         env["no_proxy"] = "localhost,127.0.0.1"
         env["NO_PROXY"] = "localhost,127.0.0.1"
 
-    agy_bin = shutil.which("agy")
-    if not agy_bin:
-        fallback = os.path.expanduser("~/.local/bin/agy")
-        agy_bin = fallback if os.path.exists(fallback) else None
-
+    agy_bin = _find_agy_binary()
     if not agy_bin:
         print("[auth_daemon] ERROR: agy binary not found!", flush=True)
         cleanup(staging_dir)
@@ -157,20 +211,19 @@ def main():
         cleanup(staging_dir)
         sys.exit(1)
 
-    try:
-        with open(STATE_PATH, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "pid": os.getpid(),
-                    "url": url,
-                    "created_at": start_time,
-                    "expires_at": expires_at,
-                    "status": "waiting",
-                },
-                f,
-            )
-    except Exception as e:
-        print(f"[auth_daemon] WARNING writing state file: {e}", flush=True)
+    state_payload = {
+        "pid": os.getpid(),
+        "url": url,
+        "created_at": start_time,
+        "expires_at": expires_at,
+        "status": "waiting",
+    }
+    for st in (STATE_PATH, "/tmp/agy_auth_state.json"):
+        try:
+            with open(st, "w", encoding="utf-8") as f:
+                json.dump(state_payload, f)
+        except Exception as e:
+            print(f"[auth_daemon] WARNING writing state file {st}: {e}", flush=True)
 
     print("[auth_daemon] Entering server loop...", flush=True)
     while time.time() < expires_at:
@@ -264,28 +317,30 @@ def main():
                             break
 
                     scope = req.get("scope", "root")
-                    base_dir = os.path.dirname(os.path.abspath(__file__))
                     src_token_path = os.path.join(staging_dir, ".gemini/antigravity-cli/antigravity-oauth-token")
 
                     if scope == "demo":
                         demo_dirs = [
-                            os.path.join(base_dir, "demo"),
-                            os.path.abspath(os.path.join(base_dir, "..", "..", "demo")),
+                            BASE_DIR / "demo",
+                            Path.cwd() / "content" / "projects" / "demo",
+                            BASE_DIR.parent.parent / "demo",
                         ]
                         target_paths = []
                         for d_dir in demo_dirs:
-                            target_paths.append(os.path.join(d_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"))
-                            target_paths.append(os.path.join(d_dir, "antigravity-oauth-token"))
+                            target_paths.append(str(d_dir / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"))
+                            target_paths.append(str(d_dir / "antigravity-oauth-token"))
                     else:
-                        eprofile_root = os.path.abspath(os.path.join(base_dir, "..", "..", ".."))
                         target_paths = [
-                            os.path.expanduser("~/.gemini/antigravity-cli/antigravity-oauth-token"),
-                            os.path.join(eprofile_root, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
+                            str(Path.home() / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"),
+                            str(BASE_DIR / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"),
                         ]
+                        for root in _iter_relative_roots():
+                            if (root / "server.py").is_file() and (root / "projects_mod.py").is_file():
+                                target_paths.append(str(root / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"))
 
                     if os.path.exists(src_token_path):
                         try:
-                            for dest_token_path in target_paths:
+                            for dest_token_path in dict.fromkeys(target_paths):
                                 os.makedirs(os.path.dirname(dest_token_path), exist_ok=True)
                                 shutil.copy2(src_token_path, dest_token_path)
                             print(f"[auth_daemon] Copied antigravity-oauth-token to {scope} destination(s)!", flush=True)

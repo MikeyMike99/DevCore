@@ -8,14 +8,37 @@ import random
 import re
 import traceback
 import logging
+from pathlib import Path
+
+
+def _iter_transcript_roots():
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    seen = set()
+    for candidate in (
+        base_dir,
+        base_dir / "demo",
+        Path.cwd(),
+        Path.cwd() / "demo",
+        base_dir.parent,
+        base_dir.parent.parent,
+        base_dir.parent.parent / "demo",
+        base_dir.parent.parent.parent,
+        Path.home(),
+    ):
+        try:
+            resolved = candidate.resolve()
+            if resolved not in seen and resolved.exists():
+                seen.add(resolved)
+                yield resolved
+        except Exception:
+            continue
+
 
 class TranscriptMixin:
     @staticmethod
     def _strip_aria_noise(text: str) -> str:
         if not text:
             return ""
-        import os
-        import re
         s = str(text)
         s = re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', s)
         s = re.sub(
@@ -112,27 +135,25 @@ class TranscriptMixin:
         deep_insight = ""
         tool_args = {}
         try:
-            import json, os, re, time
             from collections import deque
             conv_id = getattr(self, "current_conversation_id", None) or conversation_id
             if not conv_id:
                 return "", {}
 
-            candidate_dirs = [
-                os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs"),
-                os.path.expanduser(f"~/.gemini/antigravity/brain/{conv_id}/.system_generated/logs"),
-                f"/mnt/c/Users/michael/.gemini/antigravity/brain/{conv_id}/.system_generated/logs",
-                f"/mnt/c/Users/michael/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs",
-            ]
+            candidate_dirs = []
+            for root in _iter_transcript_roots():
+                candidate_dirs.append(root / ".gemini" / "antigravity-cli" / "brain" / str(conv_id) / ".system_generated" / "logs")
+                candidate_dirs.append(root / ".gemini" / "antigravity" / "brain" / str(conv_id) / ".system_generated" / "logs")
+
             t_path = None
             for c_dir in candidate_dirs:
-                full_cand = os.path.join(c_dir, "transcript_full.jsonl")
-                norm_cand = os.path.join(c_dir, "transcript.jsonl")
-                if os.path.exists(full_cand):
-                    t_path = full_cand
+                full_cand = c_dir / "transcript_full.jsonl"
+                norm_cand = c_dir / "transcript.jsonl"
+                if full_cand.exists():
+                    t_path = str(full_cand)
                     break
-                elif os.path.exists(norm_cand):
-                    t_path = norm_cand
+                elif norm_cand.exists():
+                    t_path = str(norm_cand)
                     break
             if not t_path:
                 return "", {}
@@ -209,13 +230,19 @@ class TranscriptMixin:
         return self._local_sec
 
     async def tail_transcript(self, conv_id):
-        import asyncio
-        import os
         import platform
-        
-        wsl_path = os.path.expanduser(f"~/.gemini/antigravity-cli/brain/{conv_id}/.system_generated/logs/transcript.jsonl")
+
+        wsl_path = None
+        for root in _iter_transcript_roots():
+            cand = root / ".gemini" / "antigravity-cli" / "brain" / str(conv_id) / ".system_generated" / "logs" / "transcript.jsonl"
+            if cand.exists():
+                wsl_path = str(cand)
+                break
+        if not wsl_path:
+            wsl_path = str(Path.home() / ".gemini" / "antigravity-cli" / "brain" / str(conv_id) / ".system_generated" / "logs" / "transcript.jsonl")
+
         await asyncio.sleep(2)
-        
+
         if platform.system() == 'Windows':
             process = await asyncio.create_subprocess_exec(
                 'wsl.exe', 'bash', '-c', f'stdbuf -oL tail -n 0 -F {wsl_path}',
@@ -245,7 +272,6 @@ class TranscriptMixin:
         except asyncio.CancelledError:
             process.terminate()
         except Exception as e:
-            import logging
             logging.error(f"[TranscriptMixin] Transcript tailer failed: {e}")
             try:
                 process.terminate()

@@ -1,22 +1,47 @@
 import asyncio
 import json
 import logging
+import os
 import time
+from pathlib import Path
+
+
+def _get_shared_stream_file() -> Path:
+    plugin_dir = Path(__file__).resolve().parent.parent.parent
+    rt_dir = plugin_dir / ".runtime"
+    try:
+        rt_dir.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    return rt_dir / "stream_events.json"
+
 
 class CommsMixin:
-    """Provides non-blocking direct frame broadcasting to connected WebSockets.
-    Eliminates monotonic sequence numbers, ACK throttling, and chunk replay queues.
-    """
+    """Provides non-blocking frame broadcasting to WebSockets and shared sequence queue."""
 
     async def broadcast(self, message: dict):
         msg_type = message.get("type")
+        self.current_seq = getattr(self, "current_seq", 0) + 1
+        seq_val = self.current_seq
+        msg_copy = dict(message)
+        msg_copy["seq"] = seq_val
+
         if hasattr(self, "message_queue") and isinstance(self.message_queue, list):
-            self.current_seq = getattr(self, "current_seq", 0) + 1
-            self.message_queue.append({"seq": self.current_seq, "msg": message})
+            self.message_queue.append({"seq": seq_val, "msg": msg_copy, "ts": time.time()})
             max_q = getattr(self, "max_queue_size", 1000)
             if len(self.message_queue) > max_q:
                 del self.message_queue[:-max_q]
-        payload = json.dumps(message)
+
+            try:
+                sf = _get_shared_stream_file()
+                recent = self.message_queue[-150:]
+                tmp_sf = sf.with_suffix(".tmp")
+                tmp_sf.write_text(json.dumps(recent), encoding="utf-8")
+                os.replace(tmp_sf, sf)
+            except Exception:
+                pass
+
+        payload = json.dumps(msg_copy)
         is_system_msg = msg_type in ("system", "agent_stop", "agent_start", "heartbeat", "init_conv_id", "model_fallback")
         for client_queue, username in list(self.connected_clients.items()):
             is_owner = self.active_task_owner is None or username == self.active_task_owner or username == "admin"
