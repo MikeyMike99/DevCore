@@ -13403,696 +13403,8 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "3fefb6ff0f24",
+        "content_hash": "72a63d029ea8",
         "id": "131d8d50-c759-4e4b-bd57-5c215ada8caf"
-    },
-    "devcore.ai_plugin.py::ai_path": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "ai_path",
-        "start_line": 15,
-        "end_line": 15,
-        "content_hash": "1e6992ca7e30",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "dbd46343-7578-4930-bc83-dbb998a2634d"
-    },
-    "devcore.ai_plugin.py::ai_bp": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "ai_bp",
-        "start_line": 25,
-        "end_line": 25,
-        "content_hash": "0fd26f8fa7d8",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a199c676-85db-4c5d-a13f-a8d08480bd4e"
-    },
-    "devcore.ai_plugin.py::project_mgr": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "project_mgr",
-        "start_line": 27,
-        "end_line": 27,
-        "content_hash": "3b3dedec91ce",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3ca799d1-ff68-46e4-8ea3-e393d62eaf5f"
-    },
-    "devcore.ai_plugin.py::session_mgr": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "session_mgr",
-        "start_line": 28,
-        "end_line": 28,
-        "content_hash": "b8c3ac5f0943",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "463863c2-b9ef-4ac5-b3e6-31404c4799ff"
-    },
-    "devcore.ai_plugin.py::agent_mgr": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "agent_mgr",
-        "start_line": 29,
-        "end_line": 29,
-        "content_hash": "518def879e0f",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d90f617a-e22c-4f58-9bc7-126c0f950af4"
-    },
-    "devcore.ai_plugin.py::security_mgr": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "security_mgr",
-        "start_line": 30,
-        "end_line": 30,
-        "content_hash": "12cdb53ed830",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "ad4fe5d7-420b-4c39-937c-30946828f3ae"
-    },
-    "devcore.ai_plugin.py::_get_ui_config": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_ui_config",
-        "start_line": 109,
-        "end_line": 142,
-        "content_hash": "2608492099dc",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f8be9193-3129-44f5-b5c3-ca7d1eb6632c"
-    },
-    "devcore.ai_plugin.py::query_auth_daemon": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "query_auth_daemon",
-        "start_line": 145,
-        "end_line": 168,
-        "content_hash": "c3c220a4326a",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "aad40cf9-1fdc-4109-a392-b8b3287c41bf"
-    },
-    "devcore.ai_plugin.py::kill_auth_daemon": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "kill_auth_daemon",
-        "start_line": 171,
-        "end_line": 193,
-        "content_hash": "2ecece3fe2a3",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "6d7e83b0-d0ba-47a0-bb80-c0fb3d4aee34"
-    },
-    "devcore.ai_plugin.py::spawn_auth_daemon": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "spawn_auth_daemon",
-        "start_line": 196,
-        "end_line": 215,
-        "content_hash": "76a326d5e567",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d25dab36-d2bb-4d33-b519-cea88e88a3a8"
-    },
-    "devcore.ai_plugin.py::wait_for_auth_daemon": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "wait_for_auth_daemon",
-        "start_line": 218,
-        "end_line": 225,
-        "content_hash": "283ec2542814",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "97e53176-55e4-43bd-8377-c388a622aff5"
-    },
-    "devcore.ai_plugin.py::ai_loop": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "ai_loop",
-        "start_line": 228,
-        "end_line": 228,
-        "content_hash": "ca7ccd01a015",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "07f27ad8-75a1-4425-97ce-aa78906a7875"
-    },
-    "devcore.ai_plugin.py::run_ai_loop": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "run_ai_loop",
-        "start_line": 231,
-        "end_line": 233,
-        "content_hash": "5c54f2c63d22",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "6a93c3b6-b210-456d-9d8a-ebca93876e4b"
-    },
-    "devcore.ai_plugin.py::DEMO_TOKEN_TTL_SECONDS": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "DEMO_TOKEN_TTL_SECONDS",
-        "start_line": 238,
-        "end_line": 238,
-        "content_hash": "287c2c0986b8",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "143edc25-4736-493f-9647-1d1263b6bc65"
-    },
-    "devcore.ai_plugin.py::_cleanup_expired_demo_tokens": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_cleanup_expired_demo_tokens",
-        "start_line": 268,
-        "end_line": 283,
-        "content_hash": "18b8cee40ebf",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "6f85b31f-2dca-4d2a-b262-69f8501fd8c8"
-    },
-    "devcore.ai_plugin.py::_resolve_token_scope": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_resolve_token_scope",
-        "start_line": 286,
-        "end_line": 300,
-        "content_hash": "0e42884e5668",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f3c0c673-ef2c-4040-ac7a-51eedb6f6ea8"
-    },
-    "devcore.ai_plugin.py::_sync_demo_oauth_token": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_sync_demo_oauth_token",
-        "start_line": 303,
-        "end_line": 315,
-        "content_hash": "80361b3bdbea",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f627bdda-7fbc-40e7-815e-d20ee2d9770d"
-    },
-    "devcore.ai_plugin.py::_has_local_cli_credentials": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_has_local_cli_credentials",
-        "start_line": 318,
-        "end_line": 358,
-        "content_hash": "681e36210852",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "a8de6a8a-f301-428c-a267-46437f6cc9b7"
-    },
-    "devcore.ai_plugin.py::_save_api_key_for_scope": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_save_api_key_for_scope",
-        "start_line": 361,
-        "end_line": 381,
-        "content_hash": "ade0b58a33cd",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "055bb667-e474-42fa-916b-4854519927a1"
-    },
-    "devcore.ai_plugin.py::_resolve_active_user": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_resolve_active_user",
-        "start_line": 384,
-        "end_line": 395,
-        "content_hash": "c88204e08974",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "5b949033-a5f7-489b-83e5-fdaa4728b643"
-    },
-    "devcore.ai_plugin.py::ai_home": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "ai_home",
-        "start_line": 399,
-        "end_line": 422,
-        "content_hash": "2bbc8aea4dcd",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "66b3c980-a363-4186-b5d6-d048bb54d4ee"
-    },
-    "devcore.ai_plugin.py::ai_demo_entry": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "ai_demo_entry",
-        "start_line": 426,
-        "end_line": 429,
-        "content_hash": "17241ee20dab",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "71a156b9-cf33-4138-b998-0a5d37d0faa9"
-    },
-    "devcore.ai_plugin.py::login_page": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "login_page",
-        "start_line": 433,
-        "end_line": 437,
-        "content_hash": "c3fa774495cf",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "72dc3acf-da80-4a99-8feb-b58aa530990d"
-    },
-    "devcore.ai_plugin.py::get_ui_config_route": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "get_ui_config_route",
-        "start_line": 441,
-        "end_line": 442,
-        "content_hash": "fe689826959e",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "21fb60a0-5923-44e8-b28f-94f10526bdec"
-    },
-    "devcore.ai_plugin.py::auth_check": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_check",
-        "start_line": 446,
-        "end_line": 492,
-        "content_hash": "76696b1a3fbe",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "43e9ad69-38e3-4b71-a15d-74dc1f594dce"
-    },
-    "devcore.ai_plugin.py::auth_demo": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_demo",
-        "start_line": 496,
-        "end_line": 518,
-        "content_hash": "eacb3e23a8bf",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "78da3a51-4ef6-4770-9653-7f15a2e71858"
-    },
-    "devcore.ai_plugin.py::set_api_key": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "set_api_key",
-        "start_line": 522,
-        "end_line": 551,
-        "content_hash": "bc29b9bea2b3",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "69da426e-6e98-4b99-aa44-79889ad67634"
-    },
-    "devcore.ai_plugin.py::auth_submit": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_submit",
-        "start_line": 555,
-        "end_line": 591,
-        "content_hash": "763b980005e8",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "9d9974d6-e600-4bc3-8222-87ed731b8dca"
-    },
-    "devcore.ai_plugin.py::start_chat": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "start_chat",
-        "start_line": 595,
-        "end_line": 639,
-        "content_hash": "43057412f64d",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "98763e0f-55a2-4b07-a084-95eee8a6ed9e"
-    },
-    "devcore.ai_plugin.py::get_stream": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "get_stream",
-        "start_line": 643,
-        "end_line": 680,
-        "content_hash": "1e971cfc9eba",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "8fb5ce5e-9b6d-4331-a7dc-b943d2f4093a"
-    },
-    "devcore.ai_plugin.py::kill_chat": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "kill_chat",
-        "start_line": 684,
-        "end_line": 686,
-        "content_hash": "cee76723f625",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "2495f3f6-e32d-47c8-ab9c-68aaa138a2be"
-    },
-    "devcore.ai_plugin.py::auth_login": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_login",
-        "start_line": 690,
-        "end_line": 706,
-        "content_hash": "546ba6bc83cb",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "c875c2a6-09f9-46df-8962-2a5ef4326c21"
-    },
-    "devcore.ai_plugin.py::auth_logout": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_logout",
-        "start_line": 710,
-        "end_line": 715,
-        "content_hash": "81c7f5ad5107",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "776084a0-8411-46e0-86cb-5099c0ebeac7"
-    },
-    "devcore.ai_plugin.py::auth_me": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_me",
-        "start_line": 719,
-        "end_line": 727,
-        "content_hash": "f72085b0eb99",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "d4d9b72e-80a8-4fd5-a1dc-245a46dcb13e"
-    },
-    "devcore.ai_plugin.py::auth_system_status": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "auth_system_status",
-        "start_line": 731,
-        "end_line": 737,
-        "content_hash": "fb9f7920709f",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "958aadbc-f596-43f4-901d-1931d0df1bc9"
-    },
-    "devcore.ai_plugin.py::handle_projects": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "handle_projects",
-        "start_line": 741,
-        "end_line": 753,
-        "content_hash": "b488f8a29df7",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3c29b730-554c-4f2e-9f05-130baeda332a"
-    },
-    "devcore.ai_plugin.py::set_active_project": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "set_active_project",
-        "start_line": 757,
-        "end_line": 762,
-        "content_hash": "04fb00e3afd8",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "0037bc68-fc9f-4c07-92ed-9ca84f80cc1a"
-    },
-    "devcore.ai_plugin.py::get_conversations": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "get_conversations",
-        "start_line": 766,
-        "end_line": 773,
-        "content_hash": "05e1edfec079",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "c1933da2-e2da-4b55-8737-295dd4bf4bb8"
-    },
-    "devcore.ai_plugin.py::handle_conversation_details": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "handle_conversation_details",
-        "start_line": 777,
-        "end_line": 784,
-        "content_hash": "376136ef62ac",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "675f5d82-c765-415a-be8e-928db553aa4c"
-    },
-    "devcore.ai_plugin.py::rename_conversation": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "rename_conversation",
-        "start_line": 788,
-        "end_line": 793,
-        "content_hash": "8f08fea086dd",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "3b81fc13-522d-4669-b8bb-9d8a91aeda6a"
-    },
-    "devcore.ai_plugin.py::delete_active_conversations": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "delete_active_conversations",
-        "start_line": 797,
-        "end_line": 801,
-        "content_hash": "badbee29acb6",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "76ccb455-e990-4a60-a5dc-859c7067aa1e"
-    },
-    "devcore.ai_plugin.py::get_artifact": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "get_artifact",
-        "start_line": 805,
-        "end_line": 816,
-        "content_hash": "eda83d031629",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "0b34e337-7596-41e3-8419-a2863f12847c"
-    },
-    "devcore.ai_plugin.py::save_artifact": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "save_artifact",
-        "start_line": 820,
-        "end_line": 835,
-        "content_hash": "924a122dc42a",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "c0c93b9d-f56f-4ada-af78-91b441961295"
     },
     "devcore.apply_upgrade.sh": {
         "type": "file",
@@ -19717,7 +19029,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "469a93843765",
+        "content_hash": "6536f126e79e",
         "id": "97da5dfa-031e-4a4b-83a7-a0da9ee68931"
     },
     "devcore.agents.mixins.execution_mixin.py::ExecutionMixin": {
@@ -19725,8 +19037,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "ExecutionMixin",
         "start_line": 92,
-        "end_line": 1610,
-        "content_hash": "e1125baecf6b",
+        "end_line": 1652,
+        "content_hash": "adc3f7218bbe",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -19860,8 +19172,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_execute_agent",
         "start_line": 290,
-        "end_line": 1189,
-        "content_hash": "34fcff286053",
+        "end_line": 1223,
+        "content_hash": "63e687f2d369",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -19876,9 +19188,9 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_execute_native_gemini",
-        "start_line": 1191,
-        "end_line": 1328,
-        "content_hash": "c324ae0e95b6",
+        "start_line": 1225,
+        "end_line": 1370,
+        "content_hash": "f67a0b1db2dd",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -19893,8 +19205,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_broadcast_queue_state",
-        "start_line": 1330,
-        "end_line": 1342,
+        "start_line": 1372,
+        "end_line": 1384,
         "content_hash": "027761678320",
         "required_tier": 5,
         "sensitive": false,
@@ -19910,8 +19222,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "queue_prompt",
-        "start_line": 1344,
-        "end_line": 1384,
+        "start_line": 1386,
+        "end_line": 1426,
         "content_hash": "a9aa14d2a4f5",
         "required_tier": 5,
         "sensitive": false,
@@ -19927,8 +19239,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "clear_queue",
-        "start_line": 1386,
-        "end_line": 1398,
+        "start_line": 1428,
+        "end_line": 1440,
         "content_hash": "d32d663621e1",
         "required_tier": 5,
         "sensitive": false,
@@ -19944,8 +19256,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "promote_queued_to_steer",
-        "start_line": 1400,
-        "end_line": 1410,
+        "start_line": 1442,
+        "end_line": 1452,
         "content_hash": "1ad5ed641b1e",
         "required_tier": 5,
         "sensitive": false,
@@ -19961,8 +19273,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_drain_queued_prompts",
-        "start_line": 1412,
-        "end_line": 1434,
+        "start_line": 1454,
+        "end_line": 1476,
         "content_hash": "3c87534252b1",
         "required_tier": 5,
         "sensitive": false,
@@ -19978,8 +19290,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "steer_task",
-        "start_line": 1436,
-        "end_line": 1554,
+        "start_line": 1478,
+        "end_line": 1596,
         "content_hash": "53bf45e1716a",
         "required_tier": 5,
         "sensitive": false,
@@ -19995,8 +19307,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "send_input",
-        "start_line": 1556,
-        "end_line": 1566,
+        "start_line": 1598,
+        "end_line": 1608,
         "content_hash": "3da589443b35",
         "required_tier": 5,
         "sensitive": false,
@@ -20012,8 +19324,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "cancel_task",
-        "start_line": 1568,
-        "end_line": 1610,
+        "start_line": 1610,
+        "end_line": 1652,
         "content_hash": "3fdf11eeccc6",
         "required_tier": 5,
         "sensitive": false,
@@ -148009,7 +147321,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "4d4af1f336df",
+        "content_hash": "4a2d46ed1f4b",
         "id": "066a7c1f-0e57-4744-b3e8-b6978720065f"
     },
     "devcore.security.security_manager.py::SecurityManager": {
@@ -148017,8 +147329,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "SecurityManager",
         "start_line": 7,
-        "end_line": 524,
-        "content_hash": "84e22f6b285e",
+        "end_line": 526,
+        "content_hash": "3ed89d362242",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -148390,8 +147702,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "authenticate",
         "start_line": 168,
-        "end_line": 215,
-        "content_hash": "a92e6947522b",
+        "end_line": 217,
+        "content_hash": "7eb2250545c7",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -148406,8 +147718,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "_load_keys",
-        "start_line": 217,
-        "end_line": 226,
+        "start_line": 219,
+        "end_line": 228,
         "content_hash": "82ac52e417ba",
         "required_tier": 5,
         "sensitive": false,
@@ -148423,8 +147735,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "_save_keys",
-        "start_line": 228,
-        "end_line": 233,
+        "start_line": 230,
+        "end_line": 235,
         "content_hash": "f46ba5f13b90",
         "required_tier": 5,
         "sensitive": false,
@@ -148440,8 +147752,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "generate_key",
-        "start_line": 235,
-        "end_line": 255,
+        "start_line": 237,
+        "end_line": 257,
         "content_hash": "5ebfa4ecdcf7",
         "required_tier": 5,
         "sensitive": false,
@@ -148457,8 +147769,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "delete_key",
-        "start_line": 257,
-        "end_line": 262,
+        "start_line": 259,
+        "end_line": 264,
         "content_hash": "9b5eb9ec4c4c",
         "required_tier": 5,
         "sensitive": false,
@@ -148474,8 +147786,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "get_all_keys",
-        "start_line": 264,
-        "end_line": 265,
+        "start_line": 266,
+        "end_line": 267,
         "content_hash": "7a58ba07b1b7",
         "required_tier": 5,
         "sensitive": false,
@@ -148491,8 +147803,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "get_user_from_token",
-        "start_line": 267,
-        "end_line": 274,
+        "start_line": 269,
+        "end_line": 276,
         "content_hash": "3d011fd4d124",
         "required_tier": 5,
         "sensitive": false,
@@ -148508,8 +147820,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "logout",
-        "start_line": 276,
-        "end_line": 285,
+        "start_line": 278,
+        "end_line": 287,
         "content_hash": "ba09219cf7e5",
         "required_tier": 5,
         "sensitive": false,
@@ -148525,8 +147837,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "is_admin_user",
-        "start_line": 287,
-        "end_line": 288,
+        "start_line": 289,
+        "end_line": 290,
         "content_hash": "dd6634f78d06",
         "required_tier": 5,
         "sensitive": false,
@@ -148542,8 +147854,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "can_access_project",
-        "start_line": 290,
-        "end_line": 297,
+        "start_line": 292,
+        "end_line": 299,
         "content_hash": "3b7773806af0",
         "required_tier": 5,
         "sensitive": false,
@@ -148559,8 +147871,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "can_view_logs",
-        "start_line": 299,
-        "end_line": 300,
+        "start_line": 301,
+        "end_line": 302,
         "content_hash": "3267b671553b",
         "required_tier": 5,
         "sensitive": false,
@@ -148576,8 +147888,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "can_reload_engine",
-        "start_line": 302,
-        "end_line": 303,
+        "start_line": 304,
+        "end_line": 305,
         "content_hash": "3d787730fa66",
         "required_tier": 5,
         "sensitive": false,
@@ -148593,8 +147905,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "classify_file",
-        "start_line": 305,
-        "end_line": 330,
+        "start_line": 307,
+        "end_line": 332,
         "content_hash": "2754a38973fc",
         "required_tier": 5,
         "sensitive": false,
@@ -148610,8 +147922,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "resolve_safe_path",
-        "start_line": 332,
-        "end_line": 374,
+        "start_line": 334,
+        "end_line": 376,
         "content_hash": "f7a176f03e90",
         "required_tier": 5,
         "sensitive": false,
@@ -148627,8 +147939,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "list_files",
-        "start_line": 376,
-        "end_line": 439,
+        "start_line": 378,
+        "end_line": 441,
         "content_hash": "ae9db9752d9b",
         "required_tier": 5,
         "sensitive": false,
@@ -148644,8 +147956,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "list_logs",
-        "start_line": 441,
-        "end_line": 456,
+        "start_line": 443,
+        "end_line": 458,
         "content_hash": "158d443b39ed",
         "required_tier": 5,
         "sensitive": false,
@@ -148661,8 +147973,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "read_file_content",
-        "start_line": 458,
-        "end_line": 495,
+        "start_line": 460,
+        "end_line": 497,
         "content_hash": "64c2961fa2b2",
         "required_tier": 5,
         "sensitive": false,
@@ -148678,8 +147990,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/security/security_manager.py",
         "symbol_name": "write_file_content",
-        "start_line": 497,
-        "end_line": 524,
+        "start_line": 499,
+        "end_line": 526,
         "content_hash": "15946b1f921c",
         "required_tier": 5,
         "sensitive": false,
@@ -149861,7 +149173,7 @@
     "devcore....e_profile..gitmodules": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/.gitmodules",
-        "inode": 4785074604375906,
+        "inode": 40532396646641416,
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -149913,7 +149225,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "f892e51cec7c",
+        "content_hash": "0185e2409aea",
         "id": "2237e92c-a5a2-41f6-af1c-8c4b430d11a3"
     },
     "devcore....e_profile.server.py::config": {
@@ -150629,8 +149941,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "toggle_exclusion",
-        "start_line": 862,
-        "end_line": 887,
+        "start_line": 882,
+        "end_line": 907,
         "content_hash": "fc2303be0893",
         "required_tier": 5,
         "sensitive": false,
@@ -150645,8 +149957,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "AUDIO_SUITE_LICENSES_FILE",
-        "start_line": 889,
-        "end_line": 889,
+        "start_line": 909,
+        "end_line": 909,
         "content_hash": "049f01c149b5",
         "required_tier": 5,
         "sensitive": false,
@@ -150661,8 +149973,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "LATEST_AUDIO_SUITE_VERSION",
-        "start_line": 890,
-        "end_line": 890,
+        "start_line": 910,
+        "end_line": 910,
         "content_hash": "1b72b3e3a88b",
         "required_tier": 5,
         "sensitive": false,
@@ -150677,8 +149989,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "AUDIO_SUITE_DOWNLOAD_URL",
-        "start_line": 891,
-        "end_line": 891,
+        "start_line": 911,
+        "end_line": 911,
         "content_hash": "9ef24b3fd000",
         "required_tier": 5,
         "sensitive": false,
@@ -150693,8 +150005,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "AUDIO_SUITE_CHANGELOG",
-        "start_line": 892,
-        "end_line": 892,
+        "start_line": 912,
+        "end_line": 912,
         "content_hash": "9c0f61c69047",
         "required_tier": 5,
         "sensitive": false,
@@ -150709,8 +150021,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "is_newer_version",
-        "start_line": 895,
-        "end_line": 902,
+        "start_line": 915,
+        "end_line": 922,
         "content_hash": "50c9899d5153",
         "required_tier": 5,
         "sensitive": false,
@@ -150725,8 +150037,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "audio_suite_handshake",
-        "start_line": 906,
-        "end_line": 1006,
+        "start_line": 926,
+        "end_line": 1026,
         "content_hash": "ae3894bad1a1",
         "required_tier": 5,
         "sensitive": false,
@@ -150741,8 +150053,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "AUDIO_SUITE_FEEDBACK_FILE",
-        "start_line": 1009,
-        "end_line": 1009,
+        "start_line": 1029,
+        "end_line": 1029,
         "content_hash": "90844df2f40b",
         "required_tier": 5,
         "sensitive": false,
@@ -150757,8 +150069,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "audio_suite_feedback",
-        "start_line": 1013,
-        "end_line": 1077,
+        "start_line": 1033,
+        "end_line": 1097,
         "content_hash": "7c9304f385bd",
         "required_tier": 5,
         "sensitive": false,
@@ -150773,8 +150085,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "admin_mailbox",
-        "start_line": 1082,
-        "end_line": 1101,
+        "start_line": 1102,
+        "end_line": 1121,
         "content_hash": "898086c3f43d",
         "required_tier": 5,
         "sensitive": false,
@@ -150789,8 +150101,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "admin_save_mailbox_settings",
-        "start_line": 1105,
-        "end_line": 1175,
+        "start_line": 1125,
+        "end_line": 1195,
         "content_hash": "c42890ab2b7f",
         "required_tier": 5,
         "sensitive": false,
@@ -150805,8 +150117,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "admin_upload_google_json",
-        "start_line": 1179,
-        "end_line": 1206,
+        "start_line": 1199,
+        "end_line": 1226,
         "content_hash": "d912664dd129",
         "required_tier": 5,
         "sensitive": false,
@@ -150821,8 +150133,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "admin_send_test_email",
-        "start_line": 1210,
-        "end_line": 1252,
+        "start_line": 1230,
+        "end_line": 1272,
         "content_hash": "0ba761a19e17",
         "required_tier": 5,
         "sensitive": false,
@@ -150837,8 +150149,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "admin_clear_mailbox",
-        "start_line": 1256,
-        "end_line": 1274,
+        "start_line": 1276,
+        "end_line": 1294,
         "content_hash": "2e6d3702e410",
         "required_tier": 5,
         "sensitive": false,
@@ -150853,8 +150165,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "admin_test_smtp_connection",
-        "start_line": 1278,
-        "end_line": 1296,
+        "start_line": 1298,
+        "end_line": 1316,
         "content_hash": "5d0843cd1149",
         "required_tier": 5,
         "sensitive": false,
@@ -150869,8 +150181,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "api_admin_get_email",
-        "start_line": 1300,
-        "end_line": 1308,
+        "start_line": 1320,
+        "end_line": 1328,
         "content_hash": "ca9d00c4305b",
         "required_tier": 5,
         "sensitive": false,
@@ -150885,8 +150197,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
         "symbol_name": "page_not_found",
-        "start_line": 1311,
-        "end_line": 1312,
+        "start_line": 1331,
+        "end_line": 1332,
         "content_hash": "a310720cfad8",
         "required_tier": 5,
         "sensitive": false,
@@ -151461,7 +150773,7 @@
     "devcore.core.patches.execution_mixin.py": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
-        "inode": 85568392920257694,
+        "inode": 74027918875161569,
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -151469,7 +150781,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "469a93843765",
+        "content_hash": "6536f126e79e",
         "id": "fc729d84-990b-4de1-a745-76ecbbd8f37c"
     },
     "devcore.core.patches.execution_mixin.py::_iter_relative_roots": {
@@ -151541,8 +150853,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "ExecutionMixin",
         "start_line": 92,
-        "end_line": 1610,
-        "content_hash": "e1125baecf6b",
+        "end_line": 1652,
+        "content_hash": "adc3f7218bbe",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -151676,8 +150988,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_execute_agent",
         "start_line": 290,
-        "end_line": 1189,
-        "content_hash": "34fcff286053",
+        "end_line": 1223,
+        "content_hash": "63e687f2d369",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -151692,9 +151004,9 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_execute_native_gemini",
-        "start_line": 1191,
-        "end_line": 1328,
-        "content_hash": "c324ae0e95b6",
+        "start_line": 1225,
+        "end_line": 1370,
+        "content_hash": "f67a0b1db2dd",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -151709,8 +151021,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_broadcast_queue_state",
-        "start_line": 1330,
-        "end_line": 1342,
+        "start_line": 1372,
+        "end_line": 1384,
         "content_hash": "027761678320",
         "required_tier": 5,
         "sensitive": false,
@@ -151726,8 +151038,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "queue_prompt",
-        "start_line": 1344,
-        "end_line": 1384,
+        "start_line": 1386,
+        "end_line": 1426,
         "content_hash": "a9aa14d2a4f5",
         "required_tier": 5,
         "sensitive": false,
@@ -151743,8 +151055,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "clear_queue",
-        "start_line": 1386,
-        "end_line": 1398,
+        "start_line": 1428,
+        "end_line": 1440,
         "content_hash": "d32d663621e1",
         "required_tier": 5,
         "sensitive": false,
@@ -151760,8 +151072,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "promote_queued_to_steer",
-        "start_line": 1400,
-        "end_line": 1410,
+        "start_line": 1442,
+        "end_line": 1452,
         "content_hash": "1ad5ed641b1e",
         "required_tier": 5,
         "sensitive": false,
@@ -151777,8 +151089,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_drain_queued_prompts",
-        "start_line": 1412,
-        "end_line": 1434,
+        "start_line": 1454,
+        "end_line": 1476,
         "content_hash": "3c87534252b1",
         "required_tier": 5,
         "sensitive": false,
@@ -151794,8 +151106,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "steer_task",
-        "start_line": 1436,
-        "end_line": 1554,
+        "start_line": 1478,
+        "end_line": 1596,
         "content_hash": "53bf45e1716a",
         "required_tier": 5,
         "sensitive": false,
@@ -151811,8 +151123,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "send_input",
-        "start_line": 1556,
-        "end_line": 1566,
+        "start_line": 1598,
+        "end_line": 1608,
         "content_hash": "3da589443b35",
         "required_tier": 5,
         "sensitive": false,
@@ -151828,8 +151140,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "cancel_task",
-        "start_line": 1568,
-        "end_line": 1610,
+        "start_line": 1610,
+        "end_line": 1652,
         "content_hash": "3fdf11eeccc6",
         "required_tier": 5,
         "sensitive": false,
@@ -152922,166 +152234,6 @@
             "execute": false
         },
         "id": "0d9e3359-f78a-453d-a10f-0432b16e76fc"
-    },
-    "devcore.ai_plugin.py::PLUGIN_DIR": {
-        "type": "variable",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "PLUGIN_DIR",
-        "start_line": 14,
-        "end_line": 14,
-        "content_hash": "8747c89fe35f",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "f7d1d6d7-69f2-4009-9dc6-6816c666d70f"
-    },
-    "devcore.ai_plugin.py::_iter_relative_roots": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_iter_relative_roots",
-        "start_line": 33,
-        "end_line": 49,
-        "content_hash": "fe35754a4553",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "c02a2681-b514-4ca5-90e7-1617cadd8e99"
-    },
-    "devcore.ai_plugin.py::_get_runtime_dir": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_runtime_dir",
-        "start_line": 52,
-        "end_line": 58,
-        "content_hash": "16fcc2275372",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "8aa151d6-97f3-49e8-ae29-105908b9f362"
-    },
-    "devcore.ai_plugin.py::_get_sock_path": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_sock_path",
-        "start_line": 61,
-        "end_line": 66,
-        "content_hash": "5b91407b5a72",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "007d1953-2f73-4e22-9f55-ad8d08fb06ef"
-    },
-    "devcore.ai_plugin.py::_get_state_path": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_state_path",
-        "start_line": 69,
-        "end_line": 70,
-        "content_hash": "2c507a5e4120",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "8987630b-0b0f-44ef-b1b4-efe59df65fc2"
-    },
-    "devcore.ai_plugin.py::_get_daemon_log_path": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_daemon_log_path",
-        "start_line": 73,
-        "end_line": 74,
-        "content_hash": "57fff6452fb7",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "add10021-3374-413b-8b6f-d4a91fd49a09"
-    },
-    "devcore.ai_plugin.py::_find_agy_binary": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_find_agy_binary",
-        "start_line": 77,
-        "end_line": 98,
-        "content_hash": "0ac7f0900812",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "fe0a25e0-3496-45a5-966c-a42842236df4"
-    },
-    "devcore.ai_plugin.py::_render_ai_template": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_render_ai_template",
-        "start_line": 101,
-        "end_line": 106,
-        "content_hash": "2e30abeb6dd0",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "1ff31db7-97b8-42c1-aefe-1b436bab2597"
-    },
-    "devcore.ai_plugin.py::_get_demo_dirs": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_demo_dirs",
-        "start_line": 241,
-        "end_line": 258,
-        "content_hash": "fed00173e530",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "ced681df-5b86-4cbe-b02b-c3a3700f460c"
-    },
-    "devcore.ai_plugin.py::_get_eprofile_root": {
-        "type": "function",
-        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
-        "symbol_name": "_get_eprofile_root",
-        "start_line": 261,
-        "end_line": 265,
-        "content_hash": "562080e9535a",
-        "required_tier": 5,
-        "sensitive": false,
-        "permissions": {
-            "read": true,
-            "write": false,
-            "execute": false
-        },
-        "id": "675ce01b-7885-44cd-ba59-e823e3dffc00"
     },
     "devcore.auth_daemon.py::BASE_DIR": {
         "type": "variable",
@@ -165187,7 +164339,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "baad6fb187af",
+        "content_hash": "cfca134120f1",
         "id": "ac9a641b-0f99-4735-8c0d-9f88b19dbdd0"
     },
     "devcore....Central_Docs.scripts.workspace_pipeline.py::RAUGUS_ROOT": {
@@ -165768,5 +164920,1846 @@
             "execute": false
         },
         "id": "0132113e-44e4-429d-b595-01103ebc26c8"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan": {
+        "type": "plan",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "inode": 187802,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "1c0ac03ae32d",
+        "id": "c6071f4b-469c-41f6-95e1-7380101db98c"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::goal_description": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "goal_description",
+        "start_line": 3,
+        "end_line": 11,
+        "content_hash": "57488a5ba2c3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "71ae7989-10d5-4709-a2ff-941d0157aa90"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::architectural_interaction_overview": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "architectural_interaction_overview",
+        "start_line": 12,
+        "end_line": 55,
+        "content_hash": "c72f3d87d5a0",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b0c635f8-0d82-42d9-843c-ab985bd634d6"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::user_review_required": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "user_review_required",
+        "start_line": 56,
+        "end_line": 67,
+        "content_hash": "01f660763306",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5c9d2484-e28f-4230-9a5a-4d3928aa9bfe"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::open_questions": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "open_questions",
+        "start_line": 68,
+        "end_line": 77,
+        "content_hash": "b940bc26e900",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "022db361-fa72-4f10-81ad-ca693ec5064e"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::proposed_changes_test_dimensions": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "proposed_changes_test_dimensions",
+        "start_line": 78,
+        "end_line": 81,
+        "content_hash": "500b44b799f5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ac88585c-f381-4e2d-a83f-fb911667a711"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::component_1_e_profile_test_ai_agent_py_test_implementation": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "component_1_e_profile_test_ai_agent_py_test_implementation",
+        "start_line": 82,
+        "end_line": 148,
+        "content_hash": "0d7ade169b67",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cd52b180-aca2-419d-b64f-3446821ca197"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::component_2_integration_with_security_audit_py": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "component_2_integration_with_security_audit_py",
+        "start_line": 149,
+        "end_line": 155,
+        "content_hash": "43f08caeb7b7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a84ae9bc-a431-42d5-b7c6-5e892785093b"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::verification_plan": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "verification_plan",
+        "start_line": 156,
+        "end_line": 157,
+        "content_hash": "0bd304b5c74e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8ef54104-ffef-444a-8922-db52a486dcab"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::automated_tests": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "automated_tests",
+        "start_line": 158,
+        "end_line": 175,
+        "content_hash": "476174654e67",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5cde2591-f679-4cf7-b446-684dcce7222e"
+    },
+    "devcore.brain.plan.9548ab94.test_e_profile_agent_plan::manual_verification": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/9548ab94-ebfd-4e75-b25c-551a9d352004/test_e_profile_agent_plan.md",
+        "symbol_name": "manual_verification",
+        "start_line": 176,
+        "end_line": 182,
+        "content_hash": "e100e3d16833",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "13bf2f71-5fce-4d21-aba8-53597c44fe93"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan": {
+        "type": "plan",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "inode": 187872,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "44c13601d56f",
+        "id": "fa7aed18-e097-4c76-9ecb-292c30c4b523"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::goal_description": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "goal_description",
+        "start_line": 3,
+        "end_line": 11,
+        "content_hash": "57488a5ba2c3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2916319f-d48b-4a0a-81cb-44dbbcd85d8b"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::architectural_interaction_overview": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "architectural_interaction_overview",
+        "start_line": 12,
+        "end_line": 55,
+        "content_hash": "c72f3d87d5a0",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "218db62f-a233-4381-a1c2-f77e1d3ec96f"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::user_review_required": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "user_review_required",
+        "start_line": 56,
+        "end_line": 67,
+        "content_hash": "01f660763306",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "892dd5e7-9d0c-4cb7-a448-7715c3be2009"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::open_questions": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "open_questions",
+        "start_line": 68,
+        "end_line": 77,
+        "content_hash": "038086b84b24",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e648fa4f-7cef-4ae7-9935-4dca10f593ca"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::proposed_changes_test_dimensions": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "proposed_changes_test_dimensions",
+        "start_line": 78,
+        "end_line": 81,
+        "content_hash": "500b44b799f5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dacb45ed-82e4-4a41-9582-852e08107e7c"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::component_1_e_profile_test_ai_agent_py_test_implementation": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "component_1_e_profile_test_ai_agent_py_test_implementation",
+        "start_line": 82,
+        "end_line": 148,
+        "content_hash": "917844b61023",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9872e183-6d1a-4564-878a-824807d2bfd5"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::component_2_integration_with_security_audit_py": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "component_2_integration_with_security_audit_py",
+        "start_line": 149,
+        "end_line": 155,
+        "content_hash": "43f08caeb7b7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ebf87ab9-0a12-4a3d-9bc5-3218e729ca94"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::verification_plan": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "verification_plan",
+        "start_line": 156,
+        "end_line": 157,
+        "content_hash": "0bd304b5c74e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4b774adf-955d-44c5-a7c5-deda91ab0c38"
+    },
+    "devcore.brain.plan.011aea67.test_e_profile_agent_plan::automated_tests": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/test_e_profile_agent_plan.md",
+        "symbol_name": "automated_tests",
+        "start_line": 158,
+        "end_line": 174,
+        "content_hash": "10a8b71547d4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "85c5aa0d-2448-4fb2-8b93-f088307f0e3f"
+    },
+    "devcore....e_profile.test_ai_agent.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "inode": 39125021762956864,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "746e11bb98a2",
+        "id": "4339f64d-cd5d-4bd0-82a2-f2688f51e9b5"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent": {
+        "type": "class",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "TestEProfileAIAgent",
+        "start_line": 28,
+        "end_line": 364,
+        "content_hash": "079b1b9783a2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bcb049d8-a084-4cc9-b8ee-51c98c1070bb"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::setUp": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "setUp",
+        "start_line": 29,
+        "end_line": 36,
+        "content_hash": "d63e163e54cf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "730a8075-0199-4d01-875c-29a573dd787b",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::tearDown": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "tearDown",
+        "start_line": 38,
+        "end_line": 43,
+        "content_hash": "ddefec7c4478",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fd825d40-46a4-4e24-a25b-92e58659820d",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_unauthenticated_agent_access_redirects_to_login": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_unauthenticated_agent_access_redirects_to_login",
+        "start_line": 49,
+        "end_line": 56,
+        "content_hash": "3c01b6558126",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d206cf98-3d67-4b30-8bfd-a262648b37fd",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_admin_agent_access_establishes_root_scope": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_admin_agent_access_establishes_root_scope",
+        "start_line": 58,
+        "end_line": 72,
+        "content_hash": "3ebda133047a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9e2f74b2-d86c-4b6a-8bab-db0881a10c44",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_demo_visitor_isolation_and_boundary": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_demo_visitor_isolation_and_boundary",
+        "start_line": 74,
+        "end_line": 93,
+        "content_hash": "7421c9eeab85",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bf614586-23be-4eb7-a940-aa8521cc1c89",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_visitor_blocked_from_raw_artifacts": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_visitor_blocked_from_raw_artifacts",
+        "start_line": 95,
+        "end_line": 106,
+        "content_hash": "1474d4cb2371",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7639116a-e87c-4a39-abe9-512455af48cf",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_visitor_blocked_from_artifact_save": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_visitor_blocked_from_artifact_save",
+        "start_line": 108,
+        "end_line": 119,
+        "content_hash": "f00998332013",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7dc66c31-1bc0-45a2-8841-ab8ffbd63242",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_path_traversal_rejection_in_project_and_artifact": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_path_traversal_rejection_in_project_and_artifact",
+        "start_line": 121,
+        "end_line": 133,
+        "content_hash": "424f0ea7ad70",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3a49da4a-d774-43e1-b0c5-04d551f54b03",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_ui_config_endpoint": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_ui_config_endpoint",
+        "start_line": 139,
+        "end_line": 145,
+        "content_hash": "1ad9013d1a30",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "647031ff-d98c-486d-b03f-c1f0a5926e1f",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_auth_demo_token_minting": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_auth_demo_token_minting",
+        "start_line": 147,
+        "end_line": 158,
+        "content_hash": "ce54afddb50a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bb849116-5ff0-4974-9217-4078bddbb3cd",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_scoped_api_key_storage": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_scoped_api_key_storage",
+        "start_line": 160,
+        "end_line": 179,
+        "content_hash": "052fa1bdcd9a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3676e78f-b9f3-4c9e-b338-950b284d28d4",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_auth_me_identity_resolution": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_auth_me_identity_resolution",
+        "start_line": 181,
+        "end_line": 204,
+        "content_hash": "40194c93d7d9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "617abd7b-75b4-4094-be08-03c8a350dc50",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_auth_logout_clears_session": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_auth_logout_clears_session",
+        "start_line": 206,
+        "end_line": 216,
+        "content_hash": "584842f59317",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d4258a45-606c-4168-a536-8b4cdd52e566",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_auth_system_status": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_auth_system_status",
+        "start_line": 218,
+        "end_line": 224,
+        "content_hash": "9cb04d1b8192",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "846f70bb-3423-46a1-888c-02c78980e478",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_list_projects_and_switch_active": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_list_projects_and_switch_active",
+        "start_line": 230,
+        "end_line": 241,
+        "content_hash": "e18dfab4124f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "77d3dace-6407-46ea-926b-aae72f2f00b5",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_conversation_lifecycle": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_conversation_lifecycle",
+        "start_line": 243,
+        "end_line": 258,
+        "content_hash": "1b6fb8217860",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c79b2213-16be-477f-a578-8b5e4dd3f36d",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_delete_active_conversations": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_delete_active_conversations",
+        "start_line": 260,
+        "end_line": 263,
+        "content_hash": "78b46c7683ba",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7f761f8b-c696-4b71-87e2-b325f7bda743",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_start_chat_task_submission": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_start_chat_task_submission",
+        "start_line": 269,
+        "end_line": 278,
+        "content_hash": "3a0c3b440fd4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2d6e408c-ad70-45de-bc44-fa784b8cfdb2",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_stream_sequence_cursor_polling": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_stream_sequence_cursor_polling",
+        "start_line": 280,
+        "end_line": 298,
+        "content_hash": "7e255618c788",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bc9d49a9-7213-49b4-a1b1-ba6b39a3c050",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_kill_chat_task_cancellation": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_kill_chat_task_cancellation",
+        "start_line": 300,
+        "end_line": 307,
+        "content_hash": "1be82a0aa7e3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "649cd4f4-a482-4ac2-8c13-86111738f126",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_admin_fetch_artifact": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_admin_fetch_artifact",
+        "start_line": 313,
+        "end_line": 326,
+        "content_hash": "9697837c36e4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "259fc6f0-f787-4230-b011-025a91b3acb9",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_admin_save_artifact": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_admin_save_artifact",
+        "start_line": 328,
+        "end_line": 343,
+        "content_hash": "d281cab64b09",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ba4357e7-ad8a-47e6-8930-e9d4b501ecfb",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_binary_discovery_heuristics": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_binary_discovery_heuristics",
+        "start_line": 349,
+        "end_line": 354,
+        "content_hash": "6d61c0f0c11a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ee871969-f175-4aa6-9379-95cb8cc971a6",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_zero_hardcoded_host_paths": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_zero_hardcoded_host_paths",
+        "start_line": 356,
+        "end_line": 358,
+        "content_hash": "47564de4ae65",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "52134653-77ca-45da-aec5-4718f2b1f70a",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore....e_profile.test_ai_agent.py::TestEProfileAIAgent::test_file_mod_terminal_scaffolding": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/test_ai_agent.py",
+        "symbol_name": "test_file_mod_terminal_scaffolding",
+        "start_line": 360,
+        "end_line": 364,
+        "content_hash": "5c2b7997ebf4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7dac77e5-d459-4431-be4c-9b4bc9cc8eeb",
+        "class_name": "TestEProfileAIAgent"
+    },
+    "devcore.brain.plan.011aea67.walkthrough": {
+        "type": "plan",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "inode": 188021,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "f33a5c1fa6ca",
+        "id": "3f82cd12-0ccb-45b5-8fe4-23392e94ebb7"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::overview_accomplishments": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "overview_accomplishments",
+        "start_line": 3,
+        "end_line": 7,
+        "content_hash": "9ed344ea9c6a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "58bd76cc-8263-459a-8b1c-623c30f425fd"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::changes_made": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "changes_made",
+        "start_line": 8,
+        "end_line": 9,
+        "content_hash": "782198c213b2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2a2aada8-6eae-4d70-91b6-8b6b8a669bac"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::1_new_automated_unit_test_suite": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "1_new_automated_unit_test_suite",
+        "start_line": 10,
+        "end_line": 19,
+        "content_hash": "961fcf3e1475",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "10785541-575c-451b-99b8-8de50e76ffdc"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::2_dual_signature_authentication_compatibility_fix": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "2_dual_signature_authentication_compatibility_fix",
+        "start_line": 20,
+        "end_line": 25,
+        "content_hash": "346f2acbfa9e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1f68eae3-cb1f-4da3-9e45-298943f5e61d"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::3_stage_7_security_audit_integration": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "3_stage_7_security_audit_integration",
+        "start_line": 26,
+        "end_line": 35,
+        "content_hash": "90747c52fe4d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a9aa67dc-49fb-44d0-a004-b5e19185ffb7"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::validation_verification_results": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "validation_verification_results",
+        "start_line": 36,
+        "end_line": 37,
+        "content_hash": "93ade66d736b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "33984c8e-9694-4260-af3c-e4e9a123fce7"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::1_unit_test_suite_execution": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "1_unit_test_suite_execution",
+        "start_line": 38,
+        "end_line": 43,
+        "content_hash": "8016ac146166",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "52bbcc1a-8fb5-4311-b58f-31815e1e368d"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::2_stage_7_security_audit": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "2_stage_7_security_audit",
+        "start_line": 44,
+        "end_line": 49,
+        "content_hash": "7d5d76f02b9b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4e04540b-29e9-4724-b655-d52ee7569ccb"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::3_full_e_profile_security_audit": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "3_full_e_profile_security_audit",
+        "start_line": 50,
+        "end_line": 55,
+        "content_hash": "f6e1034dfe42",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d6c6a11d-748b-4e3d-a94a-dc4dc78e9f3d"
+    },
+    "devcore.brain.plan.011aea67.walkthrough::4_consolidated_workspace_pipeline_audit": {
+        "type": "section",
+        "real_path": "/home/michael/.gemini/antigravity-cli/brain/011aea67-8fd0-43af-b537-4ca6fa0b579c/walkthrough.md",
+        "symbol_name": "4_consolidated_workspace_pipeline_audit",
+        "start_line": 56,
+        "end_line": 62,
+        "content_hash": "52df6a9ecf5a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "28daddc0-82c0-4745-9bdf-a2cebf394007"
+    },
+    "devcore....e_profile.server.py::serve_sound": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/server.py",
+        "symbol_name": "serve_sound",
+        "start_line": 862,
+        "end_line": 879,
+        "content_hash": "038999d41750",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bb189191-81a1-46c2-8d12-bcd40b518838"
+    },
+    "devcore.ai_plugin.py::PLUGIN_DIR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "PLUGIN_DIR",
+        "start_line": 14,
+        "end_line": 14,
+        "content_hash": "8747c89fe35f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "11584f99-0391-454d-8f24-f1bbafbd4def"
+    },
+    "devcore.ai_plugin.py::ai_path": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "ai_path",
+        "start_line": 15,
+        "end_line": 15,
+        "content_hash": "1e6992ca7e30",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f881a970-a301-40d5-b114-95794f26cfca"
+    },
+    "devcore.ai_plugin.py::ai_bp": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "ai_bp",
+        "start_line": 25,
+        "end_line": 25,
+        "content_hash": "0fd26f8fa7d8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "37678394-4293-4430-ae51-0063c087e130"
+    },
+    "devcore.ai_plugin.py::project_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "project_mgr",
+        "start_line": 27,
+        "end_line": 27,
+        "content_hash": "3b3dedec91ce",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "10ce3ee7-20ba-42be-aec4-242150f58804"
+    },
+    "devcore.ai_plugin.py::session_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "session_mgr",
+        "start_line": 28,
+        "end_line": 28,
+        "content_hash": "b8c3ac5f0943",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "81df286c-6f3a-4698-bd16-7b1b6204bc3e"
+    },
+    "devcore.ai_plugin.py::agent_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "agent_mgr",
+        "start_line": 29,
+        "end_line": 29,
+        "content_hash": "518def879e0f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d65dbf1a-e03a-40ac-aac8-e734ac72edaf"
+    },
+    "devcore.ai_plugin.py::security_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "security_mgr",
+        "start_line": 30,
+        "end_line": 30,
+        "content_hash": "12cdb53ed830",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "07ca6b3d-cd36-4df3-ad3b-aab886fac806"
+    },
+    "devcore.ai_plugin.py::_iter_relative_roots": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_iter_relative_roots",
+        "start_line": 33,
+        "end_line": 49,
+        "content_hash": "fe35754a4553",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9e0e14d9-5814-4870-9046-5034ab062c76"
+    },
+    "devcore.ai_plugin.py::_get_runtime_dir": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_runtime_dir",
+        "start_line": 52,
+        "end_line": 58,
+        "content_hash": "16fcc2275372",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "561f179f-40a6-41a9-a462-3f2fad3827ac"
+    },
+    "devcore.ai_plugin.py::_get_sock_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_sock_path",
+        "start_line": 61,
+        "end_line": 66,
+        "content_hash": "5b91407b5a72",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b8496d3d-a313-479c-a89a-aaa9d843a89f"
+    },
+    "devcore.ai_plugin.py::_get_state_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_state_path",
+        "start_line": 69,
+        "end_line": 70,
+        "content_hash": "2c507a5e4120",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "837739ca-20f9-47b7-9d9d-4e6c0c98f93f"
+    },
+    "devcore.ai_plugin.py::_get_daemon_log_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_daemon_log_path",
+        "start_line": 73,
+        "end_line": 74,
+        "content_hash": "57fff6452fb7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0034baab-45ca-4765-927d-ab26bbb48c4f"
+    },
+    "devcore.ai_plugin.py::_find_agy_binary": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_find_agy_binary",
+        "start_line": 77,
+        "end_line": 98,
+        "content_hash": "0ac7f0900812",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d3ca1fef-3184-47ae-81ab-66266cd653e8"
+    },
+    "devcore.ai_plugin.py::_render_ai_template": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_render_ai_template",
+        "start_line": 101,
+        "end_line": 106,
+        "content_hash": "2e30abeb6dd0",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d4d63ce3-7319-4919-bb8e-23fd6559694a"
+    },
+    "devcore.ai_plugin.py::_get_ui_config": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_ui_config",
+        "start_line": 109,
+        "end_line": 142,
+        "content_hash": "2608492099dc",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2385a3bc-2e5a-46e2-b6c6-1bc6022dbe8b"
+    },
+    "devcore.ai_plugin.py::query_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "query_auth_daemon",
+        "start_line": 145,
+        "end_line": 168,
+        "content_hash": "c3c220a4326a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ab92cf17-7d40-45a7-a63f-bf759e42ad04"
+    },
+    "devcore.ai_plugin.py::kill_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "kill_auth_daemon",
+        "start_line": 171,
+        "end_line": 193,
+        "content_hash": "2ecece3fe2a3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "43f6b499-92e8-4ac6-a404-d332f5c62d1f"
+    },
+    "devcore.ai_plugin.py::spawn_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "spawn_auth_daemon",
+        "start_line": 196,
+        "end_line": 215,
+        "content_hash": "76a326d5e567",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1adca6a4-3d1e-45d3-97b2-489c22b0e0b2"
+    },
+    "devcore.ai_plugin.py::wait_for_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "wait_for_auth_daemon",
+        "start_line": 218,
+        "end_line": 225,
+        "content_hash": "283ec2542814",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f09671e7-af1e-45f6-a329-1189092f9908"
+    },
+    "devcore.ai_plugin.py::ai_loop": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "ai_loop",
+        "start_line": 228,
+        "end_line": 228,
+        "content_hash": "ca7ccd01a015",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ac12d331-8a69-4474-b26e-c54c36618f86"
+    },
+    "devcore.ai_plugin.py::run_ai_loop": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "run_ai_loop",
+        "start_line": 231,
+        "end_line": 233,
+        "content_hash": "5c54f2c63d22",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b6e3d966-b4aa-4f49-b82c-80d3e7839a00"
+    },
+    "devcore.ai_plugin.py::DEMO_TOKEN_TTL_SECONDS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "DEMO_TOKEN_TTL_SECONDS",
+        "start_line": 238,
+        "end_line": 238,
+        "content_hash": "287c2c0986b8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "71206b1a-8b5e-4d4a-8b7b-8bb6bd518fbc"
+    },
+    "devcore.ai_plugin.py::_get_demo_dirs": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_demo_dirs",
+        "start_line": 241,
+        "end_line": 258,
+        "content_hash": "fed00173e530",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "420ec7b6-66ba-4c37-9740-ba6f3a64eaf0"
+    },
+    "devcore.ai_plugin.py::_get_eprofile_root": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_get_eprofile_root",
+        "start_line": 261,
+        "end_line": 265,
+        "content_hash": "562080e9535a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e839ad69-b407-4d62-b4aa-0366b75d896b"
+    },
+    "devcore.ai_plugin.py::_cleanup_expired_demo_tokens": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_cleanup_expired_demo_tokens",
+        "start_line": 268,
+        "end_line": 283,
+        "content_hash": "18b8cee40ebf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "506a3cab-39ec-4f88-b094-4de91bac30aa"
+    },
+    "devcore.ai_plugin.py::_resolve_token_scope": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_resolve_token_scope",
+        "start_line": 286,
+        "end_line": 300,
+        "content_hash": "0e42884e5668",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "419900cd-6132-4249-94fd-03d84abab130"
+    },
+    "devcore.ai_plugin.py::_sync_demo_oauth_token": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_sync_demo_oauth_token",
+        "start_line": 303,
+        "end_line": 315,
+        "content_hash": "80361b3bdbea",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a55b7295-5a14-4b9a-af36-561a1da82b8e"
+    },
+    "devcore.ai_plugin.py::_has_local_cli_credentials": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_has_local_cli_credentials",
+        "start_line": 318,
+        "end_line": 358,
+        "content_hash": "681e36210852",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2aa44861-024b-48a1-b683-2890b19bc75d"
+    },
+    "devcore.ai_plugin.py::_save_api_key_for_scope": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_save_api_key_for_scope",
+        "start_line": 361,
+        "end_line": 381,
+        "content_hash": "ade0b58a33cd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1d9957c0-c9dc-45a5-95da-81226ad85c4a"
+    },
+    "devcore.ai_plugin.py::_resolve_active_user": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "_resolve_active_user",
+        "start_line": 384,
+        "end_line": 395,
+        "content_hash": "c88204e08974",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a067190e-8daf-4cf0-8001-af5937f2b54d"
+    },
+    "devcore.ai_plugin.py::ai_home": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "ai_home",
+        "start_line": 399,
+        "end_line": 422,
+        "content_hash": "2bbc8aea4dcd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "29793bbb-9b45-4bd6-823d-aa8f29a10b76"
+    },
+    "devcore.ai_plugin.py::ai_demo_entry": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "ai_demo_entry",
+        "start_line": 426,
+        "end_line": 429,
+        "content_hash": "17241ee20dab",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "17883cc7-563b-44a9-b84e-d63890687245"
+    },
+    "devcore.ai_plugin.py::login_page": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "login_page",
+        "start_line": 433,
+        "end_line": 437,
+        "content_hash": "c3fa774495cf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d637ab80-abf4-4c54-ae1e-171d682dd8a0"
+    },
+    "devcore.ai_plugin.py::get_ui_config_route": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "get_ui_config_route",
+        "start_line": 441,
+        "end_line": 442,
+        "content_hash": "fe689826959e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "61a09ea4-9e1b-4209-85cf-151cf0efac69"
+    },
+    "devcore.ai_plugin.py::auth_check": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_check",
+        "start_line": 446,
+        "end_line": 492,
+        "content_hash": "76696b1a3fbe",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c3b7b37e-22ad-47b5-8820-a83ca8cfe796"
+    },
+    "devcore.ai_plugin.py::auth_demo": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_demo",
+        "start_line": 496,
+        "end_line": 521,
+        "content_hash": "5c7d428631a5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1355c48b-55e5-420c-8a14-64c4e492d857"
+    },
+    "devcore.ai_plugin.py::get_sound": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "get_sound",
+        "start_line": 525,
+        "end_line": 542,
+        "content_hash": "739382f97c63",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "66f172de-307e-4858-ac14-00e6ed7e459a"
+    },
+    "devcore.ai_plugin.py::set_api_key": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "set_api_key",
+        "start_line": 546,
+        "end_line": 578,
+        "content_hash": "df33cf793269",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8ebd326a-a7f3-4e78-81d4-d8deb4862aa4"
+    },
+    "devcore.ai_plugin.py::auth_submit": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_submit",
+        "start_line": 582,
+        "end_line": 618,
+        "content_hash": "763b980005e8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "85388379-0b5a-46bf-88b6-0dbd3c78dc39"
+    },
+    "devcore.ai_plugin.py::start_chat": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "start_chat",
+        "start_line": 622,
+        "end_line": 666,
+        "content_hash": "43057412f64d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9b1b16d4-b6da-43ad-aac2-aa85d2ab8df9"
+    },
+    "devcore.ai_plugin.py::get_stream": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "get_stream",
+        "start_line": 670,
+        "end_line": 707,
+        "content_hash": "1e971cfc9eba",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f9321fda-c7e2-47a5-9e9f-bff7dd02b701"
+    },
+    "devcore.ai_plugin.py::kill_chat": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "kill_chat",
+        "start_line": 711,
+        "end_line": 713,
+        "content_hash": "cee76723f625",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c6670c37-79fd-40e0-90b4-7ad2877be0b2"
+    },
+    "devcore.ai_plugin.py::auth_login": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_login",
+        "start_line": 717,
+        "end_line": 736,
+        "content_hash": "48e56aea2824",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0ff8f371-f76d-40c6-96e1-60ddabd264cc"
+    },
+    "devcore.ai_plugin.py::auth_logout": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_logout",
+        "start_line": 740,
+        "end_line": 745,
+        "content_hash": "81c7f5ad5107",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7b7edb81-664a-467e-95bf-9d55a5b8977b"
+    },
+    "devcore.ai_plugin.py::auth_me": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_me",
+        "start_line": 749,
+        "end_line": 757,
+        "content_hash": "f72085b0eb99",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fce731c7-37e7-4d9c-be03-5c58b0524354"
+    },
+    "devcore.ai_plugin.py::auth_system_status": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "auth_system_status",
+        "start_line": 761,
+        "end_line": 767,
+        "content_hash": "fb9f7920709f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a4b2993f-7600-4194-bb07-da35d29891fd"
+    },
+    "devcore.ai_plugin.py::handle_projects": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "handle_projects",
+        "start_line": 771,
+        "end_line": 783,
+        "content_hash": "b488f8a29df7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "891a0b36-223e-49e7-8e3e-6c2b9d54280b"
+    },
+    "devcore.ai_plugin.py::set_active_project": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "set_active_project",
+        "start_line": 787,
+        "end_line": 792,
+        "content_hash": "04fb00e3afd8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4c4f6862-1ccc-4223-a1a0-6abaf54b92ff"
+    },
+    "devcore.ai_plugin.py::get_conversations": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "get_conversations",
+        "start_line": 796,
+        "end_line": 803,
+        "content_hash": "05e1edfec079",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "65159000-534b-4fc6-b2f5-b967e1deae2f"
+    },
+    "devcore.ai_plugin.py::handle_conversation_details": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "handle_conversation_details",
+        "start_line": 807,
+        "end_line": 814,
+        "content_hash": "376136ef62ac",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cea140db-a979-4c02-ba3a-112a4e6ccae4"
+    },
+    "devcore.ai_plugin.py::rename_conversation": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "rename_conversation",
+        "start_line": 818,
+        "end_line": 823,
+        "content_hash": "8f08fea086dd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d309aa39-9b54-49c0-af12-26bede062f13"
+    },
+    "devcore.ai_plugin.py::delete_active_conversations": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "delete_active_conversations",
+        "start_line": 827,
+        "end_line": 831,
+        "content_hash": "badbee29acb6",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "745aa043-67da-4d99-a215-3d7c2e455c90"
+    },
+    "devcore.ai_plugin.py::get_artifact": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "get_artifact",
+        "start_line": 835,
+        "end_line": 846,
+        "content_hash": "eda83d031629",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fa9d9064-e567-46ce-bfac-0eb975a6133b"
+    },
+    "devcore.ai_plugin.py::save_artifact": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
+        "symbol_name": "save_artifact",
+        "start_line": 850,
+        "end_line": 865,
+        "content_hash": "924a122dc42a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "88c5fcda-a720-419b-9c96-2f13bebd9121"
     }
 }

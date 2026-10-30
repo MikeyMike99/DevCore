@@ -594,7 +594,10 @@ class ExecutionMixin:
                 if is_admin:
                     sys_msg += "1. You are running with ADMIN privileges.\n"
                     sys_msg += "2. DO NOT execute stuff in the sandbox.\n"
-                    sys_msg += "3. MANDATORY HOT-PATCH SEQUENCE: Never edit live backend engine .py files directly in place. Stage complete updated .py files in <RAUGUS_VFS_ROOT>/core/patches/ and trigger POST http://127.0.0.1:5000/api/simulate-patch (or /api/reload).\n"
+                    if is_pa:
+                        sys_msg += "3. PYTHONANYWHERE DEPLOYMENT ACTIVE: You are running on PythonAnywhere cloud hosting (uWSGI). Python code changes take effect when reloading the WSGI application (touch /var/www/*_wsgi.py) or via git auto-sync. Do not call port 5000.\n"
+                    else:
+                        sys_msg += "3. MANDATORY HOT-PATCH SEQUENCE: Never edit live backend engine .py files directly in place. Stage complete updated .py files in <RAUGUS_VFS_ROOT>/core/patches/ and trigger POST http://127.0.0.1:5000/api/simulate-patch (or /api/reload).\n"
                     sys_msg += "4. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
                     sys_msg += "5. CRITICAL RULE: You MUST always output a final conversational text response to the user. Do NOT end your execution without giving a final summary or explanation in text.\n"
                     sys_msg += "6. TOKEN CONSERVATION PROTOCOL: For inspecting code or documentation, always prioritize surgical reads via `read_by_key('<module>::<symbol>')` or `get_block_by_tag('<tag>')` rather than loading entire files. Update code surgically via `write_by_key('<module>::<symbol>', new_code)` to prevent token inflation.\n"
@@ -1221,6 +1224,14 @@ class ExecutionMixin:
 
     async def _execute_native_gemini(self, prompt: str, model: str, task_time: float, conversation_id: str, is_admin: bool):
         await self.broadcast({"type": "agent_start", "model": model})
+
+        is_pa = "PYTHONANYWHERE_DOMAIN" in os.environ or "PYTHONANYWHERE_SITE" in os.environ or os.path.exists("/var/www")
+        if is_pa:
+            pa_proxy = "http://proxy.server:3128"
+            os.environ["http_proxy"] = pa_proxy
+            os.environ["https_proxy"] = pa_proxy
+            os.environ["HTTP_PROXY"] = pa_proxy
+            os.environ["HTTPS_PROXY"] = pa_proxy
 
         if not conversation_id:
             import uuid

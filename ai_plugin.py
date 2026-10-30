@@ -497,7 +497,10 @@ def auth_demo():
     _cleanup_expired_demo_tokens()
     session["agent_token_scope"] = "demo"
     session["agent_authenticated"] = True
-    res = security_mgr.authenticate("dev", "dev")
+    try:
+        res = security_mgr.authenticate("dev:dev")
+    except Exception:
+        res = security_mgr.authenticate("dev", "dev") if hasattr(security_mgr, "authenticate") else None
     if not res:
         res = {
             "token": "sec-demo-" + os.urandom(8).hex(),
@@ -518,6 +521,27 @@ def auth_demo():
     })
 
 
+@ai_bp.route("/api/sounds/<sound_name>", methods=["GET"])
+def get_sound(sound_name):
+    from flask import send_file
+    for cand_dir in (
+        PLUGIN_DIR / "sandbox" / "static" / "sounds",
+        PLUGIN_DIR / "static" / "sounds",
+        _get_eprofile_root() / "static" / "sounds",
+    ):
+        for ext in ('.wav', '.mp3', '.ogg'):
+            f = cand_dir / f"{sound_name}{ext}"
+            if f.is_file():
+                mimetype = "audio/x-wav" if ext == ".wav" else ("audio/ogg" if ext == ".ogg" else "audio/mpeg")
+                return send_file(str(f), mimetype=mimetype)
+    if sound_name == "notification":
+        for cand_dir in (PLUGIN_DIR / "sandbox" / "static" / "sounds", PLUGIN_DIR / "static" / "sounds"):
+            f = cand_dir / "incoming.wav"
+            if f.is_file():
+                return send_file(str(f), mimetype="audio/x-wav")
+    return jsonify({"error": f"Sound {sound_name} not found"}), 404
+
+
 @ai_bp.route("/api/set_api_key", methods=["POST"])
 def set_api_key():
     data = request.get_json(silent=True) or {}
@@ -529,7 +553,10 @@ def set_api_key():
     if data.get("demo") is True or data.get("api_key") == "demo":
         session["agent_token_scope"] = "demo"
         session["agent_authenticated"] = True
-        res = security_mgr.authenticate("dev", "dev")
+        try:
+            res = security_mgr.authenticate("dev:dev")
+        except Exception:
+            res = security_mgr.authenticate("dev", "dev") if hasattr(security_mgr, "authenticate") else None
         return jsonify({
             "success": True,
             "demo": True,
@@ -692,7 +719,10 @@ def auth_login():
     if data.get("demo") is True or data.get("username") == "demo" or data.get("access_key") == "demo":
         session["agent_token_scope"] = "demo"
         session["agent_authenticated"] = True
-        res = security_mgr.authenticate("dev", "dev")
+        try:
+            res = security_mgr.authenticate("dev:dev")
+        except Exception:
+            res = security_mgr.authenticate("dev", "dev") if hasattr(security_mgr, "authenticate") else None
         return jsonify(res)
     username = data.get("username")
     password = data.get("password")

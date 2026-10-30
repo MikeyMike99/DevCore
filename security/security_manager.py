@@ -165,8 +165,10 @@ class SecurityManager:
         self.invalidate_files_cache()
         self._load_sessions()
 
-    def authenticate(self, access_key):
-        """Authenticates a user using an access key and issues a bearer session token."""
+    def authenticate(self, access_key, password=None):
+        """Authenticates a user using an access key or credentials pair and issues a bearer session token."""
+        if password is not None:
+            access_key = f"{access_key}:{password}"
         user = self.keys.get(access_key)
         
         if not user:
