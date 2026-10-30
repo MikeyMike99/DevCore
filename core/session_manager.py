@@ -534,43 +534,46 @@ class SessionManager:
                         for call in data.get("tool_calls", []):
                             args = call.get("args") or {}
                             f_cand = (
-                                args.get("TargetFile")
+                                args.get("Path")
+                                or args.get("path")
+                                or args.get("TargetFile")
                                 or args.get("target_file")
                                 or args.get("AbsolutePath")
                                 or args.get("File")
                             )
                             if f_cand and isinstance(f_cand, str) and not f_cand.endswith((".log", ".tmp")):
-                                files_touched.add(os.path.basename(f_cand).replace('"', "").replace("'", "").strip())
+                                clean_f = f_cand.replace('"', "").replace("'", "").strip()
+                                files_touched.add(clean_f)
             except Exception as e:
                 print(f"[SessionManager] Warning during briefing extraction: {e}")
                 
         recent_goals_str = ""
-        meaningful_prompts = user_prompts[-3:] if user_prompts else ["Continue active software engineering task."]
+        meaningful_prompts = user_prompts[-5:] if user_prompts else ["Continue active software engineering task."]
         for p in meaningful_prompts:
-            clean_p = p[:100].strip()
+            clean_p = p[:600].strip()
             recent_goals_str += f"  • {clean_p}\n"
             
         recent_files_str = ""
         if files_touched:
-            for fn in list(files_touched)[-5:]:
+            for fn in list(files_touched)[-15:]:
                 recent_files_str += f"  • {fn}\n"
         else:
             recent_files_str = "  • None recorded in recent turns.\n"
             
         latest_outcome = "Ready to proceed."
         if agent_outcomes:
-            latest_outcome = agent_outcomes[-1][:200].replace("\n", " ").strip()
+            latest_outcome = agent_outcomes[-1][:2000].strip()
             
         briefing = (
             "<SESSION_CONTINUATION_CONTEXT>\n"
-            "[AUTOMATIC SESSION ROLLOVER: The previous session was archived to maintain peak responsiveness and eliminate token bloat.]\n"
+            f"[AUTOMATIC SESSION ROLLOVER: Session {conv_id} archived to maintain peak responsiveness and eliminate token bloat.]\n"
             f"- Active Workspace Directory: {workspace_dir}\n"
             f"- Active Project: {project_name}\n"
             "- Recent Accomplished Goals:\n"
             f"{recent_goals_str}"
             "- Recently Touched Files:\n"
             f"{recent_files_str}"
-            f"- Latest Context / Outcome: {latest_outcome}\n"
+            f"- Latest Context / Outcome:\n{latest_outcome}\n"
             "- Operational Rules: Screen-reader optimized responses; concise markdown; clickable file:// links; clean workspace protocol (no lingering scratch files).\n"
             "</SESSION_CONTINUATION_CONTEXT>"
         )

@@ -383,8 +383,36 @@ class ExecutionMixin:
                         cached_tokens = max(metrics.get("cached_tokens", 0), getattr(self, "last_cache_read_tokens", 0))
                         total_tokens = max(metrics.get("total_tokens", 0), getattr(self, "last_total_tokens", 0))
 
-                        rollover_token_limit = int(os.environ.get("SESSION_ROLLOVER_TOKEN_LIMIT", "150000"))
-                        should_rollover = (user_turns >= 80) or (total_steps >= 200) or (cached_tokens >= rollover_token_limit) or (total_tokens >= rollover_token_limit)
+                        env_token_limit = os.environ.get("SESSION_ROLLOVER_TOKEN_LIMIT")
+                        if env_token_limit and env_token_limit.isdigit():
+                            rollover_token_limit = int(env_token_limit)
+                        else:
+                            active_model = str(
+                                getattr(self, "model", "")
+                                or getattr(self, "current_model", "")
+                                or os.environ.get("GEMINI_MODEL", "")
+                            ).lower()
+                            is_large_context = any(m in active_model for m in ("flash", "pro", "gemini", "claude", "gpt-4"))
+                            rollover_token_limit = 500000 if is_large_context else 350000
+
+                        env_turn_limit = os.environ.get("SESSION_ROLLOVER_TURN_LIMIT")
+                        rollover_turn_limit = int(env_turn_limit) if env_turn_limit and env_turn_limit.isdigit() else 150
+
+                        env_step_limit = os.environ.get("SESSION_ROLLOVER_STEP_LIMIT")
+                        rollover_step_limit = int(env_step_limit) if env_step_limit and env_step_limit.isdigit() else 400
+
+                        followup_tokens = ("yes", "no", "ok", "okay", "continue", "proceed", "test", "verify", "check", "fix", "why", "how", "wait")
+                        prompt_lower = (prompt or "").strip().lower()
+                        is_short_followup = len(prompt_lower) <= 120 or prompt_lower.startswith(followup_tokens)
+                        effective_token_limit = int(rollover_token_limit * 1.25) if is_short_followup else rollover_token_limit
+
+                        should_rollover = (
+                            (user_turns >= rollover_turn_limit)
+                            or (total_steps >= rollover_step_limit)
+                            or (cached_tokens >= effective_token_limit)
+                            or (total_tokens >= effective_token_limit)
+                            or (cached_tokens >= rollover_token_limit and not is_short_followup)
+                        )
 
                         if should_rollover:
                             briefing = session_mgr.generate_continuation_briefing(conversation_id, workspace_dir)

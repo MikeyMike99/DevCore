@@ -1,0 +1,13 @@
+{
+  "lease_id": "jit-998b99aa1c",
+  "token_sha256": "462d377e9656327b42e5fcd832c674564a0d4a495cfe31730dc42fa023147631",
+  "issued_at": 1793354081.053,
+  "expires_at": 1793354381.053,
+  "ttl_seconds": 300,
+  "scope": [
+    "core_security"
+  ],
+  "active_session_lift": true,
+  "issued_by": "host_cli",
+  "signature": "4a0cacf3977847fb267d9544af44a4ec564fc1b057208e1aa5a96da2ccf3bfd4"
+}
