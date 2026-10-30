@@ -478,27 +478,28 @@ class ExecutionMixin:
 
             user_id = (user.get("username") if isinstance(user, dict) else None) or (user.get("name") if isinstance(user, dict) else None) or "guest"
             byos_data = None
-            try:
-                from security.subscription_guard import assert_user_execution_quota, get_user_runtime_chamber
-                byos_ok, byos_reason, byos_data = assert_user_execution_quota(user, base_dir=base_dir)
-                if not byos_ok:
-                    halt_msg = f"⛔ **Personal Subscription Required (Strict Halt)**\n\n{byos_reason}"
-                    self.output_buffer.append(halt_msg)
-                    await self.broadcast({"type": "agent_chunk", "chunk": halt_msg})
-                    await self.broadcast({
-                        "type": "agent_done",
-                        "exit_code": 1,
-                        "elapsed": 0.1,
-                        "status": "HALTED",
-                        "output": halt_msg,
-                        "cancelled": False
-                    })
-                    hb_task.cancel()
-                    self.active_task = None
-                    self.start_time = None
-                    return
-            except Exception as e:
-                logging.warning(f"[ExecutionMixin] Subscription guard warning: {e}")
+            if token_scope != "demo":
+                try:
+                    from security.subscription_guard import assert_user_execution_quota, get_user_runtime_chamber
+                    byos_ok, byos_reason, byos_data = assert_user_execution_quota(user, base_dir=base_dir)
+                    if not byos_ok:
+                        halt_msg = f"⛔ **Personal Subscription Required (Strict Halt)**\n\n{byos_reason}"
+                        self.output_buffer.append(halt_msg)
+                        await self.broadcast({"type": "agent_chunk", "chunk": halt_msg})
+                        await self.broadcast({
+                            "type": "agent_done",
+                            "exit_code": 1,
+                            "elapsed": 0.1,
+                            "status": "HALTED",
+                            "output": halt_msg,
+                            "cancelled": False
+                        })
+                        hb_task.cancel()
+                        self.active_task = None
+                        self.start_time = None
+                        return
+                except Exception as e:
+                    logging.warning(f"[ExecutionMixin] Subscription guard warning: {e}")
 
             if byos_data and byos_data.get("credential"):
                 user_chamber = get_user_runtime_chamber(user_id)
@@ -602,32 +603,8 @@ class ExecutionMixin:
                             except Exception:
                                 pass
             else:
-                found_oauth = None
-                for root in _iter_relative_roots(base_dir):
-                    for rel_tok in (
-                        Path(".gemini/antigravity-cli/antigravity-oauth-token"),
-                        Path("antigravity-oauth-token"),
-                    ):
-                        cand_tok = root / rel_tok
-                        if cand_tok.is_file() and cand_tok.stat().st_size > 8:
-                            found_oauth = cand_tok
-                            break
-                    if found_oauth:
-                        break
-
-                home_oauth = Path.home() / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
-                if found_oauth and not home_oauth.exists():
-                    try:
-                        home_oauth.parent.mkdir(parents=True, exist_ok=True)
-                        shutil.copy2(found_oauth, home_oauth)
-                    except Exception:
-                        pass
-
-                if (found_oauth and found_oauth.exists()) or (home_oauth.exists() and home_oauth.stat().st_size > 8):
-                    safe_env.pop("GEMINI_API_KEY", None)
-                    safe_env.pop("GOOGLE_API_KEY", None)
-                    safe_env.pop("GEMINI_BASE_URL", None)
-                else:
+                existing_key = safe_env.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+                if not existing_key:
                     for root in _iter_relative_roots(base_dir):
                         for kname in (".devcore_client_key.txt", "gemini_api_key.txt"):
                             kp = root / kname
@@ -635,12 +612,58 @@ class ExecutionMixin:
                                 try:
                                     kval = kp.read_text(encoding="utf-8").strip()
                                     if kval:
-                                        safe_env["GEMINI_API_KEY"] = kval
+                                        existing_key = kval
                                         break
                                 except Exception:
                                     pass
-                        if "GEMINI_API_KEY" in safe_env:
+                        if existing_key:
                             break
+
+                if not existing_key:
+                    for home_root in (Path.home(), Path("/mnt/c/Users/michael")):
+                        for kname in (".devcore_client_key.txt", "gemini_api_key.txt"):
+                            kp = home_root / kname
+                            if kp.is_file():
+                                try:
+                                    kval = kp.read_text(encoding="utf-8").strip()
+                                    if kval:
+                                        existing_key = kval
+                                        break
+                                except Exception:
+                                    pass
+                        if existing_key:
+                            break
+
+                if existing_key:
+                    safe_env["GEMINI_API_KEY"] = existing_key
+                    safe_env.pop("GOOGLE_API_KEY", None)
+                    safe_env.pop("GEMINI_BASE_URL", None)
+                else:
+                    found_oauth = None
+                    for root in _iter_relative_roots(base_dir):
+                        for rel_tok in (
+                            Path(".gemini/antigravity-cli/antigravity-oauth-token"),
+                            Path("antigravity-oauth-token"),
+                        ):
+                            cand_tok = root / rel_tok
+                            if cand_tok.is_file() and cand_tok.stat().st_size > 8:
+                                found_oauth = cand_tok
+                                break
+                        if found_oauth:
+                            break
+
+                    home_oauth = Path.home() / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
+                    if found_oauth and not home_oauth.exists():
+                        try:
+                            home_oauth.parent.mkdir(parents=True, exist_ok=True)
+                            shutil.copy2(found_oauth, home_oauth)
+                        except Exception:
+                            pass
+
+                    if (found_oauth and found_oauth.exists()) or (home_oauth.exists() and home_oauth.stat().st_size > 8):
+                        safe_env.pop("GEMINI_API_KEY", None)
+                        safe_env.pop("GOOGLE_API_KEY", None)
+                        safe_env.pop("GEMINI_BASE_URL", None)
 
             for root in _iter_relative_roots(base_dir):
                 bin_cand = root / ".local" / "bin"
