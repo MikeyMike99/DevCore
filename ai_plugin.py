@@ -331,7 +331,144 @@ def _sync_demo_oauth_token():
             pass
 
 
+def _get_cli_credential_details(scope: str = None) -> dict:
+    import datetime
+    active_scope = scope or _resolve_token_scope()
+    active_scope = "demo" if str(active_scope).lower() == "demo" else "root"
+    _cleanup_expired_demo_tokens()
+
+    details = {
+        "authorized": False,
+        "scope": active_scope,
+        "auth_method": None,
+        "account": None,
+        "expiry": None,
+        "is_expired": False,
+        "has_refresh_token": False,
+        "key_source": None,
+        "cli_installed": bool(_find_agy_binary()),
+    }
+
+    if active_scope == "demo":
+        for d in _get_demo_dirs():
+            for rel in [
+                os.path.join(".gemini", "antigravity-cli", "antigravity-oauth-token"),
+                "antigravity-oauth-token"
+            ]:
+                cand = os.path.join(d, rel)
+                if os.path.isfile(cand) and os.path.getsize(cand) > 8:
+                    try:
+                        with open(cand, "r", encoding="utf-8") as f:
+                            tok_data = json.load(f)
+                        token_obj = tok_data.get("token", {})
+                        exp_str = token_obj.get("expiry")
+                        is_exp = False
+                        if exp_str:
+                            try:
+                                exp_dt = datetime.datetime.fromisoformat(exp_str.replace("Z", "+00:00"))
+                                is_exp = datetime.datetime.now(datetime.timezone.utc) > exp_dt
+                            except Exception:
+                                pass
+                        email = tok_data.get("id_token_email") or "Demo Google Account"
+                        has_ref = bool(token_obj.get("refresh_token"))
+                        details.update({
+                            "authorized": (not is_exp) or has_ref,
+                            "auth_method": "oauth",
+                            "account": email,
+                            "expiry": exp_str,
+                            "is_expired": is_exp,
+                            "has_refresh_token": has_ref,
+                            "key_source": cand,
+                        })
+                        return details
+                    except Exception:
+                        pass
+            for kname in [".devcore_client_key.txt", "gemini_api_key.txt"]:
+                cand = os.path.join(d, kname)
+                if os.path.isfile(cand) and os.path.getsize(cand) > 5:
+                    try:
+                        with open(cand, "r", encoding="utf-8") as f:
+                            val = f.read().strip()
+                        if val:
+                            masked = val[:6] + "..." + val[-4:] if len(val) > 10 else "API Key"
+                            details.update({
+                                "authorized": True,
+                                "auth_method": "api_key",
+                                "account": f"Demo API Key ({masked})",
+                                "key_source": cand,
+                            })
+                            return details
+                    except Exception:
+                        pass
+        return details
+
+    env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if env_key:
+        masked = env_key[:6] + "..." + env_key[-4:] if len(env_key) > 10 else "API Key"
+        details.update({
+            "authorized": True,
+            "auth_method": "api_key",
+            "account": f"Env Key ({masked})",
+            "key_source": "environment",
+        })
+        return details
+
+    for root in _iter_relative_roots():
+        for rel in (
+            Path(".gemini/antigravity-cli/antigravity-oauth-token"),
+            Path("antigravity-oauth-token"),
+        ):
+            cand = root / rel
+            if cand.is_file() and cand.stat().st_size > 8:
+                try:
+                    tok_data = json.loads(cand.read_text(encoding="utf-8"))
+                    token_obj = tok_data.get("token", {})
+                    exp_str = token_obj.get("expiry")
+                    is_exp = False
+                    if exp_str:
+                        try:
+                            exp_dt = datetime.datetime.fromisoformat(exp_str.replace("Z", "+00:00"))
+                            is_exp = datetime.datetime.now(datetime.timezone.utc) > exp_dt
+                        except Exception:
+                            pass
+                    email = tok_data.get("id_token_email") or "Google Account"
+                    has_ref = bool(token_obj.get("refresh_token"))
+                    details.update({
+                        "authorized": (not is_exp) or has_ref,
+                        "auth_method": "oauth",
+                        "account": email,
+                        "expiry": exp_str,
+                        "is_expired": is_exp,
+                        "has_refresh_token": has_ref,
+                        "key_source": str(cand),
+                    })
+                    return details
+                except Exception:
+                    pass
+
+        for rel in (Path(".devcore_client_key.txt"), Path("gemini_api_key.txt")):
+            cand = root / rel
+            if cand.is_file() and cand.stat().st_size > 5:
+                try:
+                    val = cand.read_text(encoding="utf-8").strip()
+                    if val:
+                        masked = val[:6] + "..." + val[-4:] if len(val) > 10 else "API Key"
+                        details.update({
+                            "authorized": True,
+                            "auth_method": "api_key",
+                            "account": f"Local API Key ({masked})",
+                            "key_source": str(cand),
+                        })
+                        return details
+                except Exception:
+                    pass
+
+    return details
+
 def _has_local_cli_credentials(scope: str = None) -> bool:
+    return _get_cli_credential_details(scope)["authorized"]
+
+def _legacy_has_local_cli_credentials(scope: str = None) -> bool:
     _cleanup_expired_demo_tokens()
     active_scope = scope or _resolve_token_scope()
 
@@ -513,17 +650,27 @@ def auth_check():
         or is_master
     )
 
-    if (scope == "root" and (is_admin or is_master)) or (bearer_user and bearer_user.get("role") in ("admin", "super_admin")):
-        session["agent_token_scope"] = "root"
+    cli_details = _get_cli_credential_details(scope)
+    has_creds = cli_details["authorized"]
+
+    if not force and has_creds:
+        session["agent_token_scope"] = scope
         session["agent_authenticated"] = True
-        session["is_admin"] = True
+        if is_admin:
+            session["is_admin"] = True
         session.permanent = True
         return jsonify({
             "authenticated": True,
-            "scope": "root",
+            "cli_authorized": True,
+            "scope": scope,
             "fast_path": True,
-            "has_existing": has_creds,
-            "role": "admin"
+            "has_existing": True,
+            "account": cli_details.get("account"),
+            "auth_method": cli_details.get("auth_method"),
+            "expiry": cli_details.get("expiry"),
+            "is_expired": cli_details.get("is_expired", False),
+            "role": "admin" if is_admin else "visitor",
+            "url": "#",
         })
 
     is_authenticated = bool(bearer_user) or (bool(session.get("agent_authenticated")) if scope == "demo" else has_creds)
@@ -867,11 +1014,22 @@ def auth_me():
 def auth_system_status():
     scope = _resolve_token_scope()
     is_super = security_mgr.check_master_signature() or bool(session.get("is_admin") or session.get("admin"))
+    root_status = _get_cli_credential_details("root")
+    demo_status = _get_cli_credential_details("demo")
+    active_status = demo_status if scope == "demo" else root_status
     return jsonify({
         "cli_installed": bool(_find_agy_binary()),
-        "has_api_key": _has_local_cli_credentials(scope),
+        "has_api_key": active_status["authorized"],
+        "cli_authorized": active_status["authorized"],
+        "account": active_status.get("account"),
+        "auth_method": active_status.get("auth_method"),
+        "expiry": active_status.get("expiry"),
+        "is_expired": active_status.get("is_expired", False),
+        "has_refresh_token": active_status.get("has_refresh_token", False),
         "scope": scope,
         "super_admin": is_super,
+        "root_status": root_status,
+        "demo_status": demo_status,
     })
 
 
