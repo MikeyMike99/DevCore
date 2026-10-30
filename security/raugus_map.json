@@ -152348,5 +152348,32 @@
             "execute": true
         },
         "id": "9aa94b8d-a3a9-4bbf-b76e-591bb5a1145f"
+    },
+    "devcore...................tmp.test_git_repo..git": {
+        "type": "directory",
+        "real_path": "/tmp/test_git_repo/.git",
+        "inode": 4185,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": true
+        },
+        "id": "759fa847-f36e-4f79-96e7-0b41eb7bdb5e"
+    },
+    "devcore...................tmp.test_git_repo..git.index.lock": {
+        "type": "file",
+        "real_path": "/tmp/test_git_repo/.git/index.lock",
+        "inode": 4186,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "e3b0c44298fc",
+        "id": "16d94a59-80ed-40cf-ab0a-9b1522a55683"
     }
 }
