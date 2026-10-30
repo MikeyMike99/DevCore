@@ -89,6 +89,57 @@ def _save_available_models_cache(base_dir: str, models: list):
         pass
 
 
+def _sweep_orphaned_git_locks(base_dir: str, workspace_dir: str = None) -> list:
+    removed_locks = []
+    roots = set()
+    if workspace_dir:
+        roots.add(Path(workspace_dir))
+    for r in _iter_relative_roots(base_dir):
+        roots.add(r)
+    
+    known_repos = [
+        "/mnt/c/Users/michael/Documents/DevCore",
+        "/mnt/c/Users/michael/Documents/e_profile",
+        "/mnt/c/Users/michael/Documents/Central_Docs",
+        "/mnt/c/Users/michael/Documents/Audio_pllayback_suite",
+    ]
+    for kr in known_repos:
+        p = Path(kr)
+        if p.exists():
+            roots.add(p)
+
+    now = time.time()
+    direct_locks = (
+        "index.lock", "gc.pid", "HEAD.lock", "config.lock", "shallow.lock", "packed-refs.lock"
+    )
+    for root in roots:
+        try:
+            dot_git = root / ".git"
+            if not dot_git.is_dir():
+                continue
+            for lock_name in direct_locks:
+                lp = dot_git / lock_name
+                try:
+                    if lp.is_file() and (now - lp.stat().st_mtime) > 5.0:
+                        lp.unlink(missing_ok=True)
+                        removed_locks.append(str(lp))
+                except Exception:
+                    pass
+            pack_dir = dot_git / "objects" / "pack"
+            if pack_dir.is_dir():
+                try:
+                    for tmp_pack in pack_dir.iterdir():
+                        if tmp_pack.name.startswith("tmp_pack_") and tmp_pack.is_file():
+                            if (now - tmp_pack.stat().st_mtime) > 30.0:
+                                tmp_pack.unlink(missing_ok=True)
+                                removed_locks.append(str(tmp_pack))
+                except Exception:
+                    pass
+        except Exception:
+            continue
+    return removed_locks
+
+
 class ExecutionMixin:
     _validated_path_cache = {}
     _validated_path_cache_state = None
@@ -287,7 +338,7 @@ class ExecutionMixin:
         except asyncio.CancelledError:
             pass
 
-    async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False, _from_steer_or_queue: bool = False, _model_retry: bool = False):
+    async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False, _from_steer_or_queue: bool = False, _model_retry: bool = False, _recovery_retry: int = 0, _skip_timeout_flag: bool = False):
         hb_task = asyncio.create_task(self._heartbeat_worker(task_time))
         raw_user_prompt = prompt
         model_aliases = {
@@ -356,6 +407,10 @@ class ExecutionMixin:
                 workspace_dir = self.project_manager.get_active_workspace_path()
             if not workspace_dir:
                 workspace_dir = base_dir
+            try:
+                _sweep_orphaned_git_locks(base_dir, workspace_dir)
+            except Exception:
+                pass
             auto_rollover_enabled = os.environ.get("ENABLE_AUTO_SESSION_ROLLOVER", "true").lower() == "true"
             is_ongoing_midconversation = _from_steer_or_queue or bool(getattr(self, "queued_prompts", []))
 
@@ -724,8 +779,9 @@ class ExecutionMixin:
             cmd.extend([
                 "--model", model,
                 "--output-format", "stream-json",
-                "--print-timeout", "3600s"
             ])
+            if not _skip_timeout_flag:
+                cmd.extend(["--print-timeout", "3600s"])
             if conversation_id:
                 cmd.extend(["--conversation", conversation_id])
             cmd.extend(["--print", prompt])
@@ -1219,8 +1275,88 @@ class ExecutionMixin:
                     admin_override=admin_override,
                     _from_steer_or_queue=_from_steer_or_queue,
                     _model_retry=True,
+                    _recovery_retry=_recovery_retry,
+                    _skip_timeout_flag=_skip_timeout_flag,
                 )
                 return
+
+            # --- SELF-HEALING RECOVERY GATEWAY ---
+            was_steered = bool(getattr(self, "_steering_interrupt", False))
+            was_cancelled = False
+            has_valid_output = bool("".join(self.output_buffer).strip())
+
+            if proc.returncode != 0 and not was_steered and _recovery_retry < 2:
+                err_text = "\n".join(non_json_lines).strip()
+                is_code_2 = (proc.returncode == 2)
+                is_startup_failure = (not has_valid_output and proc.returncode != -9)
+                timeout_flag_issue = ("--print-timeout" in err_text or "unrecognized" in err_text.lower())
+                
+                if is_code_2 or is_startup_failure:
+                    swept_locks = _sweep_orphaned_git_locks(base_dir, workspace_dir)
+                    if swept_locks:
+                        logging.info(f"[ExecutionMixin] Swept {len(swept_locks)} git locks during recovery: {swept_locks}")
+
+                    next_conv_id = None
+                    recovered_prompt = raw_user_prompt
+                    if conversation_id:
+                        try:
+                            sm_inst = self._get_session_mgr()
+                            briefing = sm_inst.generate_continuation_briefing(conversation_id, workspace_dir)
+                            if briefing:
+                                recovered_prompt = briefing + "\n\n" + raw_user_prompt
+                        except Exception as e:
+                            logging.warning(f"[ExecutionMixin] Recovery briefing error: {e}")
+
+                    next_skip_timeout = _skip_timeout_flag or timeout_flag_issue or is_code_2
+
+                    diag_hint = "CLI argument desync" if is_code_2 else f"Process exit (Code {proc.returncode})"
+                    recovery_msg = (
+                        f"🔄 **Auto-Recovering Session**: System resolved an unexpected {diag_hint}. "
+                        "Purging stale session locks and resuming execution with preserved context..."
+                    )
+                    await self.broadcast({
+                        "type": "system",
+                        "level": "info",
+                        "message": recovery_msg
+                    })
+                    await self.broadcast({
+                        "type": "agent_chunk",
+                        "chunk": f"\n\n_{recovery_msg}_\n\n"
+                    })
+
+                    hb_task.cancel()
+                    if 'watchdog_task' in locals() and not watchdog_task.done():
+                        watchdog_task.cancel()
+                    if hasattr(self, "transcript_watcher_task") and self.transcript_watcher_task:
+                        self.transcript_watcher_task.cancel()
+
+                    self.output_buffer = []
+                    self.current_conversation_id = None
+
+                    try:
+                        from security.central_logger import log_siem_event
+                        log_siem_event(
+                            level="WARNING",
+                            message=f"[SELF_HEALING_RECOVERY] Auto-recovered from Code {proc.returncode} exit (attempt {_recovery_retry + 1}/2). Continuing task smoothly.",
+                            module_name="execution_mixin",
+                            logger_name="agent.recovery"
+                        )
+                    except Exception:
+                        pass
+
+                    await self._execute_agent(
+                        recovered_prompt,
+                        model,
+                        task_time,
+                        next_conv_id,
+                        user=user,
+                        admin_override=admin_override,
+                        _from_steer_or_queue=_from_steer_or_queue,
+                        _model_retry=_model_retry,
+                        _recovery_retry=_recovery_retry + 1,
+                        _skip_timeout_flag=next_skip_timeout
+                    )
+                    return
 
             elapsed = round(time.time() - task_time, 1)
             was_steered = bool(getattr(self, "_steering_interrupt", False))
