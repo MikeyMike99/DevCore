@@ -46,6 +46,22 @@
             </div>
         </div>
 
+        <section id="rootRestoreSection" class="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-950/80 via-slate-900 to-slate-950 border border-amber-500/50 shadow-xl space-y-2.5" role="region" aria-label="Root Super Admin Access">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-amber-400 text-lg" aria-hidden="true">👑</span>
+                    <h2 class="text-sm font-bold text-white tracking-wide uppercase">Root Super Admin Authority</h2>
+                </div>
+                <span class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-amber-900/80 text-amber-200 border border-amber-600/50">Owner Access</span>
+            </div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+                Restore full root administrator permissions and enter the workspace with permanent owner credentials.
+            </p>
+            <button type="button" onclick="handleRootRestore()" class="w-full bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 active:scale-[0.99] text-white font-bold py-2.5 px-4 rounded-xl transition duration-150 shadow-lg shadow-amber-950/50 flex items-center justify-center gap-2 text-xs focus:ring-4 focus:ring-amber-700/50 cursor-pointer">
+                <i class="fas fa-unlock text-white text-xs"></i> <span>Restore Root Super Admin (1-Click)</span>
+            </button>
+        </section>
+
         <section id="demoQuickLaunchSection" class="hidden mb-6 p-5 rounded-2xl bg-gradient-to-r from-teal-950/80 via-slate-900 to-slate-950 border border-teal-500/40 shadow-xl space-y-3" role="region" aria-label="1-Click Demo Evaluation">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
@@ -178,7 +194,37 @@
     <script>
         const basePath = window.location.pathname.replace(/\/login\/?$/, '');
         const urlParams = new URLSearchParams(window.location.search);
-        let activeScope = (urlParams.get('demo') === '1' || urlParams.get('mode') === 'demo') ? 'demo' : 'root';
+        let activeScope = (urlParams.get('demo') === '1' || urlParams.get('mode') === 'demo' || urlParams.get('scope') === 'demo') ? 'demo' : 'root';
+
+        async function handleRootRestore() {
+            try {
+                const ep1 = basePath ? basePath + '/api/auth/restore-root' : '/api/auth/restore-root';
+                const ep2 = basePath ? basePath + '/api/auth/login' : '/api/auth/login';
+                let res = await fetch(ep1, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_key: 'SUPER_ADMIN_AUTO' })
+                });
+                if (!res.ok) {
+                    res = await fetch(ep2, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ access_key: 'SUPER_ADMIN_AUTO' })
+                    });
+                }
+                const data = await res.json();
+                if (data.token) {
+                    localStorage.setItem('agy_auth_token', data.token);
+                    localStorage.setItem('agy_user', JSON.stringify(data.user));
+                    sessionStorage.removeItem('agy_manual_logout');
+                    window.location.href = basePath ? basePath + '/' : '/';
+                } else {
+                    alert('Could not restore root admin credentials: ' + (data.error || 'Unknown error'));
+                }
+            } catch (e) {
+                alert('Root restore error: ' + (e.message || e));
+            }
+        }
 
         function getAuthCheckUrl(force = false) {
             const base = basePath ? basePath + '/api/auth_check' : 'api/auth_check';
@@ -573,7 +619,8 @@
             }
         }
 
-        checkInitialStatus();
+        const isReauth = urlParams.get('reauth') === '1' || urlParams.get('force') === '1' || urlParams.get('reset') === '1';
+        checkInitialStatus(isReauth);
     </script>
 </body>
 </html>

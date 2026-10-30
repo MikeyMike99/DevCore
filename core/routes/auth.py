@@ -867,3 +867,19 @@ async def restore_root():
         }
     }
     return jsonify(res)
+
+
+@auth_bp.route('/api/auth/reset', methods=['POST'])
+async def reset_auth_session():
+    """Reset active session tokens, invalidate cached CLI tokens, and return re-auth redirect URL."""
+    data = await request.get_json() or {}
+    target_scope = data.get("scope", "root")
+
+    invalidate_auth_check_cache()
+
+    reauth_url = f"/login?reauth=1&scope={target_scope}"
+    return jsonify({
+        "status": "success",
+        "message": "Authentication session reset successfully.",
+        "reauth_url": reauth_url,
+    })

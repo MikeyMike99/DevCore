@@ -255,6 +255,12 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                 ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', api_audit_result, ['GET']),
             ]
             if auth_mod:
+                reset_auth_fn = getattr(auth_mod, 'reset_auth_session', None)
+                if reset_auth_fn:
+                    dynamic_endpoints.append(('/api/auth/reset', 'auth_bp.reset_auth_session', reset_auth_fn, ['POST']))
+                restore_root_fn = getattr(auth_mod, 'restore_root', None)
+                if restore_root_fn:
+                    dynamic_endpoints.append(('/api/auth/restore-root', 'auth_bp.restore_root', restore_root_fn, ['GET', 'POST']))
                 sub_set_fn = getattr(auth_mod, 'set_user_subscription_route', None)
                 sub_status_fn = getattr(auth_mod, 'get_user_subscription_status', None)
                 sub_del_fn = getattr(auth_mod, 'delete_user_subscription_route', None)

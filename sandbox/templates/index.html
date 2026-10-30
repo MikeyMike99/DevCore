@@ -135,6 +135,9 @@
             <button id="header-demo-auth-btn" type="button" onclick="handleDemoAuthenticate()" title="1-Click Demo Authentication" class="text-sm px-3.5 py-2 bg-gradient-to-r from-teal-800 to-teal-700 hover:from-teal-700 hover:to-teal-600 border border-teal-500/50 rounded-lg text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm">
                 <span class="text-amber-300">⚡</span> Demo Auth
             </button>
+            <button id="header-reauth-btn" type="button" onclick="openReauthModal()" aria-haspopup="dialog" aria-controls="reauth-modal" title="Reset Token &amp; Re-Authenticate Root" class="text-sm px-3.5 py-2 bg-gradient-to-r from-amber-950/80 to-amber-900/80 hover:from-amber-900 hover:to-amber-800 border border-amber-600/60 rounded-lg text-amber-200 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
+                <span class="text-amber-400">👑</span> <span>Reset &amp; Re-Auth</span>
+            </button>
             <button id="settings-panel-btn" type="button" aria-controls="settings-panel" aria-expanded="false" onclick="openSettingsPanel()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
                 Settings &amp; Sessions
             </button>
@@ -224,6 +227,12 @@
                                     <span class="text-base flex items-center gap-2"><span aria-hidden="true">🛡️</span> System Audits Review Hub</span>
                                     <span class="text-xs text-emerald-400 font-mono">Diagnostics &amp; Health</span>
                                 </a>
+                            </li>
+                            <li>
+                                <button type="button" id="quick-action-reauth" onclick="openReauthModal()" aria-label="Reset &amp; Re-Authenticate Root Agent" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-amber-600/50 rounded-lg text-amber-300 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors flex items-center justify-between cursor-pointer">
+                                    <span class="text-base flex items-center gap-2"><span aria-hidden="true">👑</span> Reset &amp; Re-Authenticate</span>
+                                    <span class="text-xs text-amber-400 font-mono">Restore Root / Google OAuth</span>
+                                </button>
                             </li>
                         </ul>
                     </nav>
@@ -335,7 +344,7 @@
                 <span id="user-display-name" class="font-medium text-slate-200">Guest</span>
                 <div class="flex gap-1.5 mt-1">
                     <button type="button" onclick="handleDemoAuthenticate()" class="flex-1 text-[11px] text-white font-bold bg-teal-700 hover:bg-teal-600 px-1.5 py-1.5 rounded border border-teal-500/50 flex items-center justify-center gap-1 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer"><span class="text-amber-300">⚡</span> Demo</button>
-                    <button type="button" id="restore-root-btn" onclick="restoreSuperAdmin()" class="flex-1 text-[11px] text-amber-300 hover:text-amber-100 font-bold bg-amber-950/80 px-1.5 py-1.5 rounded border border-amber-600/60 flex items-center justify-center gap-1 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer" title="Resume Root Super Admin"><i class="fas fa-crown text-[9px]"></i> Root</button>
+                    <button type="button" id="restore-root-btn" onclick="openReauthModal()" class="flex-1 text-[11px] text-amber-300 hover:text-amber-100 font-bold bg-amber-950/80 px-1.5 py-1.5 rounded border border-amber-600/60 flex items-center justify-center gap-1 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer" title="Reset &amp; Re-Authenticate Root"><i class="fas fa-crown text-[9px]"></i> Re-Auth</button>
                     <button type="button" onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-[11px] text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-1.5 py-1.5 rounded border border-teal-800/50 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">Login</button>
                     <button type="button" onclick="logout()" id="logout-btn" class="hidden flex-1 text-[11px] text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-1.5 py-1.5 rounded border border-rose-800/50 focus:ring-2 focus:ring-rose-500 focus:outline-none cursor-pointer">Logout</button>
                 </div>
@@ -3825,6 +3834,77 @@
         </div>
     </dialog>
 
+    <!-- Dedicated Root Agent Reset & Re-Auth Modal -->
+    <dialog id="reauth-modal" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm" aria-labelledby="reauth-modal-title">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 mx-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-amber-400 text-xl">👑</span>
+                    <div>
+                        <h2 id="reauth-modal-title" class="text-base font-bold text-white">Reset Token &amp; Re-Authenticate</h2>
+                        <p class="text-xs text-slate-400">Restore root admin privileges, re-link Google OAuth, or clear broken sessions</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeReauthModal()" aria-label="Close dialog" class="text-slate-400 hover:text-white text-xl px-2 py-0.5 rounded focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">&times;</button>
+            </div>
+
+            <!-- Card 1: 1-Click Restore Root Super Admin -->
+            <div class="p-4 rounded-xl bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-950 border border-amber-500/50 space-y-2 shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                        <span class="text-amber-400 text-sm">👑</span> Restore Root Super Admin
+                    </span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-amber-900/80 text-amber-200 border border-amber-600/40">1-Click Instant</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Instantly exit demo mode and restore permanent owner credentials (<code class="text-amber-300 font-mono">sec-root-owner-permanent</code>). Gives full unrestricted access across all projects.
+                </p>
+                <button type="button" onclick="executeRootReset()" class="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white font-bold rounded-lg text-xs shadow flex items-center justify-center gap-2 transition cursor-pointer">
+                    <i class="fas fa-unlock text-[11px]"></i> Restore Root Super Admin Authority
+                </button>
+            </div>
+
+            <!-- Card 2: Re-Initiate Google Cloud OAuth Flow -->
+            <div class="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                        <i class="fab fa-google text-teal-400"></i> Re-Initiate Google Cloud OAuth
+                    </span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded bg-teal-900/60 text-teal-300 border border-teal-700/50">Google Account</span>
+                </div>
+                <p class="text-[11px] text-slate-300 leading-relaxed">
+                    Clears cached CLI credentials and restarts the Google consent link workflow if authentication failed or timed out.
+                </p>
+                <button type="button" onclick="launchGoogleOAuthReauth()" class="w-full py-2 px-3 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-lg text-xs shadow flex items-center justify-center gap-2 transition cursor-pointer">
+                    <i class="fab fa-google text-red-500"></i> Re-Initiate Google OAuth Flow
+                </button>
+            </div>
+
+            <!-- Card 3: Emergency Hard Reset Local State -->
+            <div class="p-3.5 rounded-xl bg-rose-950/30 border border-rose-800/40 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                        <i class="fas fa-trash-can text-rose-400"></i> Reset All Local Session Tokens
+                    </span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-rose-900/60 text-rose-300">Clean Slate</span>
+                </div>
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                    Flushes localStorage, sessionStorage, and cached tokens to resolve stuck auth loops or expired tokens.
+                </p>
+                <button type="button" onclick="hardResetAuth()" class="w-full py-2 px-3 bg-rose-900/70 hover:bg-rose-800 text-rose-200 font-bold rounded-lg text-xs border border-rose-700/50 shadow flex items-center justify-center gap-1.5 transition cursor-pointer">
+                    <i class="fas fa-arrows-rotate text-[10px]"></i> Flush Tokens &amp; Restart
+                </button>
+            </div>
+
+            <!-- Footer Action Bar -->
+            <div class="flex items-center justify-end pt-2 border-t border-slate-800 text-xs">
+                <button type="button" onclick="closeReauthModal()" class="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition cursor-pointer">
+                    Close
+                </button>
+            </div>
+        </div>
+    </dialog>
+
     <!-- Accessible Login & Role Switcher Modal (Top-Layer Dialog) -->
     <dialog id="login-modal" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/80 backdrop:backdrop-blur-sm" aria-labelledby="modal-title">
         <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4 mx-4">
@@ -4197,6 +4277,113 @@
             } else {
                 modal.classList.add('hidden');
             }
+        }
+
+        function openReauthModal() {
+            const modal = document.getElementById('reauth-modal');
+            if (!modal) return;
+            if (typeof modal.showModal === 'function') {
+                modal.showModal();
+            } else {
+                modal.classList.remove('hidden');
+            }
+        }
+
+        function closeReauthModal() {
+            const modal = document.getElementById('reauth-modal');
+            if (!modal) return;
+            if (typeof modal.close === 'function') {
+                modal.close();
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        async function executeRootReset() {
+            try {
+                sessionStorage.removeItem('agy_manual_logout');
+                localStorage.removeItem('agy_demo_user');
+
+                let res = await fetch('/api/auth/restore-root', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_key: 'SUPER_ADMIN_AUTO' })
+                });
+                if (!res.ok) {
+                    res = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ access_key: 'SUPER_ADMIN_AUTO' })
+                    });
+                }
+                let data = await res.json();
+                if (data.token) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('agy_auth_token', authToken);
+                    localStorage.setItem('agy_user', JSON.stringify(currentUser));
+                    updateUserUI();
+                    closeReauthModal();
+
+                    var loginModal = document.getElementById('login-modal');
+                    if (loginModal && loginModal.open) loginModal.close();
+
+                    await initProjects();
+                    await initConversations(10);
+                    await loadChatHistory();
+
+                    if (typeof renderToast === 'function') {
+                        renderToast('👑 Root Super Admin authority restored successfully!', 'success');
+                    } else {
+                        alert('👑 Root Super Admin authority restored successfully!');
+                    }
+
+                    if (window.location.search.includes('demo=') || window.location.search.includes('mode=')) {
+                        window.location.href = window.location.pathname;
+                    }
+                } else {
+                    throw new Error(data.error || 'Server did not return root credentials');
+                }
+            } catch (e) {
+                console.error('Failed to reset root auth:', e);
+                if (typeof renderToast === 'function') {
+                    renderToast('Root reset error: ' + (e.message || e), 'error');
+                } else {
+                    alert('Root reset error: ' + (e.message || e));
+                }
+            }
+        }
+
+        async function launchGoogleOAuthReauth() {
+            try {
+                closeReauthModal();
+                let res = await fetch('/api/auth/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scope: 'root' })
+                });
+                let data = await res.json();
+                let targetUrl = (data && data.reauth_url) ? data.reauth_url : '/login?reauth=1&scope=root';
+                window.location.href = targetUrl;
+            } catch (e) {
+                window.location.href = '/login?reauth=1&scope=root';
+            }
+        }
+
+        async function hardResetAuth() {
+            if (!confirm('Are you sure you want to completely purge local session tokens and restart authentication?')) {
+                return;
+            }
+            try {
+                localStorage.clear();
+                sessionStorage.clear();
+                await fetch('/api/auth/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ scope: 'root' })
+                });
+            } catch (e) {}
+            window.location.href = '/login?reauth=1&scope=root';
         }
 
         function switchCliModalTab(scope) {

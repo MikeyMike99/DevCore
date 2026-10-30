@@ -1,5 +1,5 @@
 """Central Flask WSGI Blueprint adapter mounting the Siraugga Framework into e_profile."""
-from flask import Blueprint, jsonify, request, render_template, render_template_string, session, redirect
+from flask import Blueprint, jsonify, request, render_template, render_template_string, session, redirect, url_for
 from pathlib import Path
 import sys
 import os
@@ -601,15 +601,50 @@ def ai_home():
     return _render_ai_template("index.html", ui=_get_ui_config())
 
 
+def _get_home_url(**kwargs) -> str:
+    for ep in (".ai_home", "ai.ai_home", "ai_plugin.ai_home"):
+        try:
+            return url_for(ep, **kwargs)
+        except Exception:
+            pass
+    base = request.script_root or ""
+    query = ("?" + "&".join(f"{k}={v}" for k, v in kwargs.items())) if kwargs else ""
+    return f"{base}/{query}"
+
+
+def _get_login_url(**kwargs) -> str:
+    for ep in (".login_page", "ai.login_page", "ai_plugin.login_page"):
+        try:
+            return url_for(ep, **kwargs)
+        except Exception:
+            pass
+    base = request.script_root or ""
+    query = ("?" + "&".join(f"{k}={v}" for k, v in kwargs.items())) if kwargs else ""
+    return f"{base}/login{query}"
+
+
 @ai_bp.route("/demo")
 def ai_demo_entry():
     session["agent_token_scope"] = "demo"
     session["agent_authenticated"] = True
-    return redirect(url_for("ai_plugin.ai_home", demo="1"))
+    return redirect(_get_home_url(demo="1"))
 
 
 @ai_bp.route("/login")
 def login_page():
+    reauth = (
+        request.args.get("reauth") in ("1", "true")
+        or request.args.get("reset") in ("1", "true")
+        or request.args.get("force") in ("1", "true")
+    )
+    target_scope = request.args.get("scope")
+    if target_scope in ("root", "demo"):
+        session["agent_token_scope"] = target_scope
+
+    if reauth:
+        session.pop("agent_authenticated", None)
+        return _render_ai_template("login.html")
+
     auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
     bearer_user = security_mgr.get_user_from_token(auth_header) if auth_header else None
     is_master = security_mgr.check_master_signature()
@@ -624,9 +659,33 @@ def login_page():
         session["agent_authenticated"] = True
         session["is_admin"] = True
         session["admin"] = True
-        return redirect(url_for("ai_plugin.ai_home"))
+        return redirect(_get_home_url())
 
     return _render_ai_template("login.html")
+
+
+@ai_bp.route("/api/auth/reset", methods=["POST"])
+def reset_auth_session():
+    """Reset active session tokens, invalidate cached CLI tokens, and return re-auth redirect URL."""
+    target_scope = "root"
+    if request.is_json and request.json:
+        target_scope = request.json.get("scope", "root")
+    elif request.form:
+        target_scope = request.form.get("scope", "root")
+
+    session.pop("agent_authenticated", None)
+    session.pop("agent_token_scope", None)
+    session.pop("user", None)
+    session.pop("is_admin", None)
+    session.pop("admin", None)
+
+    session["agent_token_scope"] = target_scope
+    reauth_url = _get_login_url(reauth="1", scope=target_scope)
+    return jsonify({
+        "status": "success",
+        "message": "Authentication session reset successfully.",
+        "reauth_url": reauth_url,
+    })
 
 
 @ai_bp.route("/api/ui-config", methods=["GET"])
