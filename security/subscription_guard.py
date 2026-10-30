@@ -18,6 +18,7 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 DEFAULT_TTL_SECONDS = 7 * 86400
 VAULT_SALT = b"devcore_byos_vault_salt_v1"
+_EPHEMERAL_VAULT: dict[str, dict] = {}
 
 
 def get_base_dir(base_dir: str | None = None) -> Path:
@@ -129,12 +130,43 @@ def set_user_subscription(
     provider: str,
     credential: str,
     ttl_days: float = 7.0,
+    storage_mode: str = "vault",
     base_dir: str | None = None
 ) -> dict:
-    purge_expired_subscriptions(base_dir)
     clean_id = _clean_user_id(user_id)
-    bounded_ttl_days = max(0.1, min(float(ttl_days), 7.0))
+    mode = storage_mode.lower().strip()
     now = time.time()
+
+    if mode == "ephemeral":
+        vault = _load_vault(base_dir)
+        if clean_id in vault:
+            del vault[clean_id]
+            _save_vault(vault, base_dir)
+
+        _EPHEMERAL_VAULT[clean_id] = {
+            "user_id": clean_id,
+            "provider": provider.lower().strip(),
+            "credential": credential.strip(),
+            "created_at": now,
+            "expires_at": now + 86400,
+            "storage_mode": "ephemeral",
+            "last_verified": now,
+        }
+        return {
+            "success": True,
+            "user_id": clean_id,
+            "provider": provider.lower().strip(),
+            "storage_mode": "ephemeral",
+            "is_ephemeral": True,
+            "expires_at": now + 86400,
+            "days_remaining": 1.0,
+            "hours_remaining": 24.0,
+            "message": "Credential held strictly in volatile RAM. Zero bytes persisted to disk."
+        }
+
+    _EPHEMERAL_VAULT.pop(clean_id, None)
+    purge_expired_subscriptions(base_dir)
+    bounded_ttl_days = max(0.1, min(float(ttl_days), 7.0))
     expires_at = now + (bounded_ttl_days * 86400)
 
     encrypted = encrypt_credential(credential.strip(), base_dir)
@@ -145,6 +177,7 @@ def set_user_subscription(
         "created_at": now,
         "expires_at": expires_at,
         "ttl_days": bounded_ttl_days,
+        "storage_mode": "vault",
         "last_verified": now,
     }
 
@@ -156,6 +189,8 @@ def set_user_subscription(
         "success": True,
         "user_id": clean_id,
         "provider": record["provider"],
+        "storage_mode": "vault",
+        "is_ephemeral": False,
         "expires_at": expires_at,
         "days_remaining": round((expires_at - now) / 86400, 2),
         "hours_remaining": round((expires_at - now) / 3600, 1),
@@ -167,14 +202,35 @@ def get_user_subscription(
     base_dir: str | None = None,
     include_decrypted: bool = False
 ) -> dict | None:
-    purge_expired_subscriptions(base_dir)
     clean_id = _clean_user_id(user_id)
+    now = time.time()
+
+    if clean_id in _EPHEMERAL_VAULT:
+        rec = _EPHEMERAL_VAULT[clean_id]
+        if rec.get("expires_at", 0) > now:
+            res = {
+                "user_id": clean_id,
+                "provider": rec.get("provider", "gemini"),
+                "storage_mode": "ephemeral",
+                "is_ephemeral": True,
+                "created_at": rec.get("created_at"),
+                "expires_at": rec.get("expires_at"),
+                "days_remaining": round((rec["expires_at"] - now) / 86400, 2),
+                "hours_remaining": round((rec["expires_at"] - now) / 3600, 1),
+                "is_active": True,
+            }
+            if include_decrypted:
+                res["credential"] = rec["credential"]
+            return res
+        else:
+            _EPHEMERAL_VAULT.pop(clean_id, None)
+
+    purge_expired_subscriptions(base_dir)
     vault = _load_vault(base_dir)
     record = vault.get(clean_id)
     if not record:
         return None
 
-    now = time.time()
     expires_at = record.get("expires_at", 0)
     if expires_at <= now:
         purge_expired_subscriptions(base_dir)
@@ -187,6 +243,8 @@ def get_user_subscription(
     result = {
         "user_id": clean_id,
         "provider": record.get("provider", "gemini"),
+        "storage_mode": record.get("storage_mode", "vault"),
+        "is_ephemeral": False,
         "created_at": record.get("created_at"),
         "expires_at": expires_at,
         "days_remaining": days_remaining,
@@ -205,18 +263,27 @@ def get_user_subscription(
 
 def delete_user_subscription(user_id: str, base_dir: str | None = None) -> bool:
     clean_id = _clean_user_id(user_id)
+    deleted = False
+
+    if clean_id in _EPHEMERAL_VAULT:
+        del _EPHEMERAL_VAULT[clean_id]
+        deleted = True
+
     vault = _load_vault(base_dir)
     if clean_id in vault:
         del vault[clean_id]
         _save_vault(vault, base_dir)
-        chamber = get_user_runtime_chamber(clean_id)
-        if chamber.exists():
-            try:
-                shutil.rmtree(chamber, ignore_errors=True)
-            except Exception:
-                pass
-        return True
-    return False
+        deleted = True
+
+    chamber = get_user_runtime_chamber(clean_id)
+    if chamber.exists():
+        try:
+            shutil.rmtree(chamber, ignore_errors=True)
+            deleted = True
+        except Exception:
+            pass
+
+    return deleted
 
 
 def verify_subscription_health(provider: str, credential: str) -> tuple[bool, str]:

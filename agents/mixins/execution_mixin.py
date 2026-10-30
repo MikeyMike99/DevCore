@@ -651,7 +651,7 @@ class ExecutionMixin:
                     elif "PATH" not in safe_env:
                         safe_env["PATH"] = b_str
 
-            if is_admin:
+            if is_admin or is_pa:
                 perm_flag = "--dangerously-skip-permissions"
             else:
                 perm_flag = "--sandbox"
@@ -1283,6 +1283,14 @@ class ExecutionMixin:
             self.active_proc = None
             self.active_task = None
             self.start_time = None
+
+            if locals().get("byos_data") and byos_data.get("is_ephemeral") and locals().get("user_cli_dir"):
+                try:
+                    tok_f = user_cli_dir / "antigravity-oauth-token"
+                    if tok_f.exists():
+                        tok_f.unlink()
+                except Exception:
+                    pass
             
             is_steered_exit = bool(getattr(self, "_steering_interrupt", False))
             if not is_steered_exit:

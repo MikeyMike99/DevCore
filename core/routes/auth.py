@@ -429,7 +429,7 @@ def get_current_user():
 
 @auth_bp.route('/api/user/subscription/set', methods=['POST'])
 async def set_user_subscription_route():
-    """Validates and securely stores personal BYOS credentials with a 7-day TTL countdown."""
+    """Validates and securely stores personal BYOS credentials with a 7-day TTL countdown or ephemeral RAM storage."""
     user = get_current_user()
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -438,6 +438,7 @@ async def set_user_subscription_route():
     provider = data.get("provider", "gemini").strip()
     credential = data.get("credential", "").strip()
     ttl_days = float(data.get("ttl_days", 7.0))
+    storage_mode = str(data.get("storage_mode", "vault")).lower().strip()
 
     if not credential:
         return jsonify({"success": False, "error": "No credential provided"}), 400
@@ -452,14 +453,15 @@ async def set_user_subscription_route():
         user_id=user_identifier,
         provider=provider,
         credential=credential,
-        ttl_days=ttl_days
+        ttl_days=ttl_days,
+        storage_mode=storage_mode
     )
     return jsonify(result)
 
 
 @auth_bp.route('/api/user/subscription/status', methods=['GET'])
 async def get_user_subscription_status():
-    """Returns the remaining TTL countdown and active provider for the user's BYOS credentials."""
+    """Returns the remaining TTL countdown, active provider, and privacy metadata for the user's BYOS credentials."""
     user = get_current_user()
     if not user:
         return jsonify({"error": "Authentication required"}), 401
@@ -472,16 +474,24 @@ async def get_user_subscription_status():
             "configured": False,
             "days_remaining": 0,
             "hours_remaining": 0,
+            "storage_mode": None,
+            "is_ephemeral": False,
+            "scope_description": "Generative Language Model API Only (https://www.googleapis.com/auth/generative-language). Zero access to personal Google Account data or email.",
+            "revocation_url": "https://myaccount.google.com/permissions",
             "message": "No active personal subscription. Personal tasks will strictly halt."
         })
 
     return jsonify({
         "configured": True,
         "provider": sub.get("provider"),
+        "storage_mode": sub.get("storage_mode", "vault"),
+        "is_ephemeral": bool(sub.get("is_ephemeral")),
         "days_remaining": sub.get("days_remaining"),
         "hours_remaining": sub.get("hours_remaining"),
         "expires_at": sub.get("expires_at"),
-        "user_id": sub.get("user_id")
+        "user_id": sub.get("user_id"),
+        "scope_description": "Generative Language Model API Only (https://www.googleapis.com/auth/generative-language). Zero access to personal Google Account data or email.",
+        "revocation_url": "https://myaccount.google.com/permissions"
     })
 
 

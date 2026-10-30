@@ -26,9 +26,10 @@ class SwarmOrchestrator:
         if sys.platform == "win32" and not agy_path.endswith(".exe"):
             cmd.extend(["wsl.exe", "-e"])
             
+        is_pa = "PYTHONANYWHERE_DOMAIN" in os.environ or "PYTHONANYWHERE_SITE" in os.environ or os.path.exists("/var/www")
         cmd.extend([
             agy_path,
-            "--dangerously-skip-permissions" if is_admin else "--sandbox",
+            "--dangerously-skip-permissions" if (is_admin or is_pa) else "--sandbox",
             "--model", "gemini-3.8-flash-low",
             "--print", f"SYSTEM TASK: Read the chunk provided in `{temp_path}`. Extract the core narrative milestones, key events, and crucial decisions. Discard massive code dumps and noise. Provide a highly compressed summary of what happened in this chunk."
         ])

@@ -106,6 +106,35 @@ class TestSubscriptionGuard(unittest.TestCase):
         self.assertTrue(allowed)
         self.assertEqual(reason, "Admin host fallback")
 
+    def test_ephemeral_ram_mode(self):
+        user_id = "ephemeral_user"
+        secret = "AIzaSyEphemeralSecret123"
+        res = set_user_subscription(
+            user_id=user_id,
+            provider="gemini",
+            credential=secret,
+            storage_mode="ephemeral",
+            base_dir=self.test_dir
+        )
+        self.assertTrue(res["success"])
+        self.assertTrue(res["is_ephemeral"])
+        self.assertEqual(res["storage_mode"], "ephemeral")
+
+        vault_path = os.path.join(self.test_dir, "subscriptions.json")
+        if os.path.exists(vault_path):
+            import json
+            data = json.load(open(vault_path, "r", encoding="utf-8"))
+            self.assertNotIn(user_id, data)
+
+        fetched = get_user_subscription(user_id, base_dir=self.test_dir, include_decrypted=True)
+        self.assertIsNotNone(fetched)
+        self.assertTrue(fetched["is_ephemeral"])
+        self.assertEqual(fetched["credential"], secret)
+
+        deleted = delete_user_subscription(user_id, base_dir=self.test_dir)
+        self.assertTrue(deleted)
+        self.assertIsNone(get_user_subscription(user_id, base_dir=self.test_dir))
+
     def test_chamber_path_sanitization(self):
         chamber = get_user_runtime_chamber("user/../../bad!name@123")
         self.assertNotIn("..", str(chamber))

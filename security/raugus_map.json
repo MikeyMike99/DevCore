@@ -13403,7 +13403,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "da278b7193e9",
+        "content_hash": "75d823e83f2a",
         "id": "131d8d50-c759-4e4b-bd57-5c215ada8caf"
     },
     "devcore.apply_upgrade.sh": {
@@ -13445,15 +13445,15 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "339f70eff5be",
+        "content_hash": "9a43b9e04fc6",
         "id": "777a685c-1104-407c-9eef-2091c9b3b631"
     },
     "devcore.auth_daemon.py::SOCK_PATH": {
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "SOCK_PATH",
-        "start_line": 23,
-        "end_line": 23,
+        "start_line": 27,
+        "end_line": 27,
         "content_hash": "c700a9160e32",
         "required_tier": 5,
         "sensitive": false,
@@ -13468,8 +13468,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "STATE_PATH",
-        "start_line": 24,
-        "end_line": 24,
+        "start_line": 28,
+        "end_line": 28,
         "content_hash": "975ceacb0b65",
         "required_tier": 5,
         "sensitive": false,
@@ -13484,8 +13484,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "cleanup",
-        "start_line": 70,
-        "end_line": 92,
+        "start_line": 98,
+        "end_line": 120,
         "content_hash": "ae90834338cf",
         "required_tier": 5,
         "sensitive": false,
@@ -13500,9 +13500,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "main",
-        "start_line": 95,
-        "end_line": 375,
-        "content_hash": "ed93a5bcc9dc",
+        "start_line": 244,
+        "end_line": 373,
+        "content_hash": "402a122cc63c",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -19029,7 +19029,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "72c3481f80f3",
+        "content_hash": "1b9cd01af965",
         "id": "97da5dfa-031e-4a4b-83a7-a0da9ee68931"
     },
     "devcore.agents.mixins.execution_mixin.py::ExecutionMixin": {
@@ -19037,8 +19037,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "ExecutionMixin",
         "start_line": 92,
-        "end_line": 1719,
-        "content_hash": "f8217ce24be6",
+        "end_line": 1727,
+        "content_hash": "b9da269282da",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -19172,8 +19172,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_execute_agent",
         "start_line": 290,
-        "end_line": 1290,
-        "content_hash": "02cc82385586",
+        "end_line": 1298,
+        "content_hash": "6c2f49a390ff",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -19188,8 +19188,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_execute_native_gemini",
-        "start_line": 1292,
-        "end_line": 1437,
+        "start_line": 1300,
+        "end_line": 1445,
         "content_hash": "f67a0b1db2dd",
         "required_tier": 5,
         "sensitive": false,
@@ -19205,8 +19205,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_broadcast_queue_state",
-        "start_line": 1439,
-        "end_line": 1451,
+        "start_line": 1447,
+        "end_line": 1459,
         "content_hash": "027761678320",
         "required_tier": 5,
         "sensitive": false,
@@ -19222,8 +19222,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "queue_prompt",
-        "start_line": 1453,
-        "end_line": 1493,
+        "start_line": 1461,
+        "end_line": 1501,
         "content_hash": "a9aa14d2a4f5",
         "required_tier": 5,
         "sensitive": false,
@@ -19239,8 +19239,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "clear_queue",
-        "start_line": 1495,
-        "end_line": 1507,
+        "start_line": 1503,
+        "end_line": 1515,
         "content_hash": "d32d663621e1",
         "required_tier": 5,
         "sensitive": false,
@@ -19256,8 +19256,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "promote_queued_to_steer",
-        "start_line": 1509,
-        "end_line": 1519,
+        "start_line": 1517,
+        "end_line": 1527,
         "content_hash": "1ad5ed641b1e",
         "required_tier": 5,
         "sensitive": false,
@@ -19273,8 +19273,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "_drain_queued_prompts",
-        "start_line": 1521,
-        "end_line": 1543,
+        "start_line": 1529,
+        "end_line": 1551,
         "content_hash": "3c87534252b1",
         "required_tier": 5,
         "sensitive": false,
@@ -19290,8 +19290,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "steer_task",
-        "start_line": 1545,
-        "end_line": 1663,
+        "start_line": 1553,
+        "end_line": 1671,
         "content_hash": "53bf45e1716a",
         "required_tier": 5,
         "sensitive": false,
@@ -19307,8 +19307,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "send_input",
-        "start_line": 1665,
-        "end_line": 1675,
+        "start_line": 1673,
+        "end_line": 1683,
         "content_hash": "3da589443b35",
         "required_tier": 5,
         "sensitive": false,
@@ -19324,8 +19324,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/execution_mixin.py",
         "symbol_name": "cancel_task",
-        "start_line": 1677,
-        "end_line": 1719,
+        "start_line": 1685,
+        "end_line": 1727,
         "content_hash": "3fdf11eeccc6",
         "required_tier": 5,
         "sensitive": false,
@@ -143392,7 +143392,7 @@
             "write": true,
             "execute": false
         },
-        "content_hash": "7de8b7d551a6",
+        "content_hash": "ecfeae275a6c",
         "id": "ae1d32b4-5c20-4042-a597-5d3154c1dec3"
     },
     "devcore.sandbox.templates.login.html": {
@@ -143406,7 +143406,7 @@
             "write": true,
             "execute": false
         },
-        "content_hash": "ca37b754ce6b",
+        "content_hash": "780be2022108",
         "id": "44deae7b-01b4-4b28-bb90-dd96593e9cc8"
     },
     "devcore.sandbox.templates.security_dashboard.html": {
@@ -148643,7 +148643,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "d2f9b7553c36",
+        "content_hash": "61f03370ad13",
         "id": "11aa3891-e1b1-4f3c-b9a8-4acced68015b"
     },
     "devcore....e_profile.file_mod.py::config": {
@@ -148763,8 +148763,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/file_mod.py",
         "symbol_name": "git_sync",
         "start_line": 240,
-        "end_line": 410,
-        "content_hash": "24fe57f652f2",
+        "end_line": 455,
+        "content_hash": "48349d343a55",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -149151,7 +149151,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "4b7f7eb8c618",
+        "content_hash": "b348699fbba4",
         "id": "d732c589-f5ba-48c3-b847-545b9b66b3c8"
     },
     "devcore....e_profile.post_sync.py::main": {
@@ -149159,8 +149159,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/e_profile/post_sync.py",
         "symbol_name": "main",
         "start_line": 28,
-        "end_line": 138,
-        "content_hash": "579314eb8aea",
+        "end_line": 149,
+        "content_hash": "406d32814848",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -150773,7 +150773,7 @@
     "devcore.core.patches.execution_mixin.py": {
         "type": "file",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
-        "inode": 74027918875161569,
+        "inode": 3659174697942556,
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -150781,7 +150781,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "6536f126e79e",
+        "content_hash": "fcaed21a131c",
         "id": "fc729d84-990b-4de1-a745-76ecbbd8f37c"
     },
     "devcore.core.patches.execution_mixin.py::_iter_relative_roots": {
@@ -150853,8 +150853,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "ExecutionMixin",
         "start_line": 92,
-        "end_line": 1652,
-        "content_hash": "adc3f7218bbe",
+        "end_line": 1727,
+        "content_hash": "40e4c1c33fed",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -150988,8 +150988,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_execute_agent",
         "start_line": 290,
-        "end_line": 1223,
-        "content_hash": "63e687f2d369",
+        "end_line": 1298,
+        "content_hash": "aa6b5fa77475",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -151004,8 +151004,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_execute_native_gemini",
-        "start_line": 1225,
-        "end_line": 1370,
+        "start_line": 1300,
+        "end_line": 1445,
         "content_hash": "f67a0b1db2dd",
         "required_tier": 5,
         "sensitive": false,
@@ -151021,8 +151021,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_broadcast_queue_state",
-        "start_line": 1372,
-        "end_line": 1384,
+        "start_line": 1447,
+        "end_line": 1459,
         "content_hash": "027761678320",
         "required_tier": 5,
         "sensitive": false,
@@ -151038,8 +151038,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "queue_prompt",
-        "start_line": 1386,
-        "end_line": 1426,
+        "start_line": 1461,
+        "end_line": 1501,
         "content_hash": "a9aa14d2a4f5",
         "required_tier": 5,
         "sensitive": false,
@@ -151055,8 +151055,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "clear_queue",
-        "start_line": 1428,
-        "end_line": 1440,
+        "start_line": 1503,
+        "end_line": 1515,
         "content_hash": "d32d663621e1",
         "required_tier": 5,
         "sensitive": false,
@@ -151072,8 +151072,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "promote_queued_to_steer",
-        "start_line": 1442,
-        "end_line": 1452,
+        "start_line": 1517,
+        "end_line": 1527,
         "content_hash": "1ad5ed641b1e",
         "required_tier": 5,
         "sensitive": false,
@@ -151089,8 +151089,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "_drain_queued_prompts",
-        "start_line": 1454,
-        "end_line": 1476,
+        "start_line": 1529,
+        "end_line": 1551,
         "content_hash": "3c87534252b1",
         "required_tier": 5,
         "sensitive": false,
@@ -151106,8 +151106,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "steer_task",
-        "start_line": 1478,
-        "end_line": 1596,
+        "start_line": 1553,
+        "end_line": 1671,
         "content_hash": "53bf45e1716a",
         "required_tier": 5,
         "sensitive": false,
@@ -151123,8 +151123,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "send_input",
-        "start_line": 1598,
-        "end_line": 1608,
+        "start_line": 1673,
+        "end_line": 1683,
         "content_hash": "3da589443b35",
         "required_tier": 5,
         "sensitive": false,
@@ -151140,8 +151140,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/execution_mixin.py",
         "symbol_name": "cancel_task",
-        "start_line": 1610,
-        "end_line": 1652,
+        "start_line": 1685,
+        "end_line": 1727,
         "content_hash": "3fdf11eeccc6",
         "required_tier": 5,
         "sensitive": false,
@@ -152239,8 +152239,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "BASE_DIR",
-        "start_line": 15,
-        "end_line": 15,
+        "start_line": 19,
+        "end_line": 19,
         "content_hash": "a3827b982ba7",
         "required_tier": 5,
         "sensitive": false,
@@ -152255,8 +152255,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "RUNTIME_DIR",
-        "start_line": 16,
-        "end_line": 16,
+        "start_line": 20,
+        "end_line": 20,
         "content_hash": "e87ed42caf0d",
         "required_tier": 5,
         "sensitive": false,
@@ -152271,8 +152271,8 @@
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "_rt_sock",
-        "start_line": 22,
-        "end_line": 22,
+        "start_line": 26,
+        "end_line": 26,
         "content_hash": "4fe748f3ed74",
         "required_tier": 5,
         "sensitive": false,
@@ -152287,8 +152287,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "_iter_relative_roots",
-        "start_line": 27,
-        "end_line": 43,
+        "start_line": 55,
+        "end_line": 71,
         "content_hash": "40814143523d",
         "required_tier": 5,
         "sensitive": false,
@@ -152303,8 +152303,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
         "symbol_name": "_find_agy_binary",
-        "start_line": 46,
-        "end_line": 67,
+        "start_line": 74,
+        "end_line": 95,
         "content_hash": "0ac7f0900812",
         "required_tier": 5,
         "sensitive": false,
@@ -166447,8 +166447,8 @@
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_check",
         "start_line": 446,
-        "end_line": 492,
-        "content_hash": "40e22be89ab8",
+        "end_line": 496,
+        "content_hash": "3187cf2baa71",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -166462,8 +166462,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_demo",
-        "start_line": 496,
-        "end_line": 521,
+        "start_line": 500,
+        "end_line": 525,
         "content_hash": "5c7d428631a5",
         "required_tier": 5,
         "sensitive": false,
@@ -166478,8 +166478,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_sound",
-        "start_line": 525,
-        "end_line": 542,
+        "start_line": 529,
+        "end_line": 546,
         "content_hash": "739382f97c63",
         "required_tier": 5,
         "sensitive": false,
@@ -166494,8 +166494,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "set_api_key",
-        "start_line": 546,
-        "end_line": 578,
+        "start_line": 550,
+        "end_line": 582,
         "content_hash": "df33cf793269",
         "required_tier": 5,
         "sensitive": false,
@@ -166510,8 +166510,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_submit",
-        "start_line": 582,
-        "end_line": 618,
+        "start_line": 586,
+        "end_line": 622,
         "content_hash": "76e1c27b40f4",
         "required_tier": 5,
         "sensitive": false,
@@ -166526,8 +166526,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "start_chat",
-        "start_line": 622,
-        "end_line": 666,
+        "start_line": 626,
+        "end_line": 670,
         "content_hash": "43057412f64d",
         "required_tier": 5,
         "sensitive": false,
@@ -166542,8 +166542,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_stream",
-        "start_line": 670,
-        "end_line": 707,
+        "start_line": 674,
+        "end_line": 711,
         "content_hash": "1e971cfc9eba",
         "required_tier": 5,
         "sensitive": false,
@@ -166558,8 +166558,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "kill_chat",
-        "start_line": 711,
-        "end_line": 713,
+        "start_line": 715,
+        "end_line": 717,
         "content_hash": "cee76723f625",
         "required_tier": 5,
         "sensitive": false,
@@ -166574,8 +166574,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_login",
-        "start_line": 717,
-        "end_line": 736,
+        "start_line": 721,
+        "end_line": 740,
         "content_hash": "48e56aea2824",
         "required_tier": 5,
         "sensitive": false,
@@ -166590,8 +166590,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_logout",
-        "start_line": 740,
-        "end_line": 745,
+        "start_line": 744,
+        "end_line": 749,
         "content_hash": "81c7f5ad5107",
         "required_tier": 5,
         "sensitive": false,
@@ -166606,8 +166606,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_me",
-        "start_line": 749,
-        "end_line": 757,
+        "start_line": 753,
+        "end_line": 761,
         "content_hash": "f72085b0eb99",
         "required_tier": 5,
         "sensitive": false,
@@ -166622,8 +166622,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "auth_system_status",
-        "start_line": 761,
-        "end_line": 767,
+        "start_line": 765,
+        "end_line": 771,
         "content_hash": "fb9f7920709f",
         "required_tier": 5,
         "sensitive": false,
@@ -166638,8 +166638,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "handle_projects",
-        "start_line": 771,
-        "end_line": 783,
+        "start_line": 775,
+        "end_line": 787,
         "content_hash": "b488f8a29df7",
         "required_tier": 5,
         "sensitive": false,
@@ -166654,8 +166654,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "set_active_project",
-        "start_line": 787,
-        "end_line": 792,
+        "start_line": 791,
+        "end_line": 796,
         "content_hash": "04fb00e3afd8",
         "required_tier": 5,
         "sensitive": false,
@@ -166670,8 +166670,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_conversations",
-        "start_line": 796,
-        "end_line": 803,
+        "start_line": 800,
+        "end_line": 807,
         "content_hash": "05e1edfec079",
         "required_tier": 5,
         "sensitive": false,
@@ -166686,8 +166686,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "handle_conversation_details",
-        "start_line": 807,
-        "end_line": 814,
+        "start_line": 811,
+        "end_line": 818,
         "content_hash": "376136ef62ac",
         "required_tier": 5,
         "sensitive": false,
@@ -166702,8 +166702,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "rename_conversation",
-        "start_line": 818,
-        "end_line": 823,
+        "start_line": 822,
+        "end_line": 827,
         "content_hash": "8f08fea086dd",
         "required_tier": 5,
         "sensitive": false,
@@ -166718,8 +166718,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "delete_active_conversations",
-        "start_line": 827,
-        "end_line": 831,
+        "start_line": 831,
+        "end_line": 835,
         "content_hash": "badbee29acb6",
         "required_tier": 5,
         "sensitive": false,
@@ -166734,8 +166734,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "get_artifact",
-        "start_line": 835,
-        "end_line": 846,
+        "start_line": 839,
+        "end_line": 850,
         "content_hash": "eda83d031629",
         "required_tier": 5,
         "sensitive": false,
@@ -166750,8 +166750,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/ai_plugin.py",
         "symbol_name": "save_artifact",
-        "start_line": 850,
-        "end_line": 865,
+        "start_line": 854,
+        "end_line": 869,
         "content_hash": "924a122dc42a",
         "required_tier": 5,
         "sensitive": false,
@@ -167047,5 +167047,1373 @@
             "execute": false
         },
         "id": "e3a37e14-482a-481b-86e6-4c78949ff91d"
+    },
+    "devcore...................home.michael..gemini.antigravity-cli.antigravity-oauth-token": {
+        "type": "file",
+        "real_path": "/home/michael/.gemini/antigravity-cli/antigravity-oauth-token",
+        "inode": 95042,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "64d3b3439334",
+        "id": "9761b754-9222-4076-9ddf-a35d05988052"
+    },
+    "devcore.auth_daemon.py::GOOGLE_REDIRECT_URI": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
+        "symbol_name": "GOOGLE_REDIRECT_URI",
+        "start_line": 43,
+        "end_line": 43,
+        "content_hash": "70c0284e015e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d50141fe-607a-4bc9-bcf9-1f97d4571703"
+    },
+    "devcore.auth_daemon.py::GOOGLE_SCOPES": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
+        "symbol_name": "GOOGLE_SCOPES",
+        "start_line": 44,
+        "end_line": 52,
+        "content_hash": "6505251ce428",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "67ee96d2-02da-4b31-a5d3-4cffe041db1a"
+    },
+    "devcore.auth_daemon.py::generate_pkce_auth_url": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
+        "symbol_name": "generate_pkce_auth_url",
+        "start_line": 123,
+        "end_line": 140,
+        "content_hash": "2abbeb22941d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "49a4cc56-dc61-4776-8040-134bccc7d808"
+    },
+    "devcore.auth_daemon.py::exchange_pkce_code": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
+        "symbol_name": "exchange_pkce_code",
+        "start_line": 143,
+        "end_line": 177,
+        "content_hash": "f68a8114763c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b1f32095-e4d6-49a2-bfb8-123ede8940ff"
+    },
+    "devcore.auth_daemon.py::save_token_to_targets": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
+        "symbol_name": "save_token_to_targets",
+        "start_line": 180,
+        "end_line": 241,
+        "content_hash": "cb42fea2342a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "763b97ac-efcd-43ef-90e3-a74341738284"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "inode": 28710447624644217,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "9a43b9e04fc6",
+        "id": "c2d110a9-3bff-4e58-9f4d-9688823444c8"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::BASE_DIR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "BASE_DIR",
+        "start_line": 19,
+        "end_line": 19,
+        "content_hash": "a3827b982ba7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ef65b108-0045-4a82-8380-ab972db5a19f"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::RUNTIME_DIR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "RUNTIME_DIR",
+        "start_line": 20,
+        "end_line": 20,
+        "content_hash": "e87ed42caf0d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9366d699-d09a-472c-9c3c-ba0534331314"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::_rt_sock": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "_rt_sock",
+        "start_line": 26,
+        "end_line": 26,
+        "content_hash": "4fe748f3ed74",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9b88556d-007a-47a4-83c6-87070556f4ee"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::SOCK_PATH": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "SOCK_PATH",
+        "start_line": 27,
+        "end_line": 27,
+        "content_hash": "c700a9160e32",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "953caf20-9b15-40ee-b5a3-736656ee758a"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::STATE_PATH": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "STATE_PATH",
+        "start_line": 28,
+        "end_line": 28,
+        "content_hash": "975ceacb0b65",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "03316aeb-efb0-4306-a9e6-73207bb5d4c4"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::GOOGLE_REDIRECT_URI": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "GOOGLE_REDIRECT_URI",
+        "start_line": 43,
+        "end_line": 43,
+        "content_hash": "70c0284e015e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ea8697f8-7705-40b1-abe7-6fef83400f45"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::GOOGLE_SCOPES": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "GOOGLE_SCOPES",
+        "start_line": 44,
+        "end_line": 52,
+        "content_hash": "6505251ce428",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e7b6dba2-c2e7-4db2-89c9-143d59306327"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::_iter_relative_roots": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "_iter_relative_roots",
+        "start_line": 55,
+        "end_line": 71,
+        "content_hash": "40814143523d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "42b1c599-b826-4e91-82e4-0e0b9290f14c"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::_find_agy_binary": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "_find_agy_binary",
+        "start_line": 74,
+        "end_line": 95,
+        "content_hash": "0ac7f0900812",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cb50dd2e-fb4e-4ff5-b8a9-a909529a251f"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::cleanup": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "cleanup",
+        "start_line": 98,
+        "end_line": 120,
+        "content_hash": "ae90834338cf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0f5d788b-51ea-439a-9a58-5b2604f12596"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::generate_pkce_auth_url": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "generate_pkce_auth_url",
+        "start_line": 123,
+        "end_line": 140,
+        "content_hash": "2abbeb22941d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f91db733-e3a0-4834-8d50-7b58a6d8aa66"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::exchange_pkce_code": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "exchange_pkce_code",
+        "start_line": 143,
+        "end_line": 177,
+        "content_hash": "f68a8114763c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "57983228-ab8a-4d48-b3d8-566c8c842ca0"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::save_token_to_targets": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "save_token_to_targets",
+        "start_line": 180,
+        "end_line": 241,
+        "content_hash": "cb42fea2342a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0672d83a-0ad7-4bc9-ac31-d5f967203505"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::main": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "main",
+        "start_line": 244,
+        "end_line": 373,
+        "content_hash": "402a122cc63c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6fd9d6ca-9798-473d-ac86-56b503362160"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.sandbox.templates.login.html": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/sandbox/templates/login.html",
+        "inode": 3659174697921329,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "780be2022108",
+        "id": "10fe1015-fc71-44fb-969c-df93892123ad"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "inode": 4785074604168871,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "75d823e83f2a",
+        "id": "9ed44e2f-59a1-4d15-8c41-b08dd7e8f681"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::PLUGIN_DIR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "PLUGIN_DIR",
+        "start_line": 14,
+        "end_line": 14,
+        "content_hash": "8747c89fe35f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3dd593cc-e692-4657-966f-ebae4079c8cb"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::ai_path": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "ai_path",
+        "start_line": 15,
+        "end_line": 15,
+        "content_hash": "1e6992ca7e30",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1bedca0d-6724-49b4-96b8-4e4ec76398ca"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::ai_bp": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "ai_bp",
+        "start_line": 25,
+        "end_line": 25,
+        "content_hash": "0fd26f8fa7d8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1b6673de-8e90-417c-8d23-52549dda57d2"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::project_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "project_mgr",
+        "start_line": 27,
+        "end_line": 27,
+        "content_hash": "3b3dedec91ce",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "21b6ad32-f654-4c1a-8606-8571ac70f697"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::session_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "session_mgr",
+        "start_line": 28,
+        "end_line": 28,
+        "content_hash": "b8c3ac5f0943",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "61879590-cb6c-4620-ad7c-9648838eedd3"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::agent_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "agent_mgr",
+        "start_line": 29,
+        "end_line": 29,
+        "content_hash": "518def879e0f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ab01475c-ba36-48d6-94b7-ea45bae89a87"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::security_mgr": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "security_mgr",
+        "start_line": 30,
+        "end_line": 30,
+        "content_hash": "12cdb53ed830",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "54af3104-f867-4bd1-aea9-2711396f4302"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_iter_relative_roots": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_iter_relative_roots",
+        "start_line": 33,
+        "end_line": 49,
+        "content_hash": "fe35754a4553",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "09b249b1-3216-4066-9aeb-d81e34dfb8d6"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_runtime_dir": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_runtime_dir",
+        "start_line": 52,
+        "end_line": 58,
+        "content_hash": "16fcc2275372",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "93cde433-c731-4e27-a498-5202fc092549"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_sock_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_sock_path",
+        "start_line": 61,
+        "end_line": 66,
+        "content_hash": "5b91407b5a72",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4f8b2f38-529d-4139-870c-3d37e24b19a6"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_state_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_state_path",
+        "start_line": 69,
+        "end_line": 70,
+        "content_hash": "2c507a5e4120",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "83161325-4b18-4aac-aa13-3ba694174880"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_daemon_log_path": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_daemon_log_path",
+        "start_line": 73,
+        "end_line": 74,
+        "content_hash": "57fff6452fb7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7766016b-1785-4c30-9282-78d5efb5fec9"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_find_agy_binary": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_find_agy_binary",
+        "start_line": 77,
+        "end_line": 98,
+        "content_hash": "0ac7f0900812",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7fbe8baa-aab9-4333-b797-460789a0144a"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_render_ai_template": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_render_ai_template",
+        "start_line": 101,
+        "end_line": 106,
+        "content_hash": "2e30abeb6dd0",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c2210dc0-9884-4715-b84e-f4a69c02c4d2"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_ui_config": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_ui_config",
+        "start_line": 109,
+        "end_line": 142,
+        "content_hash": "2608492099dc",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "80b96f57-f76e-4a81-813a-cff45836efa6"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::query_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "query_auth_daemon",
+        "start_line": 145,
+        "end_line": 168,
+        "content_hash": "c3c220a4326a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5ea8e5c0-e8dc-4ce3-bcdf-cb5284a626d0"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::kill_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "kill_auth_daemon",
+        "start_line": 171,
+        "end_line": 193,
+        "content_hash": "2ecece3fe2a3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ebb51211-afbb-483c-974a-1761bf662920"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::spawn_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "spawn_auth_daemon",
+        "start_line": 196,
+        "end_line": 215,
+        "content_hash": "76a326d5e567",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "31b3d08e-8eaf-4a6b-8e49-3a20f17b62b3"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::wait_for_auth_daemon": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "wait_for_auth_daemon",
+        "start_line": 218,
+        "end_line": 225,
+        "content_hash": "283ec2542814",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4edb1c35-738b-4706-a10c-b35b4314a2ff"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::ai_loop": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "ai_loop",
+        "start_line": 228,
+        "end_line": 228,
+        "content_hash": "ca7ccd01a015",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "218a8bf0-c955-4e3c-a4b4-4e91a1cd463f"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::run_ai_loop": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "run_ai_loop",
+        "start_line": 231,
+        "end_line": 233,
+        "content_hash": "5c54f2c63d22",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f68f155a-62f0-4a8b-876c-06f4c79e1c64"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::DEMO_TOKEN_TTL_SECONDS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "DEMO_TOKEN_TTL_SECONDS",
+        "start_line": 238,
+        "end_line": 238,
+        "content_hash": "287c2c0986b8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0bc0bea7-6e40-43d2-afc5-6f54591852f3"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_demo_dirs": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_demo_dirs",
+        "start_line": 241,
+        "end_line": 258,
+        "content_hash": "fed00173e530",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "943e852c-1c19-41c7-82d7-19c9ff319a94"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_get_eprofile_root": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_get_eprofile_root",
+        "start_line": 261,
+        "end_line": 265,
+        "content_hash": "562080e9535a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "714ee4a8-288c-4aa6-8c46-ed7607765542"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_cleanup_expired_demo_tokens": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_cleanup_expired_demo_tokens",
+        "start_line": 268,
+        "end_line": 283,
+        "content_hash": "18b8cee40ebf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fb18ff4d-1454-496b-a06b-828897c2ecbc"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_resolve_token_scope": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_resolve_token_scope",
+        "start_line": 286,
+        "end_line": 300,
+        "content_hash": "0e42884e5668",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d69e480a-f392-4871-92a8-96a05112fc5e"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_sync_demo_oauth_token": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_sync_demo_oauth_token",
+        "start_line": 303,
+        "end_line": 315,
+        "content_hash": "80361b3bdbea",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "079a9146-465d-4936-b66a-6b219b5a31ce"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_has_local_cli_credentials": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_has_local_cli_credentials",
+        "start_line": 318,
+        "end_line": 358,
+        "content_hash": "681e36210852",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "70964753-a8c5-471c-8f53-53bf7f45e7a3"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_save_api_key_for_scope": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_save_api_key_for_scope",
+        "start_line": 361,
+        "end_line": 381,
+        "content_hash": "ade0b58a33cd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dcbb5391-a06b-4349-8e5a-cb653c4af0ee"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::_resolve_active_user": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "_resolve_active_user",
+        "start_line": 384,
+        "end_line": 395,
+        "content_hash": "c88204e08974",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7f4bead4-2132-48da-8ed8-4cb588a165dc"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::ai_home": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "ai_home",
+        "start_line": 399,
+        "end_line": 422,
+        "content_hash": "2bbc8aea4dcd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3692b05c-7d31-4df8-a50d-40619bc2e55c"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::ai_demo_entry": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "ai_demo_entry",
+        "start_line": 426,
+        "end_line": 429,
+        "content_hash": "17241ee20dab",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "87429caa-bb23-452b-83ef-f9a237ab2c3d"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::login_page": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "login_page",
+        "start_line": 433,
+        "end_line": 437,
+        "content_hash": "c3fa774495cf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "de7d76f0-18f7-48c6-ba54-60135299776a"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::get_ui_config_route": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "get_ui_config_route",
+        "start_line": 441,
+        "end_line": 442,
+        "content_hash": "fe689826959e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dcb57ed4-5eb8-43c4-a7b4-397f488a022d"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_check": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_check",
+        "start_line": 446,
+        "end_line": 496,
+        "content_hash": "3187cf2baa71",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0f01ec70-e5af-426c-b0a2-e8ce5424bf7f"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_demo": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_demo",
+        "start_line": 500,
+        "end_line": 525,
+        "content_hash": "5c7d428631a5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8a2666df-7b5e-4bc1-9d45-bb39a6d519de"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::get_sound": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "get_sound",
+        "start_line": 529,
+        "end_line": 546,
+        "content_hash": "739382f97c63",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "59a01f3c-7749-4c07-9068-21891c6580cd"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::set_api_key": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "set_api_key",
+        "start_line": 550,
+        "end_line": 582,
+        "content_hash": "df33cf793269",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5938547b-2a1e-4a4d-bc3c-cb9be8ca8622"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_submit": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_submit",
+        "start_line": 586,
+        "end_line": 622,
+        "content_hash": "76e1c27b40f4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d64868fc-dedc-4110-b894-d88f82bc46f5"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::start_chat": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "start_chat",
+        "start_line": 626,
+        "end_line": 670,
+        "content_hash": "43057412f64d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "72c61628-a509-4458-be59-3e3676e8f91d"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::get_stream": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "get_stream",
+        "start_line": 674,
+        "end_line": 711,
+        "content_hash": "1e971cfc9eba",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "645b17b2-56e2-4f76-bdc6-7616b1b8821f"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::kill_chat": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "kill_chat",
+        "start_line": 715,
+        "end_line": 717,
+        "content_hash": "cee76723f625",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cf7be920-39e7-483b-aefa-25edb9908751"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_login": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_login",
+        "start_line": 721,
+        "end_line": 740,
+        "content_hash": "48e56aea2824",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "23fb2cbe-6678-4955-a2b6-be2be7f2ee0d"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_logout": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_logout",
+        "start_line": 744,
+        "end_line": 749,
+        "content_hash": "81c7f5ad5107",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "15bfc104-f9c6-4633-9e9f-4391279942cb"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_me": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_me",
+        "start_line": 753,
+        "end_line": 761,
+        "content_hash": "f72085b0eb99",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1b5ad4ff-ed65-42a5-802d-08486a0938c8"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::auth_system_status": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "auth_system_status",
+        "start_line": 765,
+        "end_line": 771,
+        "content_hash": "fb9f7920709f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "37344bea-c3e2-4a39-ab07-d2d1cba2486c"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::handle_projects": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "handle_projects",
+        "start_line": 775,
+        "end_line": 787,
+        "content_hash": "b488f8a29df7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6759cae0-e155-4d8d-b326-dfa4a209ad49"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::set_active_project": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "set_active_project",
+        "start_line": 791,
+        "end_line": 796,
+        "content_hash": "04fb00e3afd8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2323e263-3cdf-4ae0-b702-f9c94a8cefe1"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::get_conversations": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "get_conversations",
+        "start_line": 800,
+        "end_line": 807,
+        "content_hash": "05e1edfec079",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fec2f6c7-fbc9-440c-9bda-c52674373e8d"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::handle_conversation_details": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "handle_conversation_details",
+        "start_line": 811,
+        "end_line": 818,
+        "content_hash": "376136ef62ac",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a9ddab79-eb1c-41b4-9dde-ae5af31252f6"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::rename_conversation": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "rename_conversation",
+        "start_line": 822,
+        "end_line": 827,
+        "content_hash": "8f08fea086dd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f94f258b-cced-4d6a-aee0-58fcee50cbf4"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::delete_active_conversations": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "delete_active_conversations",
+        "start_line": 831,
+        "end_line": 835,
+        "content_hash": "badbee29acb6",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3b92f6a2-826c-4660-b396-a2f8ed0bfa27"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::get_artifact": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "get_artifact",
+        "start_line": 839,
+        "end_line": 850,
+        "content_hash": "eda83d031629",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2d007d26-6b42-410d-b244-d15bdc2fcede"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.ai_plugin.py::save_artifact": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/ai_plugin.py",
+        "symbol_name": "save_artifact",
+        "start_line": 854,
+        "end_line": 869,
+        "content_hash": "924a122dc42a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "998afa8a-aa99-40c1-9c1c-704fea1741ec"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.sandbox.templates.index.html": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/sandbox/templates/index.html",
+        "inode": 3377699721210672,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "b7491993d871",
+        "id": "d6773d58-eadd-4491-87ca-16379ea04b17"
+    },
+    "devcore.auth_daemon.py::_resolve_oauth_constants": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/auth_daemon.py",
+        "symbol_name": "_resolve_oauth_constants",
+        "start_line": 30,
+        "end_line": 39,
+        "content_hash": "e9e1dc633454",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ba5e9287-7535-420f-8934-7a9cd6f004af"
+    },
+    "devcore....e_profile.content.projects.engines.antigravity_agent.auth_daemon.py::_resolve_oauth_constants": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/e_profile/content/projects/engines/antigravity_agent/auth_daemon.py",
+        "symbol_name": "_resolve_oauth_constants",
+        "start_line": 30,
+        "end_line": 39,
+        "content_hash": "e9e1dc633454",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "779e43f8-b36e-4692-84d0-a1024a733e80"
+    },
+    "devcore.core.patches.swarm_orchestrator.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/swarm_orchestrator.py",
+        "inode": 1970324838094099,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "7fe7ffa33081",
+        "id": "434b12a0-8971-473c-9c52-d156298251b8"
+    },
+    "devcore.core.patches.swarm_orchestrator.py::SwarmOrchestrator": {
+        "type": "class",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/swarm_orchestrator.py",
+        "symbol_name": "SwarmOrchestrator",
+        "start_line": 8,
+        "end_line": 103,
+        "content_hash": "e512e2a5c334",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "99a0e03d-c5d5-438e-9baf-4b06d0971f1b"
+    },
+    "devcore.core.patches.swarm_orchestrator.py::SwarmOrchestrator::__init__": {
+        "type": "method",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/swarm_orchestrator.py",
+        "symbol_name": "__init__",
+        "start_line": 9,
+        "end_line": 10,
+        "content_hash": "538f8880aafa",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2463460f-6f2e-4b31-8c2e-773ad594695c",
+        "class_name": "SwarmOrchestrator"
+    },
+    "devcore.core.patches.swarm_orchestrator.py::SwarmOrchestrator::_send_status": {
+        "type": "async_method",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/swarm_orchestrator.py",
+        "symbol_name": "_send_status",
+        "start_line": 12,
+        "end_line": 18,
+        "content_hash": "6f774b127281",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "77d5ab5e-1fe3-4d95-b3d2-4123995c9b8f",
+        "class_name": "SwarmOrchestrator"
+    },
+    "devcore.core.patches.swarm_orchestrator.py::SwarmOrchestrator::_process_chunk": {
+        "type": "async_method",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/swarm_orchestrator.py",
+        "symbol_name": "_process_chunk",
+        "start_line": 20,
+        "end_line": 74,
+        "content_hash": "96b8bddabb35",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "899746e8-a1a9-4088-82e0-546e774947dc",
+        "class_name": "SwarmOrchestrator"
+    },
+    "devcore.core.patches.swarm_orchestrator.py::SwarmOrchestrator::distill_massive_file": {
+        "type": "async_method",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/swarm_orchestrator.py",
+        "symbol_name": "distill_massive_file",
+        "start_line": 76,
+        "end_line": 103,
+        "content_hash": "333e6372b83a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6b9f38f1-7fb9-4a9b-aadd-da72dccd4cdc",
+        "class_name": "SwarmOrchestrator"
     }
 }
