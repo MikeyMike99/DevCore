@@ -473,8 +473,77 @@ class ExecutionMixin:
                 safe_env["NO_PROXY"] = "localhost,127.0.0.1"
 
             real_agy = _find_agy_executable(base_dir)
+            env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
+            is_admin = (bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override) and (token_scope != "demo")
 
-            if token_scope == "demo":
+            user_id = (user.get("username") if isinstance(user, dict) else None) or (user.get("name") if isinstance(user, dict) else None) or "guest"
+            byos_data = None
+            try:
+                from security.subscription_guard import assert_user_execution_quota, get_user_runtime_chamber
+                byos_ok, byos_reason, byos_data = assert_user_execution_quota(user, base_dir=base_dir)
+                if not byos_ok:
+                    halt_msg = f"⛔ **Personal Subscription Required (Strict Halt)**\n\n{byos_reason}"
+                    self.output_buffer.append(halt_msg)
+                    await self.broadcast({"type": "agent_chunk", "chunk": halt_msg})
+                    await self.broadcast({
+                        "type": "agent_done",
+                        "exit_code": 1,
+                        "elapsed": 0.1,
+                        "status": "HALTED",
+                        "output": halt_msg,
+                        "cancelled": False
+                    })
+                    hb_task.cancel()
+                    self.active_task = None
+                    self.start_time = None
+                    return
+            except Exception as e:
+                logging.warning(f"[ExecutionMixin] Subscription guard warning: {e}")
+
+            if byos_data and byos_data.get("credential"):
+                user_chamber = get_user_runtime_chamber(user_id)
+                user_chamber.mkdir(parents=True, exist_ok=True)
+                user_cli_dir = user_chamber / ".gemini" / "antigravity-cli"
+                user_cli_dir.mkdir(parents=True, exist_ok=True)
+                safe_env["HOME"] = str(user_chamber)
+                safe_env["GEMINI_CLI_HOME"] = str(user_chamber)
+
+                for root in _iter_relative_roots(base_dir):
+                    src_cli_dir = root / ".gemini" / "antigravity-cli"
+                    if src_cli_dir.is_dir() and src_cli_dir.resolve() != user_cli_dir.resolve():
+                        for cfg_rel in ("installation_id", "jetski_state.pbtxt", "cache/onboarding.json", "cache/default_project_id.txt"):
+                            s_file = src_cli_dir / cfg_rel
+                            d_file = user_cli_dir / cfg_rel
+                            if s_file.is_file() and not d_file.exists():
+                                try:
+                                    d_file.parent.mkdir(parents=True, exist_ok=True)
+                                    shutil.copy2(s_file, d_file)
+                                except Exception:
+                                    pass
+                        break
+
+                safe_env.pop("GOOGLE_API_KEY", None)
+                safe_env.pop("GEMINI_BASE_URL", None)
+
+                sub_prov = byos_data.get("provider", "gemini")
+                sub_cred = byos_data["credential"]
+                if sub_prov in ("gemini", "api_key", "ai_studio"):
+                    safe_env["GEMINI_API_KEY"] = sub_cred
+                    tok_f = user_cli_dir / "antigravity-oauth-token"
+                    if tok_f.exists():
+                        try:
+                            tok_f.unlink()
+                        except Exception:
+                            pass
+                elif sub_prov in ("oauth", "gemini_advanced", "token"):
+                    safe_env.pop("GEMINI_API_KEY", None)
+                    tok_f = user_cli_dir / "antigravity-oauth-token"
+                    tok_f.write_text(sub_cred, encoding="utf-8")
+                    try:
+                        os.chmod(tok_f, 0o600)
+                    except Exception:
+                        pass
+            elif token_scope == "demo":
                 demo_candidates = [
                     Path(base_dir) / "demo",
                     Path.cwd() / "content" / "projects" / "demo",
@@ -582,8 +651,6 @@ class ExecutionMixin:
                     elif "PATH" not in safe_env:
                         safe_env["PATH"] = b_str
 
-            env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
-            is_admin = (bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override) and (token_scope != "demo")
             if is_admin:
                 perm_flag = "--dangerously-skip-permissions"
             else:

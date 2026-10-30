@@ -32,3 +32,10 @@ core/patches/*.py
 core/backups/*.py
 *.bak
 scratch/
+
+# BYOS & Credential Isolation
+subscriptions.json
+*antigravity-oauth-token*
+*.token
+*.key
+users/

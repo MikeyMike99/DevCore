@@ -460,16 +460,16 @@ def auth_check():
         })
 
     daemon_info = query_auth_daemon({"action": "status"})
-    if force or not daemon_info or not daemon_info.get("active") or daemon_info.get("remaining", 0) < 5:
+    if force or not daemon_info or not daemon_info.get("active") or daemon_info.get("remaining", 0) < 15:
         spawn_auth_daemon()
-        daemon_info = wait_for_auth_daemon(timeout=5.0)
+        daemon_info = wait_for_auth_daemon(timeout=6.0)
 
     if daemon_info:
         return jsonify({
             "authenticated": is_authenticated,
             "scope": scope,
             "url": daemon_info.get("url", "#"),
-            "remaining": daemon_info.get("remaining", 60),
+            "remaining": daemon_info.get("remaining", 600),
             "has_existing": has_creds,
         })
 
@@ -600,7 +600,7 @@ def auth_submit():
     if not token:
         return jsonify({"success": False, "error": "No authorization token provided"}), 400
 
-    resp = query_auth_daemon({"action": "submit", "token": token, "scope": scope}, timeout=15.0)
+    resp = query_auth_daemon({"action": "submit", "token": token, "scope": scope}, timeout=30.0)
     if not resp:
         return jsonify({
             "success": False,

@@ -169,7 +169,7 @@ def main():
 
     url = None
     start_time = time.time()
-    expires_at = start_time + 60.0
+    expires_at = start_time + 600.0
 
     print("[auth_daemon] Reading agy output...", flush=True)
     for _ in range(30):
@@ -235,7 +235,7 @@ def main():
         if server in r:
             try:
                 conn, _ = server.accept()
-                conn.settimeout(15.0)
+                conn.settimeout(30.0)
                 raw_data = b""
                 while True:
                     chunk = conn.recv(4096)
@@ -277,7 +277,7 @@ def main():
                     success = False
                     error_msg = None
 
-                    for _ in range(35):
+                    for _ in range(80):
                         line = proc.stdout.readline()
                         if not line:
                             if proc.poll() is not None:
@@ -317,7 +317,12 @@ def main():
                             break
 
                     scope = req.get("scope", "root")
-                    src_token_path = os.path.join(staging_dir, ".gemini/antigravity-cli/antigravity-oauth-token")
+                    src_candidates = [
+                        os.path.join(staging_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
+                        os.path.join(staging_dir, ".gemini", "antigravity", "antigravity-oauth-token"),
+                        os.path.join(staging_dir, "antigravity-oauth-token"),
+                    ]
+                    src_token_path = next((p for p in src_candidates if os.path.exists(p) and os.path.getsize(p) > 8), None)
 
                     if scope == "demo":
                         demo_dirs = [
@@ -338,7 +343,7 @@ def main():
                             if (root / "server.py").is_file() and (root / "projects_mod.py").is_file():
                                 target_paths.append(str(root / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"))
 
-                    if os.path.exists(src_token_path):
+                    if src_token_path:
                         try:
                             for dest_token_path in dict.fromkeys(target_paths):
                                 os.makedirs(os.path.dirname(dest_token_path), exist_ok=True)

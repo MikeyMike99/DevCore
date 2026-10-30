@@ -76,7 +76,7 @@
         </section>
 
         <div id="feedbackContainer" class="mt-5 space-y-3" role="region" aria-live="polite">
-            <div id="errorAlert" class="hidden p-4 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs sm:text-sm flex items-start gap-3">
+            <div id="errorAlert" class="hidden p-4 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300 text-xs sm:text-sm flex items-start gap-3" role="alert">
                 <i class="fas fa-circle-exclamation text-rose-400 text-base mt-0.5 shrink-0"></i>
                 <div class="flex-1">
                     <div class="font-bold">Authentication Failed</div>
@@ -84,7 +84,7 @@
                 </div>
             </div>
 
-            <div id="successAlert" class="hidden p-4 rounded-xl bg-emerald-950/70 border border-emerald-700/80 text-emerald-300 text-xs sm:text-sm flex flex-col gap-3">
+            <div id="successAlert" class="hidden p-4 rounded-xl bg-emerald-950/70 border border-emerald-700/80 text-emerald-300 text-xs sm:text-sm flex flex-col gap-3" role="status">
                 <div class="flex items-center gap-2.5">
                     <i class="fas fa-circle-check text-emerald-400 text-base"></i>
                     <span class="font-bold">Authentication Successful!</span>
@@ -197,10 +197,17 @@
             const errorElem = document.getElementById('errorMsg');
             let content = msg || 'An unknown error occurred.';
             if (content.toLowerCase().includes('expired') || content.toLowerCase().includes('refresh') || content.toLowerCase().includes('active') || content.toLowerCase().includes('restart')) {
-                content += '<div class="mt-2.5 flex items-center gap-2"><button type="button" onclick="checkInitialStatus(true)" class="px-3 py-1 bg-rose-900 hover:bg-rose-800 text-rose-200 border border-rose-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer"><i class="fas fa-arrows-rotate text-[10px]"></i> Restart Authorization Session</button></div>';
+                content += '<div class="mt-2.5 flex items-center gap-2"><button type="button" onclick="restartAuthFlow()" class="px-3 py-1 bg-rose-900 hover:bg-rose-800 text-rose-200 border border-rose-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer"><i class="fas fa-arrows-rotate text-[10px]"></i> Restart Authorization Session</button></div>';
             }
             errorElem.innerHTML = content;
             alert.classList.remove('hidden');
+        }
+
+        function restartAuthFlow() {
+            const tokenInput = document.getElementById('oauthTokenInput');
+            if (tokenInput) tokenInput.value = '';
+            clearAlerts();
+            checkInitialStatus(true);
         }
 
         function showSuccess() {
@@ -212,6 +219,15 @@
         let countdownInterval = null;
         let currentRemaining = 0;
 
+        function formatRemaining(totalSecs) {
+            const m = Math.floor(totalSecs / 60);
+            const s = totalSecs % 60;
+            if (m > 0) {
+                return `${m}m ${s < 10 ? '0' : ''}${s}s remaining`;
+            }
+            return `${s}s remaining`;
+        }
+
         function startCountdown(seconds) {
             if (countdownInterval) clearInterval(countdownInterval);
             currentRemaining = Math.max(0, Number(seconds) || 0);
@@ -219,7 +235,7 @@
             
             function tick() {
                 if (currentRemaining > 0) {
-                    badge.innerText = `${currentRemaining}s remaining`;
+                    badge.innerText = formatRemaining(currentRemaining);
                     badge.className = 'text-[10px] font-mono px-2 py-0.5 rounded-full bg-teal-900/60 text-teal-300 border border-teal-700/40';
                     currentRemaining--;
                 } else {
@@ -285,7 +301,7 @@
         }
 
         document.getElementById('oauthLinkBtn').addEventListener('click', async function(e) {
-            if (currentRemaining < 10) {
+            if (currentRemaining < 60) {
                 e.preventDefault();
                 const btn = this;
                 const origHtml = btn.innerHTML;

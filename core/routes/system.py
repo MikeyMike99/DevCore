@@ -206,6 +206,11 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         importlib.reload(am)
         importlib.reload(sec_m)
         try:
+            import core.routes.auth as auth_mod
+            importlib.reload(auth_mod)
+        except Exception:
+            auth_mod = None
+        try:
             import core.token_telemetry as tt
             importlib.reload(tt)
             tt._ENGINE_INSTANCE = None
@@ -249,6 +254,17 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                 ('/api/audits/refresh', 'system_bp.api_refresh_audits', api_refresh_audits, ['POST']),
                 ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', api_audit_result, ['GET']),
             ]
+            if auth_mod:
+                sub_set_fn = getattr(auth_mod, 'set_user_subscription_route', None)
+                sub_status_fn = getattr(auth_mod, 'get_user_subscription_status', None)
+                sub_del_fn = getattr(auth_mod, 'delete_user_subscription_route', None)
+                if sub_set_fn:
+                    dynamic_endpoints.append(('/api/user/subscription/set', 'auth_bp.set_user_subscription_route', sub_set_fn, ['POST']))
+                if sub_status_fn:
+                    dynamic_endpoints.append(('/api/user/subscription/status', 'auth_bp.get_user_subscription_status', sub_status_fn, ['GET']))
+                if sub_del_fn:
+                    dynamic_endpoints.append(('/api/user/subscription', 'auth_bp.delete_user_subscription_route', sub_del_fn, ['DELETE']))
+
             existing_rules = {r.rule: r.endpoint for r in target_app.url_map.iter_rules()}
             for rule, ep, view, methods in dynamic_endpoints:
                 if rule not in existing_rules:
