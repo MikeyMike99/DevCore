@@ -447,7 +447,11 @@ def auth_check():
     force = request.args.get("force") == "1"
     scope = _resolve_token_scope()
     has_creds = _has_local_cli_credentials(scope)
-    is_authenticated = bool(session.get("agent_authenticated")) if scope == "demo" else has_creds
+
+    auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    bearer_user = security_mgr.get_user_from_token(auth_header) if auth_header else None
+
+    is_authenticated = bool(bearer_user) or (bool(session.get("agent_authenticated")) if scope == "demo" else has_creds)
 
     agy_bin = _find_agy_binary()
 

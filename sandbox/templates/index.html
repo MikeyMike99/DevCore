@@ -840,7 +840,7 @@
                     } catch (e) {}
                 }
 
-                const authRes = await fetch('/api/auth_check', {
+                const authRes = await fetch('/api/auth_check' + window.location.search, {
                     headers: { 'Authorization': 'Bearer ' + token }
                 });
                 const authData = await authRes.json();

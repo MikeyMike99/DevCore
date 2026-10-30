@@ -16,8 +16,8 @@
                 <i class="fab fa-google"></i>
             </div>
             <div>
-                <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight">Agent Authentication</h1>
-                <p class="text-xs sm:text-sm text-slate-400">Connect Google credentials to activate Siraugga</p>
+                <h1 id="portalMainHeading" class="text-xl sm:text-2xl font-bold text-white tracking-tight">Agent Authentication</h1>
+                <p id="portalSubHeading" class="text-xs sm:text-sm text-slate-400">Connect Google credentials or launch demo evaluation mode</p>
             </div>
         </header>
 
@@ -30,6 +30,22 @@
                 Workspace <i class="fas fa-arrow-right text-[10px]"></i>
             </a>
         </div>
+
+        <section id="demoQuickLaunchSection" class="hidden mb-6 p-5 rounded-2xl bg-gradient-to-r from-teal-950/80 via-slate-900 to-slate-950 border border-teal-500/40 shadow-xl space-y-3" role="region" aria-label="1-Click Demo Evaluation">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-amber-400 text-lg" aria-hidden="true">⚡</span>
+                    <h2 class="text-sm font-bold text-white tracking-wide uppercase">1-Click Demo Evaluation</h2>
+                </div>
+                <span id="demoReadinessBadge" class="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-teal-900/80 text-teal-300 border border-teal-600/50">Instant Access</span>
+            </div>
+            <p id="demoReadinessDesc" class="text-xs text-slate-300 leading-relaxed">
+                Test Siraugga Agent capabilities immediately with isolated sandbox privileges (projects/demo • 7-day retention).
+            </p>
+            <button type="button" id="quickDemoBtn" onclick="handleDemoAuthenticate()" class="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl transition duration-150 shadow-lg shadow-teal-950/50 flex items-center justify-center gap-2 text-sm focus:ring-4 focus:ring-teal-700/50 cursor-pointer" aria-label="Launch Demo Workspace immediately">
+                <i class="fas fa-play text-white text-xs"></i> <span id="quickDemoBtnText">Launch Demo Workspace (1-Click)</span>
+            </button>
+        </section>
 
         <section id="googleAuthSection" class="space-y-5" aria-labelledby="googleOAuthHeading">
             <div class="flex items-center justify-between">
@@ -248,7 +264,7 @@
             countdownInterval = setInterval(tick, 1000);
         }
 
-        function updateStatus(authenticated, oauthUrl, remaining, scope) {
+        function updateStatus(authenticated, oauthUrl, remaining, scope, hasExisting) {
             if (scope) activeScope = scope;
             const dot = document.getElementById('statusDot');
             const text = document.getElementById('statusText');
@@ -256,6 +272,31 @@
             const oauthBtn = document.getElementById('oauthLinkBtn');
             const badge = document.getElementById('step1Badge');
             const scopeLabel = activeScope === 'demo' ? ' [Demo Storage: projects/demo • 7d TTL]' : ' [Root Storage]';
+
+            if (activeScope === 'demo') {
+                const demoSec = document.getElementById('demoQuickLaunchSection');
+                if (demoSec) demoSec.classList.remove('hidden');
+                const mainH = document.getElementById('portalMainHeading');
+                const subH = document.getElementById('portalSubHeading');
+                if (mainH) mainH.innerText = 'Demo Agent Authentication';
+                if (subH) subH.innerText = 'Launch demo workspace immediately or connect Google credentials';
+
+                if (hasExisting) {
+                    const rBadge = document.getElementById('demoReadinessBadge');
+                    const rDesc = document.getElementById('demoReadinessDesc');
+                    const rBtnText = document.getElementById('quickDemoBtnText');
+                    if (rBadge) {
+                        rBadge.innerText = 'Pre-Configured Session Ready';
+                        rBadge.className = 'text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-600/50';
+                    }
+                    if (rDesc) {
+                        rDesc.innerText = 'Verified demo credentials are ready on this server. You can enter the demo chamber immediately or connect personal Google credentials below.';
+                    }
+                    if (rBtnText) {
+                        rBtnText.innerText = 'Enter Demo Workspace (Verified Session Active)';
+                    }
+                }
+            }
 
             if (authenticated) {
                 if (countdownInterval) clearInterval(countdownInterval);
@@ -290,7 +331,7 @@
                 const targetUrl = force ? `${authCheckUrl}${sep}force=1` : authCheckUrl;
                 const res = await fetch(targetUrl);
                 const data = await res.json();
-                updateStatus(Boolean(data.authenticated), data.url, data.remaining, data.scope);
+                updateStatus(Boolean(data.authenticated), data.url, data.remaining, data.scope, Boolean(data.has_existing));
             } catch (err) {
                 updateStatus(false);
             } finally {
@@ -301,7 +342,7 @@
         }
 
         document.getElementById('oauthLinkBtn').addEventListener('click', async function(e) {
-            if (currentRemaining < 60) {
+            if (currentRemaining < 30 || !this.href || this.href.endsWith('#')) {
                 e.preventDefault();
                 const btn = this;
                 const origHtml = btn.innerHTML;
@@ -310,7 +351,7 @@
                     const sep = authCheckUrl.includes('?') ? '&' : '?';
                     const res = await fetch(`${authCheckUrl}${sep}force=1`);
                     const data = await res.json();
-                    updateStatus(Boolean(data.authenticated), data.url, data.remaining, data.scope);
+                    updateStatus(Boolean(data.authenticated), data.url, data.remaining, data.scope, Boolean(data.has_existing));
                     if (data.url && data.url !== '#') {
                         window.open(data.url, '_blank');
                     }
@@ -392,9 +433,10 @@
 
         async function handleDemoAuthenticate() {
             clearAlerts();
-            const btn = document.getElementById('demoAuthBtn');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating Demo...';
+            const qBtn = document.getElementById('quickDemoBtn');
+            const dBtn = document.getElementById('demoAuthBtn');
+            if (qBtn) { qBtn.disabled = true; qBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Launching Demo Workspace...'; }
+            if (dBtn) { dBtn.disabled = true; dBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating Demo...'; }
 
             try {
                 let res = await fetch(basePath + '/api/auth_demo', {
@@ -428,8 +470,8 @@
             } catch (err) {
                 showError('Network error authenticating demo: ' + err.message);
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-bolt text-amber-400"></i> Authenticate Demo Mode';
+                if (qBtn) { qBtn.disabled = false; qBtn.innerHTML = '<i class="fas fa-play text-white text-xs"></i> <span id="quickDemoBtnText">Launch Demo Workspace (1-Click)</span>'; }
+                if (dBtn) { dBtn.disabled = false; dBtn.innerHTML = '<i class="fas fa-bolt text-amber-400"></i> Authenticate Demo Mode'; }
             }
         }
 
