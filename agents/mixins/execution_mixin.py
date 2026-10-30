@@ -504,7 +504,7 @@ class ExecutionMixin:
                                         break
                             except Exception:
                                 pass
-            elif is_pa:
+            else:
                 found_oauth = None
                 for root in _iter_relative_roots(base_dir):
                     for rel_tok in (
@@ -529,21 +529,21 @@ class ExecutionMixin:
                 if (found_oauth and found_oauth.exists()) or (home_oauth.exists() and home_oauth.stat().st_size > 8):
                     safe_env.pop("GEMINI_API_KEY", None)
                     safe_env.pop("GOOGLE_API_KEY", None)
+                    safe_env.pop("GEMINI_BASE_URL", None)
                 else:
                     for root in _iter_relative_roots(base_dir):
-                        kp = root / ".devcore_client_key.txt"
-                        if kp.is_file():
-                            try:
-                                kval = kp.read_text(encoding="utf-8").strip()
-                                if kval:
-                                    safe_env["GEMINI_API_KEY"] = kval
-                                    break
-                            except Exception:
-                                pass
-            else:
-                safe_env["GEMINI_API_KEY"] = "dummy_token_123"
-                safe_env["GOOGLE_API_KEY"] = "dummy_token_123"
-                safe_env["GEMINI_BASE_URL"] = "http://127.0.0.1:5000/api/proxy"
+                        for kname in (".devcore_client_key.txt", "gemini_api_key.txt"):
+                            kp = root / kname
+                            if kp.is_file():
+                                try:
+                                    kval = kp.read_text(encoding="utf-8").strip()
+                                    if kval:
+                                        safe_env["GEMINI_API_KEY"] = kval
+                                        break
+                                except Exception:
+                                    pass
+                        if "GEMINI_API_KEY" in safe_env:
+                            break
 
             for root in _iter_relative_roots(base_dir):
                 bin_cand = root / ".local" / "bin"
@@ -596,6 +596,9 @@ class ExecutionMixin:
             
             if perm_flag:
                 cmd.append(perm_flag)
+
+            if safe_env.get("GEMINI_API_KEY"):
+                cmd.extend(["--settings", '{"modelProvider":"gemini"}'])
 
             cmd.extend([
                 "--model", model,
