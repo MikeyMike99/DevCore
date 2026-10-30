@@ -152522,5 +152522,243 @@
             "execute": true
         },
         "id": "9aa94b8d-a3a9-4bbf-b76e-591bb5a1145f"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "inode": 13229323905823384,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "6184c38a80c7",
+        "id": "45d1c488-91c9-40aa-9ae8-1aea035fdcbd"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::SCRIPTS_DIR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "SCRIPTS_DIR",
+        "start_line": 16,
+        "end_line": 16,
+        "content_hash": "816ef51ac0cf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "47cef089-3c58-430a-bee3-d21910f84070"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::CENTRAL_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "CENTRAL_ROOT",
+        "start_line": 22,
+        "end_line": 22,
+        "content_hash": "025bfb7dd4d2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2f02ea70-9ae5-4173-be31-685aa3bdc191"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::EPROFILE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "EPROFILE_ROOT",
+        "start_line": 23,
+        "end_line": 23,
+        "content_hash": "c82ef5d2e1d2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3a1701e0-5a62-42f5-974f-862e2038e463"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::AUDIO_SUITE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "AUDIO_SUITE_ROOT",
+        "start_line": 24,
+        "end_line": 24,
+        "content_hash": "5ef2cce174b3",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6c9ac092-3286-421c-8837-258d338fd6d5"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::DOCS_SRC": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "DOCS_SRC",
+        "start_line": 26,
+        "end_line": 26,
+        "content_hash": "6e6e5d770a83",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "359fc9dd-a3ab-49ff-b00d-cdf6dbd91b1a"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::DOCS_DEST": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "DOCS_DEST",
+        "start_line": 27,
+        "end_line": 27,
+        "content_hash": "fce7d6d2e788",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6a909fde-222c-4119-92ef-ac93ac0dbd90"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::COLLECTIONS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "COLLECTIONS",
+        "start_line": 29,
+        "end_line": 47,
+        "content_hash": "98c028242dbb",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8456b44f-3050-4246-8366-03f0427f199c"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::sanitize_content": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "sanitize_content",
+        "start_line": 49,
+        "end_line": 94,
+        "content_hash": "46fa9f4e2bae",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "73e0ec1d-0421-4f5f-979d-e8f00b038e35"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::classify_metadata": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "classify_metadata",
+        "start_line": 96,
+        "end_line": 225,
+        "content_hash": "d66bf5bf7a5f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a3791230-dee2-491c-8d5d-fe63c969be42"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::compute_doc_id": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "compute_doc_id",
+        "start_line": 227,
+        "end_line": 308,
+        "content_hash": "360d1529bfff",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ea1ec4ae-1f82-4e9f-af5a-1803f2459245"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::extract_sections": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "extract_sections",
+        "start_line": 310,
+        "end_line": 339,
+        "content_hash": "7bcf1507d2f5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "11217088-3c4b-4dca-8de7-512739cd16e8"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::extract_metadata": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "extract_metadata",
+        "start_line": 341,
+        "end_line": 430,
+        "content_hash": "9ab84018c92f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0acd04b2-90c2-4e8f-97dd-550ae809b54a"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::sync": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "sync",
+        "start_line": 432,
+        "end_line": 801,
+        "content_hash": "124b2d109356",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ca5e37c5-ac27-4a70-8874-52a16588bf2e"
+    },
+    "devcore....Central_Docs.scripts.sync_to_eprofile.py::build_cross_reference_graph": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/Central_Docs/scripts/sync_to_eprofile.py",
+        "symbol_name": "build_cross_reference_graph",
+        "start_line": 803,
+        "end_line": 1008,
+        "content_hash": "e3b560435886",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "69e2eeb5-3ba8-462f-ad5d-5092e065ba02"
     }
 }
