@@ -256,11 +256,50 @@ def run_local_ollama_model(
 # Cloud brain options surfaced in the model picker. Unlike the local/Ollama
 # brains these work in cloud-hosted environments (PythonAnywhere), which is what
 # lets the agent run without the external antigravity CLI or local GGUF weights.
+# Static fallback list, used when the Anthropic Models API can't be queried
+# (no API credential — e.g. subscription/CLI auth, which the SDK can't read).
 CLAUDE_MODELS = [
     {"value": "Claude Opus 5.5", "text": "Claude Opus 5.5 (Cloud)"},
     {"value": "Claude Sonnet 5.5", "text": "Claude Sonnet 5.5 (Cloud)"},
     {"value": "Claude Haiku 5.5", "text": "Claude Haiku 5.5 (Cloud)"},
 ]
+
+_CLAUDE_MODELS_CACHE = {"ts": 0.0, "models": None}
+
+
+def get_claude_models(force: bool = False, ttl: int = 3600) -> list:
+    """Return the Claude model picker entries. Populated dynamically from the
+    Anthropic Models API when an API credential is available (cached for `ttl`
+    seconds); falls back to the static CLAUDE_MODELS otherwise (e.g. when the
+    brain runs on subscription/CLI auth, which the SDK cannot read)."""
+    now = time.time()
+    cached = _CLAUDE_MODELS_CACHE["models"]
+    if not force and cached is not None and (now - _CLAUDE_MODELS_CACHE["ts"] < ttl):
+        return cached
+
+    models = None
+    if get_anthropic_credential():
+        try:
+            import anthropic
+            client = anthropic.Anthropic()
+            resp = client.models.list()
+            rows = []
+            for m in (getattr(resp, "data", None) or []):
+                mid = getattr(m, "id", "") or ""
+                if "claude" not in mid.lower():
+                    continue
+                disp = getattr(m, "display_name", None) or mid
+                rows.append({"value": mid, "text": f"{disp} (Cloud)"})
+            if rows:
+                models = rows
+        except Exception:
+            models = None
+
+    if not models:
+        models = list(CLAUDE_MODELS)
+    _CLAUDE_MODELS_CACHE["models"] = models
+    _CLAUDE_MODELS_CACHE["ts"] = now
+    return models
 
 
 def _resolve_claude_model_id(model_label: str) -> str:
@@ -429,17 +468,28 @@ def run_claude_cli_model(
     # Writes still go through Siraugga's saver, not the CLI.
     _cwd = DEVCORE_ROOT if os.path.isdir(DEVCORE_ROOT) else None
 
+    # Agentic turns (multi-step reads plus governed write_by_key hot-patches) need
+    # far more than a single text reply; override with DEVCORE_CLAUDE_CLI_TIMEOUT.
+    try:
+        _timeout = max(60, int(os.environ.get("DEVCORE_CLAUDE_CLI_TIMEOUT", "600")))
+    except ValueError:
+        _timeout = 600
+
     try:
         proc = subprocess.run(
             cmd,
             input=prompt,
             capture_output=True,
             text=True,
-            timeout=180,
+            timeout=_timeout,
             cwd=_cwd,
         )
     except subprocess.TimeoutExpired:
-        return "[LOCAL_BRAIN_ERROR] Claude CLI timed out."
+        return (
+            f"[LOCAL_BRAIN_ERROR] Claude CLI timed out after {_timeout}s. Any "
+            "write_by_key call already in flight may have completed; check "
+            "core/patches/ and core/backups/ before retrying."
+        )
     except Exception as e:
         return f"[LOCAL_BRAIN_ERROR] Claude CLI invocation failed: {e}"
 

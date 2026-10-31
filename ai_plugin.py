@@ -20,7 +20,7 @@ from agents.agent_manager import AgentTaskManager
 from core.project_manager import ProjectManager
 from core.session_manager import SessionManager
 from security.security_manager import SecurityManager
-from core.local_model_service import discover_local_models, CLAUDE_MODELS, run_claude_model, _resolve_claude_model_id
+from core.local_model_service import discover_local_models, CLAUDE_MODELS, get_claude_models, run_claude_model, _resolve_claude_model_id
 from core.roles import is_admin_role
 
 ai_bp = Blueprint("ai", __name__, template_folder="sandbox/templates", static_folder="static")
@@ -140,7 +140,7 @@ def _get_ui_config() -> dict:
                 static_models = supported_models
         filtered = [m for m in static_models if m.get("value") not in local_values]
         # Claude cloud brains: always selectable (they work in cloud-hosted envs).
-        claude_entries = [m for m in CLAUDE_MODELS if m.get("value") not in local_values]
+        claude_entries = [m for m in get_claude_models() if m.get("value") not in local_values]
         extra = list(local_entries) + claude_entries
         ui_cfg["header"]["models"] = ([filtered[0]] + extra + filtered[1:]) if filtered else list(extra)
     return ui_cfg
