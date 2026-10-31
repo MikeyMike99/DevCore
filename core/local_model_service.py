@@ -409,6 +409,11 @@ def run_claude_cli_model(
         "--allowedTools", "Read", "Grep", "Glob",
     ]
 
+    # Root the brain's file context at the repo root so its reads and relative
+    # paths cover the whole workspace (e.g. sandbox/, plugins/), not just core/.
+    # Writes still go through Siraugga's saver, not the CLI.
+    _cwd = DEVCORE_ROOT if os.path.isdir(DEVCORE_ROOT) else None
+
     try:
         proc = subprocess.run(
             cmd,
@@ -416,6 +421,7 @@ def run_claude_cli_model(
             capture_output=True,
             text=True,
             timeout=180,
+            cwd=_cwd,
         )
     except subprocess.TimeoutExpired:
         return "[LOCAL_BRAIN_ERROR] Claude CLI timed out."
