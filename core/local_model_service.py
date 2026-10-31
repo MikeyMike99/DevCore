@@ -615,7 +615,9 @@ def run_claude_cli_model(
     if identity and int(identity.get("tier", 0)) >= 5:
         allowed += ["Bash(git status:*)", "Bash(git log:*)", "Bash(git show:*)"]
         # Scoped raw write: ONLY the exam payload dir (a data file, not a code symbol).
-        allowed += ["Edit(sandbox/static/**)", "Write(sandbox/static/**)"]
+        # Edit rules cover every file-editing tool (Edit and Write); the CLI
+        # rejects Write(path) allow rules outright.
+        allowed += ["Edit(sandbox/static/**)"]
     if _raugus_mcp:
         allowed += _RESOLVER_TOOLS
     if allowed:
