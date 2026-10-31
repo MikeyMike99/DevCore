@@ -398,15 +398,18 @@ def run_claude_cli_model(
     # (local_write_file / local_read_file), which already grant super-admins full
     # host access and keep other tiers sandboxed. Governance stays in Siraugga.
     # Allow the safe, read-only tools so the brain can inspect files and skills
-    # without an un-answerable approval prompt. Writes and commands are NOT allowed
-    # here; the brain emits write_file / tool-call markup that Siraugga executes
-    # through its own tier-aware tools (local_write_file etc.). --permission-prompts
-    # none means anything outside the read-only set is denied silently, never
-    # surfaced to the web user.
+    # without an un-answerable approval prompt. Only read-only / inspection tools are
+    # allowed: the file read tools plus a few scoped read-only Bash commands (git
+    # status/diff/log/show, ls, claude mcp list). No writes and no arbitrary command
+    # execution. Writes still flow through Siraugga's own saver. --permission-prompts
+    # none means anything outside this set is denied silently, never surfaced to the
+    # web user.
     cmd = [
         claude_bin, "-p", "--model", model_id,
         "--permission-prompts", "none",
         "--allowedTools", "Read", "Grep", "Glob",
+        "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
+        "Bash(git show:*)", "Bash(ls:*)", "Bash(claude mcp list)",
     ]
 
     # Root the brain's file context at the repo root so its reads and relative
