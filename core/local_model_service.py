@@ -20,6 +20,7 @@ from security.central_logger import log_siem_event
 from security.local_brain_broker import offline_scrub_pii, read_target_documents
 import security.local_brain_broker as _lbb_module
 from security.swarm_telemetry import SwarmFlowLogger
+from security.subscription_guard import encrypt_credential, decrypt_credential
 
 LLAMA_CLI = os.path.expanduser("~/.local/llama-cpp/llama-cli")
 MODEL_PATH = os.path.expanduser("~/.local/models/qwen2.5-1.5b-instruct-q4_k_m.gguf")
@@ -34,10 +35,54 @@ except Exception:
     pass
 
 
+# Encrypted secret store for the Claude API key, using DevCore's own AES-GCM
+# credential vault (keyed off .devcore_master.key). The key is never written to
+# disk in plaintext. See security/README_ai_credentials.md.
+AI_SECRETS_PATH = os.path.join(DEVCORE_ROOT, "security", "ai_credentials.json")
+
+
+def set_claude_api_key(api_key: str) -> None:
+    """Encrypt and store the Claude API key via DevCore's credential vault."""
+    enc = encrypt_credential(api_key, DEVCORE_ROOT)
+    data = {}
+    if os.path.exists(AI_SECRETS_PATH):
+        try:
+            with open(AI_SECRETS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f) or {}
+        except Exception:
+            data = {}
+    data["anthropic_api_key"] = enc
+    with open(AI_SECRETS_PATH, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    try:
+        os.chmod(AI_SECRETS_PATH, 0o600)
+    except Exception:
+        pass
+
+
+def _load_stored_claude_key() -> str:
+    """Decrypt the stored Claude API key from the vault, or '' if none/unreadable."""
+    if not os.path.exists(AI_SECRETS_PATH):
+        return ""
+    try:
+        with open(AI_SECRETS_PATH, "r", encoding="utf-8") as f:
+            enc = (json.load(f) or {}).get("anthropic_api_key")
+        if enc:
+            return decrypt_credential(enc, DEVCORE_ROOT)
+    except Exception:
+        pass
+    return ""
+
+
+def get_anthropic_api_key() -> str:
+    """The Claude API key: env override first, else the encrypted vault."""
+    return os.environ.get("ANTHROPIC_API_KEY") or _load_stored_claude_key() or ""
+
+
 def get_anthropic_credential() -> str:
-    """Single accessor for the Claude credential. The environment is the one
-    source of truth, seeded once at startup by load_dotenv in either mode."""
-    return os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
+    """True-ish if any usable Claude credential exists: an API key (from env or
+    the encrypted vault) or an OAuth token in the environment."""
+    return get_anthropic_api_key() or os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
 
 
 def resolve_gguf_model_path(model_label: str = "") -> str:
@@ -280,7 +325,8 @@ def _run_claude_api(
     out_tokens = max(int(max_tokens or 1400), 4096)
 
     try:
-        client = anthropic.Anthropic()
+        _key = get_anthropic_api_key()
+        client = anthropic.Anthropic(api_key=_key) if _key else anthropic.Anthropic()
         resp = client.messages.create(
             model=model_id,
             max_tokens=out_tokens,

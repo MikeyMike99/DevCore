@@ -726,26 +726,6 @@ def ai_selftest():
     }), (200 if not unavailable else 503)
 
 
-def _persist_env_var(name, value):
-    """Write/replace a KEY=value line in DevCore/.env (gitignored, 0600).
-    Both plugin and standalone modes load this file at startup."""
-    env_path = PLUGIN_DIR / ".env"
-    lines = []
-    if env_path.exists():
-        lines = [
-            ln for ln in env_path.read_text(encoding="utf-8").splitlines()
-            if not ln.strip().startswith(f"{name}=")
-            and not ln.strip().startswith(f"export {name}=")
-        ]
-    lines.append(f"{name}={value}")
-    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    try:
-        os.chmod(env_path, 0o600)
-    except Exception:
-        pass
-    return env_path
-
-
 @ai_bp.route("/api/ai/status", methods=["GET"])
 def ai_status():
     """Reports how the Claude brain is connected. No secrets returned."""
@@ -773,14 +753,13 @@ def ai_connect():
     if not key.startswith("sk-ant-"):
         return jsonify({"ok": False, "error": "That doesn't look like an Anthropic API key (expected sk-ant-...)."}), 400
 
-    os.environ["ANTHROPIC_API_KEY"] = key  # live, this process
+    from core.local_model_service import set_claude_api_key, run_claude_model
     persisted = True
     try:
-        _persist_env_var("ANTHROPIC_API_KEY", key)
+        set_claude_api_key(key)  # AES-GCM encrypted via DevCore's credential vault
     except Exception:
-        persisted = False  # still works until restart
-
-    from core.local_model_service import run_claude_model
+        persisted = False
+        os.environ["ANTHROPIC_API_KEY"] = key  # fallback: in-process only, not persisted
     result = run_claude_model("Connectivity test.", "Reply with exactly: OK",
                               "Claude Opus 5.5", max_tokens=64, target_label="selftest")
     ok = not result.startswith("[LOCAL_BRAIN_")

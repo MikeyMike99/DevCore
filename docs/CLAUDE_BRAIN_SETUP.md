@@ -26,12 +26,15 @@ That's it. Select **"Claude Opus 5.5 (Cloud)"** in the model dropdown.
 > single-user / personal deployments, not for serving many portal visitors.
 
 ### Option B — API key (billed, good for multi-user)
-Put one key in the host env file (gitignored) and restart:
-```bash
-echo 'ANTHROPIC_API_KEY=sk-ant-...' >> e_profile/.env
-```
-The host loads it once at startup (`config.py` → `load_dotenv`); standalone
-DevCore loads `DevCore/.env` the same way.
+Easiest: open **`/ai_agent/setup`** (admin only) and paste the key. It is stored
+**encrypted** via DevCore's credential vault (`security/ai_credentials.json`,
+AES-GCM keyed off `.devcore_master.key` — see
+`security/README_ai_credentials.md`) and applied live, no restart. The key is
+never written to disk in plaintext.
+
+Alternatively, set `ANTHROPIC_API_KEY` in the environment (e.g. `e_profile/.env`),
+which **overrides** the vault. The host loads env once at startup
+(`config.py` → `load_dotenv`).
 
 ## Verify
 ```bash

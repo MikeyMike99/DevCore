@@ -42,3 +42,4 @@ users/
 
 # Secrets / local env
 .env
+security/ai_credentials.json
