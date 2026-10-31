@@ -756,8 +756,7 @@ def ai_status():
 @ai_bp.route("/api/ai/connect", methods=["POST"])
 def ai_connect():
     """Admin-only: store an Anthropic API key, apply it live (no restart), and test it."""
-    is_admin = bool(session.get("is_admin") or session.get("admin"))
-    if not is_admin:
+    if not _claude_admin_ok():
         return jsonify({"ok": False, "error": "Admin privileges are required to connect Claude."}), 403
     data = request.get_json(silent=True) or {}
     key = (data.get("api_key") or "").strip()
@@ -795,6 +794,17 @@ def _claude_bin():
     return shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
 
 
+def _claude_admin_ok():
+    """Allow the owner to manage the Claude brain: an admin session, or the host
+    master key being present (matches how the login screen treats the owner)."""
+    if session.get("is_admin") or session.get("admin"):
+        return True
+    try:
+        return bool(security_mgr.check_master_signature())
+    except Exception:
+        return False
+
+
 def _extract_oauth_url(raw):
     clean = raw.replace("\x1b", "").replace("\x07", "").replace("]8;;", "")
     m = _re.search(r"https://claude\.com/cai/oauth/authorize\?\S+", clean)
@@ -808,7 +818,7 @@ def _extract_oauth_url(raw):
 @ai_bp.route("/api/ai/login/start", methods=["POST"])
 def ai_login_start():
     """Admin-only: launch `claude auth login` and return the OAuth sign-in URL."""
-    if not bool(session.get("is_admin") or session.get("admin")):
+    if not _claude_admin_ok():
         return jsonify({"ok": False, "error": "Admin privileges are required."}), 403
     claude_bin = _claude_bin()
     if not (claude_bin and os.path.exists(claude_bin)):
@@ -847,7 +857,7 @@ def ai_login_start():
 @ai_bp.route("/api/ai/login/complete", methods=["POST"])
 def ai_login_complete():
     """Admin-only: submit the pasted OAuth code to finish sign-in."""
-    if not bool(session.get("is_admin") or session.get("admin")):
+    if not _claude_admin_ok():
         return jsonify({"ok": False, "error": "Admin privileges are required."}), 403
     code = ((request.get_json(silent=True) or {}).get("code") or "").strip()
     if not code:
