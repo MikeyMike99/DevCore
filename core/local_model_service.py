@@ -410,6 +410,10 @@ def run_claude_cli_model(
         "--allowedTools", "Read", "Grep", "Glob",
         "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
         "Bash(git show:*)", "Bash(ls:*)", "Bash(claude mcp list)",
+        # Scoped write: the brain may create artifacts ONLY under sandbox/static
+        # (e.g. the exam payload exam_temp.json), rooted at the repo via cwd below.
+        # It cannot write anywhere else — not the exam HTML, core, or project files.
+        "Edit(sandbox/static/**)", "Write(sandbox/static/**)",
     ]
 
     # Root the brain's file context at the repo root so its reads and relative
