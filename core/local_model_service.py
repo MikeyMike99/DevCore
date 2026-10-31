@@ -1862,6 +1862,20 @@ ROOT_ACCESS_ADDENDUM = (
     "affect the whole system, so act deliberately."
 )
 
+DENIAL_HANDLING_ADDENDUM = (
+    "\n\n[WHEN AN ACTION IS BLOCKED] If a tool call is denied or blocked (by the Raugus "
+    "firewall/resolver, a permission rule, or a sandbox limit), do NOT paste the raw "
+    "technical error to the user, and do NOT tool-hop or retry the same thing blindly. "
+    "Instead: (1) say in one plain sentence what you were trying to do and that it was "
+    "blocked; (2) if the denial matches the Raugus triage table, follow its prescribed "
+    "recovery action exactly; (3) otherwise, try a safe alternative that still achieves "
+    "the goal; (4) if a super-admin is operating, name the single step that lifts the "
+    "block (e.g. 'click 🔓 Elevate JIT (5m)' or the relevant unlock) or offer to proceed a "
+    "different way; if the operator is NOT a super-admin, say the action needs super-admin "
+    "approval and offer to notify them. Always finish with a concrete next step, never a "
+    "bare error."
+)
+
 LOCAL_AGENT_SYSTEM_PROMPT = (
     "You are the DevCore Local AI Assistant running offline on the user's machine with direct filesystem tools.\n"
     "CRITICAL RULES:\n"
@@ -2532,6 +2546,10 @@ async def execute_local_agent_task(
             system_prompt = system_prompt + _skills
     except Exception:
         pass
+
+    # How to behave when any action is blocked (find alternatives / escalate to the
+    # super-admin) instead of surfacing a raw denial.
+    system_prompt = system_prompt + DENIAL_HANDLING_ADDENDUM
 
     # Tell the brain it has full host access when the operator is a super-admin.
     if is_admin:
