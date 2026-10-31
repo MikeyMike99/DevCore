@@ -97,16 +97,13 @@ def _sweep_orphaned_git_locks(base_dir: str, workspace_dir: str = None) -> list:
     for r in _iter_relative_roots(base_dir):
         roots.add(r)
     
-    known_repos = [
-        "/mnt/c/Users/michael/Documents/DevCore",
-        "/mnt/c/Users/michael/Documents/e_profile",
-        "/mnt/c/Users/michael/Documents/Central_Docs",
-        "/mnt/c/Users/michael/Documents/Audio_pllayback_suite",
-    ]
-    for kr in known_repos:
-        p = Path(kr)
-        if p.exists():
-            roots.add(p)
+    b_path = Path(base_dir).resolve()
+    parent_dir = b_path.parent
+    if parent_dir.is_dir():
+        for sibling_name in ("DevCore", "e_profile", "Central_Docs", "Audio_pllayback_suite"):
+            sib = parent_dir / sibling_name
+            if (sib / ".git").is_dir():
+                roots.add(sib)
 
     now = time.time()
     direct_locks = (
