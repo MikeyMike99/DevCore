@@ -26,11 +26,13 @@ from core.routes.auth import auth_bp
 from core.routes.projects import projects_bp
 from core.routes.files import files_bp
 from core.routes.system import system_bp
+from core.routes.ai import ai_bp as ai_routes_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(system_bp)
+app.register_blueprint(ai_routes_bp)
 
 from security import security_headers
 security_headers.init_security_headers(app)
