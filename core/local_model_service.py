@@ -2197,6 +2197,15 @@ def extract_local_tool_calls(response: str) -> list:
             seen.add(sig)
             calls.append({"action": "write_file", "path": clean_p, "content": c.strip()})
 
+    # Bounded exam-save: the brain emits the exam JSON in [SAVE_EXAM]...[/SAVE_EXAM]
+    # and Siraugga saves it to the one fixed exam payload file (never any other path).
+    for c in re.findall(r"\[SAVE_EXAM\]([\s\S]*?)\[/SAVE_EXAM\]", response, re.IGNORECASE):
+        body = c.strip()
+        sig = f"save_exam:{body[:80]}"
+        if body and sig not in seen:
+            seen.add(sig)
+            calls.append({"action": "save_exam", "content": body})
+
     for p in re.findall(r"\[READ_FILE:\s*([^\]]+)\]", response, re.IGNORECASE):
         clean_p = p.strip()
         sig = f"read_file:{clean_p}:"
@@ -2275,6 +2284,7 @@ def clean_local_model_display_text(response: str) -> str:
             break
 
     cleaned = re.sub(r"\[WRITE_FILE:\s*[^\n\]]+\][\s\S]*?(?:\[/WRITE_FILE\]|$)", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\[SAVE_EXAM\][\s\S]*?(?:\[/SAVE_EXAM\]|$)", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[READ_FILE:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[READ_SYMBOL:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[SEARCH_SYMBOLS:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
@@ -2653,6 +2663,58 @@ async def execute_local_agent_task(
                 }
             })
             executed_actions_log.append(f"> ✅ **File Written:** `{path}` ({len(content)} bytes)")
+        elif action == "save_exam" and content:
+            # Bounded, fixed-path save: only ever writes sandbox/static/exam_temp.json,
+            # then validates/normalizes it with the exam formatter. The agent cannot
+            # target any other path through this action.
+            exam_abs = os.path.join(DEVCORE_ROOT, "sandbox", "static", "exam_temp.json")
+            act_id = str(uuid.uuid4())[:8]
+            await agent_mgr.broadcast({
+                "type": "action_start",
+                "action": {
+                    "id": act_id, "tool": "save_exam",
+                    "params": {"path": "sandbox/static/exam_temp.json", "size": len(content)},
+                    "status": "running", "friendly_name": "Save Exam",
+                    "thought": "Saving and validating the exam payload",
+                    "announcement": "Saving exam...",
+                },
+            })
+            ex_ok = False
+            ex_msg = ""
+            try:
+                os.makedirs(os.path.dirname(exam_abs), exist_ok=True)
+                with open(exam_abs, "w", encoding="utf-8") as _ef:
+                    _ef.write(content)
+                ex_ok = True
+                fmt_script = os.path.join(DEVCORE_ROOT, ".agents", "skills", "exam-generator", "scripts", "format_exam.py")
+                if os.path.isfile(fmt_script):
+                    try:
+                        r = await loop.run_in_executor(
+                            None,
+                            lambda: subprocess.run([sys.executable, fmt_script, exam_abs],
+                                                   capture_output=True, text=True, timeout=30),
+                        )
+                        ex_msg = (r.stdout or "").strip() if r.returncode == 0 else \
+                            f"saved; validation warning: {((r.stderr or r.stdout) or '').strip()[:160]}"
+                    except Exception as _fe:
+                        ex_msg = f"saved; validator skipped: {_fe}"
+            except Exception as _ee:
+                ex_msg = f"Failed to save exam: {_ee}"
+            await agent_mgr.broadcast({
+                "type": "action_done",
+                "action": {
+                    "id": act_id, "tool": "save_exam",
+                    "params": {"path": "sandbox/static/exam_temp.json"},
+                    "output": ex_msg, "duration": 0.05,
+                    "status": "done" if ex_ok else "error", "friendly_name": "Save Exam",
+                    "announcement": "Exam saved." if ex_ok else "Exam save failed.",
+                },
+            })
+            executed_actions_log.append(
+                f"> ✅ **Exam Saved:** `sandbox/static/exam_temp.json` ({len(content)} bytes)"
+                + (f" — {ex_msg}" if ex_msg else "")
+                if ex_ok else f"> ❌ **Exam Save Failed:** {ex_msg}"
+            )
         elif action == "read_file" and path:
             r_ok, r_content = local_read_file(workspace_dir, path, user=user, sec_mgr=sec_mgr)
             act_id = str(uuid.uuid4())[:8]

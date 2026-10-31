@@ -17,9 +17,13 @@ When the user asks you to generate a quiz, exam, or assessment based on their co
    - **Local Token Offloading (General Documents):** For non-sensitive documents or large study materials, draft questions locally using `Qwen2.5-1.5B` on CPU with zero cloud token consumption:
      `python3 /mnt/c/Users/michael/Documents/DevCore/core/local_model_service.py --target "<path>" --mode exam --count 5 --query "Your topic instructions"`
 2. **Generate JSON:** Use the local model's drafted JSON (or formulate questions, plausible distractors, and **detailed educational explanations** for every answer based strictly on the source content or the Local Brain Broker's sanitized output).
-3. **Save Data:** Write the resulting JSON payload to `sandbox/static/exam_temp.json`.
-4. **Format & Validate:** You MUST execute the included schema normalizer script to fix any subagent hallucinations before rendering the UI:
-   `python3 /mnt/c/Users/michael/Documents/DevCore/.agents/skills/exam-generator/scripts/format_exam.py /mnt/c/Users/michael/Documents/DevCore/sandbox/static/exam_temp.json`
+3. **Save & Validate (via Siraugga — do NOT write the file yourself):** Emit the complete exam JSON wrapped in a `[SAVE_EXAM] ... [/SAVE_EXAM]` block. Siraugga writes it to `sandbox/static/exam_temp.json` AND runs the schema normalizer for you automatically. You do not have (and do not need) direct write access to that folder, and you must never edit the exam HTML. Example:
+   ```
+   [SAVE_EXAM]
+   {"timer_seconds": 600, "weighted_scoring": true, "questions": [ { ... } ]}
+   [/SAVE_EXAM]
+   ```
+   (The old approach of writing `exam_temp.json` directly and running `format_exam.py` yourself is no longer needed — the `[SAVE_EXAM]` block does both.)
 5. **Activate UI:** Embed the plugin directly into your chat response by rendering an iframe:
    ```html
    <iframe src="/plugin/exam?quiz=exam_temp.json&title=Your+Custom+Title" class="w-full aspect-video border-0 rounded-lg" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
