@@ -21,6 +21,7 @@ from core.project_manager import ProjectManager
 from core.session_manager import SessionManager
 from security.security_manager import SecurityManager
 from core.local_model_service import discover_local_models, CLAUDE_MODELS, run_claude_model, _resolve_claude_model_id
+from core.roles import is_admin_role
 
 ai_bp = Blueprint("ai", __name__, template_folder="sandbox/templates", static_folder="static")
 
@@ -308,7 +309,7 @@ def _resolve_token_scope() -> str:
     is_admin = bool(
         session.get("is_admin")
         or session.get("admin")
-        or (bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin"))
+        or (bearer_user and is_admin_role(bearer_user.get("role")))
         or is_master
     )
 
@@ -567,10 +568,10 @@ def ai_home():
     is_admin = bool(
         session.get("is_admin")
         or session.get("admin")
-        or (bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"))
+        or (bearer_user and is_admin_role(bearer_user.get("role")))
     )
 
-    if bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"):
+    if bearer_user and is_admin_role(bearer_user.get("role")):
         session["is_admin"] = True
         session["admin"] = True
         session["agent_authenticated"] = True
@@ -660,7 +661,7 @@ def login_page():
     is_admin = bool(
         session.get("is_admin")
         or session.get("admin")
-        or (bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"))
+        or (bearer_user and is_admin_role(bearer_user.get("role")))
         or is_master
     )
     if is_admin or _has_local_cli_credentials("root"):
@@ -962,7 +963,7 @@ def auth_check():
     is_admin = bool(
         session.get("is_admin")
         or session.get("admin")
-        or (bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"))
+        or (bearer_user and is_admin_role(bearer_user.get("role")))
         or is_master
     )
 

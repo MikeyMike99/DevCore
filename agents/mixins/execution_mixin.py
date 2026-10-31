@@ -11,6 +11,7 @@ import logging
 import subprocess
 import signal
 from pathlib import Path
+from core.roles import is_admin_role
 
 
 def _iter_relative_roots(base_dir: str):
@@ -253,7 +254,7 @@ class ExecutionMixin:
             })
             return
         env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
-        is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override
+        is_admin = bool(user and is_admin_role(user.get("role"))) or env_override
         admin_override = is_admin
         self.active_task_owner = user.get("username") if user else None
         self.last_user = user
@@ -529,7 +530,7 @@ class ExecutionMixin:
 
             real_agy = _find_agy_executable(base_dir)
             env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
-            is_admin = (bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or env_override) and (token_scope != "demo")
+            is_admin = (bool(user and is_admin_role(user.get("role"))) or env_override) and (token_scope != "demo")
 
             user_id = (user.get("username") if isinstance(user, dict) else None) or (user.get("name") if isinstance(user, dict) else None) or "guest"
             byos_data = None

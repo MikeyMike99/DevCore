@@ -1059,15 +1059,7 @@ def generate_local_exam(target_path_or_content: str, count: int = 5, query: str 
     }
 
 
-# Canonical super-admin/root role names, lowercased for case-insensitive matching.
-# (Other modules historically each kept their own copy with inconsistent casing,
-# e.g. "Tier5_SysAdmin" vs "tier5_sysadmin" — compare case-insensitively.)
-_ADMIN_ROLES = {"admin", "super_admin", "super admin", "root", "tier5_sysadmin"}
-
-
-def is_admin_role(role) -> bool:
-    """Case-insensitive check of a role name against the super-admin/root set."""
-    return str(role or "").strip().lower() in _ADMIN_ROLES
+from core.roles import ADMIN_ROLES as _ADMIN_ROLES, is_admin_role  # canonical, case-insensitive
 
 
 def _is_root_user(user, sec_mgr=None) -> bool:

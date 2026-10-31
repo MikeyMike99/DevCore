@@ -15,6 +15,7 @@ import httpx
 
 from quart import Quart, websocket, request, jsonify, render_template_string
 
+from core.roles import is_admin_role
 from core import session_manager as sm
 from core import project_manager as pm
 from agents import agent_manager as am
@@ -597,7 +598,7 @@ async def ws_endpoint():
                     else:
                         user = security_mgr.get_user_from_token(None)
                     
-                    is_role_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin"))
+                    is_role_admin = bool(user and is_admin_role(user.get("role")))
                     admin_override = is_role_admin or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
             except (json.JSONDecodeError, AttributeError):
                 prompt = str(raw_msg).strip()
@@ -606,7 +607,7 @@ async def ws_endpoint():
                 admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
 
             if prompt:
-                is_admin = bool(user and user.get("role") in ("admin", "super_admin", "super admin", "Tier5_SysAdmin")) or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
+                is_admin = bool(user and is_admin_role(user.get("role"))) or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
                 if not is_admin:
                     try:
                         from local_security import LocalSecurity
