@@ -20,7 +20,7 @@ from agents.agent_manager import AgentTaskManager
 from core.project_manager import ProjectManager
 from core.session_manager import SessionManager
 from security.security_manager import SecurityManager
-from core.local_model_service import discover_local_models
+from core.local_model_service import discover_local_models, CLAUDE_MODELS, run_claude_model, _resolve_claude_model_id
 
 ai_bp = Blueprint("ai", __name__, template_folder="sandbox/templates", static_folder="static")
 
@@ -138,7 +138,10 @@ def _get_ui_config() -> dict:
             if supported_models:
                 static_models = supported_models
         filtered = [m for m in static_models if m.get("value") not in local_values]
-        ui_cfg["header"]["models"] = ([filtered[0]] + local_entries + filtered[1:]) if filtered else list(local_entries)
+        # Claude cloud brains: always selectable (they work in cloud-hosted envs).
+        claude_entries = [m for m in CLAUDE_MODELS if m.get("value") not in local_values]
+        extra = list(local_entries) + claude_entries
+        ui_cfg["header"]["models"] = ([filtered[0]] + extra + filtered[1:]) if filtered else list(extra)
     return ui_cfg
 
 
@@ -565,14 +568,12 @@ def ai_home():
         session.get("is_admin")
         or session.get("admin")
         or (bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"))
-        or is_master
     )
 
-    if (is_master or is_admin) and not session.get("is_admin"):
+    if bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"):
         session["is_admin"] = True
         session["admin"] = True
-        session["username"] = session.get("username") or "Michael (Admin)"
-        session.permanent = True
+        session["agent_authenticated"] = True
 
     if is_admin and request.args.get("demo") != "1" and request.args.get("mode") != "demo":
         session["agent_token_scope"] = "root"
@@ -589,15 +590,15 @@ def ai_home():
         except Exception:
             pass
 
-    if is_admin:
+    if scope == "demo":
+        if not session.get("agent_authenticated"):
+            return redirect(_get_login_url(demo="1"))
+    else:
+        if not session.get("agent_authenticated") and not is_admin:
+            return redirect(_get_login_url())
         session["agent_token_scope"] = "root"
         session["agent_authenticated"] = True
-        session["is_admin"] = True
-        session["admin"] = True
-        return _render_ai_template("index.html", ui=_get_ui_config())
 
-    session["agent_token_scope"] = "demo"
-    session["agent_authenticated"] = True
     return _render_ai_template("index.html", ui=_get_ui_config())
 
 
@@ -632,17 +633,25 @@ def ai_demo_entry():
 
 @ai_bp.route("/login")
 def login_page():
+    demo_param = request.args.get("demo") in ("1", "true")
     reauth = (
         request.args.get("reauth") in ("1", "true")
         or request.args.get("reset") in ("1", "true")
         or request.args.get("force") in ("1", "true")
+        or demo_param
     )
     target_scope = request.args.get("scope")
     if target_scope in ("root", "demo"):
         session["agent_token_scope"] = target_scope
+    if demo_param:
+        session["agent_token_scope"] = "demo"
+        session["agent_authenticated"] = False
 
     if reauth:
         session.pop("agent_authenticated", None)
+        if demo_param:
+            session["agent_token_scope"] = "demo"
+            session["agent_authenticated"] = False
         return _render_ai_template("login.html")
 
     auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
@@ -691,6 +700,145 @@ def reset_auth_session():
 @ai_bp.route("/api/ui-config", methods=["GET"])
 def get_ui_config_route():
     return jsonify(_get_ui_config())
+
+
+@ai_bp.route("/api/ai/selftest", methods=["GET"])
+def ai_selftest():
+    """One-shot health check for the Claude brain. Runs a single, tiny
+    run_claude_model call and reports whether the API responded.
+    Optional: ?model=Claude Sonnet 5.5 (defaults to Claude Opus 5.5).
+    """
+    model_label = request.args.get("model", "Claude Opus 5.5")
+    resolved = _resolve_claude_model_id(model_label)
+    result = run_claude_model(
+        "You are a connectivity self-test. Reply with exactly: OK",
+        "Reply with exactly: OK",
+        model_label,
+        max_tokens=64,
+        target_label="selftest",
+    )
+    unavailable = result.startswith("[LOCAL_BRAIN_")
+    return jsonify({
+        "ok": not unavailable,
+        "model_label": model_label,
+        "resolved_model_id": resolved,
+        "response": result,
+    }), (200 if not unavailable else 503)
+
+
+def _persist_env_var(name, value):
+    """Write/replace a KEY=value line in DevCore/.env (gitignored, 0600).
+    Both plugin and standalone modes load this file at startup."""
+    env_path = PLUGIN_DIR / ".env"
+    lines = []
+    if env_path.exists():
+        lines = [
+            ln for ln in env_path.read_text(encoding="utf-8").splitlines()
+            if not ln.strip().startswith(f"{name}=")
+            and not ln.strip().startswith(f"export {name}=")
+        ]
+    lines.append(f"{name}={value}")
+    env_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    try:
+        os.chmod(env_path, 0o600)
+    except Exception:
+        pass
+    return env_path
+
+
+@ai_bp.route("/api/ai/status", methods=["GET"])
+def ai_status():
+    """Reports how the Claude brain is connected. No secrets returned."""
+    import shutil
+    from core.local_model_service import get_anthropic_credential
+    if get_anthropic_credential():
+        return jsonify({"connected": True, "backend": "api",
+                        "message": "Connected via API key."})
+    claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+    if claude_bin and os.path.exists(claude_bin):
+        return jsonify({"connected": False, "backend": "subscription",
+                        "message": "Claude CLI is installed but not connected. Paste an API key below, or run `claude /login` in a terminal."})
+    return jsonify({"connected": False, "backend": "none",
+                    "message": "Claude is not set up yet. Paste an API key below to connect."})
+
+
+@ai_bp.route("/api/ai/connect", methods=["POST"])
+def ai_connect():
+    """Admin-only: store an Anthropic API key, apply it live (no restart), and test it."""
+    is_admin = bool(session.get("is_admin") or session.get("admin"))
+    if not is_admin:
+        return jsonify({"ok": False, "error": "Admin privileges are required to connect Claude."}), 403
+    data = request.get_json(silent=True) or {}
+    key = (data.get("api_key") or "").strip()
+    if not key.startswith("sk-ant-"):
+        return jsonify({"ok": False, "error": "That doesn't look like an Anthropic API key (expected sk-ant-...)."}), 400
+
+    os.environ["ANTHROPIC_API_KEY"] = key  # live, this process
+    persisted = True
+    try:
+        _persist_env_var("ANTHROPIC_API_KEY", key)
+    except Exception:
+        persisted = False  # still works until restart
+
+    from core.local_model_service import run_claude_model
+    result = run_claude_model("Connectivity test.", "Reply with exactly: OK",
+                              "Claude Opus 5.5", max_tokens=64, target_label="selftest")
+    ok = not result.startswith("[LOCAL_BRAIN_")
+    return jsonify({
+        "ok": ok,
+        "persisted": persisted,
+        "message": "Connected and tested successfully." if ok else result[:200],
+    }), (200 if ok else 502)
+
+
+_SETUP_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connect Claude</title>
+<style>
+ body{font-family:system-ui,Segoe UI,Roboto,sans-serif;background:#0a0a0b;color:#e0e0e0;margin:0;padding:2rem}
+ .card{max-width:620px;margin:2rem auto;background:rgba(20,20,25,.85);border:1px solid #1f2733;border-radius:14px;padding:1.6rem 1.8rem}
+ h1{font-size:1.3rem;margin:0 0 .2rem} .sub{color:#8b94a3;font-size:.9rem;margin-bottom:1.2rem}
+ .status{padding:.7rem 1rem;border-radius:8px;margin:1rem 0;font-size:.95rem}
+ .ok{background:#0f2a1a;border:1px solid #1e7a46} .bad{background:#2a1510;border:1px solid #7a3a1e}
+ label{display:block;font-size:.85rem;color:#aab2c0;margin:1rem 0 .35rem}
+ input{width:100%;box-sizing:border-box;padding:.65rem .8rem;border-radius:8px;border:1px solid #2a3340;background:#0e1218;color:#e0e0e0;font-size:.95rem}
+ button{margin-top:1rem;margin-right:.6rem;padding:.6rem 1.1rem;border:0;border-radius:8px;background:#00c2d1;color:#001015;font-weight:600;cursor:pointer}
+ button.ghost{background:#1a222c;color:#cfd6e0}
+ .hint{font-size:.82rem;color:#7f8897;margin-top:1.1rem;line-height:1.5}
+ code{background:#0e1218;padding:.1rem .35rem;border-radius:4px;color:#8fe}
+</style></head><body>
+<div class="card">
+ <h1>Connect Claude</h1>
+ <div class="sub">Give the Siraugga agent a Claude brain. This sets it up for everyone who can use the agent.</div>
+ <div id="status" class="status">Checking status…</div>
+ {% if is_admin %}
+ <label for="key">Anthropic API key</label>
+ <input id="key" type="password" placeholder="sk-ant-..." autocomplete="off">
+ <button onclick="save()">Save &amp; Test</button>
+ <button class="ghost" onclick="test()">Test current</button>
+ <div class="hint">
+   Get a key at <code>console.anthropic.com</code>. It is stored server-side (gitignored) and applied immediately — no restart.<br>
+   Prefer your own subscription instead of a key? Run <code>claude /login</code> once in a terminal.
+ </div>
+ {% else %}
+ <div class="hint">Claude setup is managed by an administrator. If the agent says Claude is unavailable, ask an admin to connect it here.</div>
+ {% endif %}
+</div>
+<script>
+ const S=document.getElementById('status');
+ function show(ok,msg){S.className='status '+(ok?'ok':'bad');S.textContent=msg;}
+ async function refresh(){try{const r=await fetch('{{ url_for("ai.ai_status") }}');const j=await r.json();show(j.connected,j.message);}catch(e){show(false,'Could not reach status endpoint.');}}
+ async function save(){const k=document.getElementById('key').value.trim();if(!k){show(false,'Enter a key first.');return;}show(true,'Saving and testing…');
+   try{const r=await fetch('{{ url_for("ai.ai_connect") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:k})});const j=await r.json();show(j.ok,j.ok?'✓ '+j.message:('✗ '+(j.error||j.message)));if(j.ok)document.getElementById('key').value='';}catch(e){show(false,'Request failed.');}}
+ async function test(){show(true,'Testing…');try{const r=await fetch('{{ url_for("ai.ai_selftest") }}');const j=await r.json();show(j.ok,j.ok?'✓ '+(j.response||'OK'):('✗ '+j.response));}catch(e){show(false,'Test failed.');}}
+ refresh();
+</script></body></html>"""
+
+
+@ai_bp.route("/setup", methods=["GET"])
+def ai_setup_page():
+    is_admin = bool(session.get("is_admin") or session.get("admin"))
+    return render_template_string(_SETUP_HTML, is_admin=is_admin)
 
 
 @ai_bp.route("/api/auth_check", methods=["GET"])
@@ -1060,9 +1208,10 @@ def auth_logout():
 @ai_bp.route("/api/auth/me", methods=["GET"])
 def auth_me():
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    user = security_mgr.get_user_from_token(token)
-    if user:
-        return jsonify({"user": user})
+    if token:
+        user = security_mgr.get_user_from_token(token)
+        if user:
+            return jsonify({"user": user})
     active_user = _resolve_active_user()
     if active_user:
         return jsonify({"user": active_user})

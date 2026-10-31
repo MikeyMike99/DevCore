@@ -24,6 +24,21 @@ from security.swarm_telemetry import SwarmFlowLogger
 LLAMA_CLI = os.path.expanduser("~/.local/llama-cpp/llama-cli")
 MODEL_PATH = os.path.expanduser("~/.local/models/qwen2.5-1.5b-instruct-q4_k_m.gguf")
 
+# Standalone DevCore does not import the e_profile host config, so load a local
+# .env here too (guarded, idempotent). In plugin mode the host's load_dotenv has
+# already seeded os.environ; this just fills the gap for standalone runs.
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv(os.path.join(DEVCORE_ROOT, ".env"))
+except Exception:
+    pass
+
+
+def get_anthropic_credential() -> str:
+    """Single accessor for the Claude credential. The environment is the one
+    source of truth, seeded once at startup by load_dotenv in either mode."""
+    return os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
+
 
 def resolve_gguf_model_path(model_label: str = "") -> str:
     """Finds the best matching GGUF model path in ~/.local/models/ for the selected label."""
@@ -191,6 +206,182 @@ def run_local_ollama_model(
         return f"[LOCAL_BRAIN_ERROR] Ollama inference failed for '{ollama_model}': {e}"
 
     return f"[LOCAL_BRAIN_UNAVAILABLE] Ollama returned an empty response for '{ollama_model}'."
+
+
+# Cloud brain options surfaced in the model picker. Unlike the local/Ollama
+# brains these work in cloud-hosted environments (PythonAnywhere), which is what
+# lets the agent run without the external antigravity CLI or local GGUF weights.
+CLAUDE_MODELS = [
+    {"value": "Claude Opus 5.5", "text": "Claude Opus 5.5 (Cloud)"},
+    {"value": "Claude Sonnet 5.5", "text": "Claude Sonnet 5.5 (Cloud)"},
+    {"value": "Claude Haiku 5.5", "text": "Claude Haiku 5.5 (Cloud)"},
+]
+
+
+def _resolve_claude_model_id(model_label: str) -> str:
+    """Map a UI label (or raw id) to an Anthropic model id. Defaults to Opus 5.5."""
+    raw = (model_label or "").strip()
+    low = raw.lower()
+    if low.startswith("claude:"):
+        raw = raw.split(":", 1)[1].strip()
+        low = raw.lower()
+    if low.startswith("claude-"):
+        return raw  # already an explicit model id
+    if "sonnet" in low:
+        return "claude-sonnet-5-5"
+    if "haiku" in low:
+        return "claude-haiku-5-5"
+    return "claude-opus-5-5"
+
+
+def run_claude_model(
+    system_prompt: str,
+    user_prompt: str,
+    model_label: str = "",
+    max_tokens: int = 1400,
+    target_label: str = "portal_chat",
+) -> str:
+    """Claude brain entry point. Auto-selects the backend so the app is
+    deployment-ready with zero per-call configuration:
+
+      1. API credential present (ANTHROPIC_API_KEY / ANTHROPIC_AUTH_TOKEN, or an
+         `ant auth login` profile) -> the billed Anthropic API.
+      2. Otherwise -> the user's Claude Code subscription via the `claude` CLI
+         (bring-your-own-subscription; no API key needed).
+      3. Neither configured -> a clear first-time-setup message.
+
+    Returns the model's text, or a [LOCAL_BRAIN_*] marker the portal renders as a
+    clean status message.
+    """
+    if get_anthropic_credential():
+        return _run_claude_api(system_prompt, user_prompt, model_label, max_tokens, target_label)
+    return run_claude_cli_model(system_prompt, user_prompt, model_label, max_tokens, target_label)
+
+
+def _run_claude_api(
+    system_prompt: str,
+    user_prompt: str,
+    model_label: str = "",
+    max_tokens: int = 1400,
+    target_label: str = "portal_chat",
+) -> str:
+    """Billed Anthropic API path (used when an API credential is configured)."""
+    try:
+        import anthropic
+    except ImportError:
+        return (
+            "[LOCAL_BRAIN_UNAVAILABLE] The 'anthropic' SDK is not installed. "
+            "Run: pip install anthropic"
+        )
+
+    model_id = _resolve_claude_model_id(model_label)
+    # Give room for both adaptive thinking and the visible answer; keep it modest
+    # so the non-streaming call stays well under HTTP timeouts.
+    out_tokens = max(int(max_tokens or 1400), 4096)
+
+    try:
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model=model_id,
+            max_tokens=out_tokens,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
+            thinking={"type": "adaptive"},
+            output_config={"effort": "low"},  # portal chat: minimize thinking latency
+        )
+    except Exception as e:
+        return f"[LOCAL_BRAIN_ERROR] Claude inference failed for '{model_id}': {e}"
+
+    if getattr(resp, "stop_reason", None) == "refusal":
+        detail = getattr(resp, "stop_details", None)
+        reason = getattr(detail, "explanation", None) or "request declined by safety policy"
+        return f"[LOCAL_BRAIN_UNAVAILABLE] Claude declined this request: {reason}"
+
+    out = "".join(
+        block.text for block in resp.content if getattr(block, "type", None) == "text"
+    ).strip()
+
+    if out:
+        try:
+            usage = getattr(resp, "usage", None)
+            est_tokens = (
+                (usage.input_tokens + usage.output_tokens)
+                if usage else max(1, (len(user_prompt) + len(out)) // 4)
+            )
+            SwarmFlowLogger.log_tuple(
+                modder_id="ClaudeCloudBroker",
+                agent_id=f"Claude-{model_id}",
+                target_namespace=target_label,
+                model_tier=f"Claude: {model_id}",
+                token_volume=est_tokens,
+            )
+        except Exception:
+            pass
+        return out
+
+    return f"[LOCAL_BRAIN_UNAVAILABLE] Claude returned an empty response for '{model_id}'."
+
+
+def run_claude_cli_model(
+    system_prompt: str,
+    user_prompt: str,
+    model_label: str = "",
+    max_tokens: int = 1400,
+    target_label: str = "portal_chat",
+) -> str:
+    """Bring-your-own-subscription path: drives the authenticated `claude` CLI
+    (Claude Code) via `claude -p`. No API key required; it uses the existing
+    `claude` login. Intended for single-user / personal deployments.
+    """
+    import shutil
+    claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+    if not (claude_bin and os.path.exists(claude_bin)):
+        return (
+            "[LOCAL_BRAIN_UNAVAILABLE] Claude is not set up yet. Either set "
+            "ANTHROPIC_API_KEY, or install the Claude CLI and run `claude /login` "
+            "once to connect your subscription."
+        )
+
+    model_id = _resolve_claude_model_id(model_label)
+    prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
+
+    try:
+        proc = subprocess.run(
+            [claude_bin, "-p", "--model", model_id],
+            input=prompt,
+            capture_output=True,
+            text=True,
+            timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        return "[LOCAL_BRAIN_ERROR] Claude CLI timed out."
+    except Exception as e:
+        return f"[LOCAL_BRAIN_ERROR] Claude CLI invocation failed: {e}"
+
+    out = (proc.stdout or "").strip()
+    err = (proc.stderr or "").strip()
+    combined = f"{out} {err}".lower()
+
+    if "not logged in" in combined or "/login" in combined:
+        return (
+            "[LOCAL_BRAIN_UNAVAILABLE] Claude is not logged in. Run `claude /login` "
+            "once in a terminal to connect your subscription, then try again."
+        )
+    if proc.returncode != 0 or not out:
+        return f"[LOCAL_BRAIN_ERROR] Claude CLI error: {err or out or 'no output'}"
+
+    try:
+        est_tokens = max(1, (len(prompt) + len(out)) // 4)
+        SwarmFlowLogger.log_tuple(
+            modder_id="ClaudeSubscriptionBroker",
+            agent_id=f"ClaudeCLI-{model_id}",
+            target_namespace=target_label,
+            model_tier=f"Claude CLI: {model_id}",
+            token_volume=est_tokens,
+        )
+    except Exception:
+        pass
+    return out
 
 
 def get_system_resource_profile() -> dict:
@@ -1843,8 +2034,11 @@ async def execute_local_agent_task(
     """Executes a Web Portal prompt directly on the local model with autonomous file I/O tools and continuous conversation."""
     await agent_mgr.broadcast({"type": "agent_start", "model": model})
 
-    if is_cloud_hosted_environment():
-        err_msg = "⚠️ **Local & Ollama Models Unavailable on Cloud Host**: Please select a cloud model (such as Gemini 3.8 Flash or Gemini 4 Argon) when running on PythonAnywhere."
+    # Claude is a cloud API, so it is available on cloud hosts; only the local/
+    # Ollama/GGUF brains are blocked there.
+    is_claude = isinstance(model, str) and "claude" in model.lower()
+    if is_cloud_hosted_environment() and not is_claude:
+        err_msg = "⚠️ **Local & Ollama Models Unavailable on Cloud Host**: Please select a cloud model (such as Claude Opus 5.5, Gemini 3.8 Flash, or Gemini 4 Argon) when running on PythonAnywhere."
         agent_mgr.output_buffer.append(err_msg)
         await agent_mgr.broadcast({"type": "agent_chunk", "chunk": err_msg})
         await agent_mgr.broadcast({
@@ -2101,10 +2295,21 @@ async def execute_local_agent_task(
         query_payload = f"PREVIOUS CONVERSATION HISTORY:\n{history_str}\n\nCURRENT REQUEST:\n{query_payload}"
 
     loop = asyncio.get_running_loop()
+    is_claude = isinstance(model, str) and "claude" in model.lower()
     is_ollama = isinstance(model, str) and (model.lower().startswith("ollama:") or "ollama" in model.lower())
     active_gguf = resolve_gguf_model_path(model)
 
-    if is_ollama:
+    if is_claude:
+        response = await loop.run_in_executor(
+            None,
+            run_claude_model,
+            system_prompt,
+            query_payload,
+            model,
+            1400,
+            "portal_chat",
+        )
+    elif is_ollama:
         response = await loop.run_in_executor(
             None,
             run_local_ollama_model,

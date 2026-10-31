@@ -39,3 +39,6 @@ subscriptions.json
 *.token
 *.key
 users/
+
+# Secrets / local env
+.env

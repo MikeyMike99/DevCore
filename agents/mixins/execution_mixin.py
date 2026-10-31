@@ -368,13 +368,14 @@ class ExecutionMixin:
             try:
                 cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
                 avail_list = cached_data.get("models") or []
-                if avail_list and model not in avail_list and not model.lower().startswith(("local ", "ollama:")):
+                if avail_list and model not in avail_list and not model.lower().startswith(("local ", "ollama:")) and "claude" not in model.lower():
                     fallback_m = "Gemini 3.8 Flash (High)" if "Gemini 3.8 Flash (High)" in avail_list else avail_list[0]
                     model = fallback_m
                     self.current_model = fallback_m
             except Exception:
                 pass
 
+        is_claude = isinstance(model, str) and "claude" in model.lower()
         is_local_model = (
             model == "Local Qwen 2.5 (Offline)"
             or (isinstance(model, str) and (
@@ -386,7 +387,9 @@ class ExecutionMixin:
                 or "llama" in model.lower()
             ))
         )
-        if is_local_model:
+        # Claude runs through the in-process brain (core.local_model_service),
+        # not the agy CLI, so route it the same way as the local brains.
+        if is_local_model or is_claude:
             try:
                 from core.local_model_service import execute_local_agent_task
                 await execute_local_agent_task(self, prompt, model, task_time, conversation_id, user=user, is_admin=admin_override)
@@ -672,7 +675,11 @@ class ExecutionMixin:
                             break
 
                 if not existing_key:
-                    for home_root in (Path.home(), Path("/mnt/c/Users/michael")):
+                    user_prof = os.environ.get("USERPROFILE")
+                    search_homes = [Path.home()]
+                    if user_prof:
+                        search_homes.append(Path(user_prof))
+                    for home_root in search_homes:
                         for kname in (".devcore_client_key.txt", "gemini_api_key.txt"):
                             kp = home_root / kname
                             if kp.is_file():
