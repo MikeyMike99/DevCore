@@ -1692,6 +1692,15 @@ def _append_planner_response(transcript_path: str, step_idx: int, response: str,
 
 
 
+ROOT_ACCESS_ADDENDUM = (
+    "\n\n[ROOT ACCESS] The operator is a verified super-admin, so you are running with "
+    "full host access and are NOT confined to the workspace. You may read and write files "
+    "anywhere on the machine by giving an ABSOLUTE path (e.g. /home/<user>/file or "
+    "/mnt/c/Users/...). Use workspace-relative paths for project files as usual, and "
+    "absolute paths when the task is outside the project. Changes outside the workspace "
+    "affect the whole system, so act deliberately."
+)
+
 LOCAL_AGENT_SYSTEM_PROMPT = (
     "You are the DevCore Local AI Assistant running offline on the user's machine with direct filesystem tools.\n"
     "CRITICAL RULES:\n"
@@ -2350,6 +2359,10 @@ async def execute_local_agent_task(
     else:
         system_prompt = LOCAL_AGENT_SYSTEM_PROMPT
         query_payload = f"{clean_prompt}{write_hint}"
+
+    # Tell the brain it has full host access when the operator is a super-admin.
+    if is_admin:
+        system_prompt = system_prompt + ROOT_ACCESS_ADDENDUM
 
     if history_str:
         query_payload = f"PREVIOUS CONVERSATION HISTORY:\n{history_str}\n\nCURRENT REQUEST:\n{query_payload}"
