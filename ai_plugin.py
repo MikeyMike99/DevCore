@@ -781,6 +781,103 @@ def ai_connect():
     }), (200 if ok else 502)
 
 
+# --- In-UI Claude subscription sign-in (no API key, no terminal) -------------
+import re as _re
+import threading as _threading
+import time as _t2
+
+_login = {"proc": None, "buf": ""}
+_login_lock = _threading.Lock()
+
+
+def _claude_bin():
+    import shutil
+    return shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+
+
+def _extract_oauth_url(raw):
+    clean = raw.replace("\x1b", "").replace("\x07", "").replace("]8;;", "")
+    m = _re.search(r"https://claude\.com/cai/oauth/authorize\?\S+", clean)
+    if not m:
+        return None
+    url = m.group(0)
+    i = url.find("https://", 8)  # the URL is printed twice, back-to-back
+    return url[:i] if i != -1 else url
+
+
+@ai_bp.route("/api/ai/login/start", methods=["POST"])
+def ai_login_start():
+    """Admin-only: launch `claude auth login` and return the OAuth sign-in URL."""
+    if not bool(session.get("is_admin") or session.get("admin")):
+        return jsonify({"ok": False, "error": "Admin privileges are required."}), 403
+    claude_bin = _claude_bin()
+    if not (claude_bin and os.path.exists(claude_bin)):
+        return jsonify({"ok": False, "error": "The Claude CLI is not installed on the server."}), 400
+    with _login_lock:
+        old = _login.get("proc")
+        if old and old.poll() is None:
+            try:
+                old.kill()
+            except Exception:
+                pass
+        _login["buf"] = ""
+        proc = subprocess.Popen(
+            [claude_bin, "auth", "login", "--claudeai"],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, bufsize=1,
+        )
+        _login["proc"] = proc
+
+        def _reader(p):
+            try:
+                for ch in iter(lambda: p.stdout.read(1), ""):
+                    _login["buf"] += ch
+            except Exception:
+                pass
+        _threading.Thread(target=_reader, args=(proc,), daemon=True).start()
+
+    for _ in range(120):  # wait up to ~12s for the URL
+        url = _extract_oauth_url(_login["buf"])
+        if url:
+            return jsonify({"ok": True, "url": url})
+        _t2.sleep(0.1)
+    return jsonify({"ok": False, "error": "Timed out waiting for the sign-in link. Try again."}), 504
+
+
+@ai_bp.route("/api/ai/login/complete", methods=["POST"])
+def ai_login_complete():
+    """Admin-only: submit the pasted OAuth code to finish sign-in."""
+    if not bool(session.get("is_admin") or session.get("admin")):
+        return jsonify({"ok": False, "error": "Admin privileges are required."}), 403
+    code = ((request.get_json(silent=True) or {}).get("code") or "").strip()
+    if not code:
+        return jsonify({"ok": False, "error": "Paste the code from the sign-in page."}), 400
+    proc = _login.get("proc")
+    if not proc or proc.poll() is not None:
+        return jsonify({"ok": False, "error": "No active sign-in. Click Sign in again."}), 409
+    try:
+        proc.stdin.write(code + "\n")
+        proc.stdin.flush()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not submit code: {e}"}), 500
+    try:
+        proc.wait(timeout=30)
+    except Exception:
+        pass
+    import json as _json
+    logged_in = False
+    try:
+        r = subprocess.run([_claude_bin(), "auth", "status"], capture_output=True, text=True, timeout=8)
+        logged_in = bool((_json.loads(r.stdout or "{}") or {}).get("loggedIn"))
+    except Exception:
+        pass
+    return jsonify({
+        "ok": logged_in,
+        "message": "Signed in with your Claude subscription." if logged_in
+        else "Sign-in did not complete. Check the code and try again.",
+    }), (200 if logged_in else 502)
+
+
 _SETUP_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connect Claude</title>
@@ -804,9 +901,14 @@ _SETUP_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
  <div id="status" class="status">Checking status…</div>
  {% if is_admin %}
  <div class="rec">
-   <b>Recommended — no API key:</b> sign in once with your Claude subscription.
-   Run <code>claude auth login</code> (a one-time browser sign-in). After that the
-   agent uses your subscription automatically — nothing to paste, no restart.
+   <b>Recommended — no API key.</b> Sign in with your Claude subscription:
+   <div style="margin-top:.6rem"><button onclick="startLogin()">Sign in with Claude</button></div>
+   <div id="loginflow" style="display:none;margin-top:.8rem">
+     <a id="loginurl" href="#" target="_blank" rel="noopener">① Open the Claude sign-in page →</a>
+     <div style="margin:.5rem 0 .3rem">② Approve, then paste the code it shows you:</div>
+     <input id="code" type="text" placeholder="paste code here" autocomplete="off">
+     <button onclick="completeLogin()">Finish sign-in</button>
+   </div>
  </div>
  <label for="key">…or paste an Anthropic API key</label>
  <input id="key" type="password" placeholder="sk-ant-..." autocomplete="off">
@@ -826,6 +928,8 @@ _SETUP_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
  async function save(){const k=document.getElementById('key').value.trim();if(!k){show(false,'Enter a key first.');return;}show(true,'Saving and testing…');
    try{const r=await fetch('{{ url_for("ai.ai_connect") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:k})});const j=await r.json();show(j.ok,j.ok?'✓ '+j.message:('✗ '+(j.error||j.message)));if(j.ok)document.getElementById('key').value='';}catch(e){show(false,'Request failed.');}}
  async function test(){show(true,'Testing…');try{const r=await fetch('{{ url_for("ai.ai_selftest") }}');const j=await r.json();show(j.ok,j.ok?'✓ '+(j.response||'OK'):('✗ '+j.response));}catch(e){show(false,'Test failed.');}}
+ async function startLogin(){show(true,'Starting sign-in…');try{const r=await fetch('{{ url_for("ai.ai_login_start") }}',{method:'POST'});const j=await r.json();if(!j.ok){show(false,'✗ '+(j.error||'could not start sign-in'));return;}const a=document.getElementById('loginurl');a.href=j.url;document.getElementById('loginflow').style.display='block';try{window.open(j.url,'_blank');}catch(e){}show(true,'Open the sign-in page, approve, then paste the code below.');}catch(e){show(false,'Request failed.');}}
+ async function completeLogin(){const code=document.getElementById('code').value.trim();if(!code){show(false,'Paste the code first.');return;}show(true,'Finishing sign-in…');try{const r=await fetch('{{ url_for("ai.ai_login_complete") }}',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const j=await r.json();show(j.ok,j.ok?'✓ '+j.message:('✗ '+(j.error||j.message)));if(j.ok){document.getElementById('loginflow').style.display='none';document.getElementById('code').value='';}}catch(e){show(false,'Request failed.');}}
  refresh();
 </script></body></html>"""
 
