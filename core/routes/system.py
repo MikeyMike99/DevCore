@@ -507,6 +507,18 @@ async def api_token_telemetry():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@system_bp.route('/api/telemetry/models', methods=['GET'])
+async def api_model_telemetry():
+    """Per-brain usage (Claude, Gemini/agy, Ollama, local, ...) from the SwarmFlow log."""
+    try:
+        from security.swarm_telemetry import SwarmFlowLogger
+        tf = request.args.get("timeframe", "all")
+        data = await asyncio.to_thread(SwarmFlowLogger.get_model_usage, tf)
+        return jsonify({"success": True, **data})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @system_bp.route('/audits', methods=['GET'])
 async def audits_page():
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

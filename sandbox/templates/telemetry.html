@@ -298,6 +298,28 @@
                     </table>
                 </div>
             </section>
+
+            <!-- Brain / Model Usage (Claude, Gemini/agy, Ollama, local) -->
+            <section aria-labelledby="model-usage-heading" class="mt-8 bg-slate-900/70 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 id="model-usage-heading" class="text-base font-bold text-white flex items-center gap-2">Brain / Model Usage</h2>
+                    <span id="model-usage-claude" class="text-xs font-mono text-teal-300" aria-live="polite">Claude: 0 tokens / 0 req</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-xs uppercase text-slate-400 border-b border-slate-800">
+                                <th scope="col" class="py-2 pr-4 font-semibold">Brain / Model</th>
+                                <th scope="col" class="py-2 px-4 font-semibold text-right">Requests</th>
+                                <th scope="col" class="py-2 pl-4 font-semibold text-right">Tokens</th>
+                            </tr>
+                        </thead>
+                        <tbody id="model-usage-tbody">
+                            <tr><td colspan="3" class="py-4 text-center text-slate-500">Loading…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </section>
 
         <!-- VIEW 2: AST Efficiency & Benchmark Runner -->
@@ -731,7 +753,32 @@
             }
         }
 
+        function escapeHtmlLite(s) {
+            return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        }
+        async function renderModelUsage() {
+            try {
+                const res = await fetch('/api/telemetry/models?timeframe=all');
+                const data = await res.json();
+                const tbody = document.getElementById('model-usage-tbody');
+                if (!tbody) return;
+                const rows = (data && data.models) || [];
+                if (!rows.length) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="py-4 text-center text-slate-500">No model usage logged yet.</td></tr>';
+                } else {
+                    tbody.innerHTML = rows.map(m => {
+                        const cls = m.is_claude ? ' text-teal-300 font-semibold' : '';
+                        const badge = m.is_claude ? ' <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-teal-900/60 text-teal-300 border border-teal-700/40">Claude</span>' : '';
+                        return `<tr class="border-b border-slate-800/60"><td class="py-2 pr-4${cls}">${escapeHtmlLite(m.model_tier)}${badge}</td><td class="py-2 px-4 text-right font-mono tabular-nums">${(m.requests || 0).toLocaleString()}</td><td class="py-2 pl-4 text-right font-mono tabular-nums">${(m.tokens || 0).toLocaleString()}</td></tr>`;
+                    }).join('');
+                }
+                const cl = document.getElementById('model-usage-claude');
+                if (cl) cl.textContent = `Claude: ${(data.claude_tokens || 0).toLocaleString()} tokens / ${(data.claude_requests || 0).toLocaleString()} req`;
+            } catch (e) { /* keep last render */ }
+        }
+
         async function fetchTelemetry(manual = false) {
+            renderModelUsage();
             const token = getAuthToken();
             const statusEl = document.getElementById('telemetry-status');
             const pulseEl = document.getElementById('live-pulse');
