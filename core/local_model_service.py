@@ -1051,34 +1051,55 @@ def _is_root_user(user, sec_mgr=None) -> bool:
     return False
 
 
-def _load_gemini_rules(workspace_dir: str, max_bytes: int = 32768) -> str:
-    """Collect the GEMINI.md rule files the antigravity CLI would honor, so the
-    Claude/local brain obeys the same project rules. Order: global
-    (~/.gemini/GEMINI.md) first, then from DEVCORE_ROOT down to the workspace dir
-    (more specific last). Capped at max_bytes. Returns a system-prompt fragment."""
+def _load_agent_rules(workspace_dir: str, max_bytes: int = 65536) -> str:
+    """Collect ALL rule/instruction files the antigravity CLI honors, so the
+    Claude/local brain obeys the same unified Siraugga rule set:
+      - global ~/.gemini/GEMINI.md
+      - GEMINI.md and AGENTS.md hierarchically (DEVCORE_ROOT down to the workspace)
+      - .agents/rules/*.md
+      - .agents/plugins/*/rules/*.md
+    Order: broad -> specific. Capped at max_bytes. Returns a system-prompt fragment."""
+    import glob
     paths = []
     g = os.path.expanduser("~/.gemini/GEMINI.md")
     if os.path.isfile(g):
         paths.append(g)
     try:
         base = os.path.realpath(DEVCORE_ROOT)
+    except Exception:
+        base = DEVCORE_ROOT
+    try:
         ws = os.path.realpath(workspace_dir or base)
-        chain = []
-        cur = ws
-        for _ in range(16):
-            chain.append(cur)
-            if cur == base:
-                break
-            parent = os.path.dirname(cur)
-            if parent == cur or len(parent) < len(base):
-                break
-            cur = parent
-        for d in reversed(chain):  # broad -> specific
-            f = os.path.join(d, "GEMINI.md")
+    except Exception:
+        ws = base
+
+    # hierarchical GEMINI.md / AGENTS.md from base down to the workspace
+    chain = []
+    cur = ws
+    for _ in range(16):
+        chain.append(cur)
+        if cur == base:
+            break
+        parent = os.path.dirname(cur)
+        if parent == cur or len(parent) < len(base):
+            break
+        cur = parent
+    for d in reversed(chain):  # broad -> specific
+        for fn in ("GEMINI.md", "AGENTS.md"):
+            f = os.path.join(d, fn)
             if os.path.isfile(f) and f not in paths:
                 paths.append(f)
-    except Exception:
-        pass
+
+    # shared .agents rule sets (from base, and the workspace if different)
+    roots = [base] + ([ws] if ws != base else [])
+    for r in roots:
+        for pat in (
+            os.path.join(r, ".agents", "rules", "*.md"),
+            os.path.join(r, ".agents", "plugins", "*", "rules", "*.md"),
+        ):
+            for f in sorted(glob.glob(pat)):
+                if f not in paths:
+                    paths.append(f)
 
     chunks, total = [], 0
     for p in paths:
@@ -1098,9 +1119,9 @@ def _load_gemini_rules(workspace_dir: str, max_bytes: int = 32768) -> str:
     if not chunks:
         return ""
     return (
-        "\n\n[PROJECT RULES] You MUST obey the rules in the project's GEMINI.md file(s) "
-        "below, exactly as the antigravity CLI does. They govern how you work in this "
-        "workspace:" + "".join(chunks)
+        "\n\n[PROJECT RULES] You MUST obey the rules in the files below, exactly as the "
+        "antigravity CLI does. They govern how you work in this unified Siraugga engine:"
+        + "".join(chunks)
     )
 
 
@@ -2495,7 +2516,7 @@ async def execute_local_agent_task(
     # Load the same project rules (GEMINI.md) and skills (.agents/skills/*/SKILL.md)
     # the antigravity CLI honors, so the Claude/local brain obeys them too.
     try:
-        _rules = _load_gemini_rules(workspace_dir)
+        _rules = _load_agent_rules(workspace_dir)
         if _rules:
             system_prompt = system_prompt + _rules
         _skills = _load_skill_defs(workspace_dir)
