@@ -404,16 +404,24 @@ def run_claude_cli_model(
     # execution. Writes still flow through Siraugga's own saver. --permission-prompts
     # none means anything outside this set is denied silently, never surfaced to the
     # web user.
-    cmd = [
-        claude_bin, "-p", "--model", model_id,
-        "--permission-prompts", "none",
+    _raugus_mcp = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "mcp_config.json")
+    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
+    if os.path.isfile(_raugus_mcp):
+        # Governed code read/write channel: the Raugus Resolver MCP enforces RBAC,
+        # symbol/AST locks, self-protection, and hot-patch staging on write_by_key.
+        cmd += ["--mcp-config", _raugus_mcp]
+    cmd += [
         "--allowedTools", "Read", "Grep", "Glob",
         "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
         "Bash(git show:*)", "Bash(ls:*)", "Bash(claude mcp list)",
-        # Scoped write: the brain may create artifacts ONLY under sandbox/static
-        # (e.g. the exam payload exam_temp.json), rooted at the repo via cwd below.
-        # It cannot write anywhere else — not the exam HTML, core, or project files.
+        # Scoped raw write: ONLY the exam payload dir (a data file, not a code
+        # symbol); rooted at the repo via cwd below. Nothing else is writable here.
         "Edit(sandbox/static/**)", "Write(sandbox/static/**)",
+        # Governed code read/write through the Raugus Resolver MCP (it applies the
+        # tier/self-protection/patch-staging rules itself).
+        "mcp__raugus-resolver__search_keys",
+        "mcp__raugus-resolver__read_by_key",
+        "mcp__raugus-resolver__write_by_key",
     ]
 
     # Root the brain's file context at the repo root so its reads and relative
