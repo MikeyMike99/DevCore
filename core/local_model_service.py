@@ -1032,15 +1032,38 @@ def generate_local_exam(target_path_or_content: str, count: int = 5, query: str 
     }
 
 
+_ADMIN_ROLES = {"admin", "super_admin", "super admin", "root", "Tier5_SysAdmin"}
+
+
+def _is_root_user(user, sec_mgr=None) -> bool:
+    """True for a super-admin / root operator, who gets full (unsandboxed) file
+    access. Checks the security manager first, then the user's role / token scope."""
+    try:
+        if sec_mgr and hasattr(sec_mgr, "is_admin_user") and sec_mgr.is_admin_user(user):
+            return True
+    except Exception:
+        pass
+    if isinstance(user, dict):
+        if user.get("role") in _ADMIN_ROLES:
+            return True
+        if user.get("token_scope") == "root":
+            return True
+    return False
+
+
 def local_read_file(workspace_dir: str, rel_path: str, user: dict = None, sec_mgr = None) -> tuple:
-    """Reads a workspace file safely, returning (success: bool, content: str)."""
+    """Reads a workspace file safely, returning (success: bool, content: str).
+    Super-admins (root) may read any absolute path; others are sandboxed."""
     if not rel_path or not rel_path.strip():
         return False, "File path cannot be empty."
-    clean_path = rel_path.strip().strip("'\"`").lstrip("/\\")
-    if clean_path.startswith("..") or "/../" in clean_path or "\\..\\" in clean_path:
+    raw_path = rel_path.strip().strip("'\"`")
+    is_admin = _is_root_user(user, sec_mgr)
+    clean_path = raw_path if (is_admin and os.path.isabs(raw_path)) else raw_path.lstrip("/\\")
+    if not is_admin and (clean_path.startswith("..") or "/../" in clean_path or "\\..\\" in clean_path):
         return False, f"Access Denied: Path traversal forbidden ({clean_path})"
 
-    if sec_mgr and hasattr(sec_mgr, "read_file_content"):
+    # Non-admins read through the sandboxed security manager; super-admins get direct full access.
+    if not is_admin and sec_mgr and hasattr(sec_mgr, "read_file_content"):
         try:
             res = sec_mgr.read_file_content(workspace_dir, clean_path, user=user)
             if isinstance(res, dict) and "content" in res:
@@ -1048,24 +1071,18 @@ def local_read_file(workspace_dir: str, rel_path: str, user: dict = None, sec_mg
         except Exception:
             pass
 
-    is_admin = False
-    if sec_mgr and hasattr(sec_mgr, "is_admin_user"):
-        is_admin = sec_mgr.is_admin_user(user)
-    elif user and user.get("role") == "admin":
-        is_admin = True
-
-    full_path = os.path.realpath(os.path.join(workspace_dir, clean_path))
+    if is_admin and os.path.isabs(clean_path):
+        full_path = os.path.realpath(clean_path)
+    else:
+        full_path = os.path.realpath(os.path.join(workspace_dir, clean_path.lstrip("/\\")))
     real_base = os.path.realpath(workspace_dir)
-    if not os.path.exists(full_path) and is_admin:
+    if not os.path.exists(full_path) and is_admin and not os.path.isabs(clean_path):
         alt_path = os.path.realpath(os.path.join(DEVCORE_ROOT, clean_path))
         if os.path.exists(alt_path):
             full_path = alt_path
 
-    if not full_path.startswith(real_base):
-        if is_admin and (full_path == os.path.realpath(DEVCORE_ROOT) or full_path.startswith(os.path.realpath(DEVCORE_ROOT) + os.sep)):
-            pass
-        else:
-            return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
+    if not is_admin and not full_path.startswith(real_base):
+        return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
 
     if not os.path.isfile(full_path):
         return False, f"File not found: {clean_path}"
@@ -1322,11 +1339,14 @@ def local_write_file(workspace_dir: str, rel_path: str, content: str, user: dict
     """Writes content to a workspace file safely, returning (success: bool, message: str)."""
     if not rel_path or not rel_path.strip():
         return False, "File path cannot be empty."
-    clean_path = rel_path.strip().strip("'\"`").lstrip("/\\")
-    if clean_path.startswith("..") or "/../" in clean_path or "\\..\\" in clean_path:
+    raw_path = rel_path.strip().strip("'\"`")
+    is_admin = _is_root_user(user, sec_mgr)
+    clean_path = raw_path if (is_admin and os.path.isabs(raw_path)) else raw_path.lstrip("/\\")
+    if not is_admin and (clean_path.startswith("..") or "/../" in clean_path or "\\..\\" in clean_path):
         return False, f"Access Denied: Path traversal forbidden ({clean_path})"
 
-    if sec_mgr and hasattr(sec_mgr, "write_file_content"):
+    # Non-admins write through the sandboxed security manager; super-admins get direct full access.
+    if not is_admin and sec_mgr and hasattr(sec_mgr, "write_file_content"):
         try:
             res = sec_mgr.write_file_content(workspace_dir, clean_path, content, user=user)
             if isinstance(res, dict) and res.get("success"):
@@ -1334,24 +1354,18 @@ def local_write_file(workspace_dir: str, rel_path: str, content: str, user: dict
         except Exception:
             pass
 
-    is_admin = False
-    if sec_mgr and hasattr(sec_mgr, "is_admin_user"):
-        is_admin = sec_mgr.is_admin_user(user)
-    elif user and user.get("role") == "admin":
-        is_admin = True
-
-    full_path = os.path.realpath(os.path.join(workspace_dir, clean_path))
+    if is_admin and os.path.isabs(clean_path):
+        full_path = os.path.realpath(clean_path)
+    else:
+        full_path = os.path.realpath(os.path.join(workspace_dir, clean_path.lstrip("/\\")))
     real_base = os.path.realpath(workspace_dir)
-    if not os.path.exists(full_path) and is_admin:
+    if not os.path.exists(full_path) and is_admin and not os.path.isabs(clean_path):
         alt_path = os.path.realpath(os.path.join(DEVCORE_ROOT, clean_path))
         if os.path.exists(alt_path):
             full_path = alt_path
 
-    if not full_path.startswith(real_base):
-        if is_admin and (full_path == os.path.realpath(DEVCORE_ROOT) or full_path.startswith(os.path.realpath(DEVCORE_ROOT) + os.sep)):
-            pass
-        else:
-            return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
+    if not is_admin and not full_path.startswith(real_base):
+        return False, f"Access Denied: Path escapes workspace boundary ({clean_path})"
 
     try:
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
