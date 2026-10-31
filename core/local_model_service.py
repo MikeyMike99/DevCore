@@ -267,18 +267,70 @@ CLAUDE_MODELS = [
 _CLAUDE_MODELS_CACHE = {"ts": 0.0, "models": None}
 
 
+def _pretty_model_label(mid: str, short_name: str = "") -> str:
+    """Build a readable, version-distinct label from a model id, e.g.
+    'claude-opus-5-5' -> 'Opus 5.5', 'claude-haiku-4-5-20251001' -> 'Haiku 4.5 (20251001)'."""
+    s = mid[7:] if mid.lower().startswith("claude-") else mid
+    parts = [p for p in s.split("-") if p]
+    if not parts:
+        return short_name or mid
+    fam = parts[0].capitalize()
+    ver, date = [], None
+    for p in parts[1:]:
+        if p.isdigit() and len(p) == 8:
+            date = p
+        else:
+            ver.append(p)
+    label = (fam + " " + ".".join(ver)).strip()
+    if date:
+        label += f" ({date})"
+    return label or short_name or mid
+
+
+def _claude_models_from_cli_catalog() -> list:
+    """Read the model list from the Claude Code CLI's own cached catalog
+    (~/.claude/cache/model-catalog/*.json) — the same list `/models` shows,
+    scoped to the signed-in subscription. Returns [] if unavailable."""
+    import glob
+    base = os.path.expanduser("~/.claude/cache/model-catalog")
+    try:
+        files = sorted(glob.glob(os.path.join(base, "*.json")), key=os.path.getmtime, reverse=True)
+    except Exception:
+        files = []
+    for f in files:
+        try:
+            with open(f, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            cat = ((data.get("catalog") or {}).get("config") or {}).get("models") or []
+            rows = []
+            for m in cat:
+                mid = (m.get("id") or "").strip()
+                if "claude" not in mid.lower():
+                    continue
+                label = _pretty_model_label(mid, m.get("short_name") or m.get("name") or "")
+                rows.append({"value": mid, "text": label})
+            if rows:
+                return rows
+        except Exception:
+            continue
+    return []
+
+
 def get_claude_models(force: bool = False, ttl: int = 3600) -> list:
-    """Return the Claude model picker entries. Populated dynamically from the
-    Anthropic Models API when an API credential is available (cached for `ttl`
-    seconds); falls back to the static CLAUDE_MODELS otherwise (e.g. when the
-    brain runs on subscription/CLI auth, which the SDK cannot read)."""
+    """Return the Claude model picker entries, populated dynamically (cached for
+    `ttl` seconds):
+      1. the Claude Code CLI's cached model catalog (what `/models` shows,
+         scoped to the signed-in subscription) — works on the CLI/subscription path;
+      2. else the Anthropic Models API, when an API credential is available;
+      3. else the static CLAUDE_MODELS fallback."""
     now = time.time()
     cached = _CLAUDE_MODELS_CACHE["models"]
     if not force and cached is not None and (now - _CLAUDE_MODELS_CACHE["ts"] < ttl):
         return cached
 
-    models = None
-    if get_anthropic_credential():
+    models = _claude_models_from_cli_catalog()
+
+    if not models and get_anthropic_credential():
         try:
             import anthropic
             client = anthropic.Anthropic()
@@ -289,7 +341,7 @@ def get_claude_models(force: bool = False, ttl: int = 3600) -> list:
                 if "claude" not in mid.lower():
                     continue
                 disp = getattr(m, "display_name", None) or mid
-                rows.append({"value": mid, "text": f"{disp} (Cloud)"})
+                rows.append({"value": mid, "text": disp})
             if rows:
                 models = rows
         except Exception:
