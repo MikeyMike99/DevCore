@@ -391,9 +391,17 @@ def run_claude_cli_model(
     model_id = _resolve_claude_model_id(model_label)
     prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
 
+    # A web user cannot answer Claude Code's own permission prompts, so the brain
+    # must never raise one. It runs in print mode with prompts disabled, acting as
+    # a TEXT generator: it emits the write_file / tool-call markup the system prompt
+    # asks for, and Siraugga executes those through its own tier-aware tools
+    # (local_write_file / local_read_file), which already grant super-admins full
+    # host access and keep other tiers sandboxed. Governance stays in Siraugga.
+    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
+
     try:
         proc = subprocess.run(
-            [claude_bin, "-p", "--model", model_id],
+            cmd,
             input=prompt,
             capture_output=True,
             text=True,
