@@ -4,6 +4,7 @@ import asyncio
 from datetime import datetime, timezone
 import fnmatch
 import hashlib
+import functools
 import json
 import os
 import re
@@ -376,6 +377,9 @@ def run_claude_model(
     model_label: str = "",
     max_tokens: int = 1400,
     target_label: str = "portal_chat",
+    is_admin: bool = False,
+    user: dict = None,
+    conversation_id: str = None,
 ) -> str:
     """Claude brain entry point. Auto-selects the backend so the app is
     deployment-ready with zero per-call configuration:
@@ -386,12 +390,17 @@ def run_claude_model(
          (bring-your-own-subscription; no API key needed).
       3. Neither configured -> a clear first-time-setup message.
 
+    `is_admin` must reflect the server-verified operator role; it defaults to
+    False so any caller that omits it gets the locked-down brain (no Raugus
+    Resolver tools).
+
     Returns the model's text, or a [LOCAL_BRAIN_*] marker the portal renders as a
     clean status message.
     """
     if get_anthropic_credential():
         return _run_claude_api(system_prompt, user_prompt, model_label, max_tokens, target_label)
-    return run_claude_cli_model(system_prompt, user_prompt, model_label, max_tokens, target_label)
+    return run_claude_cli_model(system_prompt, user_prompt, model_label, max_tokens, target_label,
+                                is_admin=is_admin, user=user, conversation_id=conversation_id)
 
 
 def _run_claude_api(
@@ -459,29 +468,77 @@ def _run_claude_api(
     return f"[LOCAL_BRAIN_UNAVAILABLE] Claude returned an empty response for '{model_id}'."
 
 
-def _raugus_mcp_config_path():
-    """Write (and return) an MCP config that launches the Raugus Resolver server
-    with THIS interpreter — the one running Siraugga, which has the `mcp` package
-    (the server's own mcp_config.json uses bare `python3`, which may lack it).
+def _raugus_mcp_config_path(agent_credential: str = None):
+    """Write (and return) a private, per-run MCP config that launches the Raugus
+    Resolver server with THIS interpreter (the one running Siraugga, which has the
+    `mcp` package) and hands it the agent's signed identity credential through
+    the server's environment. The file lives in a fresh 0700 temp dir outside
+    every folder the brain may read, and the caller deletes it after the run.
     Returns None if the server file or `mcp` is unavailable, so the CLI is never
     handed a broken MCP server (which would hang it until timeout)."""
+    import tempfile
     server = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "server.py")
-    if not os.path.isfile(server):
+    if not os.path.isfile(server) or not agent_credential:
         return None
     try:
         import mcp  # noqa: F401 — if this interpreter lacks mcp, the spawned server would too
     except Exception:
         return None
-    cfg = {"mcpServers": {"raugus-resolver": {"command": sys.executable, "args": [server]}}}
+    cfg = {"mcpServers": {"raugus-resolver": {
+        "command": sys.executable,
+        "args": [server],
+        "env": {"DEVCORE_AGENT_CREDENTIAL": agent_credential},
+    }}}
     try:
-        rt_dir = os.path.join(DEVCORE_ROOT, ".runtime")
-        os.makedirs(rt_dir, exist_ok=True)
+        rt_dir = tempfile.mkdtemp(prefix="devcore-mcp-")
+        os.chmod(rt_dir, 0o700)
         path = os.path.join(rt_dir, "raugus_mcp_config.json")
-        with open(path, "w", encoding="utf-8") as f:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(cfg, f)
         return path
     except Exception:
         return None
+
+
+# Raw file tools (Read/Grep/Glob) never see secrets, whatever folder is allowed.
+_BRAIN_SECRET_READ_DENY = [
+    f"Read(**/{g})" for g in (
+        "*token*", "*secret*", "*password*", "*passwd*", "*credential*", "*.key", "*.pem",
+        "*.pfx", "*.p12", "*.kdbx", ".env", ".env.*", "*.env", "id_rsa*", "id_ed25519*",
+        "keys.json", "sessions.json", "keychain.json", "raugus_access.json", ".netrc",
+        ".ssh/**", ".gnupg/**", ".aws/**", ".claude/**", ".gemini/**", ".git/**",
+        ".runtime/**", ".devcore_master.key",
+    )
+]
+
+_RESOLVER_TOOLS = [
+    "mcp__raugus-resolver__search_keys",
+    "mcp__raugus-resolver__list_module_keys",
+    "mcp__raugus-resolver__read_by_key",
+    "mcp__raugus-resolver__get_block_by_tag",
+    "mcp__raugus-resolver__write_by_key",
+    "mcp__raugus-resolver__create_by_key",
+    "mcp__raugus-resolver__delete_by_key",
+]
+
+
+def _brain_read_scopes(identity: dict) -> list:
+    """Folders the brain's raw Read/Grep/Glob may touch for this identity:
+    admins get every registered resolver root; other tiers get the low-tier
+    DevCore workspace folders plus whatever they were granted read on."""
+    if not identity:
+        return []
+    try:
+        from security.raugus_access import readable_paths_for
+        scopes = list(readable_paths_for(identity))
+    except Exception:
+        scopes = [DEVCORE_ROOT] if int(identity.get("tier", 0)) >= 5 else []
+    tier = int(identity.get("tier", 0))
+    if tier < 5:
+        low = ["static", "templates"] + (["docs", "sandbox", "playground"] if tier >= 3 else [])
+        scopes += [os.path.join(DEVCORE_ROOT, d) for d in low if os.path.isdir(os.path.join(DEVCORE_ROOT, d))]
+    return sorted(set(scopes))
 
 
 def run_claude_cli_model(
@@ -490,10 +547,19 @@ def run_claude_cli_model(
     model_label: str = "",
     max_tokens: int = 1400,
     target_label: str = "portal_chat",
+    is_admin: bool = False,
+    user: dict = None,
+    conversation_id: str = None,
 ) -> str:
     """Bring-your-own-subscription path: drives the authenticated `claude` CLI
     (Claude Code) via `claude -p`. No API key required; it uses the existing
     `claude` login. Intended for single-user / personal deployments.
+
+    Every run is a distinct agent with its own signed identity, minted here for
+    the authenticated `user` who started it. The Raugus Resolver MCP derives the
+    agent's tier and access grants from that credential (never from a tool
+    argument), and raw file reads are limited to the folders that user may read.
+    Without an authenticated user the brain gets no resolver and no file access.
     """
     import shutil
     claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
@@ -507,52 +573,66 @@ def run_claude_cli_model(
     model_id = _resolve_claude_model_id(model_label)
     prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
 
-    # A web user cannot answer Claude Code's own permission prompts, so the brain
-    # must never raise one. It runs in print mode with prompts disabled, acting as
-    # a TEXT generator: it emits the write_file / tool-call markup the system prompt
-    # asks for, and Siraugga executes those through its own tier-aware tools
-    # (local_write_file / local_read_file), which already grant super-admins full
-    # host access and keep other tiers sandboxed. Governance stays in Siraugga.
-    # Allow the safe, read-only tools so the brain can inspect files and skills
-    # without an un-answerable approval prompt. Only read-only / inspection tools are
-    # allowed: the file read tools plus a few scoped read-only Bash commands (git
-    # status/diff/log/show, ls, claude mcp list). No writes and no arbitrary command
-    # execution. Writes still flow through Siraugga's own saver. --permission-prompts
-    # none means anything outside this set is denied silently, never surfaced to the
-    # web user.
-    _raugus_mcp = _raugus_mcp_config_path()
-    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
-    if _raugus_mcp:
-        # Governed code read/write channel: the Raugus Resolver MCP enforces RBAC,
-        # symbol/AST locks, self-protection, and hot-patch staging on write_by_key.
-        # Launched with this interpreter (which has `mcp`); skipped entirely if the
-        # server can't run, so a broken MCP never hangs the CLI until timeout.
-        cmd += ["--mcp-config", _raugus_mcp]
-    cmd += [
-        "--allowedTools", "Read", "Grep", "Glob",
-        "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)",
-        "Bash(git show:*)", "Bash(ls:*)", "Bash(claude mcp list)",
-        # Scoped raw write: ONLY the exam payload dir (a data file, not a code
-        # symbol); rooted at the repo via cwd below. Nothing else is writable here.
-        "Edit(sandbox/static/**)", "Write(sandbox/static/**)",
-        # Governed code read/write through the Raugus Resolver MCP (it applies the
-        # tier/self-protection/patch-staging rules itself).
-        "mcp__raugus-resolver__search_keys",
-        "mcp__raugus-resolver__read_by_key",
-        "mcp__raugus-resolver__write_by_key",
-    ]
-
-    # Root the brain's file context at the repo root so its reads and relative
-    # paths cover the whole workspace (e.g. sandbox/, plugins/), not just core/.
-    # Writes still go through Siraugga's saver, not the CLI.
-    _cwd = DEVCORE_ROOT if os.path.isdir(DEVCORE_ROOT) else None
-
     # Agentic turns (multi-step reads plus governed write_by_key hot-patches) need
     # far more than a single text reply; override with DEVCORE_CLAUDE_CLI_TIMEOUT.
     try:
         _timeout = max(60, int(os.environ.get("DEVCORE_CLAUDE_CLI_TIMEOUT", "600")))
     except ValueError:
         _timeout = 600
+
+    # Agent identity: bound to the authenticated principal, valid for this run only.
+    if not user and is_admin:
+        # Legacy callers that only pass is_admin: act as the host owner.
+        try:
+            from security.security_manager import SecurityManager
+            user = dict(SecurityManager.OWNER_USER)
+        except Exception:
+            user = None
+    identity, credential = None, None
+    if user:
+        try:
+            from security.agent_identity import mint_agent_credential, verify_agent_credential
+            credential = mint_agent_credential(user, conversation_id=conversation_id,
+                                               agent_kind="claude-cli", ttl_seconds=_timeout + 120)
+            identity = verify_agent_credential(credential)
+        except Exception:
+            identity, credential = None, None
+
+    # A web user cannot answer Claude Code's own permission prompts, so the brain
+    # must never raise one: --permission-prompts none silently denies anything
+    # outside the allow-list below. Reads are path-scoped to this identity's
+    # folders, secrets are always denied, and code changes go through the
+    # governed resolver. No arbitrary command execution and no raw directory
+    # listing (`ls` / `git diff --no-index` could read outside the scopes).
+    _raugus_mcp = _raugus_mcp_config_path(credential) if identity else None
+    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
+    if _raugus_mcp:
+        cmd += ["--mcp-config", _raugus_mcp, "--strict-mcp-config"]
+    allowed = []
+    for scope in _brain_read_scopes(identity):
+        scope = scope.rstrip("/")
+        allowed += [f"Read(/{scope}/**)", f"Grep(/{scope}/**)", f"Glob(/{scope}/**)"]
+    if identity and int(identity.get("tier", 0)) >= 5:
+        allowed += ["Bash(git status:*)", "Bash(git log:*)", "Bash(git show:*)"]
+        # Scoped raw write: ONLY the exam payload dir (a data file, not a code symbol).
+        allowed += ["Edit(sandbox/static/**)", "Write(sandbox/static/**)"]
+    if _raugus_mcp:
+        allowed += _RESOLVER_TOOLS
+    if allowed:
+        cmd += ["--allowedTools", *allowed]
+    cmd += ["--disallowedTools", *_BRAIN_SECRET_READ_DENY]
+
+    # Claude Code implicitly allows reads inside its working directory, so only a
+    # Tier 5 brain runs from the repo root. Everyone else starts in an empty
+    # private folder and can read only the scopes allowed above.
+    import tempfile
+    _jail = None
+    if identity and int(identity.get("tier", 0)) >= 5 and os.path.isdir(DEVCORE_ROOT):
+        _cwd = DEVCORE_ROOT
+    else:
+        _jail = tempfile.mkdtemp(prefix="devcore-brain-")
+        os.chmod(_jail, 0o700)
+        _cwd = _jail
 
     try:
         proc = subprocess.run(
@@ -571,6 +651,11 @@ def run_claude_cli_model(
         )
     except Exception as e:
         return f"[LOCAL_BRAIN_ERROR] Claude CLI invocation failed: {e}"
+    finally:
+        if _raugus_mcp:
+            shutil.rmtree(os.path.dirname(_raugus_mcp), ignore_errors=True)
+        if _jail:
+            shutil.rmtree(_jail, ignore_errors=True)
 
     out = (proc.stdout or "").strip()
     err = (proc.stderr or "").strip()
@@ -2736,12 +2821,17 @@ async def execute_local_agent_task(
     if is_claude:
         response = await loop.run_in_executor(
             None,
-            run_claude_model,
-            system_prompt,
-            query_payload,
-            model,
-            1400,
-            "portal_chat",
+            functools.partial(
+                run_claude_model,
+                system_prompt,
+                query_payload,
+                model,
+                1400,
+                "portal_chat",
+                is_admin,
+                user=user,
+                conversation_id=conversation_id,
+            ),
         )
     elif is_ollama:
         response = await loop.run_in_executor(

@@ -43,3 +43,10 @@ users/
 # Secrets / local env
 .env
 security/ai_credentials.json
+
+# Resolver access registry (machine-specific, HMAC-signed) and agent identity secrets
+security/raugus_access.json
+security/raugus_access.json.tmp.*
+security/.agent_identity.key
+security/.jit_elevation_lease.json
+keys.json

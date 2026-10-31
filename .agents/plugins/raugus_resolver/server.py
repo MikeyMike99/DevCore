@@ -37,6 +37,20 @@ PROTECTED_GUARD_BASENAMES = {
     "raugus_map.json",
     "generate_raugusmap.py",
     "tool_security_auditor.py",
+    # Identity & access-control authority: agents may never edit these.
+    "agent_identity.py",
+    "raugus_access.py",
+    "raugus_access.json",
+    "raugus_sync.py",
+}
+
+# Authority files protected by exact DevCore path (their basenames are common
+# in other projects, so they are not in the basename list above).
+PROTECTED_DEVCORE_RELPATHS = {
+    "security/security_manager.py",
+    "core/roles.py",
+    "core/routes/auth.py",
+    "core/routes/access.py",
 }
 
 _RESOLVER = None
@@ -158,6 +172,10 @@ def _is_self_protected_key(key: str, real_path: str = "") -> bool:
     base = os.path.basename(real_path) if real_path else ""
     if base in PROTECTED_GUARD_BASENAMES:
         return True
+    if real_path:
+        rel = os.path.relpath(os.path.abspath(real_path), DEVCORE_ROOT).replace("\\", "/")
+        if rel in PROTECTED_DEVCORE_RELPATHS:
+            return True
     for g in PROTECTED_GUARD_BASENAMES:
         if key.endswith(f".{g}") or f".{g}::" in key:
             return True
@@ -171,6 +189,74 @@ def _check_jit_elevation(elevation_token: str = "") -> bool:
         return bool(ver.get("valid") is True)
     except Exception:
         return False
+
+
+def _identity():
+    """The verified identity of the agent this server process serves.
+
+    It comes from DEVCORE_AGENT_CREDENTIAL in the process environment, set by
+    Siraugga when it launches the agent, and is never taken from a tool
+    argument. No credential, or an invalid or expired one, means no access."""
+    try:
+        from security.agent_identity import credential_from_env
+        return credential_from_env()
+    except Exception:
+        return None
+
+
+def _deny_no_identity(**extra) -> str:
+    return _json_response({
+        "status": "DENIED_NO_IDENTITY",
+        "reason": ("This resolver session has no valid agent credential. Agents get one "
+                   "automatically when an authenticated user starts them from Siraugga."),
+        **extra,
+    })
+
+
+class _Access:
+    """Per-call authorization context: tier plus the grants this identity holds."""
+
+    def __init__(self, ident):
+        self.ident = ident
+        self.tier = int(ident.get("tier", 0)) if ident else 0
+        try:
+            from security.raugus_access import grant_scopes_for
+            self.scopes = grant_scopes_for(ident) if ident and self.tier < 5 else []
+        except Exception:
+            self.scopes = []
+
+    def check(self, entry: dict, real_path: str, action: str) -> tuple:
+        """Return (allowed, via, reason). `via` is 'TIER' or 'GRANT'."""
+        if not self.ident:
+            return False, "", "No agent identity."
+        try:
+            from security.raugus_access import is_secret_path, perms_from_scopes
+        except Exception:
+            return False, "", "Access registry unavailable."
+        if real_path and is_secret_path(real_path):
+            return False, "", "Secret files (tokens, keys, credentials) are never served by the resolver."
+        req = int((entry or {}).get("required_tier", 5))
+        if self.tier >= req:
+            return True, "TIER", ""
+        if real_path and perms_from_scopes(self.scopes, real_path).get(action):
+            return True, "GRANT", ""
+        return False, "", (f"Access Denied: Tier {req} clearance or an access grant with "
+                           f"'{action}' permission is required (caller has Tier {self.tier}).")
+
+
+def _is_writable_via_grant(key: str, real_path: str, sym_entry: dict) -> tuple:
+    """Writes allowed by an access grant (not by tier). Grants never unlock
+    security/identity files, engine modules, read-only blueprints or locked symbols."""
+    if _is_self_protected_key(key, real_path):
+        return False, "DENIED_SELF_PROTECTION", f"Key '{key}' is a protected security component."
+    bname = os.path.basename(real_path or "").lower()
+    if bname in ("exam_application.html", "exam_builder.html", "exam_application.md") or ".plugins.exam_application." in key:
+        return False, "DENIED_READ_ONLY", f"Key '{key}' is a Read-Only Exam Application blueprint."
+    if sym_entry and sym_entry.get("locked") is True:
+        return False, "DENIED_SYMBOL_LOCKED", f"Symbol key '{key}' is explicitly AST-locked."
+    if _is_engine_module_path(real_path):
+        return False, "DENIED_ENGINE_MODULE", "Live engine modules can only be patched by a Tier 5 admin."
+    return True, "ALLOWED_GRANT", ""
 
 
 def _is_engine_module_path(real_path: str) -> bool:
@@ -290,12 +376,16 @@ def _resolve_module_and_symbol(key: str):
 
 
 @mcp.tool()
-def search_keys(query: str, entry_type: str = "all", user_tier: int = 5, limit: int = 30) -> str:
+def search_keys(query: str, entry_type: str = "all", limit: int = 30) -> str:
     """
     Search the Raugus Map by keyword across VFS keys (files, directories, and AST symbols).
-    Returns ONLY opaque VFS keys, types, required tiers, and permission flags.
-    Physical file paths are never revealed.
+    Returns ONLY opaque VFS keys, types, required tiers, and permission flags for keys the
+    calling agent may read (by its tier or an access grant). Physical file paths are never revealed.
     """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(query=query)
+    acc = _Access(ident)
     resolver = _get_resolver()
     q = (query or "").strip().lower()
     etype = (entry_type or "all").strip().lower()
@@ -303,10 +393,6 @@ def search_keys(query: str, entry_type: str = "all", user_tier: int = 5, limit: 
 
     matches = []
     for alias, data in resolver.phonebook.items():
-        req_tier = int(data.get("required_tier", 5))
-        if int(user_tier) < req_tier:
-            continue
-
         item_type = data.get("type", "file")
         if etype != "all":
             if etype == "symbol":
@@ -320,11 +406,16 @@ def search_keys(query: str, entry_type: str = "all", user_tier: int = 5, limit: 
             continue
 
         real_p = data.get("real_path", "")
+        ok, via, _ = acc.check(data, real_p, "read")
+        if not ok:
+            continue
+
         is_sens = bool(data.get("sensitive") is True or resolver.is_sensitive_path(real_p))
         record = {
             "key": alias,
             "type": item_type,
-            "required_tier": req_tier,
+            "required_tier": int(data.get("required_tier", 5)),
+            "access_via": via,
             "permissions": data.get("permissions", {}),
             "sensitive": is_sens,
         }
@@ -337,19 +428,24 @@ def search_keys(query: str, entry_type: str = "all", user_tier: int = 5, limit: 
     return _json_response({
         "status": "GRANTED",
         "query": query,
-        "user_tier": int(user_tier),
+        "agent_id": ident.get("agent_id"),
+        "user_tier": acc.tier,
         "count": len(matches),
         "keys": matches,
     })
 
 
 @mcp.tool()
-def list_module_keys(module_key: str, user_tier: int = 5) -> str:
+def list_module_keys(module_key: str) -> str:
     """
-    Given a module VFS key (e.g. 'devcore.core.routes.system.py'), verifies RBAC rules
+    Given a module VFS key (e.g. 'devcore.core.routes.system.py'), verifies access rules
     and returns all function, class, variable, and section VFS keys ('<module_key>::<symbol>')
     inside that module without revealing physical file paths.
     """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(key=module_key)
+    acc = _Access(ident)
     resolver, mod_key, _, mod_entry, _ = _resolve_module_and_symbol(module_key)
     if not mod_entry:
         return _json_response({
@@ -359,14 +455,11 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
         })
 
     req_tier = int(mod_entry.get("required_tier", 5))
-    if int(user_tier) < req_tier:
-        return _json_response({
-            "status": "DENIED",
-            "key": mod_key,
-            "reason": f"Access Denied: Tier {req_tier} clearance required (caller has Tier {user_tier}).",
-        })
+    real_path = resolver.get_path(mod_key, 5)
+    ok, via, why = acc.check(mod_entry, real_path, "read")
+    if not ok:
+        return _json_response({"status": "DENIED", "key": mod_key, "reason": why})
 
-    real_path = resolver.get_path(mod_key, int(user_tier))
     if mod_entry.get("sensitive") is True or resolver.is_sensitive_path(real_path):
         return _json_response({
             "status": "DENIED_SENSITIVE_VAULT",
@@ -395,6 +488,14 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
     except Exception as e:
         return _json_response({"status": "ERROR", "key": mod_key, "reason": str(e)})
 
+    def _w(k, entry, sym):
+        need = max(req_tier, int((entry or {}).get("required_tier", req_tier)))
+        w_ok, w_via, _ = acc.check({"required_tier": need}, real_path, "write")
+        if not w_ok:
+            return False, "READ_ONLY"
+        ok2, mode, _ = _write_mode(acc, w_via, k, real_path, mod_entry, sym)
+        return ok2, (mode if ok2 else "READ_ONLY")
+
     symbol_keys = []
     if real_path.endswith(".py"):
         ast_map = _extract_ast_nodes(source)
@@ -402,7 +503,7 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
             full_sym_key = f"{mod_key}::{sym_name}"
             mapped_sym = resolver.phonebook.get(full_sym_key, {})
             sym_perms = mapped_sym.get("permissions", perms)
-            w_ok, w_mode, _ = _is_writable_via_resolver(full_sym_key, real_path, mod_entry, mapped_sym, int(user_tier))
+            w_ok, w_mode = _w(full_sym_key, mapped_sym, mapped_sym)
             symbol_keys.append({
                 "key": full_sym_key,
                 "symbol_name": sym_name,
@@ -413,7 +514,7 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
                 "permissions": {
                     "read": bool(sym_perms.get("read", True)),
                     "write": w_ok,
-                    "delivery_mode": w_mode if w_ok else "READ_ONLY",
+                    "delivery_mode": w_mode,
                 },
             })
     elif real_path.endswith((".md", ".plan")):
@@ -424,7 +525,7 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
                 s_l = int(sec_data.get("start_line", 1))
                 e_l = int(sec_data.get("end_line", s_l))
                 sec_perms = sec_data.get("permissions", perms)
-                w_ok, w_mode, _ = _is_writable_via_resolver(k, real_path, mod_entry, sec_data, int(user_tier))
+                w_ok, w_mode = _w(k, sec_data, sec_data)
                 symbol_keys.append({
                     "key": k,
                     "symbol_name": sec_name,
@@ -435,32 +536,45 @@ def list_module_keys(module_key: str, user_tier: int = 5) -> str:
                     "permissions": {
                         "read": bool(sec_perms.get("read", True)),
                         "write": w_ok,
-                        "delivery_mode": w_mode if w_ok else "READ_ONLY",
+                        "delivery_mode": w_mode,
                     },
                 })
 
-    m_w_ok, m_w_mode, _ = _is_writable_via_resolver(mod_key, real_path, mod_entry, None, int(user_tier))
+    m_w_ok, m_w_mode = _w(mod_key, mod_entry, None)
     return _json_response({
         "status": "GRANTED",
         "module_key": mod_key,
         "required_tier": req_tier,
+        "access_via": via,
         "module_permissions": {
             "read": bool(perms.get("read", True)),
             "write": m_w_ok,
-            "delivery_mode": m_w_mode if m_w_ok else "READ_ONLY",
+            "delivery_mode": m_w_mode,
         },
         "symbol_count": len(symbol_keys),
         "symbols": symbol_keys,
     })
 
 
+def _write_mode(acc, via, key, real_path, mod_entry, sym_entry, elevation_token=""):
+    """Final write decision once the base 'write' access check has passed."""
+    if via == "TIER":
+        return _is_writable_via_resolver(key, real_path, mod_entry, sym_entry, acc.tier,
+                                         elevation_token=elevation_token)
+    return _is_writable_via_grant(key, real_path, sym_entry)
+
+
 @mcp.tool()
-def read_by_key(key: str, user_tier: int = 5) -> str:
+def read_by_key(key: str) -> str:
     """
     Access a file, function, class, variable, or section strictly by its Raugus VFS Key
     (e.g. 'devcore.core.routes.system.py::reload_system' or 'devcore.core.project_manager.py').
-    Verifies all Raugus Map rules and returns ONLY the granted code/value result without revealing file paths.
+    Verifies the caller's tier/grants and returns ONLY the granted code/value without revealing file paths.
     """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(key=key)
+    acc = _Access(ident)
     resolver, mod_key, symbol_name, mod_entry, sym_entry = _resolve_module_and_symbol(key)
     target_entry = sym_entry or mod_entry
     if not target_entry or not mod_entry:
@@ -471,15 +585,11 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
         })
 
     req_tier = max(int(mod_entry.get("required_tier", 5)), int(target_entry.get("required_tier", 5)))
-    if int(user_tier) < req_tier:
-        logging.warning(f"Tier {user_tier} denied read_by_key on Tier {req_tier} key '{key}'")
-        return _json_response({
-            "status": "DENIED",
-            "key": key,
-            "reason": f"Access Denied: Tier {req_tier} clearance required (caller has Tier {user_tier}).",
-        })
-
-    real_path = resolver.get_path(mod_key, int(user_tier))
+    real_path = resolver.get_path(mod_key, 5)
+    ok, via, why = acc.check({"required_tier": req_tier}, real_path, "read")
+    if not ok:
+        logging.warning(f"[{ident.get('agent_id')}] Tier {acc.tier} denied read_by_key on '{key}'")
+        return _json_response({"status": "DENIED", "key": key, "reason": why})
 
     # Sensitive Vault Check: Never return raw source from sensitive keys; return sanitized digest only
     if (
@@ -516,12 +626,17 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
             "reason": f"Key '{key}' does not resolve to a readable asset.",
         })
 
-    w_ok, w_mode, _ = _is_writable_via_resolver(key, real_path, mod_entry, sym_entry, int(user_tier))
+    w_base, w_via, _ = acc.check({"required_tier": req_tier}, real_path, "write")
+    if w_base:
+        w_ok, w_mode, _ = _write_mode(acc, w_via, key, real_path, mod_entry, sym_entry)
+    else:
+        w_ok, w_mode = False, "READ_ONLY"
 
     if mod_entry.get("type") == "directory" or os.path.isdir(real_path):
         prefix_dot = mod_key + "."
         prefix_colon = mod_key + "::"
         child_keys = [k for k in resolver.phonebook if k != mod_key and (k.startswith(prefix_dot) or k.startswith(prefix_colon))]
+        c_ok, _, _ = acc.check({"required_tier": req_tier}, real_path, "create")
         return _json_response({
             "status": "GRANTED",
             "key": mod_key,
@@ -531,6 +646,7 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
             "permissions": {
                 "read": True,
                 "write": w_ok,
+                "create": bool(c_ok),
                 "delivery_mode": w_mode if w_ok else "READ_ONLY",
             },
             "result": f"Directory container with {len(child_keys)} registered children.",
@@ -593,6 +709,7 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
     if not file_hash:
         file_hash = hashlib.sha256(full_source.encode("utf-8")).hexdigest()[:12]
 
+    d_ok, _, _ = acc.check({"required_tier": req_tier}, real_path, "delete")
     return _json_response({
         "status": "GRANTED",
         "key": mod_key,
@@ -604,6 +721,7 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
         "permissions": {
             "read": True,
             "write": w_ok,
+            "delete": bool(d_ok),
             "delivery_mode": w_mode if w_ok else "READ_ONLY",
         },
         "result": _scrub_paths(full_source),
@@ -611,29 +729,25 @@ def read_by_key(key: str, user_tier: int = 5) -> str:
 
 
 @mcp.tool()
-def get_block_by_tag(tag_or_id: str, user_tier: int = 5) -> str:
+def get_block_by_tag(tag_or_id: str) -> str:
     """
     Resolves an AST symbol or Markdown section block by its persistent invariant UUID ('id')
     or symbol/section tag name (e.g. 'SEC_01_OVERVIEW' or 'reload_system'),
-    enforcing RBAC tier clearance without exposing file paths.
+    enforcing the caller's tier/grants without exposing file paths.
     """
+    if not _identity():
+        return _deny_no_identity(tag_or_id=tag_or_id)
     resolver = _get_resolver()
     try:
-        entry = resolver.get_block_by_tag(tag_or_id, int(user_tier))
+        # Lookup only; read_by_key below enforces the caller's actual access.
+        entry = resolver.get_block_by_tag(tag_or_id, 5)
         if not entry:
             return _json_response({
                 "status": "NOT_FOUND",
                 "tag_or_id": tag_or_id,
                 "reason": f"No block found with tag or id '{tag_or_id}'."
             })
-        k = entry.get("key", "")
-        return read_by_key(k, user_tier=int(user_tier))
-    except PermissionError as pe:
-        return _json_response({
-            "status": "DENIED",
-            "tag_or_id": tag_or_id,
-            "reason": str(pe)
-        })
+        return read_by_key(entry.get("key", ""))
     except Exception as e:
         return _json_response({
             "status": "ERROR",
@@ -641,15 +755,20 @@ def get_block_by_tag(tag_or_id: str, user_tier: int = 5) -> str:
             "reason": str(e)
         })
 
+
 @mcp.tool()
-def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: str = "") -> str:
+def write_by_key(key: str, new_code: str, elevation_token: str = "") -> str:
     """
     Modify a specific function, class, variable ('module_key::symbol_name'), or module ('module_key')
     strictly via its Raugus VFS Key without exposing physical file paths.
-    Enforces RBAC tier, Self-Protection locks, Read-Only blueprints, AST symbol locks, and syntax validation,
-    and automatically stages & promotes live engine updates through the Zero-Downtime Hot-Patch sequence.
+    Enforces the caller's tier/grants, Self-Protection locks, Read-Only blueprints, AST symbol locks, and
+    syntax validation, and stages & promotes live engine updates through the Zero-Downtime Hot-Patch sequence.
     When modifying a core security guard file, requires an active 5-minute Human-in-the-Loop Super Admin JIT Elevation Token/Lease.
     """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(key=key)
+    acc = _Access(ident)
     resolver, mod_key, symbol_name, mod_entry, sym_entry = _resolve_module_and_symbol(key)
     if not mod_entry:
         return _json_response({
@@ -662,15 +781,11 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: s
     if sym_entry:
         req_tier = max(req_tier, int(sym_entry.get("required_tier", req_tier)))
 
-    if int(user_tier) < req_tier:
-        logging.warning(f"Tier {user_tier} denied write_by_key on Tier {req_tier} key '{key}'")
-        return _json_response({
-            "status": "DENIED",
-            "key": key,
-            "reason": f"Access Denied: Tier {req_tier} clearance required (caller has Tier {user_tier}).",
-        })
-
-    real_path = resolver.get_path(mod_key, int(user_tier))
+    real_path = resolver.get_path(mod_key, 5)
+    ok, via, why = acc.check({"required_tier": req_tier}, real_path, "write")
+    if not ok:
+        logging.warning(f"[{ident.get('agent_id')}] Tier {acc.tier} denied write_by_key on '{key}'")
+        return _json_response({"status": "DENIED", "key": key, "reason": why})
 
     # 1. Sensitive Vault & OneDrive Lock
     if (
@@ -685,9 +800,8 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: s
         })
 
     # 2. Self-Protection, Read-Only Blueprint, and AST Symbol Lock Evaluation
-    w_allowed, w_status, w_reason = _is_writable_via_resolver(
-        key, real_path, mod_entry, sym_entry, int(user_tier), elevation_token=elevation_token
-    )
+    w_allowed, w_status, w_reason = _write_mode(acc, via, key, real_path, mod_entry, sym_entry,
+                                                elevation_token=elevation_token)
     if not w_allowed:
         return _json_response({
             "status": w_status,
@@ -704,7 +818,7 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: s
 
     try:
         from security.mantrap import SemanticMantrap
-        with SemanticMantrap.execution_chamber(real_path, "Raugus_MCP_Write"):
+        with SemanticMantrap.execution_chamber(real_path, f"Raugus_MCP_Write:{ident.get('agent_id')}"):
             with open(real_path, "r", encoding="utf-8") as f:
                 orig_lines = f.readlines()
             orig_source = "".join(orig_lines)
@@ -811,10 +925,13 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: s
                         "permissions": dict(mod_perms),
                     }
 
+            logging.info(f"[{ident.get('agent_id')}] write_by_key '{key}' for principal "
+                         f"'{ident.get('principal')}' via {via}: {delivery_mode}")
             return _json_response({
                 "status": "GRANTED",
                 "key": key,
                 "module_key": mod_key,
+                "access_via": via,
                 "delivery_mode": delivery_mode,
                 "updated_symbol_keys": [f"{mod_key}::{n}" for n in updated_ast.keys()],
             })
@@ -823,13 +940,144 @@ def write_by_key(key: str, new_code: str, user_tier: int = 5, elevation_token: s
         return _json_response({"status": "ERROR", "key": key, "reason": str(e)})
 
 
+_SAFE_FILENAME = re.compile(r"^[^/\\:*?\"<>|\x00-\x1f]{1,180}$")
+
+
 @mcp.tool()
-def refresh_key_map(user_tier: int = 5) -> str:
+def create_by_key(directory_key: str, filename: str, content: str = "") -> str:
     """
-    Re-indexes workspace AST symbol keys and 64-bit hardware inodes in the Raugus Map
-    and reloads the in-memory phonebook. Returns only key counts without revealing file paths.
+    Create a NEW file named `filename` inside the directory identified by `directory_key`
+    (a Raugus VFS directory key such as 'rauguscore.docs'). Requires tier clearance with
+    write permission on the directory, or an access grant with 'create'. Never overwrites.
+    Returns the new file's VFS key.
     """
-    if int(user_tier) < 5:
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(key=directory_key)
+    acc = _Access(ident)
+    resolver = _get_resolver()
+    d_entry = resolver.phonebook.get(directory_key)
+    if not d_entry or d_entry.get("type") != "directory":
+        return _json_response({"status": "DENIED", "key": directory_key,
+                               "reason": f"'{directory_key}' is not a directory key in the Raugus Map."})
+    name = (filename or "").strip()
+    if not _SAFE_FILENAME.match(name) or name in (".", "..") or name.startswith("."):
+        return _json_response({"status": "DENIED", "key": directory_key,
+                               "reason": "Filename must be a plain name (no folders, no leading dot)."})
+    dir_path = resolver.get_path(directory_key, 5)
+    target = os.path.join(dir_path, name)
+    ok, via, why = acc.check(d_entry, target, "create")
+    if not ok:
+        return _json_response({"status": "DENIED", "key": directory_key, "reason": why})
+    if via == "TIER":
+        if d_entry.get("permissions", {}).get("write") is False and acc.tier < 5:
+            return _json_response({"status": "DENIED_READ_ONLY", "key": directory_key,
+                                   "reason": "This directory is read-only in the Raugus Map."})
+    if d_entry.get("sensitive") is True or resolver.is_sensitive_path(target):
+        return _json_response({"status": "DENIED_SENSITIVE_VAULT", "key": directory_key,
+                               "reason": "Cannot create files inside the Sensitive Vault."})
+    w_ok, w_status, w_reason = (_is_writable_via_grant(f"{directory_key}.{name}", target, None)
+                                if via == "GRANT" or acc.tier < 5 else (True, "", ""))
+    if _is_self_protected_key(f"{directory_key}.{name}", target):
+        w_ok, w_status, w_reason = False, "DENIED_SELF_PROTECTION", "Protected security component name."
+    if not w_ok:
+        return _json_response({"status": w_status, "key": directory_key, "reason": w_reason})
+    if not os.path.isdir(dir_path):
+        return _json_response({"status": "DENIED", "key": directory_key, "reason": "Directory no longer exists."})
+    if os.path.exists(target):
+        return _json_response({"status": "DENIED_EXISTS", "key": directory_key,
+                               "reason": f"'{name}' already exists; use write_by_key to change it."})
+    if name.endswith(".py"):
+        try:
+            ast.parse(content or "")
+        except SyntaxError as se:
+            return _json_response({"status": "DENIED_SYNTAX_ERROR", "key": directory_key,
+                                   "reason": f"Syntax validation failed (line {se.lineno}): {se.msg}"})
+    try:
+        fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(content or "")
+    except Exception as e:
+        return _json_response({"status": "ERROR", "key": directory_key, "reason": str(e)})
+    try:
+        from security.raugus_sync import sync_path
+        sync_path(target)
+    except Exception:
+        pass
+    resolver._load_phonebook()
+    new_key = next((k for k, v in resolver.phonebook.items()
+                    if "::" not in k and os.path.abspath(v.get("real_path", "")) == os.path.abspath(target)), None)
+    logging.info(f"[{ident.get('agent_id')}] create_by_key {directory_key}/{name} via {via}")
+    return _json_response({"status": "GRANTED", "directory_key": directory_key, "key": new_key,
+                           "access_via": via, "delivery_mode": "FILE_CREATED"})
+
+
+@mcp.tool()
+def delete_by_key(key: str) -> str:
+    """
+    Delete the FILE identified by `key` (not a directory or symbol). Requires tier clearance with
+    write permission, or an access grant with 'delete'. A backup copy is kept in core/backups/deleted/.
+    """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(key=key)
+    acc = _Access(ident)
+    resolver = _get_resolver()
+    if "::" in key:
+        return _json_response({"status": "DENIED", "key": key,
+                               "reason": "delete_by_key removes whole files; use write_by_key to remove a symbol."})
+    entry = resolver.phonebook.get(key)
+    if not entry or entry.get("type") == "directory":
+        return _json_response({"status": "DENIED", "key": key, "reason": "Not a file key in the Raugus Map."})
+    real_path = resolver.get_path(key, 5)
+    ok, via, why = acc.check(entry, real_path, "delete")
+    if not ok:
+        return _json_response({"status": "DENIED", "key": key, "reason": why})
+    if entry.get("sensitive") is True or resolver.is_sensitive_path(real_path):
+        return _json_response({"status": "DENIED_SENSITIVE_VAULT", "key": key,
+                               "reason": "Sensitive Vault files cannot be deleted."})
+    if _is_self_protected_key(key, real_path) or _is_engine_module_path(real_path):
+        return _json_response({"status": "DENIED_SELF_PROTECTION", "key": key,
+                               "reason": "Security components and live engine modules cannot be deleted by agents."})
+    if via == "TIER" and entry.get("permissions", {}).get("write") is False:
+        return _json_response({"status": "DENIED_READ_ONLY", "key": key,
+                               "reason": "This file is read-only in the Raugus Map."})
+    if via == "GRANT":
+        g_ok, g_status, g_reason = _is_writable_via_grant(key, real_path, None)
+        if not g_ok:
+            return _json_response({"status": g_status, "key": key, "reason": g_reason})
+    if not os.path.isfile(real_path):
+        return _json_response({"status": "DENIED", "key": key, "reason": "File no longer exists."})
+    try:
+        import time as _t
+        bdir = os.path.join(DEVCORE_ROOT, "core", "backups", "deleted")
+        os.makedirs(bdir, exist_ok=True)
+        shutil.copy2(real_path, os.path.join(bdir, f"{int(_t.time())}_{os.path.basename(real_path)}"))
+        os.remove(real_path)
+    except Exception as e:
+        return _json_response({"status": "ERROR", "key": key, "reason": str(e)})
+    try:
+        from security.raugus_sync import sync_path
+        sync_path(real_path, remove=True)
+    except Exception:
+        pass
+    resolver._load_phonebook()
+    logging.info(f"[{ident.get('agent_id')}] delete_by_key '{key}' via {via}")
+    return _json_response({"status": "GRANTED", "key": key, "access_via": via,
+                           "delivery_mode": "FILE_DELETED_WITH_BACKUP"})
+
+
+@mcp.tool()
+def refresh_key_map() -> str:
+    """
+    Re-indexes DevCore AST symbol keys and 64-bit hardware inodes in the Raugus Map
+    and reloads the in-memory phonebook. Keys of other registered roots are kept.
+    Returns only key counts without revealing file paths. Tier 5 only.
+    """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity()
+    if int(ident.get("tier", 0)) < 5:
         return _json_response({
             "status": "DENIED",
             "reason": "Access Denied: Tier 5 clearance required to refresh the Raugus Map.",
@@ -842,6 +1090,11 @@ def refresh_key_map(user_tier: int = 5) -> str:
             with open(map_path, "r", encoding="utf-8") as pf:
                 prev_map = json.load(pf)
         new_map = generate_raugusmap.generate_raugusmap(DEVCORE_ROOT, existing_map=prev_map)
+        try:
+            from security.raugus_access import preserve_external_keys
+            new_map = preserve_external_keys(new_map, prev_map)
+        except Exception:
+            pass
         with open(map_path, "w", encoding="utf-8") as wf:
             json.dump(new_map, wf, indent=4)
         resolver = _get_resolver()
@@ -867,7 +1120,6 @@ def workspace_pipeline(
     commit_msg: str = "",
     no_push: bool = False,
     commit_devcore: bool = False,
-    user_tier: int = 5,
 ) -> str:
     """
     Executes the unified cross-repository workspace pipeline (Central_Docs, e_profile, DevCore)
@@ -878,7 +1130,10 @@ def workspace_pipeline(
     - 'audit': Runs documentation quality, category structure, and security audits across repositories.
     - 'commit': Executes full validation, syncs Central_Docs to e_profile, and commits/pushes atomically.
     """
-    if int(user_tier) < 3:
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(action=action)
+    if int(ident.get("tier", 0)) < 3:
         return _json_response({
             "status": "DENIED",
             "reason": "Access Denied: Tier 3 clearance required to invoke the workspace pipeline.",

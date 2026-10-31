@@ -77,7 +77,38 @@ PROTECTED_SECURITY_FILES = {
     os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "tool_security_auditor.py")),
     os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "server.py")),
     os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "mcp_config.json")),
+    # Identity & access-control authority
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "agent_identity.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", ".agent_identity.key")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "raugus_access.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "raugus_access.json")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "security_manager.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "core", "roles.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "core", "routes", "auth.py")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "core", "routes", "access.py")),
 }
+
+# Shell fragments an agent may never run: they would mint identities, change
+# access grants/roots, or read the server-held signing secrets.
+ACCESS_AUTHORITY_MARKERS = (
+    "/api/access/",
+    "mint_agent_credential",
+    "verify_agent_credential",
+    "derive_key",
+    "_base_secret",
+    ".agent_identity.key",
+    "raugus_access.json",
+    "DEVCORE_AGENT_CREDENTIAL=",
+    "add_grant",
+    "revoke_grant",
+    "add_root",
+    "remove_root",
+    "reindex_root",
+    "create_owner_session",
+    "SUPER_ADMIN_AUTO",
+    "/api/auth/restore-root",
+    "/api/auth/keys",
+)
 
 FILE_AND_SEARCH_TOOLS = {
     "view_file",
@@ -189,6 +220,12 @@ def check_self_protection(tool_name, args):
                     )
     elif tool_name in COMMAND_TOOLS:
         cmd_line = args.get("CommandLine") or args.get("Input") or ""
+        if any(m in cmd_line for m in ACCESS_AUTHORITY_MARKERS):
+            return (
+                "Raugus Access-Authority Firewall: Agents cannot mint identities, log in as the owner, "
+                "manage access keys, or add/remove resolver roots and access grants. Only a human admin "
+                "can do that from the Siraugga UI (Resolver Access panel)."
+            )
         if (
             "/api/security/jit-elevate" in cmd_line
             or "/api/security/jit-revoke" in cmd_line
@@ -215,6 +252,12 @@ def check_self_protection(tool_name, args):
             "generate_raugusmap.py",
             "tool_security_auditor.py",
             ".gemini/settings.json",
+            "agent_identity.py",
+            "raugus_access.py",
+            "security_manager.py",
+            "routes/auth.py",
+            "routes/access.py",
+            "core/roles.py",
         )
         destructive_patterns = (
             r"\bsed\b", r"\bawk\b", r"\bmv\b", r"\brm\b", r"\bcp\b",

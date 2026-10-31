@@ -419,7 +419,7 @@ async def auth_check():
 
     auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
     bearer_user = current_app.security_mgr.get_user_from_token(auth_header) if auth_header else None
-    is_master = current_app.security_mgr.check_master_signature()
+    is_master = is_host_owner_request()
     is_admin = bool(
         (bearer_user and bearer_user.get("role") in ("admin", "super_admin", "super admin"))
         or is_master
@@ -567,6 +567,9 @@ async def list_keys():
 
 @auth_bp.route('/api/auth/scrub', methods=['POST'])
 async def scrub_auth():
+    _u = get_current_user()
+    if not (_u and current_app.security_mgr.is_admin_user(_u)):
+        return jsonify({"error": "Admin access required"}), 403
     scope = request.args.get("scope") or "root"
     scope = "demo" if str(scope).lower() == "demo" else "root"
 
@@ -632,7 +635,7 @@ async def delete_key(key_id):
 async def auth_system_status():
     scope = request.args.get("scope") or request.args.get("mode") or ("demo" if request.args.get("demo") == "1" else "root")
     scope = "demo" if str(scope).lower() == "demo" else "root"
-    is_super = current_app.security_mgr.check_master_signature()
+    is_super = is_host_owner_request()
     root_status = _get_cli_credential_details("root")
     demo_status = _get_cli_credential_details("demo")
     active_status = demo_status if scope == "demo" else root_status
@@ -661,7 +664,7 @@ async def api_cli_status():
 @auth_bp.route('/api/auth/sync-demo-from-root', methods=['POST'])
 async def api_sync_demo_from_root():
     user = get_current_user()
-    is_master = current_app.security_mgr.check_master_signature()
+    is_master = is_host_owner_request()
     if not is_master and (not user or user.get("role") not in ["super_admin", "admin"]):
         return jsonify({"error": "Admin access required"}), 403
 
@@ -677,25 +680,23 @@ async def auth_demo():
     if request.method == "POST":
         data = await request.get_json(silent=True) or {}
         if data.get("action") == "sync_from_root" or data.get("sync_from_root"):
+            _u = get_current_user()
+            if not (_u and current_app.security_mgr.is_admin_user(_u)):
+                return jsonify({"success": False, "error": "Admin access required"}), 403
             ok = _copy_root_credentials_to_demo()
             if ok:
                 invalidate_auth_check_cache()
                 return jsonify({"success": True, "message": "Root credentials copied to demo chamber successfully."})
             return jsonify({"success": False, "error": "Root CLI is not authorized. Please authorize root first."}), 400
 
-    res = current_app.security_mgr.authenticate("admin:admin")
-    if not res:
-        res = {
-            "token": "sec-demo-" + os.urandom(8).hex(),
-            "user": {
-                "username": "Demo Visitor",
-                "role": "gamedev",
-                "name": "Demo Visitor",
-                "allowed_projects": ["demo", "playground"]
-            }
-        }
-    if "user" in res:
-        res["user"]["token_scope"] = "demo"
+    # Demo is a real, low-privilege session (it used to log in as admin:admin).
+    res = current_app.security_mgr.create_session({
+        "username": "Demo Visitor",
+        "role": "gamedev",
+        "name": "Demo Visitor",
+        "allowed_projects": ["demo", "playground"],
+        "key_id": "demo-" + os.urandom(6).hex(),
+    }, kind="demo")
 
     demo_details = _get_cli_credential_details("demo")
     return jsonify({
@@ -716,20 +717,11 @@ async def auth_login():
         return await auth_demo()
 
     access_key = data.get('access_key')
-    if access_key in ("SUPER_ADMIN_AUTO", "sec-root-owner-permanent") or (access_key and str(access_key).startswith("sec-root")):
-        res = current_app.security_mgr.authenticate(access_key)
-        if not res:
-            res = {
-                "token": "sec-root-owner-permanent",
-                "user": {
-                    "username": "Michael (Admin)",
-                    "role": "super_admin",
-                    "name": "Michael (Admin)",
-                    "allowed_projects": ["*"],
-                    "token_scope": "root"
-                }
-            }
-        return jsonify(res)
+    if access_key == "SUPER_ADMIN_AUTO":
+        # Host-owner auto-login: master key on the server AND a loopback client.
+        if not is_host_owner_request():
+            return jsonify({"error": "Owner auto-login is only available on the host machine."}), 403
+        return jsonify(current_app.security_mgr.create_owner_session())
 
     if access_key:
         res = current_app.security_mgr.authenticate(access_key)
@@ -764,15 +756,21 @@ def get_current_user():
     token = auth_hdr.replace('Bearer ', '').strip()
     if not token:
         token = request.args.get('token', '').strip()
-    user = current_app.security_mgr.get_user_from_token(token) if token else None
-    if not user and hasattr(current_app, "security_mgr") and current_app.security_mgr.check_master_signature():
-        user = {
-            "username": "Michael (Admin)",
-            "role": "super_admin",
-            "name": "Michael (Admin)",
-            "allowed_projects": ["*"]
-        }
-    return user
+    # Host-owner fallback applies only to a direct loopback request on the
+    # master-key machine; a LAN/remote client with no valid token gets None.
+    return current_app.security_mgr.get_user_from_token(
+        token or None, remote_addr=request.remote_addr, headers=request.headers
+    )
+
+
+def is_host_owner_request() -> bool:
+    return current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
+
+
+def get_bearer_session_user():
+    """The user behind an explicit bearer token only (no host-owner fallback)."""
+    token = request.headers.get('Authorization', '').replace('Bearer ', '').strip()
+    return current_app.security_mgr.get_user_from_token(token) if token else None
 
 
 @auth_bp.route('/api/user/subscription/set', methods=['POST'])
@@ -855,17 +853,10 @@ async def delete_user_subscription_route():
 
 @auth_bp.route('/api/auth/restore-root', methods=['POST', 'GET'])
 async def restore_root():
-    res = {
-        "success": True,
-        "token": "sec-root-owner-permanent",
-        "user": {
-            "username": "Michael (Admin)",
-            "role": "super_admin",
-            "name": "Michael (Admin)",
-            "allowed_projects": ["*"],
-            "token_scope": "root"
-        }
-    }
+    if not is_host_owner_request():
+        return jsonify({"success": False, "error": "Owner restore is only available on the host machine."}), 403
+    res = current_app.security_mgr.create_owner_session()
+    res["success"] = True
     return jsonify(res)
 
 

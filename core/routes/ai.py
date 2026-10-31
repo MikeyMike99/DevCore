@@ -24,7 +24,7 @@ def _claude_bin():
 def _owner_ok():
     """Owner gate: the host master key must be present."""
     try:
-        return bool(current_app.security_mgr.check_master_signature())
+        return bool(current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers))
     except Exception:
         return False
 

@@ -502,6 +502,23 @@ class ExecutionMixin:
                 safe_env["HOME"] = str(Path.home())
             safe_env["PYTHONUNBUFFERED"] = "1"
             safe_env["PYTHONIOENCODING"] = "utf-8"
+            # Agent identity: the CLI agent (and the Raugus Resolver MCP it spawns,
+            # which inherits this env) acts with exactly this user's tier/grants.
+            safe_env.pop("DEVCORE_AGENT_CREDENTIAL", None)
+            _cred_user = user
+            if not _cred_user and admin_override:
+                try:
+                    from security.security_manager import SecurityManager
+                    _cred_user = dict(SecurityManager.OWNER_USER)
+                except Exception:
+                    _cred_user = None
+            if _cred_user:
+                try:
+                    from security.agent_identity import mint_agent_credential
+                    safe_env["DEVCORE_AGENT_CREDENTIAL"] = mint_agent_credential(
+                        _cred_user, conversation_id=conversation_id, agent_kind="agy", ttl_seconds=3900)
+                except Exception:
+                    pass
 
             is_pa = False
             try:
@@ -1640,8 +1657,8 @@ class ExecutionMixin:
                 prompt.strip(),
                 model=model or getattr(self, "current_model", "Gemini 3.8 Flash (Low)"),
                 conversation_id=conversation_id or getattr(self, "current_conversation_id", None),
-                user=user if user is not None else getattr(self, "last_user", None),
-                admin_override=admin_override or getattr(self, "last_admin_override", False),
+                user=user,
+                admin_override=admin_override,
                 _from_steer_or_queue=True,
                 queued_user_prompt=prompt.strip(),
             )
@@ -1652,8 +1669,8 @@ class ExecutionMixin:
             "prompt": prompt.strip(),
             "model": model or getattr(self, "current_model", "Gemini 3.8 Flash (Low)"),
             "conversation_id": conversation_id or getattr(self, "current_conversation_id", None),
-            "user": user if user is not None else getattr(self, "last_user", None),
-            "admin_override": admin_override or getattr(self, "last_admin_override", False),
+            "user": user,
+            "admin_override": admin_override,
             "timestamp": time.time(),
         }
         self.queued_prompts.append(item)
@@ -1691,10 +1708,21 @@ class ExecutionMixin:
         )
 
     async def _drain_queued_prompts(self):
+        """Run only the leading run of queued items that share one owner; the rest stay queued so prompts from different users are never merged under a single identity."""
         if not getattr(self, "queued_prompts", None) or self.is_running():
             return
-        items = list(self.queued_prompts)
-        self.queued_prompts = []
+        pending = list(self.queued_prompts)
+
+        def _owner(item):
+            item_user = item.get("user")
+            return item_user.get("username") if isinstance(item_user, dict) else None
+
+        first_owner = _owner(pending[0])
+        split = 1
+        while split < len(pending) and _owner(pending[split]) == first_owner:
+            split += 1
+        items = pending[:split]
+        self.queued_prompts = pending[split:]
         await self._broadcast_queue_state()
 
         prompts = [it["prompt"] for it in items if it.get("prompt")]
@@ -1707,8 +1735,8 @@ class ExecutionMixin:
             combined,
             model=last_item.get("model") or getattr(self, "current_model", "Gemini 3.8 Flash (Low)"),
             conversation_id=conv_id,
-            user=last_item.get("user") if last_item.get("user") is not None else getattr(self, "last_user", None),
-            admin_override=last_item.get("admin_override", False) or getattr(self, "last_admin_override", False),
+            user=last_item.get("user"),
+            admin_override=last_item.get("admin_override", False),
             _from_steer_or_queue=True,
             display_prompt=f"📥 Queued Follow-Up: {prompts[0][:80]}",
             queued_user_prompt=combined,
@@ -1723,13 +1751,31 @@ class ExecutionMixin:
         admin_override: bool = False,
         _from_promote: bool = False,
     ):
+        """Only the owner of the running task may steer it; anyone else is queued. Only the requester's own queued items are folded into the steer."""
         if not hasattr(self, "_steer_lock") or self._steer_lock is None:
             self._steer_lock = asyncio.Lock()
 
+        requester = user.get("username") if isinstance(user, dict) else None
+
+        def _owner(item):
+            item_user = item.get("user")
+            return item_user.get("username") if isinstance(item_user, dict) else None
+
         async with self._steer_lock:
-            queued_items_objs = list(getattr(self, "queued_prompts", []) or [])
+            if self.is_running() and requester != getattr(self, "active_task_owner", None):
+                await self.queue_prompt(
+                    new_prompt,
+                    model=model,
+                    conversation_id=conversation_id,
+                    user=user,
+                    admin_override=admin_override,
+                )
+                return
+
+            pending = list(getattr(self, "queued_prompts", []) or [])
+            queued_items_objs = [q for q in pending if _owner(q) == requester]
             queued_texts = [q.get("prompt", "").strip() for q in queued_items_objs if q.get("prompt", "").strip()]
-            self.queued_prompts = []
+            self.queued_prompts = [q for q in pending if _owner(q) != requester]
             if queued_items_objs:
                 await self._broadcast_queue_state()
 
@@ -1740,8 +1786,8 @@ class ExecutionMixin:
 
             combined_updates_text = "\n".join(f"- {u}" for u in all_updates) if len(all_updates) > 1 else all_updates[0]
             effective_model = model or getattr(self, "current_model", "Gemini 3.8 Flash (Low)")
-            effective_user = user if user is not None else getattr(self, "last_user", None)
-            effective_override = admin_override or getattr(self, "last_admin_override", False)
+            effective_user = user
+            effective_override = admin_override
             active_conv_id = getattr(self, "current_conversation_id", None) or conversation_id
 
             if not self.is_running():

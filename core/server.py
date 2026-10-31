@@ -28,12 +28,14 @@ from core.routes.projects import projects_bp
 from core.routes.files import files_bp
 from core.routes.system import system_bp
 from core.routes.ai import ai_bp as ai_routes_bp
+from core.routes.access import access_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(projects_bp)
 app.register_blueprint(files_bp)
 app.register_blueprint(system_bp)
 app.register_blueprint(ai_routes_bp)
+app.register_blueprint(access_bp)
 
 from security import security_headers
 security_headers.init_security_headers(app)
@@ -576,27 +578,20 @@ async def ws_endpoint():
                         "steer" if msg_type == "steer" else ("queue" if msg_type == "queue_prompt" else "normal")
                     )
                     
+                    _ws_addr = getattr(websocket, "remote_addr", None)
+                    _ws_hdrs = getattr(websocket, "headers", None)
                     if token:
-                        user = security_mgr.get_user_from_token(token)
+                        user = security_mgr.get_user_from_token(token, remote_addr=_ws_addr, headers=_ws_hdrs)
                         if not user:
-                            if security_mgr.check_master_signature():
-                                user = {
-                                    "username": "Michael (Admin)",
-                                    "role": "super_admin",
-                                    "name": "Michael (Admin)",
-                                    "allowed_projects": ["*"],
-                                    "token_scope": "root"
-                                }
-                            else:
-                                await websocket.send(json.dumps({
-                                    "type": "system",
-                                    "level": "error",
-                                    "message": "Your session has expired. Please refresh the page and log in again."
-                                }))
-                                continue
+                            await websocket.send(json.dumps({
+                                "type": "system",
+                                "level": "error",
+                                "message": "Your session has expired. Please refresh the page and log in again."
+                            }))
+                            continue
                         await agent_mgr.authenticate_client(client_queue, user.get("username"))
                     else:
-                        user = security_mgr.get_user_from_token(None)
+                        user = security_mgr.get_user_from_token(None, remote_addr=_ws_addr, headers=_ws_hdrs)
                     
                     is_role_admin = bool(user and is_admin_role(user.get("role")))
                     admin_override = is_role_admin or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
