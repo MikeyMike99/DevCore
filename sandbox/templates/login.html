@@ -322,9 +322,6 @@
             }
         }
 
-        document.getElementById('dashboardBtn').href = returnUrl;
-        document.getElementById('continueBtn').href = returnUrl;
-
         function toggleAltOptions() {
             const tray = document.getElementById('altOptionsTray');
             const btn = document.getElementById('toggleAltBtn');
@@ -655,7 +652,7 @@
         }
 
         // --- Claude Agent Brain auth (no key / subscription, or API key) ---
-        const claudeBase = basePath || '';
+        function claudeBase() { return window.location.pathname.replace(/\/login\/?$/, ''); }
         function setClaudeBadge(connected, text) {
             const b = document.getElementById('claudeStatusBadge');
             if (!b) return;
@@ -666,7 +663,7 @@
         }
         async function refreshClaudeStatus() {
             try {
-                const r = await fetch(claudeBase + '/api/ai/status');
+                const r = await fetch(claudeBase() + '/api/ai/status');
                 const j = await r.json();
                 setClaudeBadge(j.connected, j.connected ? 'Connected' : 'Not connected');
             } catch (e) { setClaudeBadge(false, 'Unknown'); }
@@ -675,7 +672,7 @@
             const btn = document.getElementById('claudeSignInBtn');
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting…';
             try {
-                const r = await fetch(claudeBase + '/api/ai/login/start', { method: 'POST' });
+                const r = await fetch(claudeBase() + '/api/ai/login/start', { method: 'POST' });
                 const j = await r.json();
                 if (!j.ok) { showError(j.error || 'Could not start Claude sign-in.'); return; }
                 document.getElementById('claudeOauthLink').href = j.url;
@@ -690,7 +687,7 @@
             const btn = document.getElementById('claudeFinishBtn');
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Finishing…';
             try {
-                const r = await fetch(claudeBase + '/api/ai/login/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
+                const r = await fetch(claudeBase() + '/api/ai/login/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) });
                 const j = await r.json();
                 if (j.ok) { document.getElementById('claudeLoginFlow').classList.add('hidden'); document.getElementById('claudeCodeInput').value=''; clearAlerts(); setClaudeBadge(true, 'Connected'); }
                 else showError(j.error || j.message || 'Claude sign-in did not complete.');
@@ -704,7 +701,7 @@
             const btn = document.getElementById('claudeKeyBtn');
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
             try {
-                const r = await fetch(claudeBase + '/api/ai/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key: key }) });
+                const r = await fetch(claudeBase() + '/api/ai/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ api_key: key }) });
                 const j = await r.json();
                 if (j.ok) { document.getElementById('claudeKeyInput').value=''; clearAlerts(); setClaudeBadge(true, 'Connected'); }
                 else showError(j.error || j.message || 'Failed to save Claude key.');
