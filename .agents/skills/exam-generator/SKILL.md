@@ -114,7 +114,10 @@ Any question object can include a `media` field to render images, audio, or vide
 
 
 ## Handling Specific "Help Exam Generator" Requests
-When the user specifically asks for help with the Exam Generator (e.g., by clicking the "help exam generator" button or typing that exact phrase), you must provide a comprehensive, screen-reader-friendly user guide. 
+When the user specifically asks for help with the Exam Generator (e.g., by clicking the "help exam generator" button or typing that exact phrase), you must provide a comprehensive, screen-reader-friendly user guide.
+
+**Canonical guide:** A verified, up-to-date version lives at `plugins/exam_application/HELP_GUIDE.md` (checked against the live exam page). Read and present that file rather than rewriting the guide from scratch, and still embed the Exam Builder iframe at the end (step 6). If the app's features change, update `HELP_GUIDE.md` to match and keep it the single source of truth; the requirements below are what that file must satisfy.
+
 
 *Do NOT dump these specific details into the main, high-level "Help Menu" if the user only typed "help" or pressed `Alt+H`. Keep the global Help Menu strictly to high-level overviews and buttons.*
 
