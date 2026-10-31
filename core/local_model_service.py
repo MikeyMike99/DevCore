@@ -459,6 +459,31 @@ def _run_claude_api(
     return f"[LOCAL_BRAIN_UNAVAILABLE] Claude returned an empty response for '{model_id}'."
 
 
+def _raugus_mcp_config_path():
+    """Write (and return) an MCP config that launches the Raugus Resolver server
+    with THIS interpreter — the one running Siraugga, which has the `mcp` package
+    (the server's own mcp_config.json uses bare `python3`, which may lack it).
+    Returns None if the server file or `mcp` is unavailable, so the CLI is never
+    handed a broken MCP server (which would hang it until timeout)."""
+    server = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "server.py")
+    if not os.path.isfile(server):
+        return None
+    try:
+        import mcp  # noqa: F401 — if this interpreter lacks mcp, the spawned server would too
+    except Exception:
+        return None
+    cfg = {"mcpServers": {"raugus-resolver": {"command": sys.executable, "args": [server]}}}
+    try:
+        rt_dir = os.path.join(DEVCORE_ROOT, ".runtime")
+        os.makedirs(rt_dir, exist_ok=True)
+        path = os.path.join(rt_dir, "raugus_mcp_config.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(cfg, f)
+        return path
+    except Exception:
+        return None
+
+
 def run_claude_cli_model(
     system_prompt: str,
     user_prompt: str,
@@ -495,11 +520,13 @@ def run_claude_cli_model(
     # execution. Writes still flow through Siraugga's own saver. --permission-prompts
     # none means anything outside this set is denied silently, never surfaced to the
     # web user.
-    _raugus_mcp = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "raugus_resolver", "mcp_config.json")
+    _raugus_mcp = _raugus_mcp_config_path()
     cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
-    if os.path.isfile(_raugus_mcp):
+    if _raugus_mcp:
         # Governed code read/write channel: the Raugus Resolver MCP enforces RBAC,
         # symbol/AST locks, self-protection, and hot-patch staging on write_by_key.
+        # Launched with this interpreter (which has `mcp`); skipped entirely if the
+        # server can't run, so a broken MCP never hangs the CLI until timeout.
         cmd += ["--mcp-config", _raugus_mcp]
     cmd += [
         "--allowedTools", "Read", "Grep", "Glob",
