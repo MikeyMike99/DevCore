@@ -4651,5 +4651,42 @@
             }
         }
     </script>
+<!-- Claude Brain connect widget (self-contained; shows only when not connected) -->
+<div id="cc-btn" onclick="ccOpen()" style="display:none;position:fixed;right:18px;bottom:18px;z-index:9998;background:linear-gradient(90deg,#4f46e5,#0d9488);color:#fff;font:600 13px system-ui,sans-serif;padding:.6rem 1rem;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.4);cursor:pointer">⚡ Connect Claude</div>
+<div id="cc-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.6);align-items:center;justify-content:center">
+  <div style="background:#0f1115;border:1px solid #243041;border-radius:14px;max-width:460px;width:92%;padding:1.4rem 1.5rem;color:#e0e0e0;font-family:system-ui,sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem">
+      <b style="font-size:1.05rem">Connect Claude</b>
+      <span id="cc-badge" style="font-size:.7rem;padding:.1rem .5rem;border-radius:999px;background:#243041;color:#9aa4b2">checking…</span>
+    </div>
+    <div style="font-size:.85rem;color:#8b94a3;margin-bottom:1rem">Recommended — no API key: sign in with your Claude subscription.</div>
+    <button onclick="ccStart()" id="cc-signin" style="width:100%;background:linear-gradient(90deg,#4f46e5,#0d9488);color:#fff;border:0;border-radius:8px;padding:.6rem;font-weight:600;cursor:pointer">Sign in with Claude</button>
+    <div id="cc-flow" style="display:none;margin-top:.8rem">
+      <a id="cc-link" href="#" target="_blank" rel="noopener" style="display:block;color:#5eead0;margin-bottom:.5rem">① Open the Claude sign-in page →</a>
+      <div style="font-size:.82rem;color:#8b94a3;margin-bottom:.35rem">② Approve, then paste the code:</div>
+      <input id="cc-code" type="text" placeholder="paste code here" style="width:100%;box-sizing:border-box;padding:.55rem;border-radius:8px;border:1px solid #2a3340;background:#0b0e13;color:#e0e0e0">
+      <button onclick="ccFinish()" style="width:100%;margin-top:.5rem;background:#0d9488;color:#fff;border:0;border-radius:8px;padding:.55rem;font-weight:600;cursor:pointer">③ Finish sign-in</button>
+    </div>
+    <div style="margin:1rem 0 .4rem;font-size:.8rem;color:#6f7889">— or —</div>
+    <input id="cc-key" type="password" placeholder="sk-ant-... (API key)" style="width:100%;box-sizing:border-box;padding:.55rem;border-radius:8px;border:1px solid #2a3340;background:#0b0e13;color:#e0e0e0">
+    <button onclick="ccSaveKey()" style="width:100%;margin-top:.5rem;background:#1a222c;color:#cfd6e0;border:1px solid #2a3340;border-radius:8px;padding:.55rem;cursor:pointer">Save &amp; Test Key</button>
+    <div id="cc-msg" style="font-size:.82rem;margin-top:.7rem;min-height:1em"></div>
+    <button onclick="ccClose()" style="width:100%;margin-top:.8rem;background:transparent;color:#8b94a3;border:0;cursor:pointer">Close</button>
+  </div>
+</div>
+<script>
+ (function(){
+   const B = location.pathname.replace(/\/(index\.html)?$/,'');
+   window.ccBase = B;
+   function msg(t,ok){const m=document.getElementById('cc-msg');if(m){m.textContent=t;m.style.color=ok?'#4ade80':'#f87171';}}
+   window.ccOpen=()=>{document.getElementById('cc-modal').style.display='flex';ccRefresh();};
+   window.ccClose=()=>{document.getElementById('cc-modal').style.display='none';};
+   window.ccRefresh=async()=>{try{const r=await fetch(B+'/api/ai/status');const j=await r.json();const b=document.getElementById('cc-badge');b.textContent=j.connected?'connected':'not connected';b.style.color=j.connected?'#4ade80':'#9aa4b2';document.getElementById('cc-btn').style.display=j.connected?'none':'block';}catch(e){}};
+   window.ccStart=async()=>{msg('Starting sign-in…',true);try{const r=await fetch(B+'/api/ai/login/start',{method:'POST'});const j=await r.json();if(!j.ok){msg(j.error||'could not start',false);return;}document.getElementById('cc-link').href=j.url;document.getElementById('cc-flow').style.display='block';try{window.open(j.url,'_blank');}catch(e){}msg('Open the page, approve, paste the code below.',true);}catch(e){msg('request failed',false);}};
+   window.ccFinish=async()=>{const code=document.getElementById('cc-code').value.trim();if(!code){msg('paste the code first',false);return;}msg('Finishing…',true);try{const r=await fetch(B+'/api/ai/login/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const j=await r.json();msg(j.ok?'✓ '+j.message:'✗ '+(j.error||j.message),j.ok);if(j.ok){document.getElementById('cc-flow').style.display='none';ccRefresh();setTimeout(ccClose,1200);}}catch(e){msg('request failed',false);}};
+   window.ccSaveKey=async()=>{const key=document.getElementById('cc-key').value.trim();if(!key){msg('enter a key first',false);return;}msg('Saving…',true);try{const r=await fetch(B+'/api/ai/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key})});const j=await r.json();msg(j.ok?'✓ '+j.message:'✗ '+(j.error||j.message),j.ok);if(j.ok){document.getElementById('cc-key').value='';ccRefresh();setTimeout(ccClose,1200);}}catch(e){msg('request failed',false);}};
+   document.addEventListener('DOMContentLoaded',ccRefresh);
+ })();
+</script>
 </body>
 </html>
