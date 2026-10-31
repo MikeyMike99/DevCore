@@ -397,7 +397,17 @@ def run_claude_cli_model(
     # asks for, and Siraugga executes those through its own tier-aware tools
     # (local_write_file / local_read_file), which already grant super-admins full
     # host access and keep other tiers sandboxed. Governance stays in Siraugga.
-    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
+    # Allow the safe, read-only tools so the brain can inspect files and skills
+    # without an un-answerable approval prompt. Writes and commands are NOT allowed
+    # here; the brain emits write_file / tool-call markup that Siraugga executes
+    # through its own tier-aware tools (local_write_file etc.). --permission-prompts
+    # none means anything outside the read-only set is denied silently, never
+    # surfaced to the web user.
+    cmd = [
+        claude_bin, "-p", "--model", model_id,
+        "--permission-prompts", "none",
+        "--allowedTools", "Read", "Grep", "Glob",
+    ]
 
     try:
         proc = subprocess.run(
