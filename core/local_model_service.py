@@ -1051,6 +1051,138 @@ def _is_root_user(user, sec_mgr=None) -> bool:
     return False
 
 
+def _load_gemini_rules(workspace_dir: str, max_bytes: int = 32768) -> str:
+    """Collect the GEMINI.md rule files the antigravity CLI would honor, so the
+    Claude/local brain obeys the same project rules. Order: global
+    (~/.gemini/GEMINI.md) first, then from DEVCORE_ROOT down to the workspace dir
+    (more specific last). Capped at max_bytes. Returns a system-prompt fragment."""
+    paths = []
+    g = os.path.expanduser("~/.gemini/GEMINI.md")
+    if os.path.isfile(g):
+        paths.append(g)
+    try:
+        base = os.path.realpath(DEVCORE_ROOT)
+        ws = os.path.realpath(workspace_dir or base)
+        chain = []
+        cur = ws
+        for _ in range(16):
+            chain.append(cur)
+            if cur == base:
+                break
+            parent = os.path.dirname(cur)
+            if parent == cur or len(parent) < len(base):
+                break
+            cur = parent
+        for d in reversed(chain):  # broad -> specific
+            f = os.path.join(d, "GEMINI.md")
+            if os.path.isfile(f) and f not in paths:
+                paths.append(f)
+    except Exception:
+        pass
+
+    chunks, total = [], 0
+    for p in paths:
+        try:
+            txt = open(p, "r", encoding="utf-8", errors="replace").read().strip()
+        except Exception:
+            continue
+        if not txt:
+            continue
+        piece = f"\n\n## Rules from {p}\n{txt}"
+        if total + len(piece) > max_bytes:
+            piece = piece[: max(0, max_bytes - total)]
+        chunks.append(piece)
+        total += len(piece)
+        if total >= max_bytes:
+            break
+    if not chunks:
+        return ""
+    return (
+        "\n\n[PROJECT RULES] You MUST obey the rules in the project's GEMINI.md file(s) "
+        "below, exactly as the antigravity CLI does. They govern how you work in this "
+        "workspace:" + "".join(chunks)
+    )
+
+
+def _skill_description(path: str):
+    """Return (name, short description) for a SKILL.md, reading its YAML frontmatter
+    `description:` (inline or folded) or the first body line as a fallback."""
+    name = os.path.basename(os.path.dirname(path))
+    try:
+        lines = open(path, "r", encoding="utf-8", errors="replace").read().splitlines()
+    except Exception:
+        return name, ""
+    desc = ""
+    if lines and lines[0].strip() == "---":
+        fm = []
+        for ln in lines[1:]:
+            if ln.strip() == "---":
+                break
+            fm.append(ln)
+        for i, ln in enumerate(fm):
+            if ln.lstrip().lower().startswith("description:"):
+                val = ln.split(":", 1)[1].strip()
+                if val in (">", ">-", "|", "|-", ""):
+                    parts = []
+                    j = i + 1
+                    while j < len(fm) and (fm[j].startswith(" ") or fm[j].startswith("\t")):
+                        parts.append(fm[j].strip())
+                        j += 1
+                    desc = " ".join(parts)
+                else:
+                    desc = val
+                break
+    if not desc:
+        for ln in lines:
+            s = ln.strip()
+            if s and not s.startswith("#") and s != "---":
+                desc = s
+                break
+    return name, desc[:300]
+
+
+def _load_skill_defs(workspace_dir: str, max_bytes: int = 16384) -> str:
+    """Build a catalog of .agents/skills/*/SKILL.md (name + description + path) so
+    the Claude/local brain knows every available skill, as the antigravity CLI does.
+    The agent opens a skill's SKILL.md on demand to follow its full instructions."""
+    import glob
+    roots = []
+    try:
+        roots.append(os.path.realpath(DEVCORE_ROOT))
+    except Exception:
+        pass
+    if workspace_dir:
+        try:
+            w = os.path.realpath(workspace_dir)
+            if w not in roots:
+                roots.append(w)
+        except Exception:
+            pass
+    files = []
+    for r in roots:
+        for f in sorted(glob.glob(os.path.join(r, ".agents", "skills", "*", "SKILL.md"))):
+            if f not in files:
+                files.append(f)
+    if not files:
+        return ""
+
+    chunks, total = [], 0
+    for p in files:
+        name, desc = _skill_description(p)
+        piece = f"\n- {name}: {desc}\n  (full instructions: {p})"
+        if total + len(piece) > max_bytes:
+            break
+        chunks.append(piece)
+        total += len(piece)
+    if not chunks:
+        return ""
+    return (
+        "\n\n[AVAILABLE SKILLS] These skills are defined for this workspace. When a task "
+        "matches a skill, open its SKILL.md (path shown) and follow its instructions:"
+        + "".join(chunks)
+    )
+
+
 def local_read_file(workspace_dir: str, rel_path: str, user: dict = None, sec_mgr = None) -> tuple:
     """Reads a workspace file safely, returning (success: bool, content: str).
     Super-admins (root) may read any absolute path; others are sandboxed."""
@@ -2359,6 +2491,18 @@ async def execute_local_agent_task(
     else:
         system_prompt = LOCAL_AGENT_SYSTEM_PROMPT
         query_payload = f"{clean_prompt}{write_hint}"
+
+    # Load the same project rules (GEMINI.md) and skills (.agents/skills/*/SKILL.md)
+    # the antigravity CLI honors, so the Claude/local brain obeys them too.
+    try:
+        _rules = _load_gemini_rules(workspace_dir)
+        if _rules:
+            system_prompt = system_prompt + _rules
+        _skills = _load_skill_defs(workspace_dir)
+        if _skills:
+            system_prompt = system_prompt + _skills
+    except Exception:
+        pass
 
     # Tell the brain it has full host access when the operator is a super-admin.
     if is_admin:
