@@ -730,14 +730,25 @@ def ai_selftest():
 def ai_status():
     """Reports how the Claude brain is connected. No secrets returned."""
     import shutil
+    import subprocess as _sp
+    import json as _json
     from core.local_model_service import get_anthropic_credential
     if get_anthropic_credential():
         return jsonify({"connected": True, "backend": "api",
                         "message": "Connected via API key."})
     claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
     if claude_bin and os.path.exists(claude_bin):
+        logged_in = False
+        try:
+            r = _sp.run([claude_bin, "auth", "status"], capture_output=True, text=True, timeout=8)
+            logged_in = bool((_json.loads(r.stdout or "{}") or {}).get("loggedIn"))
+        except Exception:
+            logged_in = False
+        if logged_in:
+            return jsonify({"connected": True, "backend": "subscription",
+                            "message": "Connected via your Claude subscription — no API key needed."})
         return jsonify({"connected": False, "backend": "subscription",
-                        "message": "Claude CLI is installed but not connected. Paste an API key below, or run `claude /login` in a terminal."})
+                        "message": "Not connected. Sign in once with your Claude subscription (no API key needed) — run `claude auth login` — or paste an API key below."})
     return jsonify({"connected": False, "backend": "none",
                     "message": "Claude is not set up yet. Paste an API key below to connect."})
 
@@ -785,19 +796,24 @@ _SETUP_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
  button.ghost{background:#1a222c;color:#cfd6e0}
  .hint{font-size:.82rem;color:#7f8897;margin-top:1.1rem;line-height:1.5}
  code{background:#0e1218;padding:.1rem .35rem;border-radius:4px;color:#8fe}
+ .rec{background:#10212a;border:1px solid #1e5a7a;border-radius:8px;padding:.75rem 1rem;margin:1rem 0;font-size:.9rem;line-height:1.55}
 </style></head><body>
 <div class="card">
  <h1>Connect Claude</h1>
  <div class="sub">Give the Siraugga agent a Claude brain. This sets it up for everyone who can use the agent.</div>
  <div id="status" class="status">Checking status…</div>
  {% if is_admin %}
- <label for="key">Anthropic API key</label>
+ <div class="rec">
+   <b>Recommended — no API key:</b> sign in once with your Claude subscription.
+   Run <code>claude auth login</code> (a one-time browser sign-in). After that the
+   agent uses your subscription automatically — nothing to paste, no restart.
+ </div>
+ <label for="key">…or paste an Anthropic API key</label>
  <input id="key" type="password" placeholder="sk-ant-..." autocomplete="off">
  <button onclick="save()">Save &amp; Test</button>
  <button class="ghost" onclick="test()">Test current</button>
  <div class="hint">
-   Get a key at <code>console.anthropic.com</code>. It is stored server-side (gitignored) and applied immediately — no restart.<br>
-   Prefer your own subscription instead of a key? Run <code>claude /login</code> once in a terminal.
+   The key is encrypted at rest (AES-GCM via your master key) and applied immediately — no restart.
  </div>
  {% else %}
  <div class="hint">Claude setup is managed by an administrator. If the agent says Claude is unavailable, ask an admin to connect it here.</div>
