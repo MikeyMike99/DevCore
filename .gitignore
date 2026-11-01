@@ -50,3 +50,6 @@ security/raugus_access.json.tmp.*
 security/.agent_identity.key
 security/.jit_elevation_lease.json
 keys.json
+
+# First-time setup scripts (contain the WSL sudo password; machine-local only)
+scripts/setup/
