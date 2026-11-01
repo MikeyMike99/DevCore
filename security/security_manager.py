@@ -1,6 +1,7 @@
 import json
 import mimetypes
 import os
+import socket
 import time
 import uuid
 
@@ -123,13 +124,76 @@ class SecurityManager:
 
     _LOOPBACK_PREFIXES = ("127.", "::1", "::ffff:127.")
     _FORWARD_HEADERS = ("X-Forwarded-For", "Forwarded", "X-Real-IP", "CF-Connecting-IP", "True-Client-IP")
+    _host_ip_cache = None  # (set_of_ips, expires_at)
+
+    @classmethod
+    def _host_local_ips(cls) -> set:
+        """This machine's own IP addresses. A request whose source address is one
+        of these is coming *from this host* even when it was aimed at the LAN IP
+        (e.g. http://172.29.x.x:5000) rather than loopback. Cached for 60s because
+        resolution touches the network stack. A different machine on the LAN has a
+        different source IP and is still rejected."""
+        now = time.time()
+        if cls._host_ip_cache and cls._host_ip_cache[1] > now:
+            return cls._host_ip_cache[0]
+        ips = set()
+        try:
+            hostname = socket.gethostname()
+            for fam in (socket.AF_INET, socket.AF_INET6):
+                try:
+                    for info in socket.getaddrinfo(hostname, None, fam):
+                        ip = info[4][0].split("%")[0]  # strip IPv6 zone id
+                        if ip:
+                            ips.add(ip)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        cls._host_ip_cache = (ips, now + 60.0)
+        return ips
+
+    @staticmethod
+    def _is_wsl() -> bool:
+        if os.environ.get("WSL_DISTRO_NAME") or os.environ.get("WSL_INTEROP"):
+            return True
+        try:
+            with open("/proc/version", "r", encoding="utf-8", errors="ignore") as f:
+                return "microsoft" in f.read().lower()
+        except Exception:
+            return False
+
+    @classmethod
+    def _wsl_host_gateway_ips(cls) -> set:
+        """When the server runs inside WSL, the Windows host (the owner's actual
+        machine) reaches it through the WSL NAT and always arrives as the default
+        gateway address. Trusting that gateway lets owner auto-login work from the
+        Windows browser without a hardcoded, reboot-fragile IP. Empty off WSL, so
+        a real LAN gateway/router is never implicitly trusted."""
+        if not cls._is_wsl():
+            return set()
+        gws = set()
+        try:
+            # /proc/net/route: default route has Destination 00000000; Gateway is
+            # a little-endian hex IPv4.
+            with open("/proc/net/route", "r", encoding="utf-8") as f:
+                next(f, None)  # header
+                for line in f:
+                    parts = line.split()
+                    if len(parts) > 2 and parts[1] == "00000000":
+                        g = int(parts[2], 16)
+                        gws.add("%d.%d.%d.%d" % (g & 0xff, (g >> 8) & 0xff, (g >> 16) & 0xff, (g >> 24) & 0xff))
+        except Exception:
+            pass
+        return gws
 
     @classmethod
     def is_trusted_local_request(cls, remote_addr, headers=None) -> bool:
-        """True only for a direct connection from this machine (loopback, no proxy
-        forwarding headers). The master key proves the *server* is the owner's
-        machine; this proves the *client* is too. Extra trusted addresses can be
-        listed in DEVCORE_TRUSTED_HOST_IPS (comma-separated)."""
+        """True only for a direct connection from this machine, with no proxy
+        forwarding headers. The master key proves the *server* is the owner's
+        machine; this proves the *client* is too. Both of the host's own entry
+        points count: loopback (127.x / ::1 / localhost) AND the machine's own
+        LAN IP addresses. Extra trusted addresses can be listed in
+        DEVCORE_TRUSTED_HOST_IPS (comma-separated)."""
         addr = str(remote_addr or "").strip()
         if not addr:
             return False
@@ -140,8 +204,15 @@ class SecurityManager:
                         return False
                 except Exception:
                     return False
+        if addr == "localhost" or addr.startswith(cls._LOOPBACK_PREFIXES):
+            return True
         extra = {a.strip() for a in os.environ.get("DEVCORE_TRUSTED_HOST_IPS", "").split(",") if a.strip()}
-        return addr in extra or addr == "localhost" or addr.startswith(cls._LOOPBACK_PREFIXES)
+        if addr in extra:
+            return True
+        # Normalise an IPv4-mapped IPv6 source (::ffff:172.29.x.x) to its v4 form.
+        bare = addr[7:] if addr.startswith("::ffff:") else addr
+        host_ips = cls._host_local_ips() | cls._wsl_host_gateway_ips()
+        return addr in host_ips or bare in host_ips
 
     def is_host_owner_request(self, remote_addr, headers=None) -> bool:
         """Master key present on the server AND the request comes from this machine."""
