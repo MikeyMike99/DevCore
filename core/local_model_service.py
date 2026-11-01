@@ -541,6 +541,124 @@ def _brain_read_scopes(identity: dict) -> list:
     return sorted(set(scopes))
 
 
+_BRAIN_AUDIT_LOG = os.path.expanduser("~/.gemini/antigravity-cli/brain/_audit/brain_access.log.jsonl")
+
+# The brain's own access-control / authority files. With full host access the
+# brain can edit these directly (bypassing the Raugus Resolver's self-protection
+# firewall), so they are fingerprinted every run. This list mirrors the
+# resolver's immutable + PROTECTED_DEVCORE_RELPATHS set, plus this module (where
+# the full-access grant itself lives).
+_BRAIN_AUTHORITY_FILES = [
+    "core/local_model_service.py",
+    "security/security_manager.py",
+    "security/agent_identity.py",
+    "security/raugus_access.py",
+    "security/raugus_access.json",
+    "security/raugus_sync.py",
+    "security/raugus_resolver.py",
+    "security/raugus_map.json",
+    "core/roles.py",
+    "core/routes/auth.py",
+    "core/routes/access.py",
+    ".agents/plugins/raugus_resolver/server.py",
+    ".agents/hooks.json",
+    ".agents/settings.json",
+]
+_BRAIN_AUTHORITY_SNAPSHOT = os.path.expanduser("~/.gemini/antigravity-cli/brain/_audit/authority_hashes.json")
+
+
+def _audit_authority_integrity():
+    """Tamper-audit for the brain's access-control / authority files.
+
+    Fingerprints each authority file every run and compares against the last
+    run's snapshot. Any change writes an AUTHORITY_CHANGED alert (naming the file
+    and old/new hash) to the brain audit log -- the detective control behind
+    "so it does not get changed again", enforced even against raw Bash/Edit that
+    bypasses the resolver. Best-effort; never raises.
+    """
+    try:
+        import hashlib
+        current = {}
+        for rel in _BRAIN_AUTHORITY_FILES:
+            p = os.path.join(DEVCORE_ROOT, rel)
+            try:
+                with open(p, "rb") as f:
+                    current[rel] = hashlib.sha256(f.read()).hexdigest()
+            except Exception:
+                current[rel] = None
+        prev = {}
+        if os.path.exists(_BRAIN_AUTHORITY_SNAPSHOT):
+            try:
+                with open(_BRAIN_AUTHORITY_SNAPSHOT, "r", encoding="utf-8") as f:
+                    prev = json.load(f)
+            except Exception:
+                prev = {}
+        changed = [
+            {"file": rel, "old": prev[rel], "new": h}
+            for rel, h in current.items()
+            if rel in prev and prev[rel] != h
+        ]
+        os.makedirs(os.path.dirname(_BRAIN_AUDIT_LOG), exist_ok=True)
+        if changed:
+            with open(_BRAIN_AUDIT_LOG, "a", encoding="utf-8") as f:
+                f.write(json.dumps({
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "event": "AUTHORITY_CHANGED",
+                    "detail": "Access-control/authority file(s) changed since the last brain run.",
+                    "changes": changed,
+                }) + "\n")
+        with open(_BRAIN_AUTHORITY_SNAPSHOT, "w", encoding="utf-8") as f:
+            json.dump(current, f)
+    except Exception:
+        pass
+
+
+def _audit_brain_access(identity, model_id, cwd, allowed, full_access):
+    """Durable audit trail for every Claude-CLI brain invocation.
+
+    Appends one JSON line per run recording WHO ran it, their tier, the model,
+    the working dir, whether full host access was granted, and the exact tool
+    allow-list. This is the record that keeps the owner-authorized Tier 5 full-
+    access grant honest: if the permission set is ever narrowed, the change is
+    visible by diffing `allowed_tools` across records, and a Tier 5 run without
+    the full grant also writes an explicit AUDIT_ALERT line. Best-effort only --
+    never raises, never blocks a brain run.
+    """
+    try:
+        tier = int((identity or {}).get("tier", 0))
+        user = ((identity or {}).get("username")
+                or (identity or {}).get("sub")
+                or (identity or {}).get("user")
+                or "unknown")
+        os.makedirs(os.path.dirname(_BRAIN_AUDIT_LOG), exist_ok=True)
+        rec = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "event": "brain_access",
+            "user": user,
+            "tier": tier,
+            "model": model_id,
+            "cwd": cwd,
+            "full_host_access": bool(full_access),
+            "add_dir": "/" if full_access else None,
+            "allowed_tools": list(allowed),
+        }
+        lines = [json.dumps(rec)]
+        if tier >= 5 and not full_access:
+            lines.append(json.dumps({
+                "ts": rec["ts"],
+                "event": "AUDIT_ALERT",
+                "user": user,
+                "tier": tier,
+                "detail": ("Tier 5 brain ran WITHOUT full host access -- the "
+                           "owner-authorized permission grant was narrowed."),
+            }))
+        with open(_BRAIN_AUDIT_LOG, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+    except Exception:
+        pass
+    _audit_authority_integrity()
+
+
 def run_claude_cli_model(
     system_prompt: str,
     user_prompt: str,
@@ -560,8 +678,15 @@ def run_claude_cli_model(
     agent's tier and access grants from that credential (never from a tool
     argument), and raw file reads are limited to the folders that user may read.
     Without an authenticated user the brain gets no resolver and no file access.
+
+    Timeouts are activity-based: the CLI streams events (`stream-json`), and the
+    run is killed only after DEVCORE_CLAUDE_CLI_IDLE seconds (default 900) with
+    no event, or after the absolute ceiling DEVCORE_CLAUDE_CLI_TIMEOUT
+    (default 7200).
     """
     import shutil
+    import threading
+    import time
     claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
     if not (claude_bin and os.path.exists(claude_bin)):
         return (
@@ -573,12 +698,14 @@ def run_claude_cli_model(
     model_id = _resolve_claude_model_id(model_label)
     prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
 
-    # Agentic turns (multi-step reads plus governed write_by_key hot-patches) need
-    # far more than a single text reply; override with DEVCORE_CLAUDE_CLI_TIMEOUT.
     try:
-        _timeout = max(60, int(os.environ.get("DEVCORE_CLAUDE_CLI_TIMEOUT", "600")))
+        _timeout = max(60, int(os.environ.get("DEVCORE_CLAUDE_CLI_TIMEOUT", "7200")))
     except ValueError:
-        _timeout = 600
+        _timeout = 7200
+    try:
+        _idle_limit = max(60, int(os.environ.get("DEVCORE_CLAUDE_CLI_IDLE", "900")))
+    except ValueError:
+        _idle_limit = 900
 
     # Agent identity: bound to the authenticated principal, valid for this run only.
     if not user and is_admin:
@@ -605,21 +732,37 @@ def run_claude_cli_model(
     # governed resolver. No arbitrary command execution and no raw directory
     # listing (`ls` / `git diff --no-index` could read outside the scopes).
     _raugus_mcp = _raugus_mcp_config_path(credential) if identity else None
-    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none"]
+    cmd = [claude_bin, "-p", "--model", model_id, "--permission-prompts", "none",
+           "--output-format", "stream-json", "--verbose"]
     if _raugus_mcp:
         cmd += ["--mcp-config", _raugus_mcp, "--strict-mcp-config"]
     allowed = []
     for scope in _brain_read_scopes(identity):
         scope = scope.rstrip("/")
         allowed += [f"Read(/{scope}/**)", f"Grep(/{scope}/**)", f"Glob(/{scope}/**)"]
-    if identity and int(identity.get("tier", 0)) >= 5:
-        allowed += ["Bash(git status:*)", "Bash(git log:*)", "Bash(git show:*)"]
-        # Scoped raw write: the whole sandbox workspace (UI templates + static
-        # assets + data payloads) — the brain's editable area. Core engine files
-        # live outside sandbox/ and stay write-protected by this narrow scope.
-        # Edit rules cover every file-editing tool (Edit and Write); the CLI
-        # rejects Write(path) allow rules outright.
-        allowed += ["Edit(sandbox/**)"]
+    _full_access = bool(identity and int(identity.get("tier", 0)) >= 5)
+    if _full_access:
+        # ======================================================================
+        # OWNER-AUTHORIZED FULL HOST ACCESS  (Tier 5 == authenticated host owner)
+        # ======================================================================
+        # The Tier 5 brain IS the authenticated owner of this machine. It is
+        # deliberately granted read + write + shell access to the WHOLE host so
+        # it can work on projects that live OUTSIDE DevCore (sibling repos, the
+        # trading bot, anything under the user's home, etc). A web user cannot
+        # answer Claude Code permission prompts, so anything not on this allow-
+        # list is silently denied -- that denial was the real blocker, not any
+        # timeout.
+        #
+        # DO NOT narrow this back to a sandbox-only scope without the owner's
+        # explicit say-so. Every invocation records its exact grant to the brain
+        # access audit log (_audit_brain_access); if a Tier 5 brain is ever seen
+        # running WITHOUT this full grant, an AUDIT_ALERT line is written so the
+        # change is visible after the fact.
+        #
+        # Secrets remain protected regardless: --disallowedTools
+        # (_BRAIN_SECRET_READ_DENY) still blocks tokens, keys, .env, .ssh,
+        # credentials, the DevCore master key, etc.
+        allowed += ["Read(/**)", "Grep(/**)", "Glob(/**)", "Edit(/**)", "Bash(*)"]
     if _raugus_mcp:
         allowed += _RESOLVER_TOOLS
     if allowed:
@@ -638,22 +781,117 @@ def run_claude_cli_model(
         os.chmod(_jail, 0o700)
         _cwd = _jail
 
+    # Full-access brain: make the whole filesystem reachable by the native file
+    # tools (Read/Edit/Glob), not only the working directory. Bash is already
+    # unrestricted above; --add-dir / is what lets Read/Edit open absolute paths
+    # OUTSIDE DevCore (the trading bot, sibling repos, etc).
+    if _full_access:
+        cmd += ["--add-dir", "/"]
+
+    # --- Session roll-over ---------------------------------------------------
+    # Without a session id, `claude -p` starts a COLD session every message, so
+    # the brain forgets the conversation (its only memory is the up-to-12
+    # truncated prior turns the caller stuffs into the prompt, minus everything
+    # it actually did -- files read, edits made, tool results). Give the CLI a
+    # stable session id derived from this conversation so its real session
+    # carries across turns. First turn of a chat CREATES it (--session-id); every
+    # later turn RESUMES it (--resume). Reusing --session-id on an existing
+    # session is an error, so the choice is made from ground truth: whether the
+    # session transcript file already exists under ~/.claude/projects/. Enabled
+    # only when the working dir is stable (Tier 5 runs from the repo root) --
+    # jailed runs get a fresh cwd each turn, which a resume could not match.
+    if conversation_id and _jail is None:
+        try:
+            import glob as _glob
+            _sess_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"devcore-brain:{conversation_id}"))
+            _sess_glob = os.path.expanduser(
+                os.path.join("~", ".claude", "projects", "*", _sess_id + ".jsonl"))
+            if _glob.glob(_sess_glob):
+                cmd += ["--resume", _sess_id]
+            else:
+                cmd += ["--session-id", _sess_id]
+        except Exception:
+            pass
+
+    state = {"last": time.monotonic(), "result": None, "is_error": False, "text": []}
+    stderr_lines = []
+
+    def _read_stdout(pipe):
+        for line in pipe:
+            state["last"] = time.monotonic()
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                evt = json.loads(line)
+            except ValueError:
+                state["text"].append(line)
+                continue
+            if evt.get("type") == "result":
+                state["result"] = evt.get("result") or ""
+                state["is_error"] = bool(evt.get("is_error"))
+            elif evt.get("type") == "assistant":
+                for block in (evt.get("message") or {}).get("content") or []:
+                    if isinstance(block, dict) and block.get("type") == "text":
+                        state["text"].append(block.get("text", ""))
+
+    def _read_stderr(pipe):
+        for line in pipe:
+            state["last"] = time.monotonic()
+            stderr_lines.append(line)
+
+    def _feed_stdin(pipe):
+        try:
+            pipe.write(prompt)
+        except Exception:
+            pass
+        finally:
+            try:
+                pipe.close()
+            except Exception:
+                pass
+
+    # Audit the exact access grant for this run (owner-authorized full-host for
+    # Tier 5). Records the permission set and raises an AUDIT_ALERT if a Tier 5
+    # brain is ever seen running without the full grant -- so a silent narrowing
+    # of the permissions is caught in the log.
+    _audit_brain_access(identity, model_id, _cwd, allowed, _full_access)
+
+    timed_out = None
+    proc = None
     try:
-        proc = subprocess.run(
+        proc = subprocess.Popen(
             cmd,
-            input=prompt,
-            capture_output=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-            timeout=_timeout,
             cwd=_cwd,
         )
-    except subprocess.TimeoutExpired:
-        return (
-            f"[LOCAL_BRAIN_ERROR] Claude CLI timed out after {_timeout}s. Any "
-            "write_by_key call already in flight may have completed; check "
-            "core/patches/ and core/backups/ before retrying."
-        )
+        threads = [
+            threading.Thread(target=_read_stdout, args=(proc.stdout,), daemon=True),
+            threading.Thread(target=_read_stderr, args=(proc.stderr,), daemon=True),
+            threading.Thread(target=_feed_stdin, args=(proc.stdin,), daemon=True),
+        ]
+        for t in threads:
+            t.start()
+        started = time.monotonic()
+        while proc.poll() is None:
+            time.sleep(1.0)
+            now = time.monotonic()
+            if now - started > _timeout:
+                timed_out = f"hit the {_timeout}s absolute ceiling"
+            elif now - state["last"] > _idle_limit:
+                timed_out = f"went idle for {_idle_limit}s with no activity"
+            if timed_out:
+                proc.kill()
+                break
+        proc.wait()
+        for t in threads[:2]:
+            t.join(timeout=5)
     except Exception as e:
+        if proc is not None and proc.poll() is None:
+            proc.kill()
         return f"[LOCAL_BRAIN_ERROR] Claude CLI invocation failed: {e}"
     finally:
         if _raugus_mcp:
@@ -661,8 +899,15 @@ def run_claude_cli_model(
         if _jail:
             shutil.rmtree(_jail, ignore_errors=True)
 
-    out = (proc.stdout or "").strip()
-    err = (proc.stderr or "").strip()
+    if timed_out:
+        return (
+            f"[LOCAL_BRAIN_ERROR] Claude CLI {timed_out} and was stopped. Any "
+            "write_by_key call already in flight may have completed; check "
+            "core/patches/ and core/backups/ before retrying."
+        )
+
+    out = (state["result"] if state["result"] is not None else "\n".join(state["text"])).strip()
+    err = "".join(stderr_lines).strip()
     combined = f"{out} {err}".lower()
 
     if "not logged in" in combined or "/login" in combined:
@@ -670,7 +915,7 @@ def run_claude_cli_model(
             "[LOCAL_BRAIN_UNAVAILABLE] Claude is not logged in. Run `claude /login` "
             "once in a terminal to connect your subscription, then try again."
         )
-    if proc.returncode != 0 or not out:
+    if proc.returncode != 0 or state["is_error"] or not out:
         return f"[LOCAL_BRAIN_ERROR] Claude CLI error: {err or out or 'no output'}"
 
     try:
@@ -2553,8 +2798,16 @@ async def execute_local_agent_task(
         })
         return
 
-    if not conversation_id or str(conversation_id).startswith("conv-"):
+    # A stable conversation_id is what keys the brain's memory (the transcript
+    # on disk AND the resumed Claude CLI session). The frontend sends a unique
+    # "conv-..." id per chat; map it DETERMINISTICALLY to a UUID so every turn of
+    # the same chat resolves to the SAME id -- even if the init_conv_id handshake
+    # is missed. A fresh random id each turn (the old behaviour) fragmented memory
+    # into a new transcript every message, so the session never rolled over.
+    if not conversation_id:
         conversation_id = str(uuid.uuid4())
+    elif str(conversation_id).startswith("conv-"):
+        conversation_id = str(uuid.uuid5(uuid.NAMESPACE_URL, conversation_id))
     agent_mgr.current_conversation_id = conversation_id
 
     workspace_dir = None
