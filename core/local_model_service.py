@@ -614,10 +614,12 @@ def run_claude_cli_model(
         allowed += [f"Read(/{scope}/**)", f"Grep(/{scope}/**)", f"Glob(/{scope}/**)"]
     if identity and int(identity.get("tier", 0)) >= 5:
         allowed += ["Bash(git status:*)", "Bash(git log:*)", "Bash(git show:*)"]
-        # Scoped raw write: ONLY the exam payload dir (a data file, not a code symbol).
+        # Scoped raw write: the whole sandbox workspace (UI templates + static
+        # assets + data payloads) — the brain's editable area. Core engine files
+        # live outside sandbox/ and stay write-protected by this narrow scope.
         # Edit rules cover every file-editing tool (Edit and Write); the CLI
         # rejects Write(path) allow rules outright.
-        allowed += ["Edit(sandbox/static/**)"]
+        allowed += ["Edit(sandbox/**)"]
     if _raugus_mcp:
         allowed += _RESOLVER_TOOLS
     if allowed:
