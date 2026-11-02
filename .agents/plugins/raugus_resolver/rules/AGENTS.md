@@ -21,6 +21,10 @@ You have access to the **Raugus Resolver (`raugus-resolver`)** MCP Server, which
    - Executes the unified cross-repository workspace pipeline (`Central_Docs`, `e_profile`, `DevCore`, `Audio_pllayback_suite`) in a single tool call. Eliminates token bloat from repetitive status checks, manual quality/structure/security audits, and fragmented multi-repo commits.
 7. **`get_block_by_tag(tag_or_id, user_tier=5)`**:
    - Retrieve an immutable AST or documentation block directly by its tag identifier or content hash without loading surrounding code.
+8. **`digest_file(key, focus="", budget_seconds=240)`**:
+   - Summarize a large file (code, docs, PDF, DOCX) offline into a digest with a chunk index (line ranges per chunk). Cached by content hash. If it returns `IN_PROGRESS`, call it again with the same arguments to resume.
+9. **`read_chunk(key="", chunk=1, digest_id="", focus="")`**:
+   - Read one chunk of a digested source verbatim (PII-scrubbed). Use `key` for files you digested; use `digest_id` for attachments DevCore digested for you (the id is in the attachment header).
 
 ---
 
@@ -57,5 +61,6 @@ You have access to the **Raugus Resolver (`raugus-resolver`)** MCP Server, which
 To prevent token inflation and preserve AI context windows:
 1. **Surgical Reads**: Prioritize `read_by_key('<module>::<symbol>')` or `get_block_by_tag('<tag>')` rather than loading multi-hundred-line modules. AST slices average 15–30 lines, reducing token overhead by over 90%.
 2. **Surgical Writes**: Update target functions directly via `write_by_key('<module>::<symbol>', new_code)`. The resolver recompiles and hot-patches solely the modified symbol.
-3. **Local Triage**: Use `python3 security/local_brain_broker.py --target "<target>" --mode triage --query "<query>"` to locate symbol keys and tags on local CPU before invoking cloud reasoning.
+3. **Large Files**: For a file too big to read whole (thousands of lines), call `digest_file(key)` first, then `read_chunk(key, n)` only for the chunks the digest's index points you to.
+4. **Local Triage**: Use `python3 security/local_brain_broker.py --target "<target>" --mode triage --query "<query>"` to locate symbol keys and tags on local CPU before invoking cloud reasoning.
 

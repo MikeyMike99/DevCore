@@ -1195,6 +1195,154 @@ def workspace_pipeline(
         })
 
 
+# --------------------------------------------------------------------------- #
+# Large-file digests (core/digest_pipeline.py)
+# --------------------------------------------------------------------------- #
+
+_DIGEST_MAX_SOURCE_CHARS = 20_000_000
+
+
+def _load_readable_file(key: str):
+    """Authorize a read of a file key and return (text, error_json).
+
+    Same checks as read_by_key: identity, tier/grant, secret paths, read
+    permission. Sensitive-vault files are refused here (read_by_key serves only
+    their sanitized broker digest)."""
+    ident = _identity()
+    if not ident:
+        return None, _deny_no_identity(key=key)
+    if "::" in key:
+        return None, _json_response({
+            "status": "DENIED", "key": key,
+            "reason": "digest_file works on file keys. Symbols are small: use read_by_key.",
+        })
+    acc = _Access(ident)
+    resolver, mod_key, _, mod_entry, _ = _resolve_module_and_symbol(key)
+    if not mod_entry:
+        return None, _json_response({"status": "DENIED", "key": key,
+                                     "reason": f"Key '{key}' does not exist in the Raugus Map."})
+    real_path = resolver.get_path(mod_key, 5)
+    ok, _, why = acc.check({"required_tier": int(mod_entry.get("required_tier", 5))}, real_path, "read")
+    if not ok:
+        logging.warning(f"[{ident.get('agent_id')}] Tier {acc.tier} denied digest read on '{key}'")
+        return None, _json_response({"status": "DENIED", "key": key, "reason": why})
+    if mod_entry.get("sensitive") is True or resolver.is_sensitive_path(real_path):
+        return None, _json_response({
+            "status": "DENIED_SENSITIVE", "key": key,
+            "reason": "Sensitive-vault files are not chunked. read_by_key returns their sanitized digest.",
+        })
+    if mod_entry.get("permissions", {}).get("read") is False:
+        return None, _json_response({"status": "DENIED", "key": key,
+                                     "reason": f"Read permission is disabled for key '{key}'."})
+    if not real_path or not os.path.isfile(real_path):
+        return None, _json_response({"status": "DENIED", "key": key,
+                                     "reason": f"Key '{key}' does not resolve to a readable file."})
+
+    ext = os.path.splitext(real_path)[1].lower()
+    try:
+        if ext in (".pdf", ".docx"):
+            from security.local_brain_broker import _extract_file_text
+            text = _extract_file_text(real_path, _DIGEST_MAX_SOURCE_CHARS)
+        else:
+            with open(real_path, "rb") as f:
+                raw = f.read(_DIGEST_MAX_SOURCE_CHARS + 1)
+            if b"\x00" in raw[:8192]:
+                return None, _json_response({"status": "DENIED", "key": key,
+                                             "reason": "Binary files cannot be digested."})
+            text = raw.decode("utf-8", errors="replace")
+    except Exception as e:
+        return None, _json_response({"status": "ERROR", "key": key, "reason": str(e)})
+    if not text.strip():
+        return None, _json_response({"status": "ERROR", "key": key, "reason": "No extractable text."})
+    return text, None
+
+
+@mcp.tool()
+def digest_file(key: str, focus: str = "", budget_seconds: int = 240) -> str:
+    """
+    Summarize a large file by its Raugus VFS Key without loading it into context.
+    The file is split into chunks, PII-scrubbed and summarized offline, then merged
+    into one digest with a chunk index (line ranges per chunk). Results are cached
+    by content hash, so repeat calls are instant while the file is unchanged.
+
+    Large files may take longer than `budget_seconds` (max 600). The call then
+    returns status IN_PROGRESS with progress counts: call digest_file again with
+    the same arguments to resume where it stopped. Use read_chunk(key, n) to read
+    any chunk verbatim. `focus` optionally steers the summaries (it is part of
+    the cache key, so leave it empty for a reusable general digest).
+    """
+    text, err = _load_readable_file(key)
+    if err:
+        return err
+    import time as _time
+    from core.digest_pipeline import DigestPipeline, DigestBusy, DigestError
+    budget = max(30, min(int(budget_seconds or 240), 600))
+    try:
+        res = DigestPipeline(lock_wait=min(60, budget)).run(
+            text, source_ref=key, focus=focus or "", deadline=_time.monotonic() + budget)
+    except DigestBusy:
+        return _json_response({"status": "IN_PROGRESS", "key": key,
+                               "reason": "Another agent is building this digest. Call again shortly."})
+    except DigestError as e:
+        return _json_response({"status": "ERROR", "key": key, "reason": str(e)})
+    except Exception:
+        logging.error(f"digest_file failed for '{key}': {traceback.format_exc()}")
+        return _json_response({"status": "ERROR", "key": key, "reason": "Digest pipeline failed."})
+
+    if not res.complete:
+        done = res.manifest.get("chunks_done", 0)
+        return _json_response({
+            "status": "IN_PROGRESS", "key": key, "digest_id": res.digest_id,
+            "chunks_done": done, "chunk_count": res.chunk_count,
+            "reason": "Time budget reached. Call digest_file again with the same arguments to resume.",
+        })
+    return _json_response({
+        "status": "GRANTED", "key": key, "digest_id": res.digest_id,
+        "chunk_count": res.chunk_count, "fallback_chunks": res.fallback_chunks,
+        "cached": res.cached, "result": _scrub_paths(res.digest_text),
+    })
+
+
+@mcp.tool()
+def read_chunk(key: str = "", chunk: int = 1, digest_id: str = "", focus: str = "") -> str:
+    """
+    Read one chunk (1-based, see the digest's chunk index) of a digested source,
+    PII-scrubbed, together with its summary and line range.
+
+    Pass `key` for files digested with digest_file (pass the same `focus` if one
+    was used). Pass `digest_id` alone for documents DevCore digested for you while
+    handing off a large attachment (the id is in the attachment header).
+    """
+    from core.digest_pipeline import DigestPipeline, DigestError, DigestStale
+    pipe = DigestPipeline()
+    try:
+        if key:
+            text, err = _load_readable_file(key)
+            if err:
+                return err
+            did = pipe.digest_id(text, focus or "")
+            if not pipe.load(did):
+                return _json_response({"status": "NOT_DIGESTED", "key": key,
+                                       "reason": "No digest for the current file content. Call digest_file first."})
+            out = pipe.read_chunk(did, int(chunk), source_text=text)
+        elif digest_id:
+            ident = _identity()
+            if not ident:
+                return _deny_no_identity(digest_id=digest_id)
+            manifest = pipe.load(digest_id) or {}
+            if ident.get("principal") not in manifest.get("owners", []):
+                return _json_response({"status": "DENIED", "digest_id": digest_id,
+                                       "reason": "This digest was not built for your session."})
+            out = pipe.read_chunk(digest_id, int(chunk))
+        else:
+            return _json_response({"status": "ERROR", "reason": "Pass either key or digest_id."})
+    except DigestStale as e:
+        return _json_response({"status": "STALE", "key": key, "reason": str(e)})
+    except DigestError as e:
+        return _json_response({"status": "ERROR", "key": key or None, "reason": str(e)})
+    return _json_response({"status": "GRANTED", "key": key or None, **out})
+
+
 if __name__ == "__main__":
     try:
         mcp.run()
