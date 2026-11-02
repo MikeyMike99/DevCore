@@ -117,13 +117,21 @@ def resolve_gguf_model_path(model_label: str = "") -> str:
 
 def is_cloud_hosted_environment() -> bool:
     """Detects whether Siraugga is running in a cloud-hosted WSGI environment such as PythonAnywhere."""
-    if os.environ.get("SIRAUGGA_CLOUD_ONLY", "").lower() in ("1", "true", "yes"):
-        return True
-    return (
-        "PYTHONANYWHERE_DOMAIN" in os.environ
+    cloud_detected = (
+        os.environ.get("SIRAUGGA_CLOUD_ONLY", "").lower() in ("1", "true", "yes")
+        or "PYTHONANYWHERE_DOMAIN" in os.environ
         or "PYTHONANYWHERE_SITE" in os.environ
         or os.path.exists("/var/www")
     )
+    if cloud_detected:
+        pa_proxy = "http://proxy.server:3128"
+        for p_var in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY"):
+            if p_var not in os.environ:
+                os.environ[p_var] = pa_proxy
+        for n_var in ("no_proxy", "NO_PROXY"):
+            if n_var not in os.environ:
+                os.environ[n_var] = "localhost,127.0.0.1"
+    return cloud_detected
 
 
 def discover_local_models() -> list:
@@ -781,12 +789,40 @@ def run_claude_cli_model(
         os.chmod(_jail, 0o700)
         _cwd = _jail
 
-    # Full-access brain: make the whole filesystem reachable by the native file
-    # tools (Read/Edit/Glob), not only the working directory. Bash is already
-    # unrestricted above; --add-dir / is what lets Read/Edit open absolute paths
-    # OUTSIDE DevCore (the trading bot, sibling repos, etc).
+    # Full-access brain: make the whole filesystem reachable AND WRITABLE by the
+    # native file tools (Read/Edit/Write/Glob), not only the working directory.
+    #
+    # TWO flags are required for an out-of-cwd WRITE to go through without a human
+    # at the keyboard -- both proven empirically against this exact claude CLI:
+    #
+    #   1. --permission-mode acceptEdits
+    #      With --permission-prompts none, "anything that would prompt is denied
+    #      automatically; the permission mode still decides everything else." The
+    #      DEFAULT mode prompts for every file write, so under `none` every write
+    #      was auto-denied ("needed approval, denied automatically") -- THIS was
+    #      the real blocker, not the allow rules and not a timeout. acceptEdits
+    #      auto-approves file edits/writes so no prompt is raised. It still honours
+    #      --disallowedTools, so secrets (_BRAIN_SECRET_READ_DENY) stay blocked;
+    #      it is deliberately NOT bypassPermissions (that would skip the secret
+    #      denies too).
+    #
+    #   2. --add-dir <concrete dirs>
+    #      The file tools still refuse paths outside the session's working
+    #      directories. NOTE: `--add-dir /` (the filesystem root) is SILENTLY
+    #      IGNORED by the CLI; only CONCRETE directories register (added dirs are
+    #      covered recursively). So we add the real top-level dirs: `/mnt`
+    #      recursively covers every Windows drive (DevCore, algo_bot_optimized,
+    #      e-profile, ...), and the Linux roots cover the rest. Virtual
+    #      filesystems (/proc, /sys, /dev, /run) are skipped.
     if _full_access:
-        cmd += ["--add-dir", "/"]
+        cmd += ["--permission-mode", "acceptEdits"]
+        _candidate_add_dirs = [
+            "/mnt", "/home", "/root", "/opt", "/srv", "/tmp", "/usr", "/etc", "/var",
+        ]
+        _add_dirs = [_d for _d in _candidate_add_dirs if os.path.isdir(_d)]
+        if not _add_dirs:
+            _add_dirs = ["/mnt", "/home"]
+        cmd += ["--add-dir", *_add_dirs]
 
     # --- Session roll-over ---------------------------------------------------
     # Without a session id, `claude -p` starts a COLD session every message, so

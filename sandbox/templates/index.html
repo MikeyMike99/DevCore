@@ -104,7 +104,7 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-3">
+        <div id="header-actions" class="flex items-center gap-3">
             <!-- Model Selection Dropdown -->
             <div class="flex items-center gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs">
                 <label for="model-selector" class="text-xs font-semibold text-teal-400 shrink-0">{{ ui.header.model_label }}</label>
@@ -851,7 +851,7 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             var savedSidebar = localStorage.getItem('sidebarOpen');
-            if (savedSidebar === 'false') {
+            if (savedSidebar === 'false' && typeof toggleSidebar === 'function') {
                 toggleSidebar();
             }
             try {
@@ -912,7 +912,7 @@
         
         function injectAdminDashboardButton() {
             if (document.getElementById('admin-dashboard-btn')) return;
-            const actionsDiv = document.querySelector('.flex.items-center.gap-3');
+            const actionsDiv = document.getElementById('header-actions');
             if (actionsDiv) {
                 const btn = document.createElement('button');
                 btn.id = 'admin-dashboard-btn';
@@ -2209,16 +2209,17 @@
                     });
                     if (!res.ok) return;
                     var data = await res.json();
-                    if (data && typeof data.last_seq === 'number' && data.last_seq > lastReceivedSeq) {
-                        lastReceivedSeq = data.last_seq;
-                    }
                     if (data && Array.isArray(data.messages)) {
                         data.messages.forEach(function(msg) {
-                            if (msg && typeof msg.seq === 'number' && msg.seq > lastReceivedSeq) {
+                            if (msg && typeof msg.seq === 'number') {
+                                if (msg.seq <= lastReceivedSeq) return;
                                 lastReceivedSeq = msg.seq;
                             }
                             handleServerMessage(msg);
                         });
+                    }
+                    if (data && typeof data.last_seq === 'number' && data.last_seq > lastReceivedSeq) {
+                        lastReceivedSeq = data.last_seq;
                     }
                 } catch (e) {
                 } finally {
@@ -2349,17 +2350,29 @@
                 return; // Silent keep-alive response
             }
             else if (data.type === 'heartbeat') {
+                if (!isTaskRunning && data.status === 'running') {
+                    isTaskRunning = true;
+                    if (!taskStartTime && typeof data.elapsed === 'number') {
+                        taskStartTime = (Date.now() / 1000) - data.elapsed;
+                    }
+                    clearInterval(timerInterval);
+                    timerInterval = setInterval(updateTimer, 500);
+                }
                 if (isTaskRunning && timerDisplay) {
                     taskBanner.classList.remove('hidden');
                 }
+                var heartbeatMsg = data.message;
+                if (!heartbeatMsg && typeof data.elapsed === 'number') {
+                    heartbeatMsg = (data.current_action || 'Thinking and reasoning') + ' (' + data.elapsed + 's elapsed)...';
+                }
                 if (currentAgentArticle) {
                     var typingInd = currentAgentArticle.querySelector('.typing-indicator');
-                    if (typingInd && data.message) {
-                        typingInd.innerHTML = '<span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> ' + escapeHtml(data.message);
+                    if (typingInd && heartbeatMsg) {
+                        typingInd.innerHTML = '<span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span> ' + escapeHtml(heartbeatMsg);
                     }
                 }
-                if (data.progress_tick && data.message) {
-                    announce(data.message);
+                if (data.progress_tick && heartbeatMsg) {
+                    announce(heartbeatMsg);
                 }
                 return;
             }
