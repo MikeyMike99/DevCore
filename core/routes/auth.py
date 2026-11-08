@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import secrets
 import shutil
 import subprocess
@@ -19,10 +20,11 @@ _AUTH_CHECK_CACHE = {"result": None, "ts": 0.0}
 AUTH_CACHE_TTL_SECONDS = 300.0
 
 _PKCE_SESSIONS = {}
+_USER_CLAUDE_LOGINS = {}
 
 auth_bp = Blueprint('auth_bp', __name__)
 
-GOOGLE_REDIRECT_URI = "https://antigravity.google/oauth-callback"
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_OAUTH_REDIRECT_URI") or "https://antigravity.google/oauth-callback"
 GOOGLE_SCOPES = (
     "https://www.googleapis.com/auth/cloud-platform "
     "https://www.googleapis.com/auth/userinfo.email "
@@ -271,17 +273,19 @@ def _generate_pkce_auth_url(scope: str = "root"):
     }
     url = "https://accounts.google.com/o/oauth2/auth?" + urllib.parse.urlencode(params)
     now = time.time()
-    _PKCE_SESSIONS[scope] = {
+    session_rec = {
         "verifier": code_verifier,
         "created_at": now,
         "expires_at": now + 600.0,
         "url": url,
     }
+    _PKCE_SESSIONS[scope] = session_rec
+    _PKCE_SESSIONS["latest"] = session_rec
     return url, 600
 
 
-def _exchange_pkce_code(code: str, scope: str = "root"):
-    session_data = _PKCE_SESSIONS.get(scope) or _PKCE_SESSIONS.get("root") or _PKCE_SESSIONS.get("demo")
+def _exchange_pkce_code_payload(code: str, scope: str = "root"):
+    session_data = _PKCE_SESSIONS.get(scope) or _PKCE_SESSIONS.get("latest") or _PKCE_SESSIONS.get("root") or _PKCE_SESSIONS.get("demo")
     code_verifier = session_data.get("verifier") if session_data else None
 
     token_url = "https://oauth2.googleapis.com/token"
@@ -306,8 +310,7 @@ def _exchange_pkce_code(code: str, scope: str = "root"):
         with urllib.request.urlopen(req, timeout=30.0) as resp:
             body = resp.read().decode("utf-8")
             payload = json.loads(body)
-            _save_oauth_token_payload(payload, scope=scope)
-            return True, None
+            return True, payload
     except urllib.error.HTTPError as e:
         err_msg = e.read().decode("utf-8", errors="replace")
         try:
@@ -317,6 +320,14 @@ def _exchange_pkce_code(code: str, scope: str = "root"):
             return False, err_msg
     except Exception as e:
         return False, str(e)
+
+
+def _exchange_pkce_code(code: str, scope: str = "root"):
+    ok, res = _exchange_pkce_code_payload(code, scope=scope)
+    if ok:
+        _save_oauth_token_payload(res, scope=scope)
+        return True, None
+    return False, res
 
 
 def _save_oauth_token_payload(token_payload: dict, scope: str = "root"):
@@ -357,10 +368,15 @@ def _save_oauth_token_payload(token_payload: dict, scope: str = "root"):
         for d in _get_demo_dirs():
             targets.append(os.path.join(d, ".gemini", "antigravity-cli", "antigravity-oauth-token"))
             targets.append(os.path.join(d, "antigravity-oauth-token"))
-    else:
+    elif scope == "root":
         targets.append(os.path.expanduser("~/.gemini/antigravity-cli/antigravity-oauth-token"))
         targets.append(os.path.join(base_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"))
         targets.append(os.path.join(base_dir, "antigravity-oauth-token"))
+    else:
+        from security.subscription_guard import get_user_runtime_chamber
+        chamber = get_user_runtime_chamber(scope)
+        targets.append(os.path.join(str(chamber), ".gemini", "antigravity-cli", "antigravity-oauth-token"))
+        targets.append(os.path.join(str(chamber), "antigravity-oauth-token"))
 
     for dest in targets:
         try:
@@ -407,6 +423,23 @@ def _copy_root_credentials_to_demo() -> bool:
         return True
 
     return False
+
+
+def _caller_is_admin() -> bool:
+    try:
+        if is_host_owner_request():
+            return True
+        u = get_current_user()
+        return bool(u and current_app.security_mgr.is_admin_user(u))
+    except Exception:
+        return False
+
+
+def _scope_for_caller(scope: str) -> str:
+    scope = "demo" if str(scope or "").lower() == "demo" else "root"
+    if scope == "root" and not _caller_is_admin():
+        return "demo"
+    return scope
 
 
 @auth_bp.route('/api/auth_check')
@@ -460,6 +493,9 @@ async def auth_check():
 
 @auth_bp.route('/login')
 async def login_page():
+    if not is_host_owner_request() and _get_cli_credential_details("root").get("authorized"):
+        from quart import redirect
+        return redirect("/")
     main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
     read_fn = getattr(main_mod, "read_asset", None)
     if read_fn is None:
@@ -475,7 +511,7 @@ async def set_api_key():
     data = await request.get_json() or {}
     api_key = data.get('api_key', '').strip()
     scope = data.get('scope') or ("demo" if data.get('demo') is True else "root")
-    scope = "demo" if str(scope).lower() == "demo" else "root"
+    scope = _scope_for_caller(scope)
 
     if not api_key:
         return jsonify({"success": False, "error": "No API key provided"}), 400
@@ -512,8 +548,7 @@ async def auth_submit():
     data = await request.get_json() or {}
     token = data.get('token', '').strip()
     api_key = data.get('api_key', '').strip()
-    scope = data.get('scope') or "root"
-    scope = "demo" if str(scope).lower() == "demo" else "root"
+    scope = _scope_for_caller(data.get('scope') or "root")
 
     if api_key:
         try:
@@ -689,7 +724,6 @@ async def auth_demo():
                 return jsonify({"success": True, "message": "Root credentials copied to demo chamber successfully."})
             return jsonify({"success": False, "error": "Root CLI is not authorized. Please authorize root first."}), 400
 
-    # Demo is a real, low-privilege session (it used to log in as admin:admin).
     res = current_app.security_mgr.create_session({
         "username": "Demo Visitor",
         "role": "gamedev",
@@ -718,7 +752,6 @@ async def auth_login():
 
     access_key = data.get('access_key')
     if access_key == "SUPER_ADMIN_AUTO":
-        # Host-owner auto-login: master key on the server AND a loopback client.
         if not is_host_owner_request():
             return jsonify({"error": "Owner auto-login is only available on the host machine."}), 403
         return jsonify(current_app.security_mgr.create_owner_session())
@@ -756,8 +789,6 @@ def get_current_user():
     token = auth_hdr.replace('Bearer ', '').strip()
     if not token:
         token = request.args.get('token', '').strip()
-    # Host-owner fallback applies only to a direct loopback request on the
-    # master-key machine; a LAN/remote client with no valid token gets None.
     return current_app.security_mgr.get_user_from_token(
         token or None, remote_addr=request.remote_addr, headers=request.headers
     )
@@ -768,19 +799,224 @@ def is_host_owner_request() -> bool:
 
 
 def get_bearer_session_user():
-    """The user behind an explicit bearer token only (no host-owner fallback)."""
     token = request.headers.get('Authorization', '').replace('Bearer ', '').strip()
     return current_app.security_mgr.get_user_from_token(token) if token else None
+
+
+def _extract_claude_oauth_url(raw: str):
+    clean = raw.replace("\x1b", "").replace("\x07", "").replace("]8;;", "")
+    m = re.search(r"https://claude\.com/cai/oauth/authorize\?\S+", clean)
+    if not m:
+        return None
+    url = m.group(0)
+    i = url.find("https://", 8)
+    return url[:i] if i != -1 else url
+
+
+@auth_bp.route('/api/user/subscription/oauth-url', methods=['GET'])
+async def get_user_subscription_oauth_url():
+    user = get_current_user()
+    user_id = (user.get("username") or user.get("name") if user else None) or "guest"
+    oauth_url, remaining = _generate_pkce_auth_url(user_id)
+    return jsonify({
+        "ok": True,
+        "url": oauth_url,
+        "remaining": remaining,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "provider": "google"
+    })
+
+
+@auth_bp.route('/api/auth/oauth-callback', methods=['GET'])
+@auth_bp.route('/oauth/callback', methods=['GET'])
+async def oauth_callback_page():
+    code = request.args.get("code", "")
+    state = request.args.get("state", "")
+    error = request.args.get("error", "")
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Authentication Callback</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 flex items-center justify-center min-h-screen p-4 font-sans">
+  <div class="bg-slate-900 border border-teal-500/40 rounded-2xl p-6 sm:p-8 max-w-md w-full shadow-2xl text-center space-y-4">
+    <div class="w-14 h-14 mx-auto rounded-full bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-2xl text-teal-400">
+      {'✓' if code else '⚠️'}
+    </div>
+    <h1 class="text-lg font-bold text-white">{'Authorization Successful' if code else 'Authorization Notice'}</h1>
+    <p class="text-xs text-slate-300 leading-relaxed">
+      {'Your authorization code has been captured. If this window was opened from DevCore, it will connect automatically.' if code else (error or 'No authorization code received.')}
+    </p>
+    {f'''
+    <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-teal-300 break-all select-all text-left">
+      {code}
+    </div>
+    <div class="flex gap-2 justify-center pt-2">
+      <button type="button" onclick="copyCode()" id="copy-btn" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg text-xs font-bold transition cursor-pointer">
+        📋 Copy Authorization Code
+      </button>
+    </div>
+    ''' if code else ''}
+    <script>
+      function copyCode() {{
+        var c = {json.dumps(code)};
+        if (navigator.clipboard) {{
+          navigator.clipboard.writeText(c).then(function() {{
+            var b = document.getElementById('copy-btn');
+            if (b) b.innerText = '✓ Copied to Clipboard!';
+          }});
+        }}
+      }}
+      try {{
+        if (window.opener) {{
+          window.opener.postMessage({{
+            type: 'devcore_oauth_code',
+            provider: 'google',
+            code: {json.dumps(code)}
+          }}, '*');
+          setTimeout(function() {{ window.close(); }}, 1600);
+        }}
+      }} catch(e) {{}}
+    </script>
+  </div>
+</body>
+</html>"""
+    return html, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@auth_bp.route('/api/user/subscription/claude/start', methods=['POST'])
+async def user_claude_login_start():
+    user = get_current_user()
+    user_id = (user.get("username") or user.get("name") if user else None) or "guest"
+
+    import shutil
+    claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+    if not (claude_bin and os.path.exists(claude_bin)):
+        return jsonify({
+            "ok": False,
+            "error": "The Claude CLI is not installed on this server. You can still use Claude by providing an Anthropic API Key (sk-ant-...)."
+        }), 400
+
+    old_info = _USER_CLAUDE_LOGINS.get(user_id)
+    if old_info and old_info.get("proc") and old_info["proc"].poll() is None:
+        try:
+            old_info["proc"].kill()
+        except Exception:
+            pass
+
+    from security.subscription_guard import get_user_runtime_chamber
+    user_chamber = get_user_runtime_chamber(user_id)
+    user_chamber.mkdir(parents=True, exist_ok=True)
+    custom_env = dict(os.environ)
+    custom_env["HOME"] = str(user_chamber)
+
+    login_state = {"buf": "", "proc": None}
+    proc = subprocess.Popen(
+        [claude_bin, "auth", "login", "--claudeai"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        env=custom_env,
+    )
+    login_state["proc"] = proc
+    _USER_CLAUDE_LOGINS[user_id] = login_state
+
+    def _reader(p, st):
+        try:
+            for ch in iter(lambda: p.stdout.read(1), ""):
+                st["buf"] += ch
+        except Exception:
+            pass
+
+    import threading
+    threading.Thread(target=_reader, args=(proc, login_state), daemon=True).start()
+
+    for _ in range(120):
+        url = _extract_claude_oauth_url(login_state["buf"])
+        if url:
+            return jsonify({"ok": True, "url": url, "provider": "claude"})
+        await asyncio.sleep(0.1)
+
+    return jsonify({"ok": False, "error": "Timed out waiting for the Claude sign-in link. Please try again."}), 504
+
+
+@auth_bp.route('/api/user/subscription/claude/complete', methods=['POST'])
+async def user_claude_login_complete():
+    user = get_current_user()
+    user_id = (user.get("username") or user.get("name") if user else None) or "guest"
+
+    data = await request.get_json(silent=True) or {}
+    code = (data.get("code") or "").strip()
+    if not code:
+        return jsonify({"ok": False, "error": "Paste the authorization code from the Claude sign-in page."}), 400
+
+    login_state = _USER_CLAUDE_LOGINS.get(user_id)
+    proc = login_state.get("proc") if login_state else None
+    if not proc or proc.poll() is not None:
+        return jsonify({"ok": False, "error": "No active Claude sign-in session found. Click Sign in with Claude again."}), 409
+
+    try:
+        proc.stdin.write(code + "\n")
+        proc.stdin.flush()
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"Could not submit code: {e}"}), 500
+
+    try:
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: proc.wait(timeout=25))
+    except Exception:
+        pass
+
+    import shutil
+    claude_bin = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+    from security.subscription_guard import get_user_runtime_chamber
+    user_chamber = get_user_runtime_chamber(user_id)
+    custom_env = dict(os.environ)
+    custom_env["HOME"] = str(user_chamber)
+
+    logged_in = False
+    try:
+        r = subprocess.run([claude_bin, "auth", "status"], capture_output=True, text=True, timeout=8, env=custom_env)
+        logged_in = bool((json.loads(r.stdout or "{}") or {}).get("loggedIn"))
+    except Exception:
+        logged_in = False
+
+    if not logged_in:
+        try:
+            r = subprocess.run([claude_bin, "auth", "status"], capture_output=True, text=True, timeout=8)
+            logged_in = bool((json.loads(r.stdout or "{}") or {}).get("loggedIn"))
+        except Exception:
+            pass
+
+    if logged_in:
+        from security.subscription_guard import set_user_subscription
+        res = set_user_subscription(
+            user_id=user_id,
+            provider="claude_subscription",
+            credential="claude_cli_pro",
+            ttl_days=7.0,
+            storage_mode="vault"
+        )
+        return jsonify({"ok": True, "success": True, "message": "Signed in with your Claude subscription successfully!", "details": res})
+
+    return jsonify({"ok": False, "error": "Claude sign-in did not complete. Please check the code and try again."}), 400
 
 
 @auth_bp.route('/api/user/subscription/set', methods=['POST'])
 async def set_user_subscription_route():
     user = get_current_user()
     if not user:
-        return jsonify({"error": "Authentication required"}), 401
+        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
+        user = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest"}
 
     data = await request.get_json() or {}
-    provider = data.get("provider", "gemini").strip()
+    provider = str(data.get("provider", "gemini")).lower().strip()
     credential = data.get("credential", "").strip()
     ttl_days = float(data.get("ttl_days", 7.0))
     storage_mode = str(data.get("storage_mode", "vault")).lower().strip()
@@ -788,12 +1024,31 @@ async def set_user_subscription_route():
     if not credential:
         return jsonify({"success": False, "error": "No credential provided"}), 400
 
+    user_identifier = user.get("username") or user.get("name") or "guest"
+
+    if provider in ("oauth", "google_oauth", "google_subscription"):
+        if credential.startswith("4/") or (len(credential) < 120 and "ya29." not in credential and not credential.startswith("{")):
+            ok, ex_payload = _exchange_pkce_code_payload(credential, scope=user_identifier)
+            if not ok:
+                return jsonify({"success": False, "error": f"Google OAuth exchange failed: {ex_payload}"}), 400
+            token_json_data = {
+                "token": {
+                    "access_token": ex_payload.get("access_token"),
+                    "token_type": "Bearer",
+                    "refresh_token": ex_payload.get("refresh_token"),
+                    "expires_in": ex_payload.get("expires_in", 3599),
+                },
+                "auth_method": "consumer",
+                "id_token_email": ex_payload.get("id_token_email") or "Personal Google Account",
+            }
+            credential = json.dumps(token_json_data)
+            provider = "oauth"
+
     from security.subscription_guard import verify_subscription_health, set_user_subscription
     valid, reason = verify_subscription_health(provider, credential)
     if not valid:
         return jsonify({"success": False, "error": reason}), 400
 
-    user_identifier = user.get("username") or user.get("name") or "guest"
     result = set_user_subscription(
         user_id=user_identifier,
         provider=provider,
@@ -862,7 +1117,6 @@ async def restore_root():
 
 @auth_bp.route('/api/auth/reset', methods=['POST'])
 async def reset_auth_session():
-    """Reset active session tokens, invalidate cached CLI tokens, and return re-auth redirect URL."""
     data = await request.get_json() or {}
     target_scope = data.get("scope", "root")
 

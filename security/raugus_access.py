@@ -43,13 +43,32 @@ RESERVED_PREFIXES = {"devcore", "external"}
 
 # Never indexed, never readable/writable through the resolver, whoever asks.
 SECRET_DIR_NAMES = {".ssh", ".gnupg", ".aws", ".azure", ".kube", ".docker", ".claude",
-                    ".gemini", ".config", ".git", ".password-store"}
+                    ".gemini", ".config", ".git", ".password-store", ".vault", ".bitwarden",
+                    "Bitwarden CLI", "bitwarden"}
 SECRET_FILE_GLOBS = (
     "*token*", "*secret*", "*password*", "*passwd*", "*credential*", "*.key", "*.pem",
     "*.pfx", "*.p12", "*.kdbx", ".env", ".env.*", "*.env", "id_rsa*", "id_ed25519*",
     "id_ecdsa*", "keys.json", "sessions.json", "keychain.json", ".devcore_master.key",
     ".agent_identity.key", ".jit_elevation_lease.json", "raugus_access.json",
-    ".netrc", ".npmrc", ".pypirc",
+    ".netrc", ".npmrc", ".pypirc", "*.vault", "*.vault.*", "*vault_store*",
+    "*vault_mod*", "bw", "bw.exe", "*bitwarden*",
+)
+VAULT_DIR_NAMES = {".vault", ".bitwarden", "bitwarden cli", "bitwarden"}
+VAULT_FILE_GLOBS = (
+    "*.vault", "*.vault.*", "*vault_store*", "*vault_mod*", "bw", "bw.exe",
+    "*bitwarden*", ".devcore_master.key", ".vault_master.key", ".devcore_vault.key", "*master.key*",
+    # cli_bridge_ui.py biometric unlock: live BW_SESSION token + PRF-encrypted master password
+    "bw_session*", "bw_biometric*", "hibp_api_key*",
+)
+VAULT_SYMBOL_KEYWORDS = (
+    "api_vault_gateway",
+    "_get_devcore_vault_service",
+    "_ephemeral_vault",
+    "_derive_vault_key",
+    "_load_vault",
+    "_save_vault",
+    "shieldvaultcontainer",
+    "transitcryptoenvelope",
 )
 IGNORE_DIR_NAMES = {"__pycache__", "venv", ".venv", "node_modules", ".pytest_cache",
                     "site-packages", "desktop_app.dist", "desktop_app.build",
@@ -74,6 +93,39 @@ def is_secret_name(name: str) -> bool:
     return any(fnmatch.fnmatch(n, g) for g in SECRET_FILE_GLOBS)
 
 
+def is_vault_name(name: str) -> bool:
+    n = (name or "").lower()
+    return any(fnmatch.fnmatch(n, g) for g in VAULT_FILE_GLOBS)
+
+
+def is_vault_path(path: str) -> bool:
+    """True if path targets any credential vault file, container, or Bitwarden store."""
+    parts = [p for p in re.split(r"[\\/]+", path or "") if p]
+    if not parts:
+        return False
+    if any(p.lower() in VAULT_DIR_NAMES or "bitwarden" in p.lower() or p.lower().endswith(".vault") for p in parts[:-1]):
+        return True
+    leaf = parts[-1]
+    return (
+        leaf.lower() in VAULT_DIR_NAMES
+        or "bitwarden" in leaf.lower()
+        or leaf.lower().endswith(".vault")
+        or is_vault_name(leaf)
+    )
+
+
+def is_vault_key(key: str) -> bool:
+    """True if key targets vault files, containers, or vault management symbols."""
+    if not key or not isinstance(key, str):
+        return False
+    k = key.lower()
+    if any(vk in k for vk in VAULT_SYMBOL_KEYWORDS):
+        return True
+    if any(fnmatch.fnmatch(k, g) for g in ("*.vault", "*.vault::*", "*vault_mod*", "*vault_store*", "*bitwarden*")):
+        return True
+    return False
+
+
 def is_secret_path(path: str) -> bool:
     """True if any component of `path` is a secret dir or the leaf is a secret file."""
     parts = [p for p in re.split(r"[\\/]+", path or "") if p]
@@ -82,7 +134,9 @@ def is_secret_path(path: str) -> bool:
     if any(p.lower() in SECRET_DIR_NAMES for p in parts[:-1]):
         return True
     leaf = parts[-1]
-    return leaf.lower() in SECRET_DIR_NAMES or is_secret_name(leaf)
+    if leaf.lower() in SECRET_DIR_NAMES or is_secret_name(leaf):
+        return True
+    return is_vault_path(path)
 
 
 def _within(path: str, root: str) -> bool:

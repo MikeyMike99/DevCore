@@ -1,4 +1,5 @@
 import argparse
+import contextvars
 import ast
 import asyncio
 from datetime import datetime, timezone
@@ -76,15 +77,27 @@ def _load_stored_claude_key() -> str:
     return ""
 
 
-def get_anthropic_api_key() -> str:
-    """The Claude API key: env override first, else the encrypted vault."""
+def get_anthropic_api_key(user: dict = None) -> str:
+    """The Claude API key: user BYOS credential first, then env override, else the encrypted vault."""
+    if user and isinstance(user, dict):
+        user_id = user.get("username") or user.get("name") or user.get("key_id")
+        if user_id:
+            try:
+                from security.subscription_guard import get_user_subscription
+                sub = get_user_subscription(user_id, include_decrypted=True)
+                if sub and sub.get("provider") in ("claude", "anthropic", "claude_api", "anthropic_api"):
+                    cred = sub.get("credential") or ""
+                    if cred:
+                        return cred
+            except Exception:
+                pass
     return os.environ.get("ANTHROPIC_API_KEY") or _load_stored_claude_key() or ""
 
 
-def get_anthropic_credential() -> str:
-    """True-ish if any usable Claude credential exists: an API key (from env or
+def get_anthropic_credential(user: dict = None) -> str:
+    """True-ish if any usable Claude credential exists: an API key (from env, user BYOS, or
     the encrypted vault) or an OAuth token in the environment."""
-    return get_anthropic_api_key() or os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
+    return get_anthropic_api_key(user=user) or os.environ.get("ANTHROPIC_AUTH_TOKEN") or ""
 
 
 def resolve_gguf_model_path(model_label: str = "") -> str:
@@ -412,9 +425,10 @@ def run_claude_model(
     Returns the model's text, or a [LOCAL_BRAIN_*] marker the portal renders as a
     clean status message.
     """
-    if get_anthropic_credential():
+    user_cred = get_anthropic_api_key(user=user)
+    if user_cred or get_anthropic_credential():
         return _run_claude_api(system_prompt, _with_history(user_prompt, history),
-                               model_label, max_tokens, target_label)
+                               model_label, max_tokens, target_label, api_key_override=user_cred)
     return run_claude_cli_model(system_prompt, user_prompt, model_label, max_tokens, target_label,
                                 is_admin=is_admin, user=user, conversation_id=conversation_id,
                                 history=history, on_event=on_event)
@@ -432,6 +446,7 @@ def _run_claude_api(
     model_label: str = "",
     max_tokens: int = 1400,
     target_label: str = "portal_chat",
+    api_key_override: str = None,
 ) -> str:
     """Billed Anthropic API path (used when an API credential is configured)."""
     try:
@@ -448,7 +463,7 @@ def _run_claude_api(
     out_tokens = max(int(max_tokens or 1400), 4096)
 
     try:
-        _key = get_anthropic_api_key()
+        _key = api_key_override or get_anthropic_api_key()
         client = anthropic.Anthropic(api_key=_key) if _key else anthropic.Anthropic()
         resp = client.messages.create(
             model=model_id,
@@ -1039,6 +1054,12 @@ def run_claude_cli_model(
             "once in a terminal to connect your subscription, then try again."
         )
     if proc.returncode != 0 or state["is_error"] or not out:
+        try:
+            from agents.model_router import is_quota_error
+            if is_quota_error(combined):
+                return f"[LOCAL_BRAIN_QUOTA] {err or out}"
+        except Exception:
+            pass
         return f"[LOCAL_BRAIN_ERROR] Claude CLI error: {err or out or 'no output'}"
 
     try:
@@ -3017,6 +3038,8 @@ async def execute_local_agent_task(
     conversation_id: str,
     user: dict = None,
     is_admin: bool = False,
+    extra_system: str = "",
+    allow_fallback: bool = False,
 ):
     """Executes a Web Portal prompt directly on the local model with autonomous file I/O tools and continuous conversation."""
     await agent_mgr.broadcast({"type": "agent_start", "model": model})
@@ -3307,6 +3330,8 @@ async def execute_local_agent_task(
     # How to behave when any action is blocked (find alternatives / escalate to the
     # super-admin) instead of surfacing a raw denial.
     system_prompt = system_prompt + DENIAL_HANDLING_ADDENDUM
+    if extra_system:
+        system_prompt = system_prompt + "\n\n" + extra_system
 
     # Tell the brain it has full host access when the operator is a super-admin.
     if is_admin:
@@ -3322,8 +3347,16 @@ async def execute_local_agent_task(
 
     streamed_any_chunks = False
     if is_claude:
+        try:
+            from agents.mixins.comms_mixin import _TASK_OWNER_CTX as _owner_ctx
+            _evt_owner = _owner_ctx.get()
+        except Exception:
+            _evt_owner = None
+
         def _forward_claude_event(evt):
             nonlocal streamed_any_chunks
+            if _evt_owner and isinstance(evt, dict):
+                evt.setdefault("owner", _evt_owner)
             e_type = evt.get("type")
             if e_type == "action_start":
                 act = evt.get("action", {})
@@ -3343,8 +3376,7 @@ async def execute_local_agent_task(
                 streamed_any_chunks = True
             asyncio.run_coroutine_threadsafe(agent_mgr.broadcast(evt), loop)
 
-        response = await loop.run_in_executor(
-            None,
+        response = await loop.run_in_executor(None, contextvars.copy_context().run,
             functools.partial(
                 run_claude_model,
                 system_prompt,
@@ -3360,6 +3392,22 @@ async def execute_local_agent_task(
             ),
         )
 
+        # Out of quota: hand back to the router (no "done" sent) so the next best model takes over
+        if allow_fallback and isinstance(response, str) and response.startswith("[LOCAL_BRAIN_QUOTA]"):
+            return {"quota": response, "partial": "".join(getattr(agent_mgr, "output_buffer", []) or [])}
+
+        # Exams from Claude: save each [SAVE_EXAM] block under its own name and show the link + embedded exam
+        exam_note = ""
+        if isinstance(response, str) and "[save_exam]" in response.lower():
+            try:
+                from agents import exam_store
+                _ex = await asyncio.to_thread(exam_store.save_exam_blocks, response)
+                if _ex:
+                    exam_note = "\n\n" + exam_store.render_results(_ex)
+                    await agent_mgr.broadcast({"type": "agent_chunk", "chunk": exam_note})
+            except Exception as _exe:
+                logging.warning(f"[LocalAgent] Claude exam save failed: {_exe}")
+
         clean_display_response = (
             response if (response.startswith("[LOCAL_BRAIN_") or not streamed_any_chunks or not getattr(agent_mgr, "output_buffer", None))
             else "".join(agent_mgr.output_buffer).strip()
@@ -3369,6 +3417,9 @@ async def execute_local_agent_task(
             clean_display_response = f"{actions_summary}\n\n{clean_display_response}".strip()
         if not is_admin and sec_mgr:
             clean_display_response = sec_mgr.scrub_text(clean_display_response)
+        if exam_note:
+            # Hide the raw exam JSON in the saved/final text; keep the link and embedded exam
+            clean_display_response = re.sub(r"\[SAVE_EXAM\][\s\S]*?\[/SAVE_EXAM\]", "", clean_display_response, flags=re.IGNORECASE).strip() + exam_note
 
         in_tok = max(1, (len(clean_prompt) + len(history_str) + len(file_context_str)) // 4)
         out_tok = max(1, len(clean_display_response) // 4)
@@ -3428,8 +3479,7 @@ async def execute_local_agent_task(
         })
         return
     elif is_ollama:
-        response = await loop.run_in_executor(
-            None,
+        response = await loop.run_in_executor(None, contextvars.copy_context().run,
             run_local_ollama_model,
             system_prompt,
             query_payload,
@@ -3438,8 +3488,7 @@ async def execute_local_agent_task(
             "portal_chat",
         )
     else:
-        response = await loop.run_in_executor(
-            None,
+        response = await loop.run_in_executor(None, contextvars.copy_context().run,
             run_dynamic_local_qwen,
             system_prompt,
             query_payload,
@@ -3489,57 +3538,33 @@ async def execute_local_agent_task(
             })
             executed_actions_log.append(f"> ✅ **File Written:** `{path}` ({len(content)} bytes)")
         elif action == "save_exam" and content:
-            # Bounded, fixed-path save: only ever writes sandbox/static/exam_temp.json,
-            # then validates/normalizes it with the exam formatter. The agent cannot
-            # target any other path through this action.
-            exam_abs = os.path.join(DEVCORE_ROOT, "sandbox", "static", "exam_temp.json")
+            # Saved under its own unguessable name (users never overwrite each other) and
+            # shown to the user as a link plus an embedded exam.
             act_id = str(uuid.uuid4())[:8]
             await agent_mgr.broadcast({
                 "type": "action_start",
-                "action": {
-                    "id": act_id, "tool": "save_exam",
-                    "params": {"path": "sandbox/static/exam_temp.json", "size": len(content)},
-                    "status": "running", "friendly_name": "Save Exam",
-                    "thought": "Saving and validating the exam payload",
-                    "announcement": "Saving exam...",
-                },
+                "action": {"id": act_id, "tool": "save_exam", "params": {"size": len(content)},
+                           "status": "running", "friendly_name": "Save Exam",
+                           "thought": "Saving and validating the exam payload", "announcement": "Saving exam..."},
             })
-            ex_ok = False
-            ex_msg = ""
             try:
-                os.makedirs(os.path.dirname(exam_abs), exist_ok=True)
-                with open(exam_abs, "w", encoding="utf-8") as _ef:
-                    _ef.write(content)
-                ex_ok = True
-                fmt_script = os.path.join(DEVCORE_ROOT, ".agents", "skills", "exam-generator", "scripts", "format_exam.py")
-                if os.path.isfile(fmt_script):
-                    try:
-                        r = await loop.run_in_executor(
-                            None,
-                            lambda: subprocess.run([sys.executable, fmt_script, exam_abs],
-                                                   capture_output=True, text=True, timeout=30),
-                        )
-                        ex_msg = (r.stdout or "").strip() if r.returncode == 0 else \
-                            f"saved; validation warning: {((r.stderr or r.stdout) or '').strip()[:160]}"
-                    except Exception as _fe:
-                        ex_msg = f"saved; validator skipped: {_fe}"
+                from agents import exam_store
+                ex_results = await asyncio.to_thread(exam_store.save_exam_blocks, f"[SAVE_EXAM]{content}[/SAVE_EXAM]")
             except Exception as _ee:
-                ex_msg = f"Failed to save exam: {_ee}"
+                ex_results = [{"ok": False, "message": f"Failed to save exam: {_ee}"}]
+            ex_ok = any(r.get("ok") for r in ex_results)
             await agent_mgr.broadcast({
                 "type": "action_done",
-                "action": {
-                    "id": act_id, "tool": "save_exam",
-                    "params": {"path": "sandbox/static/exam_temp.json"},
-                    "output": ex_msg, "duration": 0.05,
-                    "status": "done" if ex_ok else "error", "friendly_name": "Save Exam",
-                    "announcement": "Exam saved." if ex_ok else "Exam save failed.",
-                },
+                "action": {"id": act_id, "tool": "save_exam", "params": {},
+                           "output": "; ".join(r.get("message") or r.get("url", "") for r in ex_results),
+                           "duration": 0.05, "status": "done" if ex_ok else "error", "friendly_name": "Save Exam",
+                           "announcement": "Exam saved." if ex_ok else "Exam save failed."},
             })
-            executed_actions_log.append(
-                f"> ✅ **Exam Saved:** `sandbox/static/exam_temp.json` ({len(content)} bytes)"
-                + (f" — {ex_msg}" if ex_msg else "")
-                if ex_ok else f"> ❌ **Exam Save Failed:** {ex_msg}"
-            )
+            try:
+                from agents import exam_store as _es
+                executed_actions_log.append(_es.render_results(ex_results))
+            except Exception:
+                pass
         elif action == "read_file" and path:
             r_ok, r_content = local_read_file(workspace_dir, path, user=user, sec_mgr=sec_mgr)
             act_id = str(uuid.uuid4())[:8]
@@ -3798,8 +3823,7 @@ async def execute_local_agent_task(
             "Based on the tool results above, provide a clear, helpful response answering the user's request."
         )
         if is_ollama:
-            second_response = await loop.run_in_executor(
-                None,
+            second_response = await loop.run_in_executor(None, contextvars.copy_context().run,
                 run_local_ollama_model,
                 LOCAL_AGENT_SYNTHESIS_SYSTEM,
                 synthesis_prompt,
@@ -3808,8 +3832,7 @@ async def execute_local_agent_task(
                 "portal_chat_synthesis",
             )
         else:
-            second_response = await loop.run_in_executor(
-                None,
+            second_response = await loop.run_in_executor(None, contextvars.copy_context().run,
                 run_dynamic_local_qwen,
                 LOCAL_AGENT_SYNTHESIS_SYSTEM,
                 synthesis_prompt,

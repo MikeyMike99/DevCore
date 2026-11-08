@@ -49,6 +49,8 @@ IMMUTABLE_JIT_BASENAMES = {
     "jit_elevation.py",
     ".jit_elevation_lease.json",
     ".devcore_master.key",
+    "vault_mod.py",
+    "vault_store.json.vault",
 }
 
 PROTECTED_SECURITY_FILES = {
@@ -108,7 +110,66 @@ ACCESS_AUTHORITY_MARKERS = (
     "SUPER_ADMIN_AUTO",
     "/api/auth/restore-root",
     "/api/auth/keys",
+    "/api/vault/",
+    "api_vault_gateway",
+    "_get_devcore_vault_service",
+    "vault_mod",
+    "bw ",
+    "bw.exe",
+    "bitwarden",
+    ".vault",
+    "vault_store",
 )
+
+
+def find_vault_target(tool_name, args):
+    """
+    Checks if a tool call attempts direct access to credential vaults,
+    Bitwarden CLI, .vault containers, or cryptographic vault engines.
+    """
+    import re
+    if tool_name in COMMAND_TOOLS:
+        cmd_line = args.get("CommandLine") or args.get("Input") or ""
+        cmd_l = cmd_line.lower()
+        if (
+            re.search(r"\bbw(\.exe)?\b", cmd_l)
+            or "bitwarden" in cmd_l
+            or "vault_mod" in cmd_l
+            or ".vault" in cmd_l
+            or "/api/vault" in cmd_l
+            or any(s in cmd_l for s in BRIDGE_SECRET_MARKERS)
+            or re.search(r"(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0):5050\b", cmd_l)
+        ):
+            return "credential_vault"
+    elif tool_name in (FILE_AND_SEARCH_TOOLS | WRITE_TOOLS):
+        cand = (
+            args.get("AbsolutePath")
+            or args.get("TargetFile")
+            or args.get("target_file")
+            or args.get("SearchPath")
+            or args.get("SearchDirectory")
+            or args.get("DirectoryPath")
+            or args.get("File")
+            or args.get("Url")
+            or ""
+        )
+        cand_l = str(cand).lower()
+        if (
+            cand_l.endswith(".vault")
+            or ".vault" in cand_l
+            or "vault_store" in cand_l
+            or "vault_mod" in cand_l
+            or "bitwarden" in cand_l
+            or any(s in cand_l for s in BRIDGE_SECRET_MARKERS)
+            or re.search(r"(localhost|127\.0\.0\.1|\[::1\]|0\.0\.0\.0):5050\b", cand_l)
+        ):
+            return str(cand)
+    return None
+
+
+# cli_bridge_ui.py (port 5050) secrets: live BW_SESSION token, PRF-encrypted master
+# password, HIBP key. Agents must not read these or drive the bridge API directly.
+BRIDGE_SECRET_MARKERS = ("bw_session", "bw_biometric", "hibp_api_key")
 
 FILE_AND_SEARCH_TOOLS = {
     "view_file",
@@ -487,6 +548,19 @@ def main():
             target_desc = args.get("TargetFile") or args.get("target_file") or args.get("CommandLine", "security_file")
             log_violation(tool_name, target_desc, tamper_reason)
             print(json.dumps({"decision": "deny", "reason": tamper_reason}))
+            return
+
+        # --- CREDENTIAL VAULT ISOLATION INTERCEPTION ---
+        vault_target = find_vault_target(tool_name, args)
+        if vault_target:
+            reason = (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Direct agent access to credential vault asset '{vault_target}' is strictly forbidden.\n"
+                "Agents may not read, execute, inspect, or modify .vault containers, Bitwarden credentials, "
+                "or cryptographic vault management engines."
+            )
+            log_violation(tool_name, str(vault_target), reason)
+            print(json.dumps({"decision": "deny", "reason": reason}))
             return
 
         map_path = "/mnt/c/Users/michael/Documents/DevCore/security/raugus_map.json"

@@ -8,6 +8,8 @@ import os
 import re
 import subprocess
 import threading
+import time
+from pathlib import Path
 
 from quart import Blueprint, request, jsonify, current_app
 
@@ -35,7 +37,7 @@ def _extract_oauth_url(raw):
     if not m:
         return None
     url = m.group(0)
-    i = url.find("https://", 8)  # printed twice, back-to-back
+    i = url.find("https://", 8)
     return url[:i] if i != -1 else url
 
 
@@ -153,3 +155,216 @@ async def ai_login_complete():
         "message": "Signed in with your Claude subscription." if logged_in
         else "Sign-in did not complete. Check the code and try again.",
     }), (200 if logged_in else 502)
+
+
+@ai_bp.route("/api/chat", methods=["POST"])
+@ai_bp.route("/ai_agent/api/chat", methods=["POST"])
+async def start_chat():
+    data = await request.get_json(silent=True) or {}
+    prompt = (data.get("prompt") or data.get("text") or "").strip()
+    msg_type = data.get("type", "prompt")
+    model = data.get("model") or "Gemini 3.8 Flash (High)"
+    conversation_id = data.get("conversation_id")
+    token = data.get("token") or request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    client_id = (data.get("client_id") or request.headers.get("X-Client-ID") or request.args.get("client_id") or "").strip()
+    req_mode = data.get("mode") or ("steer" if msg_type == "steer" else ("queue" if msg_type == "queue_prompt" else "normal"))
+
+    agent_mgr = current_app.agent_mgr
+    security_mgr = current_app.security_mgr
+
+    user = None
+    if token:
+        user = security_mgr.get_user_from_token(token, remote_addr=request.remote_addr, headers=request.headers)
+    if not user:
+        user = security_mgr.get_user_from_token(None, remote_addr=request.remote_addr, headers=request.headers)
+    if not user:
+        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
+        guest_name = f"guest-{cf_ip}"
+        user = {"username": guest_name, "name": "Guest", "role": "guest", "token_scope": "user"}
+
+    base_user = user.get("username") or user.get("name") or "guest"
+    slot_key = f"{base_user}::{client_id}" if client_id else base_user
+    user = dict(user)
+    user["username"] = base_user
+    user["_slot_key"] = slot_key
+    if hasattr(agent_mgr, "set_task_context"):
+        agent_mgr.set_task_context(slot_key)
+
+    from core.roles import is_admin_role
+    is_role_admin = bool(user and is_admin_role(user.get("role")))
+    admin_override = is_role_admin or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
+
+    target_project = (data.get("project") or "").strip()
+    if target_project and hasattr(current_app, "project_mgr"):
+        try:
+            if target_project.lower() in ("root", "system_core", "workspaces"):
+                current_app.project_mgr.set_active_project("")
+            elif target_project in current_app.project_mgr.list_projects(user=user):
+                current_app.project_mgr.set_active_project(target_project)
+        except Exception:
+            pass
+
+    if msg_type == "cli_input":
+        cli_in = data.get("input") or data.get("text") or prompt
+        await agent_mgr.send_input(cli_in)
+        return jsonify({"success": True, "message": "CLI input dispatched"})
+
+    if msg_type == "cancel":
+        if hasattr(agent_mgr, "cancel_task"):
+            await agent_mgr.cancel_task(user=user)
+        return jsonify({"success": True, "message": "Task cancelled"})
+
+    if not prompt:
+        return jsonify({"error": "Empty prompt provided"}), 400
+
+    is_running = agent_mgr.is_running(slot_key) if hasattr(agent_mgr, "is_running") else False
+    if is_running and req_mode != "queue":
+        if not prompt.startswith("[STEER_NOW]\n"):
+            prompt = f"[STEER_NOW]\n{prompt}"
+        req_mode = "steer"
+
+    if req_mode == "queue" and hasattr(agent_mgr, "queue_prompt"):
+        clean_q = prompt[len("[QUEUE_NEXT]\n"):].strip() if prompt.startswith("[QUEUE_NEXT]\n") else prompt
+        await agent_mgr.queue_prompt(clean_q, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
+        return jsonify({"success": True, "message": "Prompt queued", "mode": "queue", "conversation_id": conversation_id})
+    elif req_mode == "steer" and hasattr(agent_mgr, "steer_task"):
+        clean_s = prompt[len("[STEER_NOW]\n"):].strip() if prompt.startswith("[STEER_NOW]\n") else prompt
+        await agent_mgr.steer_task(clean_s, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override)
+        return jsonify({"success": True, "message": "Task steered", "mode": "steer", "conversation_id": conversation_id})
+    else:
+        asyncio.create_task(agent_mgr.start_task(prompt, model=model, conversation_id=conversation_id, user=user, admin_override=admin_override))
+        return jsonify({"success": True, "message": "Task started", "mode": "normal", "conversation_id": conversation_id})
+
+
+@ai_bp.route("/api/stream", methods=["GET"])
+@ai_bp.route("/ai_agent/api/stream", methods=["GET"])
+@ai_bp.route("/stream", methods=["GET"])
+async def get_stream():
+    since_seq = request.args.get("since_seq", default=0, type=int)
+    client_id = (request.headers.get("X-Client-ID") or request.args.get("client_id") or "").strip()
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip() or request.args.get("token", "").strip()
+    agent_mgr = current_app.agent_mgr
+    security_mgr = current_app.security_mgr
+
+    user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
+    if not user:
+        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
+        base_user = f"guest-{cf_ip}"
+    else:
+        base_user = user.get("username") or user.get("name") or "guest"
+    if base_user.strip().lower() in ("admin", "michael (admin)", "michael"):
+        base_user = "Michael (Admin)"
+    slot_key = f"{base_user}::{client_id}" if client_id else base_user
+
+    items = list(getattr(agent_mgr, "message_queue", []) or [])
+
+    devcore_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    sf = Path(devcore_root) / ".runtime" / "stream_events.json"
+    if sf.is_file():
+        try:
+            shared = json.loads(sf.read_text(encoding="utf-8"))
+            if isinstance(shared, list):
+                existing_seqs = {it.get("seq") for it in items if isinstance(it, dict)}
+                for s in shared:
+                    if isinstance(s, dict) and s.get("seq") not in existing_seqs:
+                        items.append(s)
+                items.sort(key=lambda x: x.get("seq", 0))
+        except Exception:
+            pass
+
+    def _norm_base(val):
+        if not val:
+            return ""
+        b = str(val).split("::", 1)[0].strip()
+        return "Michael (Admin)" if b.lower() in ("admin", "michael (admin)", "michael") else b
+
+    def _match_owner(item_owner):
+        if not item_owner:
+            return _norm_base(base_user) == "Michael (Admin)"
+        if item_owner == slot_key:
+            return True
+        if "::" in str(item_owner) and "::" in str(slot_key):
+            ib, ic = str(item_owner).split("::", 1)
+            sb, sc = str(slot_key).split("::", 1)
+            return _norm_base(ib) == _norm_base(sb) and ic == sc
+        return _norm_base(item_owner) == _norm_base(slot_key)
+
+    messages = []
+    max_seq = since_seq
+    for it in items:
+        seq_val = it.get("seq", 0)
+        if seq_val > since_seq:
+            msg_obj = dict(it.get("msg", {}))
+            item_owner = it.get("owner") or msg_obj.get("owner")
+            if not _match_owner(item_owner):
+                if seq_val > max_seq:
+                    max_seq = seq_val
+                continue
+            if "seq" not in msg_obj:
+                msg_obj["seq"] = seq_val
+            messages.append(msg_obj)
+            if seq_val > max_seq:
+                max_seq = seq_val
+
+    is_running = agent_mgr.is_running(slot_key) if hasattr(agent_mgr, "is_running") else False
+    active_conv = agent_mgr.get_user_conversation_id(slot_key) if hasattr(agent_mgr, "get_user_conversation_id") else None
+    return jsonify({
+        "messages": messages,
+        "last_seq": max_seq,
+        "is_running": is_running,
+        "heartbeat": time.time(),
+        "active_conversation_id": active_conv
+    })
+
+
+@ai_bp.route("/api/heartbeat", methods=["GET", "POST"])
+@ai_bp.route("/ai_agent/api/heartbeat", methods=["GET", "POST"])
+@ai_bp.route("/api/ping", methods=["GET", "POST"])
+@ai_bp.route("/ai_agent/api/ping", methods=["GET", "POST"])
+@ai_bp.route("/heartbeat", methods=["GET", "POST"])
+async def heartbeat_endpoint():
+    agent_mgr = current_app.agent_mgr
+    security_mgr = current_app.security_mgr
+    client_id = (request.headers.get("X-Client-ID") or request.args.get("client_id") or "").strip()
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip() or request.args.get("token", "").strip()
+    user = None
+    if token:
+        user = security_mgr.get_user_from_token(token, remote_addr=request.remote_addr, headers=request.headers)
+    if not user:
+        user = security_mgr.get_user_from_token(None, remote_addr=request.remote_addr, headers=request.headers)
+    if not user:
+        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
+        base_user = f"guest-{cf_ip}"
+    else:
+        base_user = user.get("username") or user.get("name") or "guest"
+    slot_key = f"{base_user}::{client_id}" if client_id else base_user
+
+    is_running = agent_mgr.is_running(slot_key) if hasattr(agent_mgr, "is_running") else False
+    return jsonify({
+        "status": "alive",
+        "time": time.time(),
+        "is_running": is_running,
+        "current_seq": getattr(agent_mgr, "current_seq", 0),
+        "active_project": getattr(getattr(current_app, "project_mgr", None), "active_project", None)
+    })
+
+
+@ai_bp.route("/api/kill", methods=["POST"])
+@ai_bp.route("/ai_agent/api/kill", methods=["POST"])
+async def kill_chat():
+    agent_mgr = current_app.agent_mgr
+    security_mgr = current_app.security_mgr
+    client_id = (request.headers.get("X-Client-ID") or request.args.get("client_id") or "").strip()
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip() or request.args.get("token", "").strip()
+    user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
+    if not user:
+        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
+        user = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest", "token_scope": "user"}
+    base_user = user.get("username") or user.get("name") or "guest"
+    slot_key = f"{base_user}::{client_id}" if client_id else base_user
+    user = dict(user)
+    user["username"] = base_user
+    user["_slot_key"] = slot_key
+    if hasattr(agent_mgr, "cancel_task"):
+        await agent_mgr.cancel_task(user=user)
+    return jsonify({"success": True, "message": "Task cancelled"})

@@ -50,6 +50,21 @@
             height: 100%;
         }
 
+        /* Phones: wrap the top bar instead of running off-screen, give the message box room */
+        @media (max-width: 640px) {
+            header[role="banner"] { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+            header[role="banner"] h1 > span, #header-workspace-label { display: none; }
+            #header-actions { flex-wrap: wrap; width: 100%; gap: 6px; }
+            #header-actions > button, #header-actions > div, #header-actions > a { font-size: 12px; padding: 6px 10px; }
+            #header-actions > div:first-child { flex: 1 1 100%; }
+            #header-actions select { flex: 1; min-width: 0; }
+            #chat-form { gap: 6px; }
+            #chat-input-helper { display: none; }
+            #prompt { font-size: 16px; } /* stops iPhone zooming in on tap */
+            #attach-btn { padding-left: 10px; padding-right: 10px; }
+            #attach-btn-label { display: none; }
+            #send-btn { padding-left: 14px; padding-right: 14px; }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden">
@@ -120,22 +135,29 @@
                 <span class="w-2 h-2 rounded-full bg-yellow-400" aria-hidden="true"></span>
                 <span id="connection-text">{{ ui.header.conn_text }}</span>
             </div>
+            <button id="header-byos-btn" type="button" onclick="openByosModal()" aria-haspopup="dialog" aria-controls="byos-modal" title="Authenticate your personal Gemini Subscription or API Key (BYOS)" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-teal-700/70 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-2 shadow-sm cursor-pointer">
+                <span id="header-byos-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0" aria-hidden="true"></span>
+                <span id="header-byos-label">🔑 Authenticate Subscription</span>
+            </button>
             <button id="btn-clear-history" onclick="clearHistory()" aria-label="Clear chat history display" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">Clear View</button>
-            <a href="/telemetry" id="header-telemetry-btn" aria-label="Open Token Telemetry Dashboard" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
+            <a href="/telemetry" id="header-telemetry-btn" aria-label="Open Token Telemetry Dashboard" class="hidden text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
                 <span aria-hidden="true">📊</span> Telemetry
             </a>
-            <a href="/audits" id="header-audits-btn" aria-label="Open System Audits Review Hub" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
+            <a href="/audits" id="header-audits-btn" aria-label="Open System Audits Review Hub" class="hidden text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5">
                 <span aria-hidden="true">🛡️</span> Audits
             </a>
-            <!-- Antigravity CLI Authorization Status & Control -->
-            <button id="header-cli-auth-btn" type="button" onclick="openCliAuthModal()" aria-haspopup="dialog" aria-controls="cli-auth-modal" title="Antigravity CLI Authorization Status" class="text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-200 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-2 shadow-sm cursor-pointer">
+            <button id="header-vault-btn" type="button" onclick="openVaultManagerModal()" aria-haspopup="dialog" aria-controls="vault-manager-modal" title="Super Admin Bitwarden CLI &amp; Local X_SHI3LD_X Vault Manager" class="hidden text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-teal-700/70 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
+                <span aria-hidden="true">🔐</span> <span>Vault &amp; CLI</span>
+            </button>
+            <!-- Antigravity CLI Authorization Status & Control (Admin Only) -->
+            <button id="header-cli-auth-btn" type="button" onclick="openCliAuthModal()" aria-haspopup="dialog" aria-controls="cli-auth-modal" title="Antigravity CLI Authorization Status" class="hidden text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-200 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-2 shadow-sm cursor-pointer">
                 <span id="header-cli-auth-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" aria-hidden="true"></span>
                 <span id="header-cli-auth-label">CLI: Checking...</span>
             </button>
-            <button id="header-demo-auth-btn" type="button" onclick="handleDemoAuthenticate()" title="1-Click Demo Authentication" class="text-sm px-3.5 py-2 bg-gradient-to-r from-teal-800 to-teal-700 hover:from-teal-700 hover:to-teal-600 border border-teal-500/50 rounded-lg text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm">
+            <button id="header-demo-auth-btn" type="button" onclick="handleDemoAuthenticate()" title="1-Click Demo Authentication" class="hidden text-sm px-3.5 py-2 bg-gradient-to-r from-teal-800 to-teal-700 hover:from-teal-700 hover:to-teal-600 border border-teal-500/50 rounded-lg text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm">
                 <span class="text-amber-300">⚡</span> Demo Auth
             </button>
-            <button id="header-reauth-btn" type="button" onclick="openReauthModal()" aria-haspopup="dialog" aria-controls="reauth-modal" title="Reset Token &amp; Re-Authenticate Root" class="text-sm px-3.5 py-2 bg-gradient-to-r from-amber-950/80 to-amber-900/80 hover:from-amber-900 hover:to-amber-800 border border-amber-600/60 rounded-lg text-amber-200 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
+            <button id="header-reauth-btn" type="button" onclick="openReauthModal()" aria-haspopup="dialog" aria-controls="reauth-modal" title="Reset Token &amp; Re-Authenticate Root" class="hidden text-sm px-3.5 py-2 bg-gradient-to-r from-amber-950/80 to-amber-900/80 hover:from-amber-900 hover:to-amber-800 border border-amber-600/60 rounded-lg text-amber-200 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer">
                 <span class="text-amber-400">👑</span> <span>Reset &amp; Re-Auth</span>
             </button>
             <button id="settings-panel-btn" type="button" aria-controls="settings-panel" aria-expanded="false" onclick="openSettingsPanel()" class="text-sm px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors">
@@ -198,37 +220,49 @@
 
                     <nav aria-label="{{ ui.nav.aria_label }}">
                         <ul class="space-y-3">
-                            <li>
+                            <li id="quick-action-byos-li">
+                                <button type="button" onclick="openByosModal()" id="quick-action-byos" aria-haspopup="dialog" aria-controls="byos-modal" aria-label="Authenticate Personal Subscription (Bring Your Own Key)" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-teal-700/70 rounded-lg text-teal-300 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center justify-between cursor-pointer">
+                                    <span class="text-base flex items-center gap-2"><span aria-hidden="true">🔑</span> Authenticate Personal Subscription (BYOS)</span>
+                                    <span class="text-xs text-teal-400 font-mono">Browser-Only or Encrypted Key</span>
+                                </button>
+                            </li>
+                            <li id="nav-shortcut-li-1" class="hidden">
                                 <button type="button" id="nav-shortcut-btn1" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn1.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+S">
                                     <span class="text-base">{{ ui.nav.btn1.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn1.sr_text }}</span>
                                 </button>
                             </li>
-                            <li>
+                            <li id="nav-shortcut-li-2" class="hidden">
                                 <button type="button" id="nav-shortcut-btn2" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick='document.getElementById("prompt").value = {{ ui.nav.btn2.prompt | tojson | safe }}; document.getElementById("prompt").focus();' aria-keyshortcuts="Alt+L">
                                     <span class="text-base">{{ ui.nav.btn2.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn2.sr_text }}</span>
                                 </button>
                             </li>
-                            <li>
+                            <li id="nav-shortcut-li-3">
                                 <button type="button" id="nav-shortcut-btn3" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-teal-400 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex flex-col gap-1" onclick="document.getElementById('prompt').focus();" aria-keyshortcuts="Alt+C">
                                     <span class="text-base">{{ ui.nav.btn3.text }}</span>
                                     <span class="text-xs text-slate-400 sr-only">{{ ui.nav.btn3.sr_text }}</span>
                                 </button>
                             </li>
-                            <li>
+                            <li id="quick-action-telemetry-li" class="hidden">
                                 <a href="/telemetry" id="quick-action-telemetry" aria-label="Open Token Telemetry Dashboard" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-teal-800/60 rounded-lg text-teal-300 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center justify-between">
                                     <span class="text-base flex items-center gap-2"><span aria-hidden="true">📊</span> Token Telemetry Dashboard</span>
                                     <span class="text-xs text-teal-400 font-mono">Usage &amp; Cache Metrics</span>
                                 </a>
                             </li>
-                            <li>
+                            <li id="quick-action-audits-li" class="hidden">
                                 <a href="/audits" id="quick-action-audits" aria-label="Open System Audits Review Hub" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-emerald-800/60 rounded-lg text-emerald-300 font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center justify-between">
                                     <span class="text-base flex items-center gap-2"><span aria-hidden="true">🛡️</span> System Audits Review Hub</span>
                                     <span class="text-xs text-emerald-400 font-mono">Diagnostics &amp; Health</span>
                                 </a>
                             </li>
-                            <li>
+                            <li id="quick-action-passkeys-li" class="hidden">
+                                <button type="button" onclick="openPasskeyWizardModal()" id="quick-action-passkeys" aria-haspopup="dialog" aria-controls="passkey-wizard-modal" aria-label="Open DevCore Passkey and Bitwarden Setup Wizard" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-cyan-800/60 rounded-lg text-cyan-300 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none transition-colors flex items-center justify-between cursor-pointer">
+                                    <span class="text-base flex items-center gap-2"><span aria-hidden="true">🔑</span> Passkey &amp; Bitwarden Setup</span>
+                                    <span class="text-xs text-cyan-400 font-mono">Hardware Biometrics &amp; WebAuthn</span>
+                                </button>
+                            </li>
+                            <li id="quick-action-reauth-li" class="hidden">
                                 <button type="button" id="quick-action-reauth" onclick="openReauthModal()" aria-label="Reset &amp; Re-Authenticate Root Agent" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-amber-600/50 rounded-lg text-amber-300 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none transition-colors flex items-center justify-between cursor-pointer">
                                     <span class="text-base flex items-center gap-2"><span aria-hidden="true">👑</span> Reset &amp; Re-Authenticate</span>
                                     <span class="text-xs text-amber-400 font-mono">Restore Root / Google OAuth</span>
@@ -280,11 +314,11 @@
                             <div class="font-bold text-teal-400 text-sm">/builder</div>
                             <div class="text-xs text-slate-300 mt-1">Spawns the Visual Exam Builder Dashboard</div>
                         </button>
-                        <button type="button" role="option" id="slash-item-4" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/telemetry">
+                        <button type="button" role="option" id="slash-item-4" data-admin-only="true" class="hidden slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/telemetry">
                             <div class="font-bold text-teal-400 text-sm">/telemetry</div>
                             <div class="text-xs text-slate-300 mt-1">Opens the Real-Time Token Telemetry Dashboard</div>
                         </button>
-                        <button type="button" role="option" id="slash-item-5" class="slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/audits">
+                        <button type="button" role="option" id="slash-item-5" data-admin-only="true" class="hidden slash-item text-left px-4 py-3 hover:bg-slate-700 focus:bg-slate-700 focus:outline-none transition-colors border-t border-slate-700/50" data-command="/audits">
                             <div class="font-bold text-emerald-400 text-sm">/audits</div>
                             <div class="text-xs text-slate-300 mt-1">Opens the System Audits Review Hub</div>
                         </button>
@@ -307,9 +341,19 @@
                         {{ ui.chat_input.helper_text }}
                     </div>
                 </div>
-                <button 
-                    type="button" 
-                    id="queue-btn" 
+                <input type="file" id="attach-input" class="hidden" accept=".pdf,.docx,.txt,.md,.csv" onchange="handleAttachChosen(this)">
+                <button
+                    type="button"
+                    id="attach-btn"
+                    onclick="handleAttachClick()"
+                    aria-label="Attach a document (PDF, Word, text) to your next message"
+                    title="Attach a document (PDF, Word, text, Markdown, CSV; up to 5 MB)"
+                    class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-medium rounded-lg px-3 py-2.5 transition-colors h-[58px] max-w-[11rem] flex items-center justify-center gap-1.5 shrink-0 text-sm cursor-pointer focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <span aria-hidden="true">📎</span><span id="attach-btn-label" class="truncate">Attach</span>
+                </button>
+                <button
+                    type="button"
+                    id="queue-btn"
                     onclick="sendPrompt(null, 'queue')"
                     aria-label="Queue context for next turn without interrupting current action (Alt+Enter)"
                     title="Queue for next turn without interrupting current step (Alt+Enter)"
@@ -340,11 +384,11 @@
         <div class="flex flex-col gap-4 overflow-y-auto">
             <!-- User Status & Role Badge (Without Bypass Checkbox) -->
             <div id="user-pill" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg px-2.5 py-2 text-sm">
-                <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-xs font-bold bg-teal-900 text-teal-300 w-fit">SUPER_ADMIN</span>
+                <span id="user-role-badge" class="px-1.5 py-0.5 rounded text-xs font-bold bg-purple-900 text-purple-300 w-fit">GUEST</span>
                 <span id="user-display-name" class="font-medium text-slate-200">Guest</span>
                 <div class="flex gap-1.5 mt-1">
-                    <button type="button" onclick="handleDemoAuthenticate()" class="flex-1 text-[11px] text-white font-bold bg-teal-700 hover:bg-teal-600 px-1.5 py-1.5 rounded border border-teal-500/50 flex items-center justify-center gap-1 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer"><span class="text-amber-300">⚡</span> Demo</button>
-                    <button type="button" id="restore-root-btn" onclick="openReauthModal()" class="flex-1 text-[11px] text-amber-300 hover:text-amber-100 font-bold bg-amber-950/80 px-1.5 py-1.5 rounded border border-amber-600/60 flex items-center justify-center gap-1 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer" title="Reset &amp; Re-Authenticate Root"><i class="fas fa-crown text-[9px]"></i> Re-Auth</button>
+                    <button type="button" id="sidebar-demo-btn" onclick="handleDemoAuthenticate()" class="hidden flex-1 text-[11px] text-white font-bold bg-teal-700 hover:bg-teal-600 px-1.5 py-1.5 rounded border border-teal-500/50 flex items-center justify-center gap-1 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer"><span class="text-amber-300">⚡</span> Demo</button>
+                    <button type="button" id="restore-root-btn" onclick="openReauthModal()" class="hidden flex-1 text-[11px] text-amber-300 hover:text-amber-100 font-bold bg-amber-950/80 px-1.5 py-1.5 rounded border border-amber-600/60 flex items-center justify-center gap-1 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer" title="Reset &amp; Re-Authenticate Root"><i class="fas fa-crown text-[9px]"></i> Re-Auth</button>
                     <button type="button" onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-[11px] text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-1.5 py-1.5 rounded border border-teal-800/50 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">Login</button>
                     <button type="button" onclick="logout()" id="logout-btn" class="hidden flex-1 text-[11px] text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-1.5 py-1.5 rounded border border-rose-800/50 focus:ring-2 focus:ring-rose-500 focus:outline-none cursor-pointer">Logout</button>
                 </div>
@@ -373,37 +417,65 @@
                 </div>
             </div>
 
-            <!-- Project Selector -->
-            <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
+            <!-- My Exam Content (every tier; each user sees only their own files) -->
+            <div id="exam-content-card" class="flex flex-col gap-2 bg-slate-900/80 border border-teal-500/30 rounded-lg p-3 shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-teal-300">📁 My Exam Content</span>
+                    <span id="exam-content-count" class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">0 files</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Upload study material, then ask: "make an exam from my content folder". Only you can see these files. They are sent to the AI to build your exam and deleted after 30 days.</p>
+                <input type="file" id="exam-content-input" class="hidden" accept=".pdf,.docx,.txt,.md,.csv" onchange="uploadExamContent(this)">
+                <button type="button" id="exam-content-upload" onclick="document.getElementById('exam-content-input').click()" class="text-xs text-white font-bold bg-teal-700 hover:bg-teal-600 px-2 py-1.5 rounded border border-teal-500/50 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">⬆️ Upload a file</button>
+                <ul id="exam-content-list" class="flex flex-col gap-1 text-[11px] text-slate-300" aria-label="Files in your exam content folder"></ul>
+                <p id="exam-content-feedback" class="hidden text-[11px]" role="status"></p>
+            </div>
+
+            <!-- Tier Limits (super admin only; hidden for everyone else) -->
+            <div id="tier-limits-card" class="hidden flex flex-col gap-2 bg-slate-900/80 border border-amber-500/30 rounded-lg p-3 shadow-md">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-amber-300">📊 Tier Limits</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">Prompts / day</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Users on your subscription get this many prompts a day. People who bring their own key are not limited.</p>
+                <div id="tier-limits-rows" class="flex flex-col gap-1.5"></div>
+                <button type="button" id="tier-limits-save" onclick="saveTierLimits()" class="text-xs text-white font-bold bg-amber-700 hover:bg-amber-600 px-2 py-1.5 rounded border border-amber-500/50 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer">Save</button>
+                <p id="tier-limits-today" class="text-[10px] text-slate-500"></p>
+                <p id="tier-limits-feedback" class="hidden text-[11px]" role="status"></p>
+            </div>
+
+            <!-- Project Selector (Dev & Admin Only) -->
+            <div id="project-workspace-card" class="hidden flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <label for="project-selector" class="text-xs font-semibold text-teal-400 shrink-0">Project Workspace:</label>
                 <select id="project-selector" onchange="switchProject()" aria-label="Select Project Workspace" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer p-1 w-full truncate">
                     <option value="">(Loading...)</option>
                 </select>
-                <div class="flex gap-2 mt-1">
-                    <button type="button" onclick="newProject()" title="New Project" aria-label="Create New Project" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">+ New</button>
-                    <button type="button" onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="flex-1 text-rose-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-rose-500 focus:outline-none">🗑️ Clear</button>
+                <div id="project-admin-actions" class="hidden flex gap-2 mt-1">
+                    <button type="button" id="btn-new-project" onclick="newProject()" title="New Project" aria-label="Create New Project" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">+ New</button>
+                    <button type="button" id="btn-clear-project-sessions" onclick="clearProjectSessions()" title="Clear Project Sessions" aria-label="Clear all sessions for this project" class="flex-1 text-rose-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-rose-500 focus:outline-none">🗑️ Clear</button>
                 </div>
             </div>
 
             <!-- Conversation Selector -->
-            <div class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
+            <div id="session-selector-card" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <label for="conversation-selector" class="text-xs font-semibold text-teal-400 shrink-0">Current Session:</label>
                 <select id="conversation-selector" onchange="switchConversation()" aria-label="Select Conversation" class="bg-transparent border border-slate-700 rounded text-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 cursor-pointer p-1 w-full truncate">
                 </select>
                 <div class="flex gap-2 mt-1">
                     <button type="button" onclick="renameConversation()" title="Rename Session" aria-label="Rename current session" class="flex-1 text-teal-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-teal-500 focus:outline-none">✏️ Rename</button>
                     <button type="button" onclick="deleteSingleSession()" title="Delete Selected Session" aria-label="Delete selected session" class="flex-1 text-amber-400 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-amber-500 focus:outline-none">🗑️ Delete</button>
-                    <button type="button" onclick="sanitizeSessions()" title="Sanitize/Clear All Sessions" aria-label="Sanitize all sessions" class="flex-1 text-rose-500 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-rose-500 focus:outline-none">🧹 Clear All</button>
+                    <button type="button" id="btn-sanitize-sessions" onclick="sanitizeSessions()" title="Sanitize/Clear All Sessions" aria-label="Sanitize all sessions" class="hidden flex-1 text-rose-500 hover:bg-slate-800 text-xs font-bold py-1 rounded border border-slate-700 transition-colors focus:ring-2 focus:ring-rose-500 focus:outline-none">🧹 Clear All</button>
                 </div>
             </div>
 
             <div class="flex flex-col gap-2 mt-4 pt-4 border-t border-slate-800">
                 <!-- Admin override moved to backend environment variable -->
                 <button type="button" onclick="newConversation()" aria-label="Start a new chat session" class="w-full text-sm px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">✨ New Session</button>
-                <a href="telemetry" aria-label="Open Token Telemetry Dashboard" class="w-full text-center text-sm px-3 py-2 text-teal-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-teal-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>📊</span> Token Telemetry Dashboard</a>
-                <a href="audits" aria-label="Open System Audits Review Hub" class="w-full text-center text-sm px-3 py-2 text-emerald-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-emerald-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>🛡️</span> System Audits Review Hub</a>
-                <button type="button" onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">↻ Reload Scripts</button>
-                <button type="button" onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="w-full text-sm px-3 py-2 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded-lg border border-amber-700/60 transition-colors font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">🛡️ Auto-Patch Event</button>
+                <a href="telemetry" id="sidebar-telemetry-link" aria-label="Open Token Telemetry Dashboard" class="hidden w-full text-center text-sm px-3 py-2 text-teal-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-teal-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>📊</span> Token Telemetry Dashboard</a>
+                <a href="audits" id="sidebar-audits-link" aria-label="Open System Audits Review Hub" class="hidden w-full text-center text-sm px-3 py-2 text-emerald-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-emerald-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>🛡️</span> System Audits Review Hub</a>
+                <button type="button" id="sidebar-vault-btn" onclick="closeSettingsPanel(); openVaultManagerModal();" aria-label="Open Super Admin Bitwarden CLI and Local Vault Manager" class="hidden w-full text-center text-sm px-3 py-2 text-teal-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-teal-700/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none flex items-center justify-center gap-2"><span>🔐</span> Unified Vault &amp; Bitwarden CLI (Tier 5)</button>
+                <button type="button" onclick="closeSettingsPanel(); openCliBridgeModal();" id="sidebar-cli-bridge-btn" aria-haspopup="dialog" aria-controls="cli-bridge-modal" aria-label="Open Bitwarden CLI Web Setup and Bridge on port 5050" class="hidden w-full text-center text-sm px-3 py-2 text-sky-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-lg border border-sky-700/60 transition-colors font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none flex items-center justify-center gap-2 cursor-pointer"><span>💻</span> Bitwarden CLI Web Setup (Port 5050)</button>
+                <button type="button" id="sidebar-reload-btn" onclick="reloadBackend()" aria-label="Hot reload backend modules without restarting server" class="hidden w-full text-sm px-3 py-2 text-teal-400 hover:text-teal-200 hover:bg-slate-800 rounded-lg border border-teal-800/60 transition-colors font-medium focus:ring-2 focus:ring-teal-500 focus:outline-none">↻ Reload Scripts</button>
+                <button type="button" id="sidebar-autopatch-btn" onclick="simulateHotPatch()" aria-label="Simulate an automated security hot-patch" class="hidden w-full text-sm px-3 py-2 text-amber-400 hover:text-amber-200 hover:bg-amber-900/30 rounded-lg border border-amber-700/60 transition-colors font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none">🛡️ Auto-Patch Event</button>
             </div>
         </div>
     </dialog>
@@ -858,7 +930,10 @@
                 const sysRes = await fetch('/api/auth/system-status');
                 const sysData = await sysRes.json();
                 window._isSuperAdminHost = Boolean(sysData && sysData.super_admin);
-                loadCliStatus();
+                if (!window._isSuperAdminHost && currentUser && (currentUser.role === 'super_admin' || currentUser.username === 'Michael (Admin)')) {
+                    currentUser = { username: 'guest', role: 'guest', name: 'Guest' };
+                    localStorage.setItem('agy_user', JSON.stringify(currentUser));
+                }
                 
                 let token = localStorage.getItem('agy_auth_token') || '';
                 if ((!token || token.startsWith('sec-demo-')) && sysData.super_admin && !window.location.search.includes('demo=1') && !sessionStorage.getItem('agy_manual_logout')) {
@@ -890,7 +965,11 @@
                 if (!currentUser && sysData && sysData.super_admin) {
                     currentUser = { username: 'Michael (Admin)', role: 'super_admin', name: 'Michael (Admin)' };
                     localStorage.setItem('agy_user', JSON.stringify(currentUser));
-                    if (typeof updateUserUI === 'function') updateUserUI();
+                }
+
+                if (typeof updateUserUI === 'function') updateUserUI();
+                if (typeof isTier5AdminUser === 'function' && isTier5AdminUser()) {
+                    loadCliStatus();
                 }
 
                 if (authData.authenticated === false) {
@@ -902,7 +981,7 @@
                     } else {
                         showLoginOverlay(authData);
                     }
-                } else if (authData.authenticated === true && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'Tier5_SysAdmin')) {
+                } else if (authData.authenticated === true && typeof isTier5AdminUser === 'function' && isTier5AdminUser()) {
                     injectAdminDashboardButton();
                 }
             } catch (e) {
@@ -911,6 +990,7 @@
         });
         
         function injectAdminDashboardButton() {
+            if (typeof isTier5AdminUser === 'function' && !isTier5AdminUser()) return;
             if (document.getElementById('admin-dashboard-btn')) return;
             const actionsDiv = document.getElementById('header-actions');
             if (actionsDiv) {
@@ -1605,6 +1685,13 @@
         var timerDisplay = document.getElementById('timer-display');
         var currentTaskPromptEl = document.getElementById('current-task-prompt');
         var taskModelBadge = document.getElementById('task-model-badge');
+        // Never show raw exam JSON in chat: the server saves [SAVE_EXAM] blocks and adds the link + embedded exam
+        if (typeof marked !== 'undefined' && marked.use && !window._examStripHook) {
+            marked.use({ hooks: { preprocess: function(md) {
+                return String(md == null ? '' : md).replace(/\[SAVE_EXAM\][\s\S]*?(\[\/SAVE_EXAM\]|$)/gi, '');
+            } } });
+            window._examStripHook = true;
+        }
         var modelSelector = document.getElementById('model-selector');
         var srAnnouncer = document.getElementById('sr-announcer');
         var srAlerts = document.getElementById('sr-alerts');
@@ -2115,7 +2202,12 @@
             announce('Model switched to ' + modelLabel);
         }
 
+        var currentConnectionState = null;
+        var wsReconnectTimer = null;
+        var httpHbFailCount = 0;
         function setConnectionStatus(state) {
+            if (currentConnectionState === state) return;
+            currentConnectionState = state;
             if (state === 'connected') {
                 connBadge.className = "flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-950/80 border border-emerald-800 text-emerald-400";
                 connBadge.children[0].className = "w-2 h-2 rounded-full bg-emerald-400";
@@ -2137,10 +2229,25 @@
         var streamPollInterval = null;
         var lastReceivedSeq = 0;
         var announcedActions = new Set();
+        var agyClientId = sessionStorage.getItem('agy_client_id');
+        if (!agyClientId) {
+            agyClientId = 'cid-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 10);
+            sessionStorage.setItem('agy_client_id', agyClientId);
+        }
 
         function startHttpStreamPolling() {
+            if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
             if (pingInterval) clearInterval(pingInterval);
             if (streamPollInterval) clearInterval(streamPollInterval);
+            if (ws && typeof ws.close === 'function') {
+                try {
+                    ws.onopen = null;
+                    ws.onclose = null;
+                    ws.onerror = null;
+                    ws.onmessage = null;
+                    ws.close();
+                } catch (e) {}
+            }
 
             ws = {
                 readyState: WebSocket.OPEN,
@@ -2150,6 +2257,7 @@
                 send: function(raw) {
                     try {
                         var payload = JSON.parse(raw);
+                        payload.client_id = agyClientId;
                         if (payload.type === 'ping' || payload.type === 'sync' || payload.type === 'ack') {
                             return;
                         }
@@ -2158,6 +2266,7 @@
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
+                                    'X-Client-ID': agyClientId,
                                     'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
                                 }
                             }).catch(function(err) { console.error("Kill error:", err); });
@@ -2168,10 +2277,12 @@
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
+                                    'X-Client-ID': agyClientId,
                                     'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
                                 },
                                 body: JSON.stringify({
                                     type: 'cli_input',
+                                    client_id: agyClientId,
                                     text: payload.input || payload.text || ''
                                 })
                             }).catch(function(err) { console.error("CLI input error:", err); });
@@ -2182,6 +2293,7 @@
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
+                                    'X-Client-ID': agyClientId,
                                     'Authorization': 'Bearer ' + (payload.token || localStorage.getItem('agy_auth_token') || '')
                                 },
                                 body: JSON.stringify(payload)
@@ -2194,20 +2306,52 @@
             };
 
             reconnectAttempts = 0;
+            httpHbFailCount = 0;
             setConnectionStatus('connected');
             if (!isTaskRunning && sendBtn) {
                 sendBtn.disabled = false;
             }
+
+            // Active 4-second HTTP Heartbeat Loop with hysteresis to prevent status flip-flopping
+            pingInterval = setInterval(async function() {
+                try {
+                    var hbRes = await fetch('/api/heartbeat', {
+                        headers: {
+                            'X-Client-ID': agyClientId,
+                            'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
+                        }
+                    });
+                    if (hbRes.ok) {
+                        httpHbFailCount = 0;
+                        setConnectionStatus('connected');
+                    } else {
+                        httpHbFailCount++;
+                        if (httpHbFailCount >= 3) {
+                            setConnectionStatus('reconnecting');
+                        }
+                    }
+                } catch (e) {
+                    httpHbFailCount++;
+                    if (httpHbFailCount >= 3) {
+                        setConnectionStatus('reconnecting');
+                    }
+                }
+            }, 4000);
 
             var isStreamPolling = false;
             streamPollInterval = setInterval(async function() {
                 if (isStreamPolling) return;
                 isStreamPolling = true;
                 try {
-                    var res = await fetch('/api/stream?since_seq=' + encodeURIComponent(lastReceivedSeq || 0), {
-                        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                    var res = await fetch('/api/stream?since_seq=' + encodeURIComponent(lastReceivedSeq || 0) + '&client_id=' + encodeURIComponent(agyClientId), {
+                        headers: {
+                            'X-Client-ID': agyClientId,
+                            'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
+                        }
                     });
                     if (!res.ok) return;
+                    httpHbFailCount = 0;
+                    setConnectionStatus('connected');
                     var data = await res.json();
                     if (data && Array.isArray(data.messages)) {
                         data.messages.forEach(function(msg) {
@@ -2229,47 +2373,72 @@
         }
 
         function connectWebSocket() {
+            if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
             if (API_BASE === '/ai_agent') {
                 startHttpStreamPolling();
                 return;
             }
+            if (ws && typeof ws.close === 'function') {
+                try {
+                    ws.onopen = null;
+                    ws.onclose = null;
+                    ws.onerror = null;
+                    ws.onmessage = null;
+                    ws.close();
+                } catch (e) {}
+            }
             var protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            var wsUrl = protocol + '//' + location.host + '/ws';
-            ws = new WebSocket(wsUrl);
+            var activeTok = localStorage.getItem('agy_auth_token') || '';
+            var wsUrl = protocol + '//' + location.host + '/ws?client_id=' + encodeURIComponent(agyClientId) + (activeTok ? '&token=' + encodeURIComponent(activeTok) : '');
+            var sock = new WebSocket(wsUrl);
+            ws = sock;
+            if (typeof byokWrapSocket === 'function') byokWrapSocket(sock);
 
-            ws.onopen = function() {
+            sock.onopen = function() {
+                if (ws !== sock) return;
                 reconnectAttempts = 0;
+                httpHbFailCount = 0;
                 setConnectionStatus('connected');
                 if (!isTaskRunning) {
                     sendBtn.disabled = false;
                 }
-                // Send immediate sync with sequence number to catch up any missed chunks
-                ws.send(JSON.stringify({ type: 'sync', last_seq: lastReceivedSeq }));
+                sock.send(JSON.stringify({
+                    type: 'sync',
+                    last_seq: lastReceivedSeq,
+                    client_id: agyClientId,
+                    token: localStorage.getItem('agy_auth_token') || ''
+                }));
 
-                // 4-second active heartbeat ping: prevents WSL 2 from dropping the socket
                 if (pingInterval) clearInterval(pingInterval);
                 pingInterval = setInterval(function() {
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify({ type: 'ping' }));
+                    if (ws === sock && sock.readyState === WebSocket.OPEN) {
+                        sock.send(JSON.stringify({
+                            type: 'ping',
+                            client_id: agyClientId,
+                            token: localStorage.getItem('agy_auth_token') || ''
+                        }));
                     }
                 }, 4000);
             };
 
-            ws.onclose = function() {
+            sock.onclose = function() {
+                if (ws !== sock) return;
                 if (pingInterval) clearInterval(pingInterval);
-                setConnectionStatus('reconnecting');
-                sendBtn.disabled = true;
                 reconnectAttempts++;
-                if (reconnectAttempts >= 3 && API_BASE) {
+                if (reconnectAttempts >= 3) {
+                    setConnectionStatus('reconnecting');
+                }
+                if (reconnectAttempts >= 5) {
+                    console.log("WebSocket reconnect attempts exceeded. Falling back to HTTP Stream Polling with Heartbeat.");
                     startHttpStreamPolling();
                     return;
                 }
-                var delay = Math.min(2000, 500 * reconnectAttempts);
-                setTimeout(connectWebSocket, delay);
+                var delay = Math.min(2500, 600 * reconnectAttempts);
+                wsReconnectTimer = setTimeout(connectWebSocket, delay);
             };
 
-            ws.onerror = function() {
-                ws.close();
+            sock.onerror = function() {
+                // Browser automatically triggers onclose after onerror
             };
 
             var ackThrottleTimer = null;
@@ -2295,6 +2464,17 @@
             ws.onmessage = function(event) {
                 try {
                     var data = JSON.parse(event.data);
+                    if (data.type === 'llm_relay_request') {
+                        if (typeof handleLlmRelayRequest === 'function') handleLlmRelayRequest(data);
+                        return;
+                    }
+                    if (data.type === 'byok_terms_required') {
+                        if (typeof handleByokTermsRequired === 'function') handleByokTermsRequired(data);
+                        return;
+                    }
+                    if ((data.type === 'agent_chunk' || data.type === 'agent_done') && typeof byokMaybeOffer === 'function') {
+                        byokMaybeOffer(String(data.chunk || data.output || ''));
+                    }
                     if (data.seq) {
                         lastReceivedSeq = Math.max(lastReceivedSeq, data.seq);
                         var isImmediate = (data.type === 'agent_done' || data.type === 'action_done' || data.type === 'task_started');
@@ -2402,8 +2582,34 @@
                 return;
             }
             else if (data.type === 'init') {
-                if (data.is_running === false && typeof finishTaskUI === 'function') {
-                    finishTaskUI(false, 0, "Server restarted");
+                var taskAge = taskStartTime ? (Date.now() / 1000 - taskStartTime) : 999;
+                if (data.is_running === false && isTaskRunning && taskAge > 4 && typeof finishTaskUI === 'function') {
+                    fetch('/api/stream?since_seq=' + encodeURIComponent(lastReceivedSeq || 0) + '&client_id=' + encodeURIComponent(agyClientId), {
+                        headers: {
+                            'X-Client-ID': agyClientId,
+                            'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '')
+                        }
+                    }).then(function(r) { return r.ok ? r.json() : null; }).then(function(sData) {
+                        if (sData && Array.isArray(sData.messages)) {
+                            sData.messages.forEach(function(m) {
+                                if (m && typeof m.seq === 'number') {
+                                    if (m.seq <= lastReceivedSeq) return;
+                                    lastReceivedSeq = m.seq;
+                                }
+                                handleServerMessage(m);
+                            });
+                        }
+                        if (sData && typeof sData.last_seq === 'number' && sData.last_seq > lastReceivedSeq) {
+                            lastReceivedSeq = sData.last_seq;
+                        }
+                        if (isTaskRunning && (!sData || sData.is_running === false)) {
+                            finishTaskUI(false, 0, "SYNC_IDLE");
+                        }
+                    }).catch(function() {
+                        if (isTaskRunning) {
+                            finishTaskUI(false, 0, "SYNC_IDLE");
+                        }
+                    });
                 }
             }
             else if (data.type === 'init_conv_id') {
@@ -2517,7 +2723,14 @@
                     console.log("🔊 Backend-driven audio trigger fired (incoming)!");
                 }
             }
+            else if (data.type === 'smart_route') {
+                if (taskModelBadge) taskModelBadge.innerText = 'Smart → ' + data.fallback_model;
+                appendSystemMessage('🧠 ' + data.message, 'info');
+            }
             else if (data.type === 'model_fallback') {
+                // Show the model that actually answers on the reply card
+                var _cardModel = currentAgentArticle && currentAgentArticle.querySelector('.flip-front .font-mono.px-2');
+                if (_cardModel && data.fallback_model) _cardModel.textContent = data.fallback_model + ' (took over)';
                 if (taskModelBadge) {
                     taskModelBadge.innerText = data.fallback_model + " (Forced for this request)";
                     taskModelBadge.classList.add("text-yellow-400");
@@ -2844,12 +3057,21 @@
                     }
                     
                     var responseText = currentAgentArticle.dataset.rawMarkdown;
-                    if (!responseText) {
-                        var hasArtifact = currentAgentArticle.querySelector('.flip-container');
+                    if (!responseText || !responseText.trim()) {
+                        var hasArtifact = currentAgentArticle.classList.contains('is-flipped') || currentAgentArticle.querySelector('.artifact-proceed-btn') || currentAgentArticle.querySelector('.flip-container');
+                        var actionRows = currentAgentArticle.querySelectorAll('.actions-list > div');
                         if (hasArtifact) {
                             responseText = "[Artifact generated and loaded in the UI]";
+                        } else if (actionRows && actionRows.length > 0) {
+                            responseText = "Completed " + actionRows.length + " action" + (actionRows.length === 1 ? "" : "s") + ".";
+                            var agentTextEl = currentAgentArticle.querySelector('.agent-text');
+                            if (agentTextEl && !agentTextEl.textContent.trim()) {
+                                agentTextEl.innerHTML = marked.parse(responseText);
+                            }
+                        } else if (status === 'SYNC_IDLE' || status === 'Server restarted') {
+                            responseText = "";
                         } else {
-                            responseText = "No response provided.";
+                            responseText = "Task completed.";
                         }
                     }
                     
@@ -2861,7 +3083,9 @@
                             currentAgentArticle.querySelector('.agent-text').appendChild(iframeWrap);
                         }
                     }
-                    announce("Task completed in " + elapStr + ". Response: " + (responseText || "").replace(/<[^>]*>?/gm, '').trim());
+                    if (responseText && status !== 'SYNC_IDLE' && status !== 'Server restarted') {
+                        announce("Task completed in " + elapStr + ". Response: " + (responseText || "").replace(/<[^>]*>?/gm, '').trim());
+                    }
                 }
 
                 // Removed forced focus stealing! Let ARIA Live handle the announcement
@@ -2891,6 +3115,132 @@
             if (!textToCopy) return;
 
             executeCopy(textToCopy, btn, '<span class="text-green-400"><i class="fas fa-check"></i> Copied</span>');
+        }
+
+        // ---- Built-in help (no AI request, no tier limit used) ----
+        var LOCAL_HELP_TOPICS = {
+            'help': 'menu', '/help': 'menu',
+            'help exam': 'exam', '/help exam': 'exam', 'help quiz': 'exam', '/help quiz': 'exam', 'help test': 'exam',
+            'exam help': 'exam', 'quiz help': 'exam', 'exam guide': 'exam', 'quiz guide': 'exam',
+            'help media': 'media', '/help media': 'media'
+        };
+        function localHelpButton(label, topic) {
+            return '<button type="button" onclick="showLocalHelp(\'' + topic + '\')" class="px-4 py-2 mt-2 mr-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-500 focus:ring-2 focus:ring-teal-400 focus:outline-none transition-colors">' + label + '</button>';
+        }
+        function localHelpMarkdown(topic) {
+            var admin = (typeof isTier5AdminUser === 'function') && isTier5AdminUser();
+            var contentHow = admin
+                ? 'Put source files (notes, PDFs, docs) into the `plugins/exam_application/content/` folder and ask for an exam from them. They are read through the local privacy broker.'
+                : 'Upload study material to your own folder: open **Settings & Sessions**, then **📁 My Exam Content** (PDF, Word, text, Markdown or CSV, up to 5 MB). Or attach one file to a message with the **📎 Attach** button. Then ask, for example: "Make a 5-question exam from my content folder." Only you can see your folder.';
+            if (topic === 'exam') {
+                return '# Siraugga Exam Generator Guide\n\n' +
+                    '## How to provide content\n- **Ask for a topic.** For example: "Make me a 5-question quiz on the water cycle."\n- **Use your own material.** ' + contentHow + '\n\n' +
+                    '## Supported question types\n- **Multiple choice** (true/false is multiple choice with two options)\n- **Select all that apply**\n- **Fill in the blank**\n- **Dropdown**\n- **Matching**\n- **Terminal command**\n\n' +
+                    '## Features\n- **Timers** for the whole exam\n- **Anti-cheat mode** (flags leaving the exam tab)\n- **Weighted scoring** and **partial credit**\n- **Answer explanations**\n- **Embedded media** (image, audio or video, with alt text)\n\n' +
+                    '## Not available\n- Retake or resume a past exam (ask for a new one instead)\n- Changing colours or text size during a test\n\n' +
+                    '## Keyboard shortcuts\n- **Alt+N**: submit answer / next question\n- **Alt+T**: announce time remaining\n- **Alt+H**: open this Help menu\n- **H**: jump between headings (exam title, question, answer options)\n\n' +
+                    '## Example prompts\n- "Generate a quick 3-question multiple-choice quiz on JavaScript arrays."\n- "Make a 5-question exam from my content folder using dropdowns and fill-in-the-blanks."\n- "Create a 10-minute weighted exam on Linux commands with 2 terminal-command questions and 2 matching questions."\n\n' +
+                    '## Build one now\n<iframe src="/plugin/exam_builder" class="w-full min-h-[600px] border-0 rounded-lg shadow-xl" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Exam Generator Builder"></iframe>\n\n' +
+                    localHelpButton('⬅️ Back to Help Menu', 'menu');
+            }
+            if (topic === 'media') {
+                return '# Siraugga Media Player Guide\n\n' +
+                    '- Type **/media** to open the player, or **/media play [song]** to search for a video.\n' +
+                    '- The player remembers where you were, so you can say **"resume my video"**.\n' +
+                    '- Ask to **add or remove items** from your playlist.\n' +
+                    '- Some videos can only be played on their own website because of copyright rules; those open in a new tab.\n\n' +
+                    localHelpButton('⬅️ Back to Help Menu', 'menu');
+            }
+            return '# Siraugga Help Menu\n\n' +
+                'Choose a guide, or just type what you need in the chat box.\n\n' +
+                localHelpButton('📝 Exam Generator Guide', 'exam') + localHelpButton('🎬 Media Player Guide', 'media') + '\n\n' +
+                '## Quick tips\n' +
+                '- **Make an exam:** "Make a 5-question quiz on photosynthesis."\n' +
+                '- **Use your own notes:** ' + (admin ? 'put files in the exam content folder.' : 'upload them under **Settings & Sessions → 📁 My Exam Content**, or use **📎 Attach** next to the chat box.') + '\n' +
+                '- **Bring your own key:** **🔑 Authenticate Subscription** in the top bar.\n' +
+                '- **See usage:** type **/usage** to see how much of each model is used.\n\n' +
+                '## Keyboard shortcuts\n- **Alt+H**: this Help menu\n- **Alt+C**: jump to the chat box\n- **Alt+E**: jump to the latest exam\n- **Enter**: send (on phones, tap **Execute**)\n- **Shift+Enter**: new line';
+        }
+        function usageBar(pct) {
+            var n = Math.max(0, Math.min(100, Math.round(pct)));
+            var color = n >= 90 ? '#f43f5e' : (n >= 70 ? '#f59e0b' : '#14b8a6');
+            return '<span role="progressbar" aria-valuenow="' + n + '" aria-valuemin="0" aria-valuemax="100" aria-label="' + n + ' percent used" ' +
+                'style="display:inline-block;width:110px;height:9px;background:#1e293b;border:1px solid #334155;border-radius:999px;vertical-align:middle;overflow:hidden;margin:0 6px">' +
+                '<span style="display:block;height:100%;width:' + n + '%;background:' + color + '"></span></span> <strong>' + n + '%</strong>';
+        }
+        async function showUsageCard() {
+            var feed = document.getElementById('chat-feed');
+            if (feed) feed.querySelectorAll('article[data-local-help]').forEach(function(n) { n.remove(); });
+            var savedId = currentAgentId;
+            var art = appendAgentMessageContainer('Siraugga Usage');
+            currentAgentId = savedId;
+            art.dataset.localHelp = 'usage';
+            var textEl = art.querySelector('.agent-text');
+            var ti = art.querySelector('.typing-indicator'); if (ti) ti.remove();
+            var cb = art.querySelector('.cancel-btn'); if (cb) cb.remove();
+            var mb = art.querySelector('.flip-front .font-mono.px-2'); if (mb) mb.textContent = 'Built-in';
+            var sb = art.querySelector('.status-badge');
+            if (textEl) textEl.innerHTML = '<p>Checking usage…</p>';
+            var NL = String.fromCharCode(10);
+            var lines = [];
+            try {
+                var res = await fetch('/api/usage?client_id=' + encodeURIComponent(typeof agyClientId !== 'undefined' ? agyClientId : ''), {
+                    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                });
+                var u = await res.json();
+                lines.push('# Usage', '', '## Claude subscription');
+                if (u.claude && u.claude.available) {
+                    if (u.claude.session_pct != null) lines.push('- **Current session:** ' + usageBar(u.claude.session_pct) + ' used · resets ' + escapeHtml(u.claude.session_resets || ''));
+                    if (u.claude.week_pct != null) lines.push('- **This week:** ' + usageBar(u.claude.week_pct) + ' used · resets ' + escapeHtml(u.claude.week_resets || ''));
+                } else {
+                    lines.push('- Usage figures are not available right now.');
+                }
+                lines.push('', '## Models');
+                (u.models || []).forEach(function(m) {
+                    lines.push('- **' + escapeHtml(m.name) + ':** ' + (m.status === 'out'
+                        ? '⛔ out of quota · back ' + escapeHtml(m.back_at || 'later')
+                        : '✅ available'));
+                });
+                lines.push('', 'Smart mode skips models that are out and uses the next best one automatically.', '', '## Your prompts today');
+                if (u.you && u.you.unlimited) {
+                    lines.push('- **' + escapeHtml(u.you.tier_name) + ':** unlimited');
+                } else if (u.you) {
+                    var pct = u.you.limit ? (u.you.used / u.you.limit) * 100 : 0;
+                    lines.push('- **' + escapeHtml(u.you.tier_name) + ':** ' + u.you.used + ' of ' + u.you.limit + ' used ' + usageBar(pct) + ' · resets at midnight');
+                }
+                if (u.exams_unlimited) lines.push("- Exams and quizzes don't count toward your limit.");
+            } catch (e) {
+                lines = ['# Usage', '', 'Could not load usage right now. Please try again in a moment.'];
+            }
+            var md = lines.join(NL);
+            art.dataset.rawMarkdown = md;
+            if (textEl) textEl.innerHTML = marked.parse(md);
+            if (sb) sb.innerHTML = 'Ready';
+            var h = art.querySelector('h2'); if (h) h.focus();
+            if (typeof announce === 'function') announce('Usage');
+            art.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function showLocalHelp(topic) {
+            var titles = { menu: 'Siraugga Help Menu', exam: 'Siraugga Exam Generator Guide', media: 'Siraugga Media Player Guide' };
+            var feed = document.getElementById('chat-feed');
+            // Keep the chat tidy: remove earlier built-in help cards
+            if (feed) feed.querySelectorAll('article[data-local-help]').forEach(function(n) { n.remove(); });
+            var savedId = currentAgentId;
+            var art = appendAgentMessageContainer('Siraugga Help');
+            currentAgentId = savedId; // don't disturb a reply that is still streaming
+            art.dataset.localHelp = topic;
+            var md = localHelpMarkdown(topic);
+            art.dataset.rawMarkdown = md;
+            var textEl = art.querySelector('.agent-text');
+            if (textEl) textEl.innerHTML = marked.parse(md);
+            var ti = art.querySelector('.typing-indicator'); if (ti) ti.remove();
+            var cb = art.querySelector('.cancel-btn'); if (cb) cb.remove();
+            var sb = art.querySelector('.status-badge'); if (sb) sb.innerHTML = 'Ready';
+            var mb = art.querySelector('.flip-front .font-mono.px-2'); if (mb) mb.textContent = 'Built-in';
+            var h = art.querySelector('h2'); if (h) h.focus();
+            if (typeof announce === 'function') announce(titles[topic] || 'Help');
+            if (feed) art.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function appendUserMessage(text) {
@@ -3202,6 +3552,18 @@
             var prompt = inputEl.value.trim();
             if (!prompt) return;
 
+            if (prompt.toLowerCase() === '/usage' || prompt.toLowerCase() === 'usage') {
+                inputEl.value = '';
+                showUsageCard();
+                return;
+            }
+            var helpTopic = LOCAL_HELP_TOPICS[prompt.toLowerCase()];
+            if (helpTopic) {
+                inputEl.value = '';
+                showLocalHelp(helpTopic);
+                return;
+            }
+
             if (prompt === '/telemetry') {
                 inputEl.value = '';
                 window.location.href = API_BASE ? API_BASE + '/telemetry' : 'telemetry';
@@ -3261,7 +3623,8 @@
                             prompt: '[QUEUE_NEXT]\n' + prompt,
                             model: model,
                             conversation_id: currentConversationId,
-                            token: authToken
+                            client_id: agyClientId,
+                            token: authToken || localStorage.getItem('agy_auth_token') || ''
                         }));
                         if (typeof announce === 'function') {
                             announce("Queued context for next turn: " + prompt);
@@ -3274,7 +3637,8 @@
                             prompt: '[STEER_NOW]\n' + prompt,
                             model: model,
                             conversation_id: currentConversationId,
-                            token: authToken
+                            client_id: agyClientId,
+                            token: authToken || localStorage.getItem('agy_auth_token') || ''
                         }));
                         if (typeof announce === 'function') {
                             announce("Steering agent immediately with new context: " + prompt);
@@ -3304,11 +3668,13 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer ' + authToken
+                            'X-Client-ID': agyClientId,
+                            'Authorization': 'Bearer ' + (authToken || localStorage.getItem('agy_auth_token') || '')
                         },
                         body: JSON.stringify({
                             prompt: actualPromptToSend,
                             conv_id: currentConversationId,
+                            client_id: agyClientId,
                             model: model
                         })
                     });
@@ -3324,7 +3690,8 @@
                                 prompt: actualPromptToSend || instruction,
                                 model: model,
                                 conversation_id: currentConversationId,
-                                token: authToken
+                                client_id: agyClientId,
+                                token: authToken || localStorage.getItem('agy_auth_token') || ''
                             }));
                         }
                     }
@@ -3340,7 +3707,8 @@
                     prompt: actualPromptToSend,
                     model: model,
                     conversation_id: currentConversationId,
-                    token: authToken
+                    client_id: agyClientId,
+                    token: authToken || localStorage.getItem('agy_auth_token') || ''
                 }));
             } else {
                 appendSystemMessage("Connection not open. Reconnecting...", "warning");
@@ -3353,6 +3721,10 @@
                 sendPrompt(null, 'queue');
                 return;
             }
+            // Phones/tablets: Return adds a new line; the message is sent only with the Execute button
+            var isTouchDevice = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+            if (e.key === 'Enter' && isTouchDevice) return;
+            if (e.key === 'Enter' && e.isComposing) return; // keyboard still composing a word (autocorrect/IME)
             if (e.key === 'Enter' && !e.shiftKey) {
                 // Prevent sending if the slash menu is active and an item is highlighted
                 var menuEl = document.getElementById('slash-command-menu');
@@ -3370,7 +3742,11 @@
 
         function cancelTask() {
             if (ws && ws.readyState === WebSocket.OPEN && isTaskRunning) {
-                ws.send(JSON.stringify({ type: 'cancel' }));
+                ws.send(JSON.stringify({
+                    type: 'cancel',
+                    client_id: agyClientId,
+                    token: authToken || localStorage.getItem('agy_auth_token') || ''
+                }));
             }
             renderQueuedPromptsBar([]);
         }
@@ -3506,22 +3882,42 @@
         } catch (e) {}
         var authToken = localStorage.getItem('agy_auth_token') || '';
 
+        function isTier5AdminUser() {
+            if (!currentUser || !currentUser.role) return false;
+            if (currentUser.token_scope === 'demo') return false;
+            // Same list as the server (core/roles.py ADMIN_ROLES), case-insensitive
+            var r = String(currentUser.role).trim().toLowerCase();
+            return ['admin', 'super_admin', 'super admin', 'root', 'tier5_sysadmin'].indexOf(r) !== -1;
+        }
+
+        function isTier3DevUser() {
+            if (isTier5AdminUser()) return true;
+            if (!currentUser || !currentUser.role) return false;
+            if (currentUser.token_scope === 'demo') return false;
+            var r = String(currentUser.role);
+            return r === 'gamedev' || r === 'dev' || r === 'Tier3_Dev' || r === 'Tier4';
+        }
+
         function updateUserUI() {
+            var isAdmin = isTier5AdminUser();
+            var isDev = isTier3DevUser();
+            var isHostSuperAdmin = Boolean(window._isSuperAdminHost);
+
             var roleBadge = document.getElementById('user-role-badge');
             var displayName = document.getElementById('user-display-name');
             var welcomeHeading = document.getElementById('welcome-heading');
             
             if (welcomeHeading && currentUser && currentUser.role) {
-                let roleName = currentUser.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                let roleName = (currentUser.token_scope === 'demo') ? 'Demo Guest' : currentUser.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
                 welcomeHeading.innerText = roleName + " Dashboard Ready";
                 
                 var tierBadge = document.getElementById('tier-badge');
                 if (tierBadge) {
                     tierBadge.classList.remove('hidden');
-                    if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.role === 'Tier5_SysAdmin') {
+                    if (isAdmin) {
                         tierBadge.innerText = 'TIER 5';
                         tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-red-900/80 text-red-300 border border-red-700/50';
-                    } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev' || currentUser.role === 'Tier3_Dev' || currentUser.role === 'Tier4') {
+                    } else if (isDev) {
                         tierBadge.innerText = 'TIER 3';
                         tierBadge.className = 'px-2 py-0.5 rounded text-xs font-bold bg-cyan-900/80 text-cyan-300 border border-cyan-700/50';
                     } else {
@@ -3532,38 +3928,99 @@
             }
             
             if (roleBadge) {
-                roleBadge.innerText = (currentUser.role || 'GUEST').toUpperCase();
-                if (currentUser.role === 'admin' || currentUser.role === 'super_admin' || currentUser.role === 'Tier5_SysAdmin') {
+                var badgeLabel = (currentUser && currentUser.token_scope === 'demo') ? 'DEMO_GUEST' : ((currentUser && currentUser.role) || 'GUEST').toUpperCase();
+                roleBadge.innerText = badgeLabel;
+                if (isAdmin) {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-900 text-teal-300 w-fit";
-                } else if (currentUser.role === 'gamedev' || currentUser.role === 'dev' || currentUser.role === 'Tier3_Dev' || currentUser.role === 'Tier4') {
+                } else if (isDev) {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-cyan-900 text-cyan-300 w-fit";
                 } else {
                     roleBadge.className = "px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-900 text-purple-300 w-fit";
                 }
             }
             if (displayName) {
-                displayName.innerText = currentUser.name || currentUser.username || 'Guest';
+                displayName.innerText = (currentUser && (currentUser.name || currentUser.username)) || 'Guest';
             }
+
+            function setVisible(id, show) {
+                var el = document.getElementById(id);
+                if (!el) return;
+                if (show) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            }
+
+            // Strictly gate Tier 5 Admin controls across Header, Welcome Card, Sidebar, and Slash Menu
+            var adminOnlyIds = [
+                'header-telemetry-btn',
+                'header-audits-btn',
+                'header-vault-btn',
+                'nav-shortcut-li-2',
+                'quick-action-telemetry-li',
+                'quick-action-audits-li',
+                'quick-action-passkeys-li',
+                'project-admin-actions',
+                'btn-sanitize-sessions',
+                'sidebar-telemetry-link',
+                'sidebar-audits-link',
+                'sidebar-vault-btn',
+                'sidebar-cli-bridge-btn',
+                'sidebar-reload-btn',
+                'sidebar-autopatch-btn',
+                'slash-item-4',
+                'slash-item-5'
+            ];
+            adminOnlyIds.forEach(function(id) { setVisible(id, isAdmin); });
+
+            // Gate Tier 3+ Developer controls (Project Workspace selector & Sandbox prompt shortcut)
+            setVisible('project-workspace-card', isDev);
+            setVisible('nav-shortcut-li-1', isDev);
+
+            // Gate Host Super Admin Root Restore & Test Account Quick-Switchers
+            var showRootControls = isHostSuperAdmin;
+            setVisible('header-reauth-btn', showRootControls);
+            setVisible('quick-action-reauth-li', showRootControls);
+            setVisible('restore-root-btn', showRootControls);
+            setVisible('super-admin-restore-card', showRootControls);
+            setVisible('dev-quick-switch-accounts', showRootControls);
+
+            // Clean up or inject dynamic admin header icons (Access Keys & Resolver Access)
+            // Google sign-in is for everyone: admins sign in to root, others to their isolated space
+            setVisible('header-cli-auth-btn', true);
+            // Lower tiers default to Smart (Claude + Argon, with automatic hand-off); they can still pick another model
+            if (!isAdmin) {
+                var _savedModel = null;
+                try { _savedModel = localStorage.getItem('agy_selected_model'); } catch (e) {}
+                var _ms = document.getElementById('model-selector');
+                if (_ms && !_savedModel) _ms.value = 'Smart (Argon + Claude)';
+            }
+            if (typeof loadCliStatus === 'function') loadCliStatus();
+            if (isAdmin) {
+                if (typeof injectAdminDashboardButton === 'function') injectAdminDashboardButton();
+            } else {
+                var admBtn = document.getElementById('admin-dashboard-btn');
+                if (admBtn) admBtn.remove();
+                var raBtn = document.getElementById('resolver-access-btn');
+                if (raBtn) raBtn.remove();
+            }
+
+            // Show 1-click Demo button only when unauthenticated guest
+            var isUnauthGuest = !authToken && !isAdmin;
+            setVisible('sidebar-demo-btn', isUnauthGuest);
+
             var loginBtn = document.getElementById('login-btn');
             var logoutBtn = document.getElementById('logout-btn');
-            var restoreBtn = document.getElementById('restore-root-btn');
-            if (restoreBtn) {
-                var isDemoOrGuest = (currentUser && (currentUser.token_scope === 'demo' || currentUser.role === 'guest' || currentUser.role === 'demo' || currentUser.role !== 'super_admin'));
-                if (window._isSuperAdminHost || isDemoOrGuest) {
-                    restoreBtn.classList.remove('hidden');
-                } else {
-                    restoreBtn.classList.add('hidden');
-                }
-            }
             if (loginBtn && logoutBtn) {
                 loginBtn.classList.remove('hidden');
                 if (authToken) {
-                    loginBtn.textContent = 'Switch Role';
+                    loginBtn.textContent = isHostSuperAdmin ? 'Switch Role' : 'Access Key';
                     logoutBtn.classList.remove('hidden');
                 } else {
                     loginBtn.textContent = 'Login';
                     logoutBtn.classList.add('hidden');
                 }
+            }
+            if (typeof refreshByosStatus === 'function') {
+                try { refreshByosStatus(); } catch (e) {}
             }
         }
         updateUserUI();
@@ -3770,10 +4227,12 @@
     document.addEventListener("keydown", function(e) {
         if (e.altKey && !e.ctrlKey && !e.metaKey) {
             if (e.key === "s" || e.key === "S") {
+                if (typeof isTier3DevUser === "function" && !isTier3DevUser()) return;
                 e.preventDefault();
                 var b1 = document.getElementById("nav-shortcut-btn1");
                 if (b1) b1.click();
             } else if (e.key === "l" || e.key === "L") {
+                if (typeof isTier5AdminUser === "function" && !isTier5AdminUser()) return;
                 e.preventDefault();
                 var b2 = document.getElementById("nav-shortcut-btn2");
                 if (b2) b2.click();
@@ -3782,9 +4241,11 @@
                 var promptEl = document.getElementById("prompt");
                 if (promptEl) promptEl.focus();
             } else if (e.key === "t" || e.key === "T") {
+                if (typeof isTier5AdminUser === "function" && !isTier5AdminUser()) return;
                 e.preventDefault();
                 window.location.href = "/telemetry";
             } else if (e.key === "a" || e.key === "A") {
+                if (typeof isTier5AdminUser === "function" && !isTier5AdminUser()) return;
                 e.preventDefault();
                 window.location.href = "/audits";
             }
@@ -3850,10 +4311,17 @@
                 <!-- Storage Mode Toggle (Full Transparency) -->
                 <div>
                     <label class="text-xs text-slate-300 font-bold block mb-1.5">Storage Mode</label>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <label class="flex flex-col gap-1 p-2.5 rounded-lg border border-slate-700 bg-slate-950 hover:border-emerald-500 cursor-pointer has-[:checked]:border-emerald-500 has-[:checked]:bg-emerald-950/30 transition">
+                            <div class="flex items-center gap-1.5">
+                                <input type="radio" name="byos-storage-mode" value="browser" checked class="text-emerald-500 focus:ring-emerald-500">
+                                <span class="font-bold text-emerald-300">In My Browser Only</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 leading-tight">Recommended. Your key stays on this device and is never sent to the server. Keep this tab open while the agent runs.</span>
+                        </label>
                         <label class="flex flex-col gap-1 p-2.5 rounded-lg border border-slate-700 bg-slate-950 hover:border-teal-500 cursor-pointer has-[:checked]:border-teal-500 has-[:checked]:bg-teal-950/30 transition">
                             <div class="flex items-center gap-1.5">
-                                <input type="radio" name="byos-storage-mode" value="vault" checked class="text-teal-500 focus:ring-teal-500">
+                                <input type="radio" name="byos-storage-mode" value="vault" class="text-teal-500 focus:ring-teal-500">
                                 <span class="font-bold text-teal-300">7-Day Vault</span>
                             </div>
                             <span class="text-[10px] text-slate-400 leading-tight">AES-GCM encrypted on disk. Auto-purges after 7 days of inactivity.</span>
@@ -3887,6 +4355,35 @@
                     <span class="text-[10px] text-slate-500 mt-1 block">Validated with Google's API before saving. Never logged or shared.</span>
                 </div>
 
+                <!-- Bring Your Own Key: Terms & Conditions (must be accepted for every storage mode) -->
+                <div id="byok-terms-block" class="space-y-2">
+                    <details class="rounded-lg border border-slate-700 bg-slate-950/80 text-[11px] text-slate-300">
+                        <summary class="cursor-pointer select-none px-3 py-2 font-bold text-white focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-lg">
+                            Bring Your Own Key: Terms &amp; Conditions <span class="text-slate-500 font-normal">(version <span class="byok-terms-version-label">2026-11-08</span>)</span>
+                        </summary>
+                        <div class="max-h-56 overflow-y-auto px-3 pb-3 space-y-2 leading-relaxed">
+                            <p><strong class="text-white">1. Your key, your account.</strong> You are responsible for all usage, charges, quotas and policy compliance on the Google account the key belongs to. Create a separate key just for this site, set a spending cap or budget alert on it, and revoke it when you are done.</p>
+                            <p><strong class="text-white">2. Where your key is kept.</strong></p>
+                            <ul class="list-disc list-inside space-y-1 pl-1">
+                                <li><strong class="text-emerald-300">In My Browser Only:</strong> stored in this browser's local storage on this device. It is not sent to or stored on the server. Your browser sends it directly to Google with each model request your agent makes. Anyone with access to this browser profile could read it.</li>
+                                <li><strong class="text-teal-300">7-Day Vault:</strong> sent to the server and stored there encrypted for up to 7 days.</li>
+                                <li><strong class="text-amber-300">Ephemeral RAM Only:</strong> sent to the server and held in its memory for this session.</li>
+                            </ul>
+                            <p><strong class="text-white">3. What the operator can see.</strong> The agent runs on this site's server, so the site operator can see your prompts, the files the agent works with, its tool activity and the model's responses. In the Vault and RAM modes the operator could technically access your key. In browser mode the key is handled by this page's code, which is served by this site.</p>
+                            <p><strong class="text-white">4. Keep the tab open (browser mode).</strong> Your agent's model requests pass through your open tab. If you close or reload it, the running task loses access to your key and stops.</p>
+                            <p><strong class="text-white">5. Third parties.</strong> Model requests are processed by Google under Google's own terms. The agent software may send usage telemetry to Google.</p>
+                            <p><strong class="text-white">6. Acceptable use.</strong> Do not use the service for unlawful or abusive purposes. The operator may rate-limit, suspend or end access at any time.</p>
+                            <p><strong class="text-white">7. No warranty.</strong> The service is provided "as is". To the extent the law allows, the operator is not liable for charges on your account, data loss or service interruptions.</p>
+                            <p><strong class="text-white">8. Removing your key.</strong> Use "Revoke &amp; Scrub" at any time. For complete certainty, also delete the key in Google AI Studio.</p>
+                            <p><strong class="text-white">9. Changes.</strong> If these terms change, you will be asked to accept them again before your key is used.</p>
+                        </div>
+                    </details>
+                    <label class="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer">
+                        <input type="checkbox" id="byok-terms-accept" required class="mt-0.5 text-teal-500 focus:ring-teal-500">
+                        <span>I have read and agree to the Bring Your Own Key Terms &amp; Conditions.</span>
+                    </label>
+                </div>
+
                 <!-- Feedback / Status Display -->
                 <div id="byos-feedback" class="hidden p-2 rounded text-xs"></div>
 
@@ -3901,11 +4398,403 @@
     </dialog>
 
     <script>
+    // ---- Bring Your Own Key, kept in this browser only --------------------------------
+    // The key is stored in localStorage on this device and is never sent to the server.
+    // When the agent needs the model, the server forwards the request over our WebSocket;
+    // this page attaches the key, calls Google directly and streams the answer back.
+    var BYOK_TERMS_VERSION = '2026-11-08';
+    var BYOK_KEY_STORAGE = 'devcore_byok_browser_gemini_key';
+    var BYOK_TERMS_STORAGE = 'devcore_byok_terms_version';
+    var BYOK_ALLOWED_METHODS = ['streamGenerateContent', 'generateContent', 'countTokens'];
+    var BYOK_MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+
+    function byokStoreGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+    function byokStoreSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+    function byokStoreDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+    function getBrowserByokKey() { return byokStoreGet(BYOK_KEY_STORAGE) || ''; }
+    function getAcceptedByokTerms() { return byokStoreGet(BYOK_TERMS_STORAGE) || ''; }
+    function isBrowserByokActive() { return !!getBrowserByokKey() && getAcceptedByokTerms() === BYOK_TERMS_VERSION; }
+
+    // ---- Document attachment: the server extracts text, nothing is stored ------------------
+    var pendingAttachment = null;
+    function setAttachLabel(text, title) {
+        var label = document.getElementById('attach-btn-label');
+        var btn = document.getElementById('attach-btn');
+        if (label) label.innerText = text;
+        if (btn && title) btn.title = title;
+    }
+    function clearAttachment() {
+        pendingAttachment = null;
+        setAttachLabel('Attach', 'Attach a document (PDF, Word, text, Markdown, CSV; up to 5 MB)');
+    }
+    function handleAttachClick() {
+        if (pendingAttachment) {
+            clearAttachment();
+            try { announce('Attachment removed.'); } catch (e) {}
+            return;
+        }
+        var input = document.getElementById('attach-input');
+        if (input) { input.value = ''; input.click(); }
+    }
+    async function handleAttachChosen(input) {
+        var file = input && input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { alert('That file is larger than 5 MB.'); return; }
+        setAttachLabel('Reading...', 'Reading ' + file.name);
+        try {
+            var form = new FormData();
+            form.append('file', file);
+            var r = await fetch('/api/extract-text', { method: 'POST', body: form });
+            var d = await r.json().catch(function() { return {}; });
+            if (!r.ok || !d.success) { clearAttachment(); alert(d.error || 'Could not read that file.'); return; }
+            pendingAttachment = { name: d.name, text: d.text };
+            setAttachLabel(d.name + ' ✕', 'Attached: ' + d.name + (d.truncated ? ' (shortened to fit)' : '') + '. Click to remove.');
+            try { announce('Attached ' + d.name + '. It will be sent with your next message.'); } catch (e) {}
+        } catch (e) {
+            clearAttachment();
+            alert('Upload failed: ' + (e && e.message ? e.message : e));
+        }
+    }
+    function attachPendingDocument(payload) {
+        if (!pendingAttachment || !payload || typeof payload.prompt !== 'string') return payload;
+        var safeName = String(pendingAttachment.name).replace(/["<>]/g, '');
+        var safeText = String(pendingAttachment.text).replace(/<\/?ATTACHED_DOCUMENT[^>]*>/gi, '');
+        payload.prompt += '\n\n<ATTACHED_DOCUMENT name="' + safeName + '">\n' + safeText + '\n</ATTACHED_DOCUMENT>';
+        clearAttachment();
+        return payload;
+    }
+
+    function byokWrapSocket(sock) {
+        if (!sock || sock._byokWrapped) return;
+        var rawSend = sock.send.bind(sock);
+        sock.send = function(raw) {
+            try {
+                var payload = JSON.parse(raw);
+                if (payload && (payload.type === 'prompt' || payload.type === 'steer' || payload.type === 'queue_prompt')) {
+                    attachPendingDocument(payload);
+                    if (isBrowserByokActive()) {
+                        payload.browser_key = true;
+                        payload.byok_terms_version = getAcceptedByokTerms();
+                    }
+                    raw = JSON.stringify(payload);
+                }
+            } catch (e) {}
+            return rawSend(raw);
+        };
+        sock._byokWrapped = true;
+    }
+    // The first WebSocket is opened before this script loads, so wrap it now; reconnects are wrapped in connectWebSocket().
+    try { if (typeof ws !== 'undefined' && ws && typeof ws.send === 'function') byokWrapSocket(ws); } catch (e) {}
+
+    function byokRelaySend(obj) {
+        try {
+            obj.client_id = agyClientId;
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+        } catch (e) { console.error('BYOK relay send failed', e); }
+    }
+
+    function byokRelayFail(id, status, message, alreadyStarted) {
+        if (!alreadyStarted) {
+            byokRelaySend({ type: 'llm_relay_response', id: id, status: status, content_type: 'application/json' });
+            byokRelaySend({ type: 'llm_relay_chunk', id: id, data: JSON.stringify({ error: { code: status, status: 'UNAVAILABLE', message: message } }) });
+        }
+        byokRelaySend({ type: 'llm_relay_end', id: id, error: message });
+    }
+
+    async function handleLlmRelayRequest(msg) {
+        var id = msg.id;
+        var key = getBrowserByokKey();
+        if (!key || getAcceptedByokTerms() !== BYOK_TERMS_VERSION) {
+            byokRelayFail(id, 401, 'No accepted API key is stored in this browser.', false);
+            return;
+        }
+        if (!BYOK_MODEL_RE.test(String(msg.model || '')) || BYOK_ALLOWED_METHODS.indexOf(msg.method) === -1) {
+            byokRelayFail(id, 400, 'Blocked an unexpected model request.', false);
+            return;
+        }
+        var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(msg.model) + ':' + msg.method;
+        var alt = msg.query && msg.query.alt;
+        if (alt && /^[A-Za-z0-9_-]{1,16}$/.test(alt)) url += '?alt=' + encodeURIComponent(alt);
+        var started = false;
+        try {
+            var resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+                body: msg.body || '{}',
+                credentials: 'omit',
+                referrerPolicy: 'no-referrer'
+            });
+            byokRelaySend({ type: 'llm_relay_response', id: id, status: resp.status, content_type: resp.headers.get('content-type') || 'application/json' });
+            started = true;
+            if (resp.body && resp.body.getReader) {
+                var reader = resp.body.getReader();
+                var decoder = new TextDecoder();
+                while (true) {
+                    var part = await reader.read();
+                    if (part.done) break;
+                    var text = decoder.decode(part.value, { stream: true });
+                    if (text) byokRelaySend({ type: 'llm_relay_chunk', id: id, data: text });
+                }
+                var tail = decoder.decode();
+                if (tail) byokRelaySend({ type: 'llm_relay_chunk', id: id, data: tail });
+            } else {
+                byokRelaySend({ type: 'llm_relay_chunk', id: id, data: await resp.text() });
+            }
+            byokRelaySend({ type: 'llm_relay_end', id: id });
+        } catch (e) {
+            byokRelayFail(id, 502, 'Your browser could not reach Google: ' + (e && e.message ? e.message : e), started);
+        }
+    }
+
+    // ---- My Exam Content (every tier, own files only) ---------------------------------
+    function examContentFeedback(text, ok) {
+        var fb = document.getElementById('exam-content-feedback');
+        if (!fb) return;
+        fb.className = 'text-[11px] ' + (ok ? 'text-emerald-300' : 'text-rose-300');
+        fb.innerText = text;
+    }
+    function renderExamContent(files) {
+        var list = document.getElementById('exam-content-list');
+        var count = document.getElementById('exam-content-count');
+        if (count) count.innerText = (files ? files.length : 0) + ' files';
+        if (!list) return;
+        list.innerHTML = '';
+        if (!files || !files.length) {
+            var empty = document.createElement('li');
+            empty.className = 'text-slate-500';
+            empty.innerText = 'No files yet.';
+            list.appendChild(empty);
+            return;
+        }
+        files.forEach(function(f) {
+            var li = document.createElement('li');
+            li.className = 'flex items-center justify-between gap-2 bg-slate-950/60 border border-slate-800 rounded px-2 py-1';
+            var name = document.createElement('span');
+            name.className = 'truncate';
+            name.innerText = f.name;
+            var del = document.createElement('button');
+            del.type = 'button';
+            del.className = 'shrink-0 text-rose-400 hover:text-rose-300 px-1 rounded focus:ring-2 focus:ring-rose-500 focus:outline-none cursor-pointer';
+            del.setAttribute('aria-label', 'Delete ' + f.name);
+            del.innerText = '🗑️';
+            del.onclick = function() { deleteExamContent(f.id, f.name); };
+            li.appendChild(name);
+            li.appendChild(del);
+            list.appendChild(li);
+        });
+    }
+    function examContentHeaders() {
+        var h = {};
+        var tok = byokStoreGet('agy_auth_token');
+        if (tok) h['Authorization'] = 'Bearer ' + tok;
+        return h;
+    }
+    async function refreshExamContent() {
+        try {
+            var r = await fetch('/api/exam-content', { headers: examContentHeaders() });
+            var d = await r.json();
+            if (d && d.success) renderExamContent(d.files);
+        } catch (e) {}
+    }
+    async function uploadExamContent(input) {
+        var file = input && input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) { examContentFeedback('That file is larger than 5 MB.', false); return; }
+        var btn = document.getElementById('exam-content-upload');
+        if (btn) { btn.disabled = true; btn.innerText = 'Uploading...'; }
+        try {
+            var form = new FormData();
+            form.append('file', file);
+            var r = await fetch('/api/exam-content', { method: 'POST', headers: examContentHeaders(), body: form });
+            var d = await r.json().catch(function() { return {}; });
+            if (r.ok && d.success) { renderExamContent(d.files); examContentFeedback('Added ' + d.file.name + '.', true); }
+            else examContentFeedback(d.error || 'Upload failed.', false);
+        } catch (e) {
+            examContentFeedback('Upload failed.', false);
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = '⬆️ Upload a file'; }
+            if (input) input.value = '';
+        }
+    }
+    async function deleteExamContent(id, name) {
+        if (!confirm('Delete ' + name + ' from your content folder?')) return;
+        try {
+            var r = await fetch('/api/exam-content/' + encodeURIComponent(id), { method: 'DELETE', headers: examContentHeaders() });
+            var d = await r.json().catch(function() { return {}; });
+            renderExamContent(d.files || []);
+            examContentFeedback(r.ok ? 'Deleted ' + name + '.' : 'Could not delete that file.', r.ok);
+        } catch (e) { examContentFeedback('Could not delete that file.', false); }
+    }
+    setTimeout(refreshExamContent, 1500);
+
+    // ---- Tier limits (super admin only) -------------------------------------------------
+    function tierAuthHeaders(extra) {
+        var h = extra || {};
+        var tok = byokStoreGet('agy_auth_token');
+        if (tok) h['Authorization'] = 'Bearer ' + tok;
+        return h;
+    }
+    function tierFeedback(text, ok) {
+        var fb = document.getElementById('tier-limits-feedback');
+        if (!fb) return;
+        fb.className = 'text-[11px] ' + (ok ? 'text-emerald-300' : 'text-rose-300');
+        fb.innerText = text;
+    }
+    function renderTierLimits(d) {
+        var rows = document.getElementById('tier-limits-rows');
+        if (!rows) return;
+        rows.innerHTML = '';
+        (d.tiers || []).forEach(function(t) {
+            var unlimited = t.limit === null || t.limit === undefined;
+            var row = document.createElement('div');
+            row.className = 'flex items-center justify-between gap-2 text-[11px] text-slate-300';
+            row.innerHTML =
+                '<label for="tier-limit-' + t.tier + '" class="flex-1">' + t.name + ' <span class="text-slate-500">(tier ' + t.tier + ')</span></label>' +
+                '<input type="number" id="tier-limit-' + t.tier + '" data-tier="' + t.tier + '" min="0" max="100000" step="1" class="w-16 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white text-right focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-40">' +
+                '<label class="flex items-center gap-1 text-[10px] text-slate-400 cursor-pointer"><input type="checkbox" id="tier-unlimited-' + t.tier + '" class="text-amber-500 focus:ring-amber-500">No limit</label>';
+            rows.appendChild(row);
+            var num = document.getElementById('tier-limit-' + t.tier);
+            var unl = document.getElementById('tier-unlimited-' + t.tier);
+            num.value = unlimited ? '' : t.limit;
+            unl.checked = unlimited;
+            num.disabled = unlimited;
+            unl.onchange = function() { num.disabled = unl.checked; if (!unl.checked && num.value === '') num.value = 10; };
+        });
+        var todayLine = document.getElementById('tier-limits-today');
+        if (todayLine && d.today) todayLine.innerText = 'Today: ' + d.today.prompts + ' prompts from ' + d.today.users + ' user(s) on your subscription. Super admins are never limited.';
+    }
+    async function refreshTierLimits() {
+        var card = document.getElementById('tier-limits-card');
+        if (!card) return;
+        try {
+            var r = await fetch('/api/admin/tier-limits', { headers: tierAuthHeaders() });
+            if (!r.ok) { card.classList.add('hidden'); return; }
+            card.classList.remove('hidden');
+            renderTierLimits(await r.json());
+        } catch (e) { card.classList.add('hidden'); }
+    }
+    async function saveTierLimits() {
+        var limits = {};
+        var bad = false;
+        document.querySelectorAll('#tier-limits-rows input[type="number"]').forEach(function(num) {
+            var tier = num.getAttribute('data-tier');
+            var unl = document.getElementById('tier-unlimited-' + tier);
+            if (unl && unl.checked) { limits[tier] = null; return; }
+            var v = parseInt(num.value, 10);
+            if (isNaN(v) || v < 0) { bad = true; return; }
+            limits[tier] = v;
+        });
+        if (bad) { tierFeedback('Enter 0 or more for each tier, or tick "No limit".', false); return; }
+        var btn = document.getElementById('tier-limits-save');
+        if (btn) { btn.disabled = true; btn.innerText = 'Saving...'; }
+        try {
+            var r = await fetch('/api/admin/tier-limits', { method: 'POST', headers: tierAuthHeaders({ 'Content-Type': 'application/json' }), body: JSON.stringify({ limits: limits }) });
+            var d = await r.json().catch(function() { return {}; });
+            if (r.ok && d.success) { renderTierLimits(d); tierFeedback('Saved.', true); }
+            else tierFeedback(d.error || 'Could not save.', false);
+        } catch (e) {
+            tierFeedback('Network error.', false);
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerText = 'Save'; }
+        }
+    }
+    setTimeout(refreshTierLimits, 1500);
+
+    // When the agent stops because no key is available, offer a one-click way to add one.
+    var BYOK_OFFER_RE = /Personal Subscription Required|authentication failed or timed out|daily limit|No accepted API key/i;
+    function byokMaybeOffer(text) {
+        if (!text || !BYOK_OFFER_RE.test(text) || isBrowserByokActive()) return;
+        var existing = document.getElementById('byok-offer-banner');
+        if (existing) { existing.classList.remove('hidden'); return; }
+        var bar = document.createElement('div');
+        bar.id = 'byok-offer-banner';
+        bar.setAttribute('role', 'alert');
+        bar.className = 'fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:max-w-md z-50 p-3 rounded-xl border border-emerald-600/60 bg-slate-900 text-slate-200 shadow-2xl flex items-start gap-3 text-sm';
+        bar.innerHTML =
+            '<div class="flex-1">' +
+                '<div class="font-bold text-emerald-300">Use your own Gemini key to continue</div>' +
+                '<div class="text-xs text-slate-400 mt-0.5">Keep it in your browser only: it is never sent to our server.</div>' +
+            '</div>' +
+            '<button type="button" id="byok-offer-open" class="shrink-0 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold focus:ring-2 focus:ring-emerald-400 focus:outline-none cursor-pointer">Add your own Gemini key</button>' +
+            '<button type="button" id="byok-offer-close" aria-label="Dismiss" class="shrink-0 text-slate-400 hover:text-white px-1.5 rounded focus:ring-2 focus:ring-emerald-400 focus:outline-none cursor-pointer">&times;</button>';
+        document.body.appendChild(bar);
+        document.getElementById('byok-offer-open').onclick = function() { bar.classList.add('hidden'); openByosModal(); };
+        document.getElementById('byok-offer-close').onclick = function() { bar.classList.add('hidden'); };
+    }
+
+    function handleByokTermsRequired(data) {
+        byokStoreDel(BYOK_TERMS_STORAGE);
+        try { appendSystemMessage(data.message || 'Please accept the Bring Your Own Key terms to use your own key.', 'warning'); } catch (e) {}
+        var cb = document.getElementById('byok-terms-accept');
+        if (cb) cb.checked = false;
+        openByosModal();
+    }
+
+    async function saveBrowserByokKey(credential, fb) {
+        if (fb) fb.innerText = 'Checking your key directly with Google from this browser (it is not sent to our server)...';
+        var check = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {
+            method: 'GET',
+            headers: { 'x-goog-api-key': credential },
+            credentials: 'omit',
+            referrerPolicy: 'no-referrer'
+        });
+        if (!check.ok) {
+            var reason = 'Google rejected this key (HTTP ' + check.status + ').';
+            try { var j = await check.json(); if (j && j.error && j.error.message) reason = j.error.message; } catch (e) {}
+            throw new Error(reason);
+        }
+        if (!byokStoreSet(BYOK_KEY_STORAGE, credential) || !byokStoreSet(BYOK_TERMS_STORAGE, BYOK_TERMS_VERSION)) {
+            throw new Error('This browser blocked local storage (private mode or blocked site data), so the key cannot be kept here.');
+        }
+        var offer = document.getElementById('byok-offer-banner');
+        if (offer) offer.classList.add('hidden');
+    }
+
+    function updateHeaderByosBadge(active, labelSuffix) {
+        var hBtn = document.getElementById('header-byos-btn');
+        var hDot = document.getElementById('header-byos-dot');
+        var hLbl = document.getElementById('header-byos-label');
+        if (!hBtn || !hDot || !hLbl) return;
+        if (active) {
+            hDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0';
+            hLbl.innerText = '🛡️ Subscription: ' + (labelSuffix || 'Active');
+            hBtn.className = 'text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-emerald-700/70 rounded-lg text-emerald-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-2 shadow-sm cursor-pointer';
+        } else {
+            hDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0';
+            hLbl.innerText = '🔑 Authenticate Subscription';
+            hBtn.className = 'text-sm px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-teal-700/70 rounded-lg text-teal-300 font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none transition-colors flex items-center gap-2 shadow-sm cursor-pointer';
+        }
+    }
+
     async function refreshByosStatus() {
+        if (isBrowserByokActive()) {
+            var bBadge = document.getElementById('byos-status-badge');
+            var bDesc = document.getElementById('byos-status-desc');
+            var bPill = document.getElementById('byos-countdown-pill');
+            var bText = document.getElementById('byos-countdown-text');
+            var bRevoke = document.getElementById('byos-quick-revoke-btn');
+            var bModal = document.getElementById('byos-modal-active-status');
+            var bModalText = document.getElementById('byos-modal-status-text');
+            var bModalExp = document.getElementById('byos-modal-expiry-text');
+            if (bBadge) {
+                bBadge.innerText = "BROWSER ONLY";
+                bBadge.className = "text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-600/50";
+            }
+            if (bDesc) bDesc.innerText = "Your key is stored only in this browser and never sent to the server. Keep this tab open while the agent runs.";
+            if (bPill && bText) { bPill.classList.remove('hidden'); bText.innerText = "Browser only"; }
+            if (bRevoke) bRevoke.classList.remove('hidden');
+            if (bModal && bModalText && bModalExp) {
+                bModal.classList.remove('hidden');
+                bModalText.innerText = "Active in This Browser Only";
+                bModalExp.innerText = "Stored on this device until you revoke it";
+            }
+            updateHeaderByosBadge(true, 'Browser Key');
+            return;
+        }
         try {
             const resp = await fetch(API_BASE + '/api/user/subscription/status');
-            if (!resp.ok) return;
-            const data = await resp.json();
+            const data = resp.ok ? await resp.json() : { configured: false };
             
             const badge = document.getElementById('byos-status-badge');
             const desc = document.getElementById('byos-status-desc');
@@ -3941,6 +4830,7 @@
                     modalStatusText.innerText = data.is_ephemeral ? "Active in Volatile RAM" : "Active in 7-Day Encrypted Vault";
                     modalExpiryText.innerText = data.is_ephemeral ? "Session only (cleared on disconnect)" : ("Auto-purges in " + data.days_remaining + " days");
                 }
+                updateHeaderByosBadge(true, data.is_ephemeral ? 'RAM Key' : 'Active');
             } else {
                 if (badge) {
                     badge.innerText = "NOT CONFIGURED";
@@ -3952,6 +4842,7 @@
                 if (countPill) countPill.classList.add('hidden');
                 if (quickRevoke) quickRevoke.classList.add('hidden');
                 if (modalStatus) modalStatus.classList.add('hidden');
+                updateHeaderByosBadge(false);
             }
         } catch (e) {
             console.error("BYOS status check failed", e);
@@ -3990,6 +4881,52 @@
         const provider = provSelect?.value || 'gemini';
 
         if (!credential) return;
+
+        const termsBox = document.getElementById('byok-terms-accept');
+        if (!termsBox || !termsBox.checked) {
+            if (fb) {
+                fb.className = 'p-2 rounded text-xs bg-rose-950/80 text-rose-300 border border-rose-700/60';
+                fb.innerText = 'Please read and accept the Bring Your Own Key Terms & Conditions first.';
+            }
+            return;
+        }
+
+        if (storageMode === 'browser') {
+            if (provider !== 'gemini') {
+                if (fb) {
+                    fb.className = 'p-2 rounded text-xs bg-rose-950/80 text-rose-300 border border-rose-700/60';
+                    fb.innerText = 'Browser-only storage supports Google AI Studio keys (AIzaSy...). Choose another storage mode for OAuth tokens.';
+                }
+                return;
+            }
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span>⏳ Checking key with Google...</span>';
+            }
+            if (fb) fb.className = 'p-2 rounded text-xs bg-slate-800 text-slate-300 border border-slate-700';
+            try {
+                await saveBrowserByokKey(credential, fb);
+                if (fb) {
+                    fb.className = 'p-2 rounded text-xs bg-emerald-950/80 text-emerald-300 border border-emerald-700/60';
+                    fb.innerText = 'Key verified and saved in this browser only. It was not sent to the server.';
+                }
+                if (input) input.value = '';
+                refreshByosStatus();
+                setTimeout(closeByosModal, 1400);
+            } catch (e) {
+                if (fb) {
+                    fb.className = 'p-2 rounded text-xs bg-rose-950/80 text-rose-300 border border-rose-700/60';
+                    fb.innerText = 'Verification Failed: ' + (e && e.message ? e.message : e);
+                }
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🔒 Verify &amp; Save</span>';
+                }
+            }
+            return;
+        }
+        byokStoreSet(BYOK_TERMS_STORAGE, BYOK_TERMS_VERSION);
 
         if (btn) {
             btn.disabled = true;
@@ -4043,6 +4980,19 @@
 
     async function revokeUserSubscription() {
         if (!confirm('Are you sure you want to revoke your personal subscription? Any saved keys will be wiped and your temporary user chamber purged.')) {
+            return;
+        }
+        var hadBrowserKey = !!getBrowserByokKey();
+        byokStoreDel(BYOK_KEY_STORAGE);
+        if (hadBrowserKey) {
+            refreshByosStatus();
+            var bfb = document.getElementById('byos-feedback');
+            if (bfb) {
+                bfb.classList.remove('hidden');
+                bfb.className = 'p-2 rounded text-xs bg-amber-950/80 text-amber-300 border border-amber-700/60';
+                bfb.innerText = 'Key removed from this browser. To be certain, also delete it in Google AI Studio.';
+            }
+            try { await fetch(API_BASE + '/api/user/subscription', { method: 'DELETE' }); } catch (e) {}
             return;
         }
         try {
@@ -4296,8 +5246,20 @@
                 </details>
             </div>
 
-            <!-- Super Admin Quick-Restore Card -->
-            <div id="super-admin-restore-card" class="p-3 bg-gradient-to-r from-red-950/80 to-slate-900 border border-red-500/40 rounded-xl shadow-md">
+            <!-- Personal Subscription (BYOS) Card -->
+            <div class="p-3 bg-gradient-to-r from-emerald-950/90 to-slate-900 border border-emerald-500/40 rounded-xl shadow-md">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-white flex items-center gap-1.5">🔑 Authenticate Personal Subscription</span>
+                    <span class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-emerald-900 text-emerald-300 border border-emerald-600/40">Isolated Session</span>
+                </div>
+                <p class="text-[11px] text-slate-300 mb-2">Connect your own Gemini API key, Claude API key, or Google OAuth subscription for a dedicated private session.</p>
+                <button type="button" onclick="toggleLoginModal(); openByosModal();" class="w-full py-2 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-lg font-bold text-xs shadow flex items-center justify-center gap-1.5 transition focus:ring-2 focus:ring-emerald-400 focus:outline-none cursor-pointer">
+                    🔑 Connect Subscription / API Key
+                </button>
+            </div>
+
+            <!-- Super Admin Quick-Restore Card (Host Super Admin Only) -->
+            <div id="super-admin-restore-card" class="hidden p-3 bg-gradient-to-r from-red-950/80 to-slate-900 border border-red-500/40 rounded-xl shadow-md">
                 <div class="flex items-center justify-between mb-1">
                     <span class="text-xs font-bold text-white flex items-center gap-1.5"><i class="fas fa-crown text-amber-400"></i> Root Super Admin</span>
                     <span class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-red-900 text-red-300 border border-red-600/40">Owner Authority</span>
@@ -4308,20 +5270,23 @@
                 </button>
             </div>
 
-            <p class="text-xs text-slate-400">Quick-switch test accounts for role-based testing:</p>
-            <div class="grid grid-cols-3 gap-2">
-                <button type="button" onclick="quickLogin('admin','admin')" class="bg-slate-800 hover:bg-teal-950 hover:border-teal-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-teal-500 focus:outline-none">
-                    <div class="text-xs font-bold text-teal-400">Admin</div>
-                    <div class="text-[10px] text-slate-400 font-mono">admin / admin</div>
-                </button>
-                <button type="button" onclick="quickLogin('dev','dev')" class="bg-slate-800 hover:bg-cyan-950 hover:border-cyan-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-cyan-500 focus:outline-none">
-                    <div class="text-xs font-bold text-cyan-400">GameDev</div>
-                    <div class="text-[10px] text-slate-400 font-mono">dev / dev</div>
-                </button>
-                <button type="button" onclick="quickLogin('mod','mod')" class="bg-slate-800 hover:bg-purple-950 hover:border-purple-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-purple-500 focus:outline-none">
-                    <div class="text-xs font-bold text-purple-400">Modder</div>
-                    <div class="text-[10px] text-slate-400 font-mono">mod / mod</div>
-                </button>
+            <!-- Local Dev Quick-Switch Test Accounts (Hidden from Guests / Lower Tiers) -->
+            <div id="dev-quick-switch-accounts" class="hidden space-y-2">
+                <p class="text-xs text-slate-400">Quick-switch test accounts for role-based testing:</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <button type="button" onclick="quickLogin('admin','admin')" class="bg-slate-800 hover:bg-teal-950 hover:border-teal-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        <div class="text-xs font-bold text-teal-400">Admin</div>
+                        <div class="text-[10px] text-slate-400 font-mono">admin / admin</div>
+                    </button>
+                    <button type="button" onclick="quickLogin('dev','dev')" class="bg-slate-800 hover:bg-cyan-950 hover:border-cyan-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-cyan-500 focus:outline-none">
+                        <div class="text-xs font-bold text-cyan-400">GameDev</div>
+                        <div class="text-[10px] text-slate-400 font-mono">dev / dev</div>
+                    </button>
+                    <button type="button" onclick="quickLogin('mod','mod')" class="bg-slate-800 hover:bg-purple-950 hover:border-purple-600 border border-slate-700 p-2.5 rounded text-center transition focus:ring-2 focus:ring-purple-500 focus:outline-none">
+                        <div class="text-xs font-bold text-purple-400">Modder</div>
+                        <div class="text-[10px] text-slate-400 font-mono">mod / mod</div>
+                    </button>
+                </div>
             </div>
             <div class="border-t border-slate-800 pt-3">
                 <form onsubmit="handleCustomLogin(event)" class="space-y-3">
@@ -4349,43 +5314,10 @@
     <script>
     // Global shortcut to trigger Help (Alt+H)
     document.addEventListener('keydown', function(e) {
-        if (e.altKey && (e.key === 'h' || e.key === 'H' || e.code === 'KeyH')) {
+        if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.code === 'KeyH')) {
             e.preventDefault();
-            
-            // Clear existing help menus to prevent clutter
-            var feed = document.getElementById('chat-feed');
-            if (feed) {
-                Array.from(feed.children).forEach(function(node) {
-                    var html = node.innerHTML.toLowerCase();
-                    if (html.includes('siraugga help menu') || html.includes('siraugga exam generator guide')) {
-                        // Attempt to remove the previous user prompt ("help") if it exists
-                        var prev = node.previousElementSibling;
-                        if (prev && prev.innerHTML.toLowerCase().includes('help')) {
-                            prev.remove();
-                        }
-                        node.remove();
-                    }
-                });
-            }
-
-            var inputEl = document.getElementById('prompt');
-            if (inputEl) {
-                inputEl.value = 'help';
-                if (typeof sendPrompt === 'function') {
-                    sendPrompt();
-                } else {
-                    document.querySelector('form').dispatchEvent(new Event('submit', {cancelable: true}));
-                }
-                var liveRegion = document.getElementById('aria-announcer');
-                if (!liveRegion) {
-                    liveRegion = document.createElement('div');
-                    liveRegion.id = 'aria-announcer';
-                    liveRegion.setAttribute('aria-live', 'assertive');
-                    liveRegion.className = 'sr-only';
-                    document.body.appendChild(liveRegion);
-                }
-                liveRegion.textContent = "Loading Help Menu...";
-            }
+            if (e.repeat) return;
+            if (typeof showLocalHelp === 'function') showLocalHelp('menu');
             return;
         }
     });
@@ -4497,9 +5429,15 @@
             inputEl.setAttribute('aria-expanded', 'false');
             inputEl.removeAttribute('aria-activedescendant');
             activeIndex = -1;
+            const isAdmin = typeof isTier5AdminUser === 'function' && isTier5AdminUser();
             menuEl.querySelectorAll('.slash-item').forEach(function(item) {
-                item.classList.remove('hidden', 'bg-slate-700');
+                item.classList.remove('bg-slate-700');
                 item.setAttribute('aria-selected', 'false');
+                if (item.getAttribute('data-admin-only') === 'true' && !isAdmin) {
+                    item.classList.add('hidden');
+                } else {
+                    item.classList.remove('hidden');
+                }
             });
         }
 
@@ -4519,17 +5457,22 @@
 
         function selectItem(targetItem) {
             if (!targetItem) return;
+            const isAdmin = typeof isTier5AdminUser === 'function' && isTier5AdminUser();
+            if (targetItem.getAttribute('data-admin-only') === 'true' && !isAdmin) {
+                hideMenu();
+                return;
+            }
             const cmd = targetItem.getAttribute('data-command');
             if (cmd === '/telemetry') {
                 hideMenu();
                 inputEl.value = '';
-                window.location.href = '/telemetry';
+                if (isAdmin) window.location.href = '/telemetry';
                 return;
             }
             if (cmd === '/audits') {
                 hideMenu();
                 inputEl.value = '';
-                window.location.href = '/audits';
+                if (isAdmin) window.location.href = '/audits';
                 return;
             }
             if (cmd === '/clear') {
@@ -4547,8 +5490,13 @@
             const val = inputEl.value;
             if (val.startsWith('/')) {
                 const query = val.toLowerCase();
+                const isAdmin = typeof isTier5AdminUser === 'function' && isTier5AdminUser();
                 let matched = 0;
                 menuEl.querySelectorAll('.slash-item').forEach(function(item) {
+                    if (item.getAttribute('data-admin-only') === 'true' && !isAdmin) {
+                        item.classList.add('hidden');
+                        return;
+                    }
                     const cmd = (item.getAttribute('data-command') || '').toLowerCase();
                     if (cmd.startsWith(query) || query === '/') {
                         item.classList.remove('hidden');
@@ -4640,6 +5588,9 @@
         }
 
         function openReauthModal() {
+            if (!window._isSuperAdminHost && (typeof isTier5AdminUser !== 'function' || !isTier5AdminUser())) {
+                return;
+            }
             const modal = document.getElementById('reauth-modal');
             if (!modal) return;
             if (typeof modal.showModal === 'function') {
@@ -4795,11 +5746,11 @@
 
         function renderCliAuthUI(data) {
             if (!data) return;
+            const headerBtn = document.getElementById('header-cli-auth-btn');
             const isDemo = window.location.search.includes('demo=1') || (currentUser && currentUser.token_scope === 'demo');
             const activeStatus = isDemo ? (data.demo_status || data) : (data.root_status || data);
 
             // Update Header Badge
-            const headerBtn = document.getElementById('header-cli-auth-btn');
             const headerDot = document.getElementById('header-cli-auth-dot');
             const headerLabel = document.getElementById('header-cli-auth-label');
 
@@ -5041,12 +5992,837 @@
    function msg(t,ok){const m=document.getElementById('cc-msg');if(m){m.textContent=t;m.style.color=ok?'#4ade80':'#f87171';}}
    window.ccOpen=()=>{document.getElementById('cc-modal').style.display='flex';ccRefresh();};
    window.ccClose=()=>{document.getElementById('cc-modal').style.display='none';};
-   window.ccRefresh=async()=>{try{const r=await fetch(B+'/api/ai/status');const j=await r.json();const b=document.getElementById('cc-badge');b.textContent=j.connected?'connected':'not connected';b.style.color=j.connected?'#4ade80':'#9aa4b2';document.getElementById('cc-btn').style.display=j.connected?'none':'block';}catch(e){}};
+   window.ccRefresh=async()=>{const btn=document.getElementById('cc-btn');try{const r=await fetch(B+'/api/ai/status');const j=await r.json();const b=document.getElementById('cc-badge');b.textContent=j.connected?'connected':'not connected';b.style.color=j.connected?'#4ade80':'#9aa4b2';if(btn)btn.style.display=j.connected?'none':'block';}catch(e){}};
    window.ccStart=async()=>{msg('Starting sign-in…',true);try{const r=await fetch(B+'/api/ai/login/start',{method:'POST'});const j=await r.json();if(!j.ok){msg(j.error||'could not start',false);return;}document.getElementById('cc-link').href=j.url;document.getElementById('cc-flow').style.display='block';try{window.open(j.url,'_blank');}catch(e){}msg('Open the page, approve, paste the code below.',true);}catch(e){msg('request failed',false);}};
    window.ccFinish=async()=>{const code=document.getElementById('cc-code').value.trim();if(!code){msg('paste the code first',false);return;}msg('Finishing…',true);try{const r=await fetch(B+'/api/ai/login/complete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});const j=await r.json();msg(j.ok?'✓ '+j.message:'✗ '+(j.error||j.message),j.ok);if(j.ok){document.getElementById('cc-flow').style.display='none';ccRefresh();setTimeout(ccClose,1200);}}catch(e){msg('request failed',false);}};
    window.ccSaveKey=async()=>{const key=document.getElementById('cc-key').value.trim();if(!key){msg('enter a key first',false);return;}msg('Saving…',true);try{const r=await fetch(B+'/api/ai/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({api_key:key})});const j=await r.json();msg(j.ok?'✓ '+j.message:'✗ '+(j.error||j.message),j.ok);if(j.ok){document.getElementById('cc-key').value='';ccRefresh();setTimeout(ccClose,1200);}}catch(e){msg('request failed',false);}};
    document.addEventListener('DOMContentLoaded',ccRefresh);
  })();
+</script>
+
+<!-- Super Admin Tier 5 Unified Vault & Bitwarden CLI Modal -->
+<dialog id="vault-manager-modal" aria-labelledby="vault-modal-title" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/85 backdrop:backdrop-blur-sm w-full max-w-5xl">
+    <div class="bg-slate-900 border border-teal-700/60 rounded-2xl shadow-2xl overflow-hidden text-slate-100 max-h-[90vh] flex flex-col">
+        <div class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between shrink-0">
+            <div>
+                <h3 id="vault-modal-title" class="text-lg font-bold text-teal-300 flex items-center gap-2">
+                    <span aria-hidden="true">🔐</span> Unified Bitwarden CLI &amp; X_SHI3LD_X Vault Manager (Super Admin Tier 5)
+                </h3>
+                <p class="text-xs text-slate-400 font-mono mt-0.5">
+                    AES-256-GCM Transit Envelope • Bitwarden CLI (<code class="text-teal-300">bw</code>) + Automatic <code class="text-amber-300">Documents/encryption_toll</code> (<code class="text-amber-300">||X_SHI3LD_X||</code> .vault) Fallback
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="dvRefreshVaultStatus()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-teal-300 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    ↻ Refresh Status
+                </button>
+                <button type="button" onclick="closeVaultManagerModal()" aria-label="Close Vault Manager Modal" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 border border-slate-700 text-slate-300 hover:text-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    ✕ Close
+                </button>
+            </div>
+        </div>
+
+        <div class="p-6 overflow-y-auto space-y-6 flex-1">
+            <div id="dv-vault-banner" role="status" aria-live="polite" class="hidden rounded-lg px-4 py-2.5 text-xs font-mono border"></div>
+
+            <!-- 3 Status Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">1. Bitwarden CLI (<code class="text-teal-300">bw</code>)</span>
+                        <span id="dv-bw-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700/50">checking...</span>
+                    </div>
+                    <p id="dv-bw-detail" class="text-xs text-slate-400 font-mono break-all">Locating binary...</p>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">2. Local <code class="text-emerald-300">X_SHI3LD_X</code> .vault</span>
+                        <span id="dv-shield-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">checking...</span>
+                    </div>
+                    <p id="dv-shield-detail" class="text-xs text-slate-400 font-mono">PBKDF2-HMAC-SHA256 + Fernet + Split-Key Bridge</p>
+                </div>
+
+                <div class="bg-slate-950 border border-slate-800 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">3. KMS Keychain &amp; Transit</span>
+                        <span id="dv-kms-badge" class="text-[11px] font-mono px-2 py-0.5 rounded bg-teal-950 text-teal-300 border border-teal-700/50">AES-256-GCM</span>
+                    </div>
+                    <p id="dv-kms-detail" class="text-xs text-slate-400 font-mono">Shared .devcore_master.key KEK/DEK</p>
+                </div>
+            </div>
+
+            <!-- Dual Engine Controls: Bitwarden CLI & Local .vault -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <!-- Bitwarden CLI Card -->
+                <section aria-labelledby="dv-bw-heading" class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <h4 id="dv-bw-heading" class="text-sm font-bold text-teal-300">Bitwarden CLI Session Control (RAM-Only <code class="text-xs">BW_SESSION</code>)</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                            <label for="dv-bw-email" class="block text-xs text-slate-400 mb-1">Email (for Login)</label>
+                            <input id="dv-bw-email" type="email" autocomplete="off" placeholder="user@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                        <div>
+                            <label for="dv-bw-password" class="block text-xs text-slate-400 mb-1">Master Password</label>
+                            <input id="dv-bw-password" type="password" autocomplete="new-password" placeholder="Bitwarden Master Password" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                            <label for="dv-bw-code" class="block text-[11px] text-slate-400 mb-1">2FA Code (Optional)</label>
+                            <input id="dv-bw-code" type="text" autocomplete="one-time-code" placeholder="123456" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white">
+                        </div>
+                        <div>
+                            <label for="dv-bw-client-id" class="block text-[11px] text-slate-400 mb-1">API client_id (Optional)</label>
+                            <input id="dv-bw-client-id" type="text" autocomplete="off" placeholder="user.xxxx" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white">
+                        </div>
+                        <div>
+                            <label for="dv-bw-client-secret" class="block text-[11px] text-slate-400 mb-1">API client_secret</label>
+                            <input id="dv-bw-client-secret" type="password" autocomplete="new-password" placeholder="optional" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white">
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button type="button" onclick="dvBwUnlock()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-slate-950 focus:ring-2 focus:ring-teal-400 focus:outline-none">🔓 Unlock CLI</button>
+                        <button type="button" onclick="dvBwLogin()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-teal-700/60 text-teal-300 focus:ring-2 focus:ring-teal-400 focus:outline-none">🔑 Login CLI</button>
+                        <button type="button" onclick="dvBwSync()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 focus:ring-2 focus:ring-teal-400 focus:outline-none">🔄 Sync</button>
+                        <button type="button" onclick="dvBwLock()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 focus:ring-2 focus:ring-rose-500 focus:outline-none">🔒 Lock CLI</button>
+                    </div>
+                </section>
+
+                <!-- Local X_SHI3LD_X .vault Card -->
+                <section aria-labelledby="dv-local-heading" class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-3">
+                    <h4 id="dv-local-heading" class="text-sm font-bold text-emerald-300">Local <code class="text-xs">X_SHI3LD_X</code> .vault Fallback &amp; KMS Keychain</h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                            <label for="dv-local-user" class="block text-xs text-slate-400 mb-1">Vault Username</label>
+                            <input id="dv-local-user" type="text" value="admin" autocomplete="off" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                        <div>
+                            <label for="dv-local-pass" class="block text-xs text-slate-400 mb-1">Vault Password</label>
+                            <input id="dv-local-pass" type="password" autocomplete="new-password" placeholder="Local .vault Password" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button type="button" onclick="dvLocalUnlock()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-slate-950 focus:ring-2 focus:ring-emerald-400 focus:outline-none">🔓 Unlock .vault</button>
+                        <button type="button" onclick="dvLocalInit()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-emerald-700/60 text-emerald-300 focus:ring-2 focus:ring-emerald-400 focus:outline-none">✨ Init / Verify .vault</button>
+                        <button type="button" onclick="dvLocalLock()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 focus:ring-2 focus:ring-rose-500 focus:outline-none">🔒 Lock .vault</button>
+                        <button type="button" onclick="dvRotateKms()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-amber-700/60 text-amber-300 focus:ring-2 focus:ring-amber-400 focus:outline-none">🔁 Rotate KMS DEK</button>
+                    </div>
+                    <div id="dv-recovery-meta" class="hidden text-[11px] font-mono bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-slate-300 space-y-1">
+                        <div><span class="text-amber-300 font-bold">Recovery Cipher:</span> <span id="dv-rec-cipher"></span></div>
+                        <div><span class="text-teal-300 font-bold">Decoder Map:</span> <span id="dv-rec-map" class="break-all"></span></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- 1-Click Machine Secret Harvester -->
+            <section aria-labelledby="dv-harvest-heading" class="bg-slate-950/90 border border-amber-800/50 rounded-xl p-4 space-y-3">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h4 id="dv-harvest-heading" class="text-sm font-bold text-amber-300">🔍 Non-Destructive Machine Secret Harvester (Google OAuth, Gemini, SMTP, GitHub, 2FA)</h4>
+                        <p class="text-xs text-slate-400">Scans known credential locations on disk and imports them into the unlocked vault(s) without deleting original files.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="dvScanHarvest()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-amber-700/60 text-amber-300 focus:ring-2 focus:ring-amber-400 focus:outline-none">🔍 Scan Machine Secrets</button>
+                        <button type="button" onclick="dvImportHarvest()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 focus:ring-2 focus:ring-amber-300 focus:outline-none">📥 Import All into Unlocked Vault</button>
+                    </div>
+                </div>
+                <div id="dv-harvest-list" class="hidden max-h-40 overflow-y-auto border border-slate-800 rounded-lg p-2.5 bg-slate-900/70 text-xs font-mono space-y-1.5"></div>
+            </section>
+
+            <!-- Unified Vault Items Store -->
+            <section aria-labelledby="dv-items-heading" class="bg-slate-950/90 border border-slate-800 rounded-xl p-4 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <h4 id="dv-items-heading" class="text-sm font-bold text-teal-300">🗄️ Vaulted Credentials &amp; API Keys (Encrypted At Rest &amp; In Transit)</h4>
+                    <div class="flex items-center gap-2">
+                        <input id="dv-item-search" type="search" placeholder="Filter credentials..." oninput="dvLoadItems()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1 text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <button type="button" onclick="dvLoadItems()" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">Refresh</button>
+                    </div>
+                </div>
+
+                <!-- Add Credential Form -->
+                <div class="grid grid-cols-1 sm:grid-cols-6 gap-2 bg-slate-900/90 border border-slate-800 rounded-lg p-3">
+                    <input id="dv-new-name" type="text" placeholder="Label (e.g. Gemini API Key)" aria-label="Credential Label" class="sm:col-span-2 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+                    <input id="dv-new-user" type="text" placeholder="Username / Account" aria-label="Account or Username" class="bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+                    <input id="dv-new-secret" type="password" autocomplete="new-password" placeholder="Secret / Token / Password" aria-label="Secret Value" class="sm:col-span-2 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-white">
+                    <button type="button" onclick="dvAddItem()" class="bg-teal-600 hover:bg-teal-500 text-slate-950 font-bold rounded px-3 py-1.5 text-xs">+ Encrypt &amp; Save</button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400">
+                                <th class="py-2 px-2">Name</th>
+                                <th class="py-2 px-2">Category</th>
+                                <th class="py-2 px-2">Account</th>
+                                <th class="py-2 px-2">Secret (AES-GCM Reveal)</th>
+                                <th class="py-2 px-2">Source</th>
+                                <th class="py-2 px-2 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dv-items-tbody" class="divide-y divide-slate-800/60 font-mono">
+                            <tr><td colspan="6" class="py-4 text-center text-slate-500">Unlock Bitwarden CLI or Local .vault to view items.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+    </div>
+</dialog>
+
+<!-- DevCore Passkey & Bitwarden Setup Wizard Modal -->
+<dialog id="passkey-wizard-modal" aria-labelledby="passkey-modal-title" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/85 backdrop:backdrop-blur-sm w-full max-w-5xl">
+    <div class="bg-slate-900 border border-cyan-700/60 rounded-2xl shadow-2xl overflow-hidden text-slate-100 max-h-[92vh] flex flex-col">
+        <div class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
+            <div>
+                <h3 id="passkey-modal-title" class="text-lg font-bold text-cyan-300 flex items-center gap-2">
+                    <span id="setup-modal-icon" aria-hidden="true">💻</span> <span id="setup-modal-title-text">Bitwarden CLI Web Setup &amp; Management</span>
+                </h3>
+                <p id="setup-modal-subtitle" class="text-xs text-slate-400 font-mono mt-0.5">
+                    Live CLI Bridge • Password &amp; 2FA Authentication • Session RAM Storage • Vault Sync
+                </p>
+            </div>
+            <div class="flex items-center gap-2">
+                <div role="tablist" aria-label="Setup Wizard Sections" class="inline-flex rounded-lg bg-slate-900 p-0.5 border border-slate-700">
+                    <button type="button" role="tab" id="tab-btn-cli" aria-selected="true" onclick="setSetupTab('cli')" class="px-3 py-1 text-xs font-bold rounded-md bg-sky-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer">
+                        💻 CLI Setup (5050)
+                    </button>
+                    <button type="button" role="tab" id="tab-btn-passkey" aria-selected="false" onclick="setSetupTab('passkey')" class="px-3 py-1 text-xs font-bold rounded-md text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer">
+                        🔑 Passkeys &amp; Biometrics (5055)
+                    </button>
+                </div>
+                <button type="button" onclick="reloadPasskeyFrame()" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 focus:ring-2 focus:ring-cyan-500 focus:outline-none cursor-pointer" aria-label="Reload Current Setup View">
+                    ↻ Reload
+                </button>
+                <a id="passkey-newtab-link" href="http://localhost:5050" target="_blank" rel="noopener noreferrer" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-cyan-950 hover:bg-cyan-900 border border-cyan-600/70 text-cyan-300 hover:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none flex items-center gap-1 shadow-sm" aria-label="Open current setup interface in a dedicated browser tab">
+                    <span aria-hidden="true">↗</span> <span id="passkey-newtab-text">Open localhost:5050</span>
+                </a>
+                <button type="button" onclick="closePasskeyWizardModal()" aria-label="Close Setup Dialog" class="text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-rose-900/60 border border-slate-700 text-slate-300 hover:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none cursor-pointer">
+                    ✕ Close
+                </button>
+            </div>
+        </div>
+
+        <div id="passkey-insecure-warning" style="display:none;" class="bg-amber-950/80 border-b border-amber-600/50 px-6 py-2.5 text-xs text-amber-200 flex items-center justify-between">
+            <span class="flex items-center gap-2">
+                <span class="text-amber-400 font-bold">⚠️ Non-localhost origin detected:</span>
+                Web browsers strictly restrict Windows Hello biometrics on raw IP addresses. For passkey enrollment, please click
+                <a id="passkey-warn-link" href="http://localhost:5055" target="_blank" rel="noopener noreferrer" class="text-cyan-300 font-bold underline hover:text-cyan-100">Open on localhost:5055</a>.
+            </span>
+        </div>
+
+        <div class="p-0 overflow-hidden flex-1 bg-slate-950">
+            <iframe id="passkey-wizard-frame" src="about:blank" title="DevCore Setup and CLI Management Interface" class="w-full h-[76vh] border-0" allow="publickey-credentials-create; publickey-credentials-get"></iframe>
+        </div>
+    </div>
+</dialog>
+<script>
+(function() {
+    var dvTransitSession = null;
+
+    function dvAuthHeaders(extra) {
+        var h = Object.assign({ 'Content-Type': 'application/json' }, extra || {});
+        try {
+            var tk = localStorage.getItem('authToken');
+            if (tk) h['Authorization'] = 'Bearer ' + tk;
+        } catch (e) {}
+        return h;
+    }
+
+    function dvShowBanner(msg, isError) {
+        var el = document.getElementById('dv-vault-banner');
+        if (!el) return;
+        el.textContent = msg;
+        el.className = 'rounded-lg px-4 py-2.5 text-xs font-mono border ' + (
+            isError
+                ? 'bg-rose-950/90 border-rose-700 text-rose-200'
+                : 'bg-teal-950/90 border-teal-700 text-teal-200'
+        );
+        el.classList.remove('hidden');
+    }
+
+    function dvB64ToBytes(b64) {
+        var bin = atob(b64);
+        var arr = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        return arr;
+    }
+
+    function dvBytesToB64(bytes) {
+        var bin = '';
+        var u8 = new Uint8Array(bytes);
+        for (var i = 0; i < u8.length; i++) bin += String.fromCharCode(u8[i]);
+        return btoa(bin);
+    }
+
+    async function dvEnsureVaultTransit() {
+        var now = Date.now() / 1000;
+        if (dvTransitSession && dvTransitSession.expiresAt > (now + 30)) {
+            return dvTransitSession;
+        }
+        var res = await fetch('/api/vault/handshake', {
+            method: 'POST',
+            headers: dvAuthHeaders()
+        });
+        var data = await res.json();
+        if (!data.ok || !data.handshake) {
+            throw new Error(data.error || 'Vault transit handshake failed');
+        }
+        var hs = data.handshake;
+        var subtle = (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null;
+        var seedStr = hs.seed || hs.seed_b64 || '';
+        if (!subtle || !seedStr) {
+            dvTransitSession = {
+                keyId: hs.key_id,
+                aesKey: null,
+                subtleAvailable: false,
+                expiresAt: now + (hs.ttl_seconds || 900)
+            };
+            return dvTransitSession;
+        }
+        var baseKey = await subtle.importKey(
+            'raw',
+            new TextEncoder().encode(seedStr),
+            { name: 'PBKDF2' },
+            false,
+            ['deriveKey']
+        );
+        var aesKey = await subtle.deriveKey(
+            {
+                name: 'PBKDF2',
+                salt: dvB64ToBytes(hs.salt_b64),
+                iterations: hs.iterations || 100000,
+                hash: 'SHA-256'
+            },
+            baseKey,
+            { name: 'AES-GCM', length: 256 },
+            false,
+            ['encrypt', 'decrypt']
+        );
+        dvTransitSession = {
+            keyId: hs.key_id,
+            aesKey: aesKey,
+            subtleAvailable: true,
+            expiresAt: now + (hs.ttl_seconds || 900)
+        };
+        return dvTransitSession;
+    }
+
+    async function dvVaultEncryptedPost(url, payloadObj) {
+        var sess = await dvEnsureVaultTransit();
+        var subtle = (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null;
+        if (!sess.subtleAvailable || !sess.aesKey || !subtle) {
+            var directRes = await fetch(url, {
+                method: 'POST',
+                headers: dvAuthHeaders(),
+                body: JSON.stringify(payloadObj || {})
+            });
+            return await directRes.json();
+        }
+        var ts = Math.floor(Date.now() / 1000);
+        var nonceBytes = window.crypto.getRandomValues(new Uint8Array(12));
+        var nonceHex = Array.from(nonceBytes).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+        var iv = window.crypto.getRandomValues(new Uint8Array(12));
+        var aad = new TextEncoder().encode(sess.keyId + ':' + ts + ':' + nonceHex);
+        var plainBytes = new TextEncoder().encode(JSON.stringify({
+            ts: ts,
+            nonce: nonceHex,
+            data: payloadObj || {}
+        }));
+        var ctBuf = await subtle.encrypt(
+            { name: 'AES-GCM', iv: iv, additionalData: aad },
+            sess.aesKey,
+            plainBytes
+        );
+        var envelope = {
+            enc_envelope: true,
+            key_id: sess.keyId,
+            iv_b64: dvBytesToB64(iv),
+            ciphertext_b64: dvBytesToB64(ctBuf),
+            ts: ts,
+            nonce: nonceHex
+        };
+        var res = await fetch(url, {
+            method: 'POST',
+            headers: dvAuthHeaders(),
+            body: JSON.stringify(envelope)
+        });
+        return await res.json();
+    }
+
+    async function dvVaultDecryptEnvelope(env) {
+        var sess = await dvEnsureVaultTransit();
+        var subtle = (window.crypto && window.crypto.subtle) ? window.crypto.subtle : null;
+        if (!sess.subtleAvailable || !sess.aesKey || !subtle) {
+            return env.data || env;
+        }
+        var iv = dvB64ToBytes(env.iv_b64);
+        var ct = dvB64ToBytes(env.ciphertext_b64);
+        var aad = new TextEncoder().encode(env.key_id + ':' + env.ts + ':' + env.nonce);
+        var plainBuf = await subtle.decrypt(
+            { name: 'AES-GCM', iv: iv, additionalData: aad },
+            sess.aesKey,
+            ct
+        );
+        var decoded = JSON.parse(new TextDecoder().decode(plainBuf));
+        return decoded.data || decoded;
+    }
+
+    window.openVaultManagerModal = function() {
+        if (typeof isTier5AdminUser === 'function' && !isTier5AdminUser()) return;
+        var modal = document.getElementById('vault-manager-modal');
+        if (!modal) return;
+        if (!modal.open) modal.showModal();
+        dvRefreshVaultStatus();
+        dvLoadItems();
+    };
+
+    window.closeVaultManagerModal = function() {
+        var modal = document.getElementById('vault-manager-modal');
+        if (modal && modal.open) modal.close();
+    };
+
+    window.currentSetupTab = 'cli';
+
+    window.setSetupTab = function(tab) {
+        window.currentSetupTab = tab || 'cli';
+        var frame = document.getElementById('passkey-wizard-frame');
+        var newTab = document.getElementById('passkey-newtab-link');
+        var newTabText = document.getElementById('passkey-newtab-text');
+        var warnEl = document.getElementById('passkey-insecure-warning');
+        var titleText = document.getElementById('setup-modal-title-text');
+        var subText = document.getElementById('setup-modal-subtitle');
+        var iconEl = document.getElementById('setup-modal-icon');
+        var cliTabBtn = document.getElementById('tab-btn-cli');
+        var passkeyTabBtn = document.getElementById('tab-btn-passkey');
+
+        var host = window.location.hostname || 'localhost';
+        var proto = window.location.protocol || 'http:';
+
+        if (window.currentSetupTab === 'cli') {
+            if (cliTabBtn) {
+                cliTabBtn.className = 'px-3 py-1 text-xs font-bold rounded-md bg-sky-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer';
+                cliTabBtn.setAttribute('aria-selected', 'true');
+            }
+            if (passkeyTabBtn) {
+                passkeyTabBtn.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer';
+                passkeyTabBtn.setAttribute('aria-selected', 'false');
+            }
+            if (titleText) titleText.textContent = 'Bitwarden CLI Web Setup & Management';
+            if (subText) subText.textContent = 'Live CLI Bridge • Password & 2FA Authentication • Session RAM Storage • Vault Sync';
+            if (iconEl) iconEl.textContent = '💻';
+            if (warnEl) warnEl.style.display = 'none';
+
+            var targetUrl = proto + '//' + host + ':5050';
+            if (frame) frame.src = targetUrl;
+            if (newTab) newTab.href = targetUrl;
+            if (newTabText) newTabText.textContent = 'Open ' + host + ':5050';
+        } else {
+            if (passkeyTabBtn) {
+                passkeyTabBtn.className = 'px-3 py-1 text-xs font-bold rounded-md bg-cyan-600 text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 cursor-pointer';
+                passkeyTabBtn.setAttribute('aria-selected', 'true');
+            }
+            if (cliTabBtn) {
+                cliTabBtn.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-300 hover:text-white focus:outline-none focus:ring-2 focus:ring-sky-400 cursor-pointer';
+                cliTabBtn.setAttribute('aria-selected', 'false');
+            }
+            if (titleText) titleText.textContent = 'Passkey & Bitwarden Setup Wizard';
+            if (subText) subText.textContent = 'Hardware Biometrics • Windows Hello • WebAuthn Credentials • Bitwarden Checklist';
+            if (iconEl) iconEl.textContent = '🔑';
+
+            if (warnEl) {
+                if (host !== 'localhost' && host !== '127.0.0.1') {
+                    warnEl.style.display = 'flex';
+                } else {
+                    warnEl.style.display = 'none';
+                }
+            }
+
+            var targetUrl = proto + '//' + host + ':5055';
+            if (frame) frame.src = targetUrl;
+            if (newTab) newTab.href = (host !== 'localhost' && host !== '127.0.0.1') ? 'http://localhost:5055' : targetUrl;
+            if (newTabText) newTabText.textContent = (host !== 'localhost' && host !== '127.0.0.1') ? 'Open localhost:5055 (Passkey)' : ('Open ' + host + ':5055');
+        }
+    };
+
+    window.openCliBridgeModal = function() {
+        if (typeof isTier5AdminUser === 'function' && !isTier5AdminUser()) return;
+        var modal = document.getElementById('passkey-wizard-modal');
+        if (!modal) return;
+        window.setSetupTab('cli');
+        if (!modal.open) modal.showModal();
+    };
+
+    window.openPasskeyWizardModal = function() {
+        if (typeof isTier5AdminUser === 'function' && !isTier5AdminUser()) return;
+        var modal = document.getElementById('passkey-wizard-modal');
+        if (!modal) return;
+        window.setSetupTab('passkey');
+        if (!modal.open) modal.showModal();
+    };
+
+    window.closePasskeyWizardModal = function() {
+        var modal = document.getElementById('passkey-wizard-modal');
+        if (modal && modal.open) modal.close();
+        var btn = document.getElementById('sidebar-cli-bridge-btn') || document.getElementById('sidebar-passkey-wizard-btn');
+        if (btn) btn.focus();
+    };
+
+    window.reloadPasskeyFrame = function() {
+        var frame = document.getElementById('passkey-wizard-frame');
+        var host = window.location.hostname || 'localhost';
+        var proto = window.location.protocol || 'http:';
+        var port = window.currentSetupTab === 'cli' ? '5050' : '5055';
+        if (frame) frame.src = proto + '//' + host + ':' + port + '?t=' + Date.now();
+    };
+    window.dvRefreshVaultStatus = async function() {
+        try {
+            var res = await fetch('/api/vault/status', { headers: dvAuthHeaders() });
+            var data = await res.json();
+            if (!data.ok) {
+                dvShowBanner(data.error || 'Access denied to Vault Status', true);
+                return;
+            }
+            window._dvLastStatus = data;
+            var bw = data.bitwarden || {};
+            var bwBadge = document.getElementById('dv-bw-badge');
+            var bwDetail = document.getElementById('dv-bw-detail');
+            if (bwBadge) {
+                var st = bw.session_active ? 'UNLOCKED (RAM)' : (bw.status || 'unauthenticated').toUpperCase();
+                bwBadge.textContent = st;
+                bwBadge.className = 'text-[11px] font-mono px-2 py-0.5 rounded border ' + (
+                    bw.session_active
+                        ? 'bg-emerald-950 text-emerald-300 border-emerald-700/60'
+                        : 'bg-amber-950 text-amber-300 border-amber-700/60'
+                );
+            }
+            if (bwDetail) {
+                bwDetail.textContent = bw.installed
+                    ? ('Binary: ' + bw.binary_path + (bw.user_email ? ' (' + bw.user_email + ')' : ''))
+                    : 'Bitwarden CLI not found — using X_SHI3LD_X .vault fallback';
+            }
+
+            var sh = data.shield_vault || {};
+            var shHeader = sh.header || {};
+            var shUsers = sh.users || shHeader.users || [];
+            var recCipher = sh.recovery_cipher || shHeader.recovery_cipher || '';
+            var recMap = sh.recovery_map || shHeader.recovery_map || '';
+            var shBadge = document.getElementById('dv-shield-badge');
+            var shDetail = document.getElementById('dv-shield-detail');
+            if (shBadge) {
+                shBadge.textContent = sh.unlocked ? ('UNLOCKED (' + sh.unlocked_user + ')') : (sh.exists ? 'LOCKED (.vault)' : 'UNINITIALIZED');
+                shBadge.className = 'text-[11px] font-mono px-2 py-0.5 rounded border ' + (
+                    sh.unlocked
+                        ? 'bg-emerald-950 text-emerald-300 border-emerald-700/60'
+                        : 'bg-slate-800 text-slate-300 border-slate-700'
+                );
+            }
+            if (shDetail) {
+                shDetail.textContent = sh.exists
+                    ? ('File: ' + sh.vault_file + ' • Users: ' + (shUsers.join(', ') || 'none'))
+                    : 'Ready to initialize MRSV ||X_SHI3LD_X|| container';
+            }
+
+            var recBox = document.getElementById('dv-recovery-meta');
+            if (recBox) {
+                if (sh.unlocked && recCipher) {
+                    recBox.classList.remove('hidden');
+                    document.getElementById('dv-rec-cipher').textContent = recCipher;
+                    document.getElementById('dv-rec-map').textContent = recMap;
+                } else {
+                    recBox.classList.add('hidden');
+                }
+            }
+
+            var kms = data.kms_keychain || {};
+            var kmsBadge = document.getElementById('dv-kms-badge');
+            var kmsDetail = document.getElementById('dv-kms-detail');
+            if (kmsBadge) {
+                kmsBadge.textContent = 'DEK: ' + (kms.active_key_id || 'key_1') + ' (' + (kms.key_count || 1) + ' keys)';
+            }
+            if (kmsDetail) {
+                kmsDetail.textContent = 'Engine: ' + (data.active_engine || 'fallback') + ' • Shared Master KEK: ' + (kms.shared_devcore_master ? 'Yes' : 'Local');
+            }
+        } catch (err) {
+            dvShowBanner('Vault status error: ' + err.message, true);
+        }
+    };
+
+    window.dvBwUnlock = async function() {
+        var pwd = (document.getElementById('dv-bw-password').value || '').trim();
+        var email = (document.getElementById('dv-bw-email')?.value || '').trim();
+        var code = (document.getElementById('dv-bw-code')?.value || '').trim();
+        var cid = (document.getElementById('dv-bw-client-id')?.value || '').trim();
+        var csec = (document.getElementById('dv-bw-client-secret')?.value || '').trim();
+        if (!pwd) return dvShowBanner('Enter your Master Password first.', true);
+        try {
+            var endpoint = (email || (cid && csec)) ? '/api/vault/bw/login' : '/api/vault/bw/unlock';
+            var res = await dvVaultEncryptedPost(endpoint, {
+                email: email,
+                password: pwd,
+                code: code,
+                client_id: cid,
+                client_secret: csec
+            });
+            if (res.ok) {
+                document.getElementById('dv-bw-password').value = '';
+            }
+            dvShowBanner(res.message || res.error || 'Vault unlock processed.', !res.ok);
+            await dvRefreshVaultStatus();
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Bitwarden CLI unlock error: ' + e.message, true);
+        }
+    };
+
+    window.dvBwLogin = async function() {
+        var email = (document.getElementById('dv-bw-email').value || '').trim();
+        var pwd = (document.getElementById('dv-bw-password').value || '').trim();
+        var code = (document.getElementById('dv-bw-code').value || '').trim();
+        var cid = (document.getElementById('dv-bw-client-id').value || '').trim();
+        var csec = (document.getElementById('dv-bw-client-secret').value || '').trim();
+        try {
+            var res = await dvVaultEncryptedPost('/api/vault/bw/login', {
+                email: email,
+                password: pwd,
+                code: code,
+                client_id: cid,
+                client_secret: csec
+            });
+            document.getElementById('dv-bw-password').value = '';
+            document.getElementById('dv-bw-client-secret').value = '';
+            dvShowBanner(res.message || res.error || 'Bitwarden CLI login processed.', !res.ok);
+            await dvRefreshVaultStatus();
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Bitwarden CLI login error: ' + e.message, true);
+        }
+    };
+
+    window.dvBwSync = async function() {
+        try {
+            var res = await fetch('/api/vault/bw/sync', { method: 'POST', headers: dvAuthHeaders() });
+            var data = await res.json();
+            dvShowBanner(data.message || data.error || 'Sync complete.', !data.ok);
+            await dvRefreshVaultStatus();
+        } catch (e) {
+            dvShowBanner('Bitwarden sync error: ' + e.message, true);
+        }
+    };
+
+    window.dvBwLock = async function() {
+        try {
+            var res = await fetch('/api/vault/bw/lock', { method: 'POST', headers: dvAuthHeaders() });
+            var data = await res.json();
+            dvShowBanner(data.message || 'Bitwarden CLI locked.', !data.ok);
+            await dvRefreshVaultStatus();
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Bitwarden lock error: ' + e.message, true);
+        }
+    };
+
+    window.dvLocalInit = async function() {
+        var u = (document.getElementById('dv-local-user').value || 'admin').trim();
+        var p = (document.getElementById('dv-local-pass').value || '').trim();
+        if (!p || p.length < 4) return dvShowBanner('Enter a local .vault password (min 4 characters).', true);
+        try {
+            var res = await dvVaultEncryptedPost('/api/vault/local/init', { username: u, password: p });
+            document.getElementById('dv-local-pass').value = '';
+            dvShowBanner(res.message || res.error, !res.ok);
+            await dvRefreshVaultStatus();
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Local .vault init error: ' + e.message, true);
+        }
+    };
+
+    window.dvLocalUnlock = async function() {
+        var u = (document.getElementById('dv-local-user').value || 'admin').trim();
+        var p = (document.getElementById('dv-local-pass').value || '').trim();
+        if (!p) return dvShowBanner('Enter your local .vault password to unlock.', true);
+        try {
+            var res = await dvVaultEncryptedPost('/api/vault/local/unlock', { username: u, password: p });
+            document.getElementById('dv-local-pass').value = '';
+            dvShowBanner(res.message || res.error, !res.ok);
+            await dvRefreshVaultStatus();
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Local .vault unlock error: ' + e.message, true);
+        }
+    };
+
+    window.dvLocalLock = async function() {
+        try {
+            var res = await fetch('/api/vault/local/lock', { method: 'POST', headers: dvAuthHeaders() });
+            var data = await res.json();
+            dvShowBanner(data.message || 'Local .vault locked.', !data.ok);
+            await dvRefreshVaultStatus();
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Local .vault lock error: ' + e.message, true);
+        }
+    };
+
+    window.dvRotateKms = async function() {
+        try {
+            var res = await fetch('/api/vault/local/rotate-kms', { method: 'POST', headers: dvAuthHeaders() });
+            var data = await res.json();
+            dvShowBanner(data.message || data.error, !data.ok);
+            await dvRefreshVaultStatus();
+        } catch (e) {
+            dvShowBanner('KMS rotation error: ' + e.message, true);
+        }
+    };
+
+    window.dvScanHarvest = async function() {
+        try {
+            var res = await fetch('/api/vault/harvest/scan', { headers: dvAuthHeaders() });
+            var data = await res.json();
+            if (!data.ok) return dvShowBanner(data.error || 'Harvest scan failed', true);
+            var box = document.getElementById('dv-harvest-list');
+            box.classList.remove('hidden');
+            box.innerHTML = (data.discovered || []).map(function(item) {
+                var srcLabel = item.source || item.source_path || '';
+                var maskedVal = item.masked || item.masked_preview || '••••••••';
+                return '<div class="flex items-center justify-between gap-2 border-b border-slate-800/80 pb-1">' +
+                    '<div><span class="text-amber-300 font-bold">' + escapeHtml(item.name) + '</span> ' +
+                    '<span class="text-slate-400">(' + escapeHtml(srcLabel) + ')</span></div>' +
+                    '<span class="text-teal-300">' + escapeHtml(maskedVal) + '</span>' +
+                    '</div>';
+            }).join('') || '<div class="text-slate-400">No machine secrets found.</div>';
+            dvShowBanner('Discovered ' + data.count + ' machine credentials ready for non-destructive vault import.', false);
+        } catch (e) {
+            dvShowBanner('Harvest scan error: ' + e.message, true);
+        }
+    };
+
+    window.dvImportHarvest = async function() {
+        try {
+            var res = await dvVaultEncryptedPost('/api/vault/harvest/import', { target_engine: 'auto' });
+            dvShowBanner(res.message || res.error, !res.ok);
+            if (res.ok) {
+                await dvRefreshVaultStatus();
+                await dvLoadItems();
+            }
+        } catch (e) {
+            dvShowBanner('Harvest import error: ' + e.message, true);
+        }
+    };
+
+    window.dvLoadItems = async function() {
+        var tbody = document.getElementById('dv-items-tbody');
+        if (!tbody) return;
+        var q = (document.getElementById('dv-item-search').value || '').trim();
+        try {
+            var res = await fetch('/api/vault/items?q=' + encodeURIComponent(q), { headers: dvAuthHeaders() });
+            var data = await res.json();
+            if (!data.ok) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-rose-400">' + escapeHtml(data.error || 'Error') + '</td></tr>';
+                return;
+            }
+            var items = data.items || [];
+            if (!items.length) {
+                var bwActive = window._dvLastStatus && window._dvLastStatus.bitwarden && window._dvLastStatus.bitwarden.session_active;
+                var shActive = window._dvLastStatus && window._dvLastStatus.shield_vault && window._dvLastStatus.shield_vault.unlocked;
+                if ((bwActive || shActive) && !q && !window._dvAutoHarvestRunning) {
+                    window._dvAutoHarvestRunning = true;
+                    tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-amber-300 font-mono">⚡ Auto-harvesting machine secrets into unlocked vault...</td></tr>';
+                    dvImportHarvest().finally(function() {
+                        window._dvAutoHarvestRunning = false;
+                    });
+                    return;
+                }
+                tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-500">No unlocked vault items found (unlock Bitwarden CLI or Local .vault above).</td></tr>';
+                return;
+            }
+            tbody.innerHTML = items.map(function(it) {
+                var safeId = escapeHtml(it.id);
+                var maskedSecret = it.secret_masked || it.masked_secret || '••••••••';
+                return '<tr>' +
+                    '<td class="py-2 px-2 font-bold text-slate-200">' + escapeHtml(it.name) + '</td>' +
+                    '<td class="py-2 px-2 text-teal-300">' + escapeHtml(it.category || 'API Key') + '</td>' +
+                    '<td class="py-2 px-2 text-slate-400">' + escapeHtml(it.username || '-') + '</td>' +
+                    '<td class="py-2 px-2"><code id="dv-sec-' + safeId + '" class="text-amber-300">' + escapeHtml(maskedSecret) + '</code></td>' +
+                    '<td class="py-2 px-2 text-slate-400">' + escapeHtml(it.engine || 'shield_vault') + '</td>' +
+                    '<td class="py-2 px-2 text-right space-x-1">' +
+                        '<button type="button" onclick="dvRevealItem(\'' + safeId + '\')" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-teal-300 border border-slate-700">Reveal</button>' +
+                        '<button type="button" onclick="dvDeleteItem(\'' + safeId + '\')" class="px-2 py-0.5 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-800">Delete</button>' +
+                    '</td>' +
+                '</tr>';
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-rose-400">' + escapeHtml(e.message) + '</td></tr>';
+        }
+    };
+
+    window.dvAddItem = async function() {
+        var name = (document.getElementById('dv-new-name').value || '').trim();
+        var user = (document.getElementById('dv-new-user').value || '').trim();
+        var secret = (document.getElementById('dv-new-secret').value || '').trim();
+        if (!name || !secret) return dvShowBanner('Credential label and secret value are required.', true);
+        try {
+            var res = await dvVaultEncryptedPost('/api/vault/items', {
+                name: name,
+                username: user,
+                secret: secret,
+                category: 'API Key',
+                target_engine: 'auto'
+            });
+            if (res.ok) {
+                document.getElementById('dv-new-name').value = '';
+                document.getElementById('dv-new-user').value = '';
+                document.getElementById('dv-new-secret').value = '';
+            }
+            dvShowBanner(res.message || res.error, !res.ok);
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Save item error: ' + e.message, true);
+        }
+    };
+
+    window.dvRevealItem = async function(itemId) {
+        var codeEl = document.getElementById('dv-sec-' + itemId);
+        if (codeEl && codeEl.dataset.revealed === '1') {
+            codeEl.textContent = codeEl.dataset.masked || '••••••••';
+            codeEl.dataset.revealed = '0';
+            return;
+        }
+        try {
+            var sess = await dvEnsureVaultTransit();
+            var useKeyId = (sess.subtleAvailable && sess.aesKey) ? sess.keyId : '';
+            var res = await fetch('/api/vault/items/' + encodeURIComponent(itemId) + '/reveal', {
+                method: 'POST',
+                headers: dvAuthHeaders(),
+                body: JSON.stringify({ key_id: useKeyId })
+            });
+            var data = await res.json();
+            if (!data.ok) return dvShowBanner(data.error || 'Reveal failed', true);
+            var item = data.envelope ? await dvVaultDecryptEnvelope(data.envelope) : data.item;
+            if (codeEl && item) {
+                codeEl.dataset.masked = codeEl.textContent;
+                codeEl.textContent = item.secret || '';
+                codeEl.dataset.revealed = '1';
+            }
+        } catch (e) {
+            dvShowBanner('Reveal error: ' + e.message, true);
+        }
+    };
+
+    window.dvDeleteItem = async function(itemId) {
+        try {
+            var res = await fetch('/api/vault/items/' + encodeURIComponent(itemId), {
+                method: 'DELETE',
+                headers: dvAuthHeaders()
+            });
+            var data = await res.json();
+            dvShowBanner(data.ok ? 'Credential removed from local vault.' : (data.error || 'Delete failed'), !data.ok);
+            await dvLoadItems();
+        } catch (e) {
+            dvShowBanner('Delete error: ' + e.message, true);
+        }
+    };
+})();
 </script>
 </body>
 </html>

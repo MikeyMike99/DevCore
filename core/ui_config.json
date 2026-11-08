@@ -26,7 +26,7 @@
     "chat_input": {
         "label_sr": "Enter instructions for Siraugga",
         "placeholder": "Enter instructions (e.g. modify file, test feature, refactor code)... Press Enter to execute.",
-        "helper_text": "Enter to run \u2022 Shift+Enter for newline",
+        "helper_text": "Enter to run • Shift+Enter for newline",
         "btn_aria_label": "Execute prompt",
         "btn_text": "Execute"
     },
@@ -34,6 +34,10 @@
         "model_label": "Model:",
         "model_aria": "Select AI Model",
         "models": [
+            {
+                "value": "Smart (Argon + Claude)",
+                "text": "Smart (Argon + Claude)"
+            },
             {
                 "value": "Gemini 4 Argon (Medium)",
                 "text": "Gemini 4 Argon (Medium)"
@@ -120,11 +124,11 @@
         "btn_play_aria": "Play Video",
         "btn_pause": "Pause",
         "btn_pause_aria": "Pause Video",
-        "btn_rewind": "\u23ea -10s",
+        "btn_rewind": "⏪ -10s",
         "btn_rewind_aria": "Rewind 10 seconds",
-        "btn_forward": "\u23e9 +10s",
+        "btn_forward": "⏩ +10s",
         "btn_forward_aria": "Fast forward 10 seconds",
-        "btn_fullscreen": "\u26f6 Fullscreen",
+        "btn_fullscreen": "⛶ Fullscreen",
         "btn_fullscreen_aria": "Enter Fullscreen",
         "lbl_volume": "Volume:",
         "chk_autoplay": "Autoplay Next"

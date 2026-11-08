@@ -19,6 +19,7 @@ from core.roles import is_admin_role
 from core import session_manager as sm
 from core import project_manager as pm
 from agents import agent_manager as am
+from agents import browser_key_relay
 from security import security_manager as sec_m
 
 app = Quart(__name__, static_folder=None)
@@ -234,6 +235,11 @@ async def index():
     rendered_content = await render_template_string(content, ui=ui_strings)
     return rendered_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
+@app.route('/ai_agent/')
+@app.route('/ai_agent')
+async def ai_agent_index():
+    return await index()
+
 GLOBAL_AUTH_PROC = None
 
 @app.route('/plugin/media')
@@ -330,22 +336,55 @@ async def api_exam_content():
             uploaded.append(file.filename)
         return jsonify({"message": "Files uploaded successfully", "files": uploaded})
 
+_ARTIFACT_SECRET_NAMES = {
+    ".devcore_master.key", "subscriptions.json", "subscriptions.json.tmp", "sessions.json",
+    "antigravity-oauth-token", "gemini_api_key.txt", ".devcore_client_key.txt",
+    "webauthn_credentials.json", ".env", "key.pem", "cert.pem", "id_rsa", "id_ed25519",
+    "demo_gemini.key", "demo_gemini.key.tmp",
+}
+
+
+def _artifact_admin_user(token=None):
+    """Direct file access is a super-admin feature: resolve the caller and return them only if they are an admin."""
+    try:
+        user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
+    except Exception:
+        user = None
+    return user if (user and is_admin_role(user.get("role"))) else None
+
+
+def _artifact_path_blocked(path: str) -> bool:
+    """True for secrets that must never be read or written through the browser, even by an admin."""
+    if not path or "\x00" in path:
+        return True
+    real = os.path.realpath(path).replace("\\", "/")
+    if os.path.basename(real) in _ARTIFACT_SECRET_NAMES or "/.ssh/" in real + "/" or "/.gnupg/" in real + "/":
+        return True
+    try:
+        from security.raugus_resolver import resolver
+        if resolver.is_sensitive_path(path) or resolver.is_sensitive_path(real):
+            return True
+    except Exception:
+        pass
+    return False
+
+
 @app.route('/api/artifacts', methods=['GET'])
 async def get_artifact():
     import sys
     import subprocess
     
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+
     path = request.args.get('path', '')
     if path.startswith('file://'):
         path = path[7:]
 
-    try:
-        from security.raugus_resolver import resolver
-        if resolver.is_sensitive_path(path):
-            return jsonify({"error": "Raugus Sensitive Vault: Direct HTTP read of sensitive files is blocked."}), 403
-    except Exception:
-        pass
-        
+    if _artifact_path_blocked(path):
+        return jsonify({"error": "Raugus Sensitive Vault: Direct HTTP read of sensitive files is blocked."}), 403
+
     if sys.platform == "win32" and path.startswith("/"):
         try:
             result = subprocess.run(["wsl.exe", "-e", "cat", path], capture_output=True, text=True)
@@ -375,27 +414,27 @@ async def save_artifacts():
     
     auth_header = request.headers.get("Authorization", "")
     token = auth_header.replace("Bearer ", "").strip()
-    user = security_mgr.get_user_from_token(token)
-    if not user:
+    if not token:
         return jsonify({"error": "Unauthorized"}), 401
-    
-    data = await request.get_json()
-    path = data.get('path', '')
-    content = data.get('content', '')
-    append_mode = data.get('append', False)
-    
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+
+    data = await request.get_json() or {}
+    path = str(data.get('path', '') or '')
+    content = str(data.get('content', '') or '')
+    append_mode = bool(data.get('append', False))
+
     if path.startswith('file://'):
         path = path[7:]
 
-    try:
-        from security.raugus_resolver import resolver
-        if resolver.is_sensitive_path(path):
-            return jsonify({"error": "Raugus Sensitive Vault: Direct HTTP write to sensitive files is blocked."}), 403
-    except Exception:
-        pass
-        
-    if not path.startswith("/home/") and not path.startswith("/mnt/"):
+    if _artifact_path_blocked(path):
+        return jsonify({"error": "Raugus Sensitive Vault: Direct HTTP write to sensitive files is blocked."}), 403
+
+    real_path = os.path.realpath(path).replace("\\", "/") if sys.platform != "win32" else path
+    if not (real_path.startswith("/home/") or real_path.startswith("/mnt/")) or "/../" in path.replace("\\", "/") + "/":
         return jsonify({"error": "Path traversal blocked"}), 403
+    if sys.platform != "win32":
+        path = real_path
         
     safe_path = shlex.quote(path)
     
@@ -474,17 +513,58 @@ async def handle_massive_prompt():
         return jsonify({"error": str(e)}), 500
 
 @app.websocket('/ws')
+@app.websocket("/ws")
+@app.websocket("/ai_agent/ws")
 async def ws_endpoint():
     ws = websocket._get_current_object()
     client_queue = asyncio.Queue()
     await agent_mgr.register_client(client_queue)
-    
+    _ws_addr = getattr(websocket, "remote_addr", None)
+    _ws_hdrs = getattr(websocket, "headers", None)
+    _ws_args = getattr(websocket, "args", {}) or {}
+    init_token = (_ws_args.get("token") or (_ws_hdrs.get("Authorization", "") if _ws_hdrs else "").replace("Bearer ", "")).strip()
+    init_cid = (_ws_args.get("client_id") or "").strip()
+
+    def _resolve_ws_user_and_slot(tok=None, cid=None):
+        use_tok = tok if tok is not None else init_token
+        use_cid = cid if cid is not None else init_cid
+        u = None
+        if use_tok:
+            u = security_mgr.get_user_from_token(use_tok, remote_addr=_ws_addr, headers=_ws_hdrs)
+        if not u:
+            u = security_mgr.get_user_from_token(None, remote_addr=_ws_addr, headers=_ws_hdrs)
+        cf_ip = (_ws_hdrs.get("CF-Connecting-IP") if _ws_hdrs else None) or ((_ws_hdrs.get("X-Forwarded-For") if _ws_hdrs else "") or "").split(",")[0].strip() or _ws_addr or "anon"
+        if not u:
+            u = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest", "token_scope": "user"}
+        base_u = u.get("username") or u.get("name") or "guest"
+        s_key = f"{base_u}::{use_cid}" if use_cid else base_u
+        u = dict(u)
+        u["username"] = base_u
+        u["_slot_key"] = s_key
+        u["_client_ip"] = cf_ip
+        u["_client_id"] = use_cid
+        u["_device_id"] = use_cid
+        return u, s_key
+
+    curr_user, curr_slot_key = _resolve_ws_user_and_slot()
+    await agent_mgr.authenticate_client(client_queue, curr_slot_key)
+
+    async def _safe_send(payload):
+        try:
+            if isinstance(payload, dict):
+                payload = json.dumps(payload)
+            await client_queue.put(payload)
+        except Exception as e:
+            print(f"WebSocket Queue Error: {e}")
+
     async def sender():
         try:
             while True:
                 msg = await client_queue.get()
                 if msg is None:
                     break
+                if isinstance(msg, dict):
+                    msg = json.dumps(msg)
                 await ws.send(msg)
         except asyncio.CancelledError:
             pass
@@ -495,7 +575,11 @@ async def ws_endpoint():
 
     try:
         while True:
+            if sender_task.done():
+                break
             raw_msg = await ws.receive()
+            if raw_msg is None:
+                break
             if not raw_msg:
                 continue
 
@@ -504,47 +588,70 @@ async def ws_endpoint():
             conversation_id = None
             try:
                 data = json.loads(raw_msg)
+                if browser_key_relay.is_relay_frame(data):
+                    browser_key_relay.deliver_from_browser(curr_slot_key, data)
+                    continue
                 msg_type = data.get("type", "prompt")
+                if data.get("client_id"):
+                    init_cid = str(data.get("client_id")).strip()
+                elif data.get("device_id"):
+                    init_cid = str(data.get("device_id")).strip()
+                if data.get("token") is not None:
+                    init_token = str(data.get("token") or "").strip()
+                curr_user, curr_slot_key = _resolve_ws_user_and_slot(init_token, init_cid)
+                await agent_mgr.authenticate_client(client_queue, curr_slot_key)
+                if hasattr(agent_mgr, "set_task_context"):
+                    agent_mgr.set_task_context(curr_slot_key)
+
                 if msg_type == "ping":
-                    await websocket.send(json.dumps({"type": "pong", "time": time.time()}))
+                    await _safe_send({"type": "pong", "time": time.time()})
                     continue
                 elif msg_type == "sync":
                     last_seq = data.get("last_seq", 0)
                     await agent_mgr.sync_client(client_queue, last_seq)
                     continue
                 elif msg_type == "cancel":
-                    await agent_mgr.cancel_task()
+                    await agent_mgr.cancel_task(user=curr_user)
                     continue
                 elif msg_type == "auth_token":
                     token = data.get("token", "")
-                    user = security_mgr.get_user_from_token(token)
-                    if user:
-                        await agent_mgr.authenticate_client(client_queue, user.get("username"))
+                    init_token = str(token).strip()
+                    curr_user, curr_slot_key = _resolve_ws_user_and_slot(init_token, init_cid)
+                    await agent_mgr.authenticate_client(client_queue, curr_slot_key)
                     await agent_mgr.submit_auth_token(token)
                     continue
                 elif msg_type == "save_artifact":
-                    path = data.get("path", "")
-                    content = data.get("content", "")
+                    if not (curr_user and is_admin_role(curr_user.get("role"))):
+                        print(f"[Security] Blocked save_artifact from non-admin {curr_slot_key}")
+                        await _safe_send({"type": "system", "level": "error", "message": "Saving files directly requires admin rights."})
+                        continue
+                    path = str(data.get("path", "") or "")
+                    content = str(data.get("content", "") or "")
                     if path.startswith('file://'):
                         path = path[7:]
-                        
+                    norm = path.replace("\\", "/")
+                    real = os.path.realpath(path).replace("\\", "/") if sys.platform != "win32" else norm
+                    if _artifact_path_blocked(path) or "/../" in norm + "/" or not (real.startswith("/home/") or real.startswith("/mnt/")):
+                        await _safe_send({"type": "system", "level": "error", "message": "That file path is not allowed."})
+                        continue
+
                     import subprocess
                     if sys.platform == "win32" and path.startswith("/"):
                         try:
                             temp_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wsl_temp_save.md")
                             with open(temp_path, "w", encoding="utf-8") as tf:
                                 tf.write(content)
-                            
+
                             wsl_temp = subprocess.run(["wsl.exe", "wslpath", "-a", temp_path], capture_output=True, text=True, creationflags=0x08000000).stdout.strip()
-                            subprocess.run(["wsl.exe", "bash", "-c", f"cp '{wsl_temp}' '{path}'"], creationflags=0x08000000)
-                            
+                            subprocess.run(["wsl.exe", "-e", "cp", "--", wsl_temp, path], creationflags=0x08000000)
+
                             if os.path.exists(temp_path):
                                 os.remove(temp_path)
                         except Exception as e:
                             print(f"WSL save error: {e}")
                     else:
                         try:
-                            with open(path, 'w', encoding='utf-8') as f:
+                            with open(real, 'w', encoding='utf-8') as f:
                                 f.write(content)
                         except Exception:
                             pass
@@ -570,34 +677,49 @@ async def ws_endpoint():
                         agent_mgr.handle_ack(seq)
                     continue
                 elif msg_type in ("prompt", "steer", "queue_prompt"):
-                    prompt = data.get("prompt", "").strip()
-                    model = data.get("model", "gemini-3.8-flash-high")
+                    prompt = (data.get("prompt") or data.get("text") or "").strip()
+                    model = data.get("model") or "gemini-3.8-flash-high"
                     conversation_id = data.get("conversation_id")
                     token = data.get("token")
                     req_mode = data.get("mode") or (
                         "steer" if msg_type == "steer" else ("queue" if msg_type == "queue_prompt" else "normal")
                     )
-                    
-                    _ws_addr = getattr(websocket, "remote_addr", None)
-                    _ws_hdrs = getattr(websocket, "headers", None)
-                    if token:
-                        user = security_mgr.get_user_from_token(token, remote_addr=_ws_addr, headers=_ws_hdrs)
-                        if not user:
-                            await websocket.send(json.dumps({
-                                "type": "system",
-                                "level": "error",
-                                "message": "Your session has expired. Please refresh the page and log in again."
-                            }))
+                    if token is not None:
+                        init_token = str(token or "").strip()
+                    curr_user, curr_slot_key = _resolve_ws_user_and_slot(init_token, init_cid)
+                    user = curr_user
+                    await agent_mgr.authenticate_client(client_queue, curr_slot_key)
+                    if hasattr(agent_mgr, "set_task_context"):
+                        agent_mgr.set_task_context(curr_slot_key)
+
+                    if data.get("browser_key"):
+                        accepted_ver = str(data.get("byok_terms_version") or "")
+                        if accepted_ver != browser_key_relay.TERMS_VERSION:
+                            await _safe_send({
+                                "type": "byok_terms_required",
+                                "terms_version": browser_key_relay.TERMS_VERSION,
+                                "message": "Please review and accept the Bring Your Own Key terms before using your own API key."
+                            })
                             continue
-                        await agent_mgr.authenticate_client(client_queue, user.get("username"))
-                    else:
-                        user = security_mgr.get_user_from_token(None, remote_addr=_ws_addr, headers=_ws_hdrs)
-                    
+                        user = dict(user)
+                        user["_browser_key"] = True
+                        user["_byok_terms_version"] = accepted_ver
+                        curr_user = user
+                        if not getattr(ws, "_byok_terms_logged", False):
+                            try:
+                                ws._byok_terms_logged = True
+                            except Exception:
+                                pass
+                            print(f"[BYOK] Terms v{accepted_ver} accepted by {curr_slot_key} at {time.strftime('%Y-%m-%dT%H:%M:%S')}")
+
                     is_role_admin = bool(user and is_admin_role(user.get("role")))
                     admin_override = is_role_admin or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
             except (json.JSONDecodeError, AttributeError):
                 prompt = str(raw_msg).strip()
-                user = None
+                curr_user, curr_slot_key = _resolve_ws_user_and_slot(init_token, init_cid)
+                user = curr_user
+                if hasattr(agent_mgr, "set_task_context"):
+                    agent_mgr.set_task_context(curr_slot_key)
                 req_mode = "normal"
                 admin_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
 
@@ -610,15 +732,21 @@ async def ws_endpoint():
                         security_status = ls.analyze_intent(prompt)
                         if security_status == "ATTACK":
                             print("[Semantic Firewall] Dropping malicious prompt.")
-                            await ws.send(json.dumps({
+                            await _safe_send({
                                 "type": "agent_article",
                                 "markdown": "> [!CAUTION] Semantic Firewall Active\n> Malicious intent or prompt injection detected. Your request has been blocked and dropped."
-                            }))
+                            })
                             continue
                     except ImportError:
                         pass
                     except Exception as e:
                         print(f"[Security Firewall] Error parsing intent: {e}")
+
+                is_running = agent_mgr.is_running(curr_slot_key) if hasattr(agent_mgr, "is_running") else False
+                if is_running and locals().get("req_mode") != "queue":
+                    if not prompt.startswith("[STEER_NOW]\n"):
+                        prompt = f"[STEER_NOW]\n{prompt}"
+                    req_mode = "steer"
 
                 if locals().get("req_mode") == "queue" and hasattr(agent_mgr, "queue_prompt"):
                     clean_q = prompt[len("[QUEUE_NEXT]\n"):].strip() if prompt.startswith("[QUEUE_NEXT]\n") else prompt
@@ -642,6 +770,344 @@ async def ws_endpoint():
     finally:
         sender_task.cancel()
         await agent_mgr.unregister_client(client_queue)
+
+_EXTRACT_RATE = {}
+_EXTRACT_MAX_BYTES = 5 * 1024 * 1024
+_EXTRACT_MAX_CHARS = 150_000
+
+
+def _extract_document_text(name: str, data: bytes) -> str:
+    import io
+    ext = os.path.splitext(name.lower())[1]
+    if ext == ".pdf":
+        from pypdf import PdfReader
+        reader = PdfReader(io.BytesIO(data))
+        return "\n\n".join((page.extract_text() or "") for page in reader.pages[:300])
+    if ext == ".docx":
+        import docx
+        document = docx.Document(io.BytesIO(data))
+        return "\n".join(p.text for p in document.paragraphs)
+    if ext in (".txt", ".md", ".csv"):
+        return data.decode("utf-8", "replace")
+    raise ValueError("Unsupported file type. Use PDF, Word (.docx), text, Markdown or CSV.")
+
+
+@app.route('/api/extract-text', methods=['POST'])
+async def extract_document_text():
+    """Any tier: turn an uploaded document into text for the user's own prompt. Nothing is stored."""
+    client_ip = (request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+                 or request.remote_addr or "anon")
+    now = time.time()
+    recent = [t for t in _EXTRACT_RATE.get(client_ip, []) if now - t < 60]
+    if len(recent) >= 10:
+        return jsonify({"success": False, "error": "Too many uploads. Wait a minute and try again."}), 429
+    _EXTRACT_RATE[client_ip] = recent + [now]
+
+    if (request.content_length or 0) > _EXTRACT_MAX_BYTES + 64 * 1024:
+        return jsonify({"success": False, "error": "File too large (limit 5 MB)."}), 413
+    files = await request.files
+    upload = files.get("file")
+    if not upload or not upload.filename:
+        return jsonify({"success": False, "error": "No file received."}), 400
+    data = upload.read(_EXTRACT_MAX_BYTES + 1)
+    if len(data) > _EXTRACT_MAX_BYTES:
+        return jsonify({"success": False, "error": "File too large (limit 5 MB)."}), 413
+    name = os.path.basename(upload.filename)[:120]
+    try:
+        text = await asyncio.wait_for(asyncio.to_thread(_extract_document_text, name, data), timeout=30)
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 415
+    except asyncio.TimeoutError:
+        return jsonify({"success": False, "error": "Reading the file took too long."}), 408
+    except Exception:
+        return jsonify({"success": False, "error": "Could not read this file."}), 422
+    text = (text or "").strip()
+    if not text:
+        return jsonify({"success": False, "error": "No readable text found in this file (scanned images are not supported)."}), 422
+    truncated = len(text) > _EXTRACT_MAX_CHARS
+    return jsonify({"success": True, "name": name, "text": text[:_EXTRACT_MAX_CHARS], "truncated": truncated, "chars": min(len(text), _EXTRACT_MAX_CHARS)})
+
+
+_CLAUDE_USAGE_CACHE = {"at": 0.0, "data": None}
+
+
+def _read_claude_usage() -> dict:
+    """Claude subscription usage from `claude -p /usage` (a local CLI command, no model tokens). Cached 5 minutes."""
+    import subprocess, shutil, re
+    now = time.time()
+    if _CLAUDE_USAGE_CACHE["data"] is not None and now - _CLAUDE_USAGE_CACHE["at"] < 300:
+        return _CLAUDE_USAGE_CACHE["data"]
+    data = {"available": False}
+    cb = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
+    try:
+        r = subprocess.run([cb, "-p", "/usage"], capture_output=True, text=True, timeout=45, cwd="/tmp")
+        out = r.stdout or ""
+        m = re.search(r"Current session:\s*(\d+)%\s*used\s*[·\-]\s*resets\s*([^\n]+)", out)
+        w = re.search(r"Current week[^:]*:\s*(\d+)%\s*used\s*[·\-]\s*resets\s*([^\n]+)", out)
+        if m or w:
+            data = {"available": True}
+            if m:
+                data.update(session_pct=int(m.group(1)), session_resets=re.sub(r"\s*\([^)]*\)\s*$", "", m.group(2)).strip())
+            if w:
+                data.update(week_pct=int(w.group(1)), week_resets=re.sub(r"\s*\([^)]*\)\s*$", "", w.group(2)).strip())
+    except Exception:
+        pass
+    _CLAUDE_USAGE_CACHE.update(at=now, data=data)
+    return data
+
+
+@app.route('/api/usage', methods=['GET'])
+async def api_usage():
+    """Public usage overview for the /usage chat command: shared model quotas plus the viewer's own daily prompts."""
+    from agents import model_router, tier_limits
+    claude = await asyncio.get_event_loop().run_in_executor(None, _read_claude_usage)
+    out_now = model_router.status()
+    models = []
+    for name in (model_router.ARGON, model_router.CLAUDE, model_router.FLASH):
+        fam = model_router.family(name)
+        entry = out_now.get(fam)
+        back_at = (time.time() + entry["available_in_s"]) if entry else None
+        models.append({"name": name, "status": "out" if entry else "available",
+                       "back_at": time.strftime("%a %d %b, %H:%M", time.localtime(back_at)) if back_at else None})
+    # The viewer's own allowance, identified the same way the chat counts it
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    try:
+        u = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
+    except Exception:
+        u = None
+    cf_ip = (request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+             or request.remote_addr or "anon")
+    cid = (request.args.get("client_id") or "").strip()[:80]
+    if not u:
+        u = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest", "token_scope": "user"}
+    u = dict(u)
+    u.update(_client_ip=cf_ip, _client_id=cid, _device_id=cid,
+             _slot_key=f"{u.get('username')}::{cid}" if cid else u.get("username"))
+    _ok, used, limit, tier = tier_limits.check_prompt(u)
+    you = {"tier": tier, "tier_name": "Super Admin" if tier >= 5 else tier_limits.TIER_NAMES.get(tier, f"Tier {tier}"),
+           "used": used, "limit": limit, "unlimited": tier >= 5 or limit is None}
+    return jsonify({"claude": claude, "models": models, "you": you, "exams_unlimited": True})
+
+
+def _http_user_id() -> str:
+    """Same identity the WebSocket uses: the logged-in username, else guest-<visitor IP>."""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    try:
+        user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
+    except Exception:
+        user = None
+    if user:
+        return user.get("username") or user.get("name") or "guest"
+    ip = (request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+          or request.remote_addr or "anon")
+    return f"guest-{ip}"
+
+
+@app.route('/api/exam-content', methods=['GET', 'POST'])
+async def exam_content_folder():
+    """Any tier: list or add files in the caller's own exam content folder."""
+    from agents import exam_content
+    user_id = _http_user_id()
+    if request.method == "GET":
+        return jsonify({"success": True, "files": exam_content.list_files(user_id), "max_files": exam_content.MAX_FILES})
+
+    if (request.content_length or 0) > _EXTRACT_MAX_BYTES + 64 * 1024:
+        return jsonify({"success": False, "error": "File too large (limit 5 MB)."}), 413
+    files = await request.files
+    upload = files.get("file")
+    if not upload or not upload.filename:
+        return jsonify({"success": False, "error": "No file received."}), 400
+    data = upload.read(_EXTRACT_MAX_BYTES + 1)
+    if len(data) > _EXTRACT_MAX_BYTES:
+        return jsonify({"success": False, "error": "File too large (limit 5 MB)."}), 413
+    name = os.path.basename(upload.filename)[:120]
+    try:
+        text = await asyncio.wait_for(asyncio.to_thread(_extract_document_text, name, data), timeout=30)
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 415
+    except Exception:
+        return jsonify({"success": False, "error": "Could not read this file."}), 422
+    if not (text or "").strip():
+        return jsonify({"success": False, "error": "No readable text found in this file."}), 422
+    try:
+        item = await asyncio.to_thread(exam_content.add_file, user_id, name, text.strip())
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 409
+    return jsonify({"success": True, "file": item, "files": exam_content.list_files(user_id)})
+
+
+@app.route('/api/exam-content/<file_id>', methods=['DELETE'])
+async def exam_content_delete(file_id):
+    from agents import exam_content
+    user_id = _http_user_id()
+    ok = await asyncio.to_thread(exam_content.delete_file, user_id, file_id)
+    return jsonify({"success": ok, "files": exam_content.list_files(user_id)}), (200 if ok else 404)
+
+
+@app.route('/api/admin/tier-limits', methods=['GET', 'POST'])
+async def admin_tier_limits():
+    """Super-admin only: daily prompt limits per tier for users running on the host subscription."""
+    from agents import tier_limits
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+    if request.method == "POST":
+        data = await request.get_json(silent=True) or {}
+        raw = data.get("limits")
+        if not isinstance(raw, dict):
+            return jsonify({"success": False, "error": "Send {\"limits\": {\"1\": 10, \"2\": 30, ...}} (null = no limit)."}), 400
+        try:
+            saved = tier_limits.save_limits(raw)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Could not save the limits: {e}"}), 400
+        print(f"[TierLimits] Updated by admin: {saved}")
+    limits = tier_limits.load_limits()
+    return jsonify({
+        "success": True,
+        "tiers": [{"tier": t, "name": tier_limits.TIER_NAMES[t], "limit": limits.get(t)} for t in sorted(tier_limits.TIER_NAMES)],
+        "today": tier_limits.usage_summary(),
+    })
+
+
+@app.route('/api/admin/demo-key', methods=['GET', 'POST', 'DELETE'])
+async def admin_demo_key():
+    """Owner-only: set, check or remove the shared demo Gemini key from the Settings panel."""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+    key_file = browser_key_relay.DEMO_KEY_FILE
+
+    if request.method == "GET":
+        usage = browser_key_relay._DEMO_USAGE
+        today = time.strftime("%Y-%m-%d")
+        return jsonify({
+            "configured": bool(browser_key_relay.demo_server_key()),
+            "used_today": usage["count"] if usage["day"] == today else 0,
+            "daily_limit": browser_key_relay.demo_daily_limit(),
+        })
+
+    if request.method == "DELETE":
+        try:
+            if os.path.exists(key_file):
+                os.remove(key_file)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Could not remove the key: {e}"}), 500
+        return jsonify({"success": True})
+
+    data = await request.get_json(silent=True) or {}
+    key = str(data.get("key") or "").strip()
+    if not key or len(key) > 200 or any(c.isspace() for c in key):
+        return jsonify({"success": False, "error": "Paste a Gemini API key (it usually starts with AIza)."}), 400
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            check = await client.get("https://generativelanguage.googleapis.com/v1beta/models",
+                                     params={"pageSize": 1}, headers={"x-goog-api-key": key})
+        if check.status_code != 200:
+            msg = "Google rejected this key."
+            try:
+                msg = check.json().get("error", {}).get("message") or msg
+            except Exception:
+                pass
+            return jsonify({"success": False, "error": msg}), 400
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Could not reach Google to check the key: {type(e).__name__}"}), 502
+    try:
+        os.makedirs(os.path.dirname(key_file), mode=0o700, exist_ok=True)
+        tmp = key_file + ".tmp"
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(key)
+        os.replace(tmp, key_file)
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Could not save the key: {e}"}), 500
+    print(f"[DemoKey] Shared demo key updated at {time.strftime('%Y-%m-%dT%H:%M:%S')}")
+    return jsonify({"success": True})
+
+
+@app.route('/internal/llm-relay/<token>/v1beta/models/<path:model_method>', methods=['POST'])
+async def browser_key_llm_relay(token, model_method):
+    """Loopback-only endpoint that `agy` calls instead of Google when a guest's key lives in their browser."""
+    from quart import Response
+
+    def _gerr(code, status, message):
+        return jsonify({"error": {"code": code, "status": status, "message": message}}), code
+
+    remote = (request.remote_addr or "").strip()
+    proxied = any(request.headers.get(h) for h in ("CF-Connecting-IP", "CF-Ray", "X-Forwarded-For", "X-Real-IP"))
+    if remote not in ("127.0.0.1", "::1", "localhost") or proxied:
+        return _gerr(403, "PERMISSION_DENIED", "Forbidden")
+    if not browser_key_relay.session_slot(token):
+        return _gerr(404, "NOT_FOUND", "Unknown relay session")
+    parsed = browser_key_relay.split_model_method(model_method)
+    if not parsed:
+        return _gerr(400, "INVALID_ARGUMENT", "Unsupported model or method")
+    model_name, method_name = parsed
+
+    body_text = (await request.get_data()).decode("utf-8", "replace")
+
+    server_key = browser_key_relay.session_server_key(token)
+    if server_key:
+        # Shared demo key: the server attaches it and calls Google itself, so the agent never holds it.
+        if not browser_key_relay.take_demo_request():
+            return _gerr(429, "RESOURCE_EXHAUSTED", "The shared demo has reached its daily limit. Add your own Gemini key in Settings & Sessions to keep going.")
+        upstream_url = f"{browser_key_relay.GOOGLE_API_BASE}/{model_name}:{method_name}"
+        q = browser_key_relay.safe_query(request.args)
+        client = httpx.AsyncClient(timeout=httpx.Timeout(connect=15.0, read=browser_key_relay.IDLE_TIMEOUT, write=60.0, pool=15.0))
+        try:
+            upstream_req = client.build_request(
+                "POST", upstream_url, params=q, content=body_text.encode("utf-8"),
+                headers={"Content-Type": "application/json", "x-goog-api-key": server_key},
+            )
+            upstream = await client.send(upstream_req, stream=True)
+        except Exception as e:
+            await client.aclose()
+            return _gerr(502, "UNAVAILABLE", f"Could not reach Google: {type(e).__name__}")
+
+        async def _upstream_stream():
+            try:
+                async for chunk in upstream.aiter_raw():
+                    yield chunk
+            finally:
+                await upstream.aclose()
+                await client.aclose()
+
+        resp = Response(_upstream_stream(), status=upstream.status_code,
+                        content_type=upstream.headers.get("content-type", "application/json"))
+        resp.timeout = None
+        return resp
+
+    try:
+        rid, queue = await browser_key_relay.open_request(
+            agent_mgr, token, model_name, method_name, browser_key_relay.safe_query(request.args), body_text
+        )
+    except LookupError as e:
+        return _gerr(503, "UNAVAILABLE", str(e))
+
+    try:
+        first = await asyncio.wait_for(queue.get(), browser_key_relay.FIRST_BYTE_TIMEOUT)
+    except asyncio.TimeoutError:
+        browser_key_relay.close_request(rid)
+        return _gerr(504, "DEADLINE_EXCEEDED", "Your browser did not answer the model request in time.")
+    if first.get("kind") != "start":
+        browser_key_relay.close_request(rid)
+        return _gerr(502, "UNAVAILABLE", str(first.get("error") or "Browser relay failed"))
+
+    async def _stream():
+        try:
+            while True:
+                item = await asyncio.wait_for(queue.get(), browser_key_relay.IDLE_TIMEOUT)
+                if item.get("kind") == "chunk":
+                    yield item["data"].encode("utf-8")
+                elif item.get("kind") == "end":
+                    break
+        except asyncio.TimeoutError:
+            pass
+        finally:
+            browser_key_relay.close_request(rid)
+
+    resp = Response(_stream(), status=first["status"], content_type=first["content_type"])
+    resp.timeout = None
+    return resp
 
 @app.route('/api/sounds/<sound_name>')
 async def play_sound(sound_name):

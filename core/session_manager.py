@@ -155,6 +155,7 @@ class SessionManager:
             'Zip-Files', 'Offline_Crack_Lab', 'Online_Brute_Lab'
         }
         
+        req_username = (user.get("username") or user.get("name")) if isinstance(user, dict) else None
         for conv_id, meta in self.ownership.items():
             proj = meta.get("project")
             if proj == "archived_deletions":
@@ -167,8 +168,12 @@ class SessionManager:
             else:
                 if proj not in (None, "", "default"):
                     continue
-            if not is_admin:
-                if not user or meta.get("owner") != user.get("username"):
+            owner_name = meta.get("owner")
+            if is_admin:
+                if owner_name and owner_name not in ("admin", "Michael (Admin)") and req_username and owner_name != req_username:
+                    continue
+            else:
+                if not req_username or owner_name != req_username:
                     continue
             t_path, file_mtime, file_size = self._resolve_transcript_stat(conv_id)
             meta_ts = meta.get("updated_at") or meta.get("created_at") or 0
@@ -670,6 +675,7 @@ def _sync_live_blueprint_routes():
     try:
         import sys
         import importlib
+        import ast
         main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
         live_app = getattr(main_mod, "app", None) if main_mod else None
         if live_app is None or not hasattr(live_app, "view_functions"):
@@ -744,24 +750,55 @@ def _sync_live_blueprint_routes():
                     pass
 
         try:
-            live_agent_mgr = live_app.config.get("AGENT_MANAGER") or getattr(main_mod, "agent_mgr", None)
+            live_agent_mgr = getattr(live_app, "agent_mgr", None) or live_app.config.get("AGENT_MANAGER") or getattr(main_mod, "agent_mgr", None)
             if "agents.mixins.comms_mixin" in sys.modules:
                 comms_mod = importlib.reload(sys.modules["agents.mixins.comms_mixin"])
                 if hasattr(comms_mod, "CommsMixin") and live_agent_mgr is not None:
-                    for attr_n in ("broadcast", "handle_ack", "sync_client"):
+                    for attr_n in ("set_task_context", "get_task_context", "broadcast", "handle_ack", "sync_client", "register_client", "authenticate_client", "unregister_client"):
                         if hasattr(comms_mod.CommsMixin, attr_n):
                             setattr(live_agent_mgr.__class__, attr_n, getattr(comms_mod.CommsMixin, attr_n))
             if "agents.mixins.execution_mixin" in sys.modules:
                 exec_mod = importlib.reload(sys.modules["agents.mixins.execution_mixin"])
                 if hasattr(exec_mod, "ExecutionMixin") and live_agent_mgr is not None:
-                    for attr_n in ("_execute_agent", "_heartbeat_worker"):
+                    for attr_n in ("start_task", "_execute_agent", "_heartbeat_worker", "queue_prompt", "clear_queue", "promote_queued_to_steer", "_drain_queued_prompts", "steer_task", "cancel_task"):
                         if hasattr(exec_mod.ExecutionMixin, attr_n):
                             setattr(live_agent_mgr.__class__, attr_n, getattr(exec_mod.ExecutionMixin, attr_n))
-            if live_agent_mgr is not None and not live_agent_mgr.is_running():
-                if hasattr(live_agent_mgr, "message_queue"):
-                    live_agent_mgr.message_queue.clear()
-        except Exception:
-            pass
+            if "agents.agent_manager" in sys.modules:
+                am_mod = importlib.reload(sys.modules["agents.agent_manager"])
+                if hasattr(am_mod, "AgentTaskManager") and live_agent_mgr is not None:
+                    if hasattr(am_mod, "_migrate_legacy_dict"):
+                        am_mod._migrate_legacy_dict(live_agent_mgr)
+                    live_agent_mgr.__class__ = am_mod.AgentTaskManager
+            else:
+                import agents.agent_manager as am_mod
+                if hasattr(am_mod, "AgentTaskManager") and live_agent_mgr is not None:
+                    if hasattr(am_mod, "_migrate_legacy_dict"):
+                        am_mod._migrate_legacy_dict(live_agent_mgr)
+                    live_agent_mgr.__class__ = am_mod.AgentTaskManager
+        except Exception as e:
+            print(f"[SessionManager] AgentManager sync warning: {e}")
+
+        try:
+            srv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py")
+            if os.path.isfile(srv_path) and main_mod is not None:
+                with open(srv_path, "r", encoding="utf-8") as sf:
+                    srv_src = sf.read()
+                srv_tree = ast.parse(srv_src, filename=srv_path)
+                for node in srv_tree.body:
+                    if isinstance(node, ast.AsyncFunctionDef) and node.name == "ws_endpoint":
+                        node.decorator_list = []
+                        fn_mod = ast.Module(body=[node], type_ignores=[])
+                        ast.fix_missing_locations(fn_mod)
+                        code_obj = compile(fn_mod, filename=srv_path, mode="exec")
+                        exec(code_obj, main_mod.__dict__)
+                        new_ws_fn = main_mod.__dict__.get("ws_endpoint")
+                        if callable(new_ws_fn):
+                            for ep_k in list(live_app.view_functions.keys()):
+                                if ep_k == "ws_endpoint" or ep_k.endswith(".ws_endpoint"):
+                                    live_app.view_functions[ep_k] = new_ws_fn
+                        break
+        except Exception as e:
+            print(f"[SessionManager] ws_endpoint hot-bind warning: {e}")
 
         if "core.token_telemetry" in sys.modules:
             try:
@@ -784,23 +821,45 @@ def _sync_live_blueprint_routes():
                 "api_jit_revoke",
                 "telemetry_page",
                 "api_token_telemetry",
+                "api_model_telemetry",
+                "audits_page",
+                "api_get_audits",
+                "api_audit_result",
+                "api_run_audit",
+                "api_refresh_audits",
+                "api_vault_gateway",
             ):
                 if hasattr(sys_mod, fn_name):
                     live_app.view_functions[f"system_bp.{fn_name}"] = getattr(sys_mod, fn_name)
+            existing_rules = {r.rule: r.endpoint for r in live_app.url_map.iter_rules()}
             existing_endpoints = {r.endpoint for r in live_app.url_map.iter_rules()}
             dynamic_sys_routes = [
+                ('/api/reload', 'system_bp.reload_system', 'reload_system', ['POST']),
+                ('/api/simulate-patch', 'system_bp.trigger_hot_patch', 'trigger_hot_patch', ['POST']),
                 ('/api/bootstrap/preflight', 'system_bp.api_bootstrap_preflight', 'api_bootstrap_preflight', ['GET', 'POST']),
                 ('/api/security/jit-status', 'system_bp.api_jit_status', 'api_jit_status', ['GET']),
                 ('/api/security/jit-elevate', 'system_bp.api_jit_elevate', 'api_jit_elevate', ['POST']),
                 ('/api/security/jit-revoke', 'system_bp.api_jit_revoke', 'api_jit_revoke', ['POST']),
                 ('/telemetry', 'system_bp.telemetry_page', 'telemetry_page', ['GET']),
+                ('/plugin/telemetry', 'system_bp.telemetry_page_plugin', 'telemetry_page', ['GET']),
                 ('/api/telemetry/tokens', 'system_bp.api_token_telemetry', 'api_token_telemetry', ['GET']),
+                ('/api/telemetry/models', 'system_bp.api_model_telemetry', 'api_model_telemetry', ['GET']),
+                ('/audits', 'system_bp.audits_page', 'audits_page', ['GET']),
+                ('/plugin/audits', 'system_bp.audits_page_plugin', 'audits_page', ['GET']),
+                ('/api/audits', 'system_bp.api_get_audits', 'api_get_audits', ['GET']),
+                ('/api/audits/run', 'system_bp.api_run_audit', 'api_run_audit', ['POST']),
+                ('/api/audits/refresh', 'system_bp.api_refresh_audits', 'api_refresh_audits', ['POST']),
+                ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', 'api_audit_result', ['GET']),
+                ('/api/vault/<path:subpath>', 'system_bp.api_vault_gateway', 'api_vault_gateway', ['GET', 'POST', 'DELETE']),
             ]
             from werkzeug.routing import Rule
             for rule_path, ep_name, attr_name, methods in dynamic_sys_routes:
                 if hasattr(sys_mod, attr_name):
-                    live_app.view_functions[ep_name] = getattr(sys_mod, attr_name)
-                    if ep_name not in existing_endpoints:
+                    fn_ref = getattr(sys_mod, attr_name)
+                    live_app.view_functions[ep_name] = fn_ref
+                    if rule_path in existing_rules:
+                        live_app.view_functions[existing_rules[rule_path]] = fn_ref
+                    elif ep_name not in existing_endpoints:
                         try:
                             live_app.url_map.add(Rule(rule_path, endpoint=ep_name, methods=methods))
                         except Exception:
@@ -808,7 +867,7 @@ def _sync_live_blueprint_routes():
                                 live_app.add_url_rule(
                                     rule_path,
                                     endpoint=ep_name,
-                                    view_func=getattr(sys_mod, attr_name),
+                                    view_func=fn_ref,
                                     methods=methods,
                                 )
                             except Exception:
@@ -866,6 +925,54 @@ def _sync_live_blueprint_routes():
                     fn_name = ep.split(".", 1)[1]
                     if hasattr(files_mod, fn_name):
                         live_app.view_functions[ep] = getattr(files_mod, fn_name)
+
+        if "core.routes.ai" in sys.modules:
+            ai_mod = importlib.reload(sys.modules["core.routes.ai"])
+            fn_map = {
+                "start_chat": getattr(ai_mod, "start_chat", None),
+                "start_chat_scoped": getattr(ai_mod, "start_chat", None),
+                "get_stream": getattr(ai_mod, "get_stream", None),
+                "get_stream_scoped": getattr(ai_mod, "get_stream", None),
+                "heartbeat_endpoint": getattr(ai_mod, "heartbeat_endpoint", None),
+                "heartbeat_scoped": getattr(ai_mod, "heartbeat_endpoint", None),
+                "heartbeat_ping": getattr(ai_mod, "heartbeat_endpoint", None),
+                "heartbeat_ping_scoped": getattr(ai_mod, "heartbeat_endpoint", None),
+                "kill_chat": getattr(ai_mod, "kill_chat", None),
+                "kill_chat_scoped": getattr(ai_mod, "kill_chat", None),
+            }
+            for ep in list(live_app.view_functions.keys()):
+                if ep.startswith(("ai_bp.", "ai_routes_bp.")):
+                    fn_name = ep.split(".", 1)[1]
+                    replacement = fn_map.get(fn_name) or getattr(ai_mod, fn_name, None)
+                    if replacement is not None:
+                        live_app.view_functions[ep] = replacement
+            existing_endpoints = {r.endpoint for r in live_app.url_map.iter_rules()}
+            dynamic_ai_routes = [
+                ('/api/chat', 'ai_routes_bp.start_chat', getattr(ai_mod, 'start_chat', None), ['POST']),
+                ('/ai_agent/api/chat', 'ai_routes_bp.start_chat_scoped', getattr(ai_mod, 'start_chat', None), ['POST']),
+                ('/api/stream', 'ai_routes_bp.get_stream', getattr(ai_mod, 'get_stream', None), ['GET']),
+                ('/ai_agent/api/stream', 'ai_routes_bp.get_stream_scoped', getattr(ai_mod, 'get_stream', None), ['GET']),
+                ('/api/heartbeat', 'ai_routes_bp.heartbeat_endpoint', getattr(ai_mod, 'heartbeat_endpoint', None), ['GET', 'POST']),
+                ('/ai_agent/api/heartbeat', 'ai_routes_bp.heartbeat_scoped', getattr(ai_mod, 'heartbeat_endpoint', None), ['GET', 'POST']),
+                ('/api/ping', 'ai_routes_bp.heartbeat_ping', getattr(ai_mod, 'heartbeat_endpoint', None), ['GET', 'POST']),
+                ('/ai_agent/api/ping', 'ai_routes_bp.heartbeat_ping_scoped', getattr(ai_mod, 'heartbeat_endpoint', None), ['GET', 'POST']),
+                ('/api/kill', 'ai_routes_bp.kill_chat', getattr(ai_mod, 'kill_chat', None), ['POST']),
+                ('/ai_agent/api/kill', 'ai_routes_bp.kill_chat_scoped', getattr(ai_mod, 'kill_chat', None), ['POST']),
+            ]
+            for rule_path, ep_name, fn_obj, methods in dynamic_ai_routes:
+                if ep_name not in existing_endpoints and fn_obj is not None:
+                    try:
+                        live_app.add_url_rule(rule_path, endpoint=ep_name, view_func=fn_obj, methods=methods)
+                    except Exception:
+                        pass
+            if "server.ai_agent_index" not in existing_endpoints:
+                try:
+                    idx_fn = getattr(main_mod, "index", None)
+                    if idx_fn:
+                        live_app.add_url_rule('/ai_agent/', endpoint='server.ai_agent_index', view_func=idx_fn, methods=['GET'])
+                        live_app.add_url_rule('/ai_agent', endpoint='server.ai_agent_index_no_slash', view_func=idx_fn, methods=['GET'])
+                except Exception:
+                    pass
     except Exception as e:
         print(f"[SessionManager] Route sync warning: {e}")
     finally:

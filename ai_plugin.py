@@ -1289,6 +1289,18 @@ def kill_chat():
     return jsonify({"success": True})
 
 
+@ai_bp.route("/api/heartbeat", methods=["GET", "POST"])
+@ai_bp.route("/api/ping", methods=["GET", "POST"])
+def ai_heartbeat():
+    is_running = agent_mgr.is_running() if hasattr(agent_mgr, "is_running") else (getattr(agent_mgr, "active_task", None) is not None)
+    return jsonify({
+        "status": "alive",
+        "time": time.time(),
+        "is_running": is_running,
+        "current_seq": getattr(agent_mgr, "current_seq", 0),
+        "active_project": getattr(getattr(project_mgr, "active_project", None), "name", getattr(project_mgr, "active_project", None))
+    })
+
 @ai_bp.route("/api/auth/login", methods=["POST"])
 def auth_login():
     data = request.get_json(silent=True) or {}

@@ -37,10 +37,11 @@ You have access to the **Raugus Resolver (`raugus-resolver`)** MCP Server, which
 > - Attempting tool-hopping causes an immediate infinite retry loop, generates SIEM intrusion alerts, and will be intercepted at every step.
 > - When denied: Read the denial reason, match it to the table below, and execute **ONLY** the prescribed recovery action.
 
-### The 6 Denial Categories & Prescribed Agent Action
+### The 7 Denial Categories & Prescribed Agent Action
 
 | Status Code / Denial Message | Architectural Cause | What You MUST NOT Do | Prescribed Recovery Action |
 | :--- | :--- | :--- | :--- |
+| **`DENIED_VAULT_ACCESS`** | Target is a credential vault file, container (`.vault`), Bitwarden store, or cryptographic vault engine (`vault_mod.py`, `api_vault_gateway`). | **DO NOT** attempt to read, dump, search, crack, or bypass the vault via bash, scripts, or alternative keys. | **STOP IMMEDIATELY**. Vault secrets are reserved strictly for authenticated human administrators via the DevCore/e_profile UI. Direct agent access is permanently blocked. |
 | **`DENIED_SELF_PROTECTION`** | Target is a core security file (`raugus_hook.py`, `hooks.json`, `server.py`, `raugus_map.json`, etc.). | **DO NOT** attempt bash redirection, heredocs, python scripts, git commands, or self-minting JIT tokens. | **STOP IMMEDIATELY**. Ask the human Super Admin to unlock core security files for 5 minutes via **🔓 Elevate JIT (5m)** in the DevCore UI or `python3 security/jit_elevation.py --mint` in their terminal, then pass `elevation_token` to `write_by_key`. |
 | **`DENIED_SENSITIVE_VAULT`** | Target resides inside a Sensitive Study Vault or cloud-synced directory (`sensitive: true`). | **DO NOT** attempt raw text reads, hex encoding, wildcard globbing, or two-step helper scripts. | **ROUTE TO LOCAL BRAIN BROKER**. For practice questions: `python3 security/local_brain_broker.py --target "<key>" --mode exam`. For queries: `python3 security/local_brain_broker.py --target "<key>" --mode query`. |
 | **`DENIED_READ_ONLY` (Blueprints)** | Target is an immutable UI blueprint (`exam_application.html`, `exam_builder.html`, `EXAM_APPLICATION.md`). | **DO NOT** attempt to hack template JS/CSS to add dynamic features. | **USE PAYLOAD INJECTION**. Fulfill all behavioral changes strictly via the JSON schema (`exam-generator` skill + `exam_temp.json` payload). |

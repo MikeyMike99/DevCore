@@ -153,6 +153,64 @@ IMMUTABLE_JIT_BASENAMES = {
     ".devcore_master.key",
 }
 
+PROTECTED_VAULT_BASENAMES = {
+    "vault_mod.py",
+    "vault_store.json.vault",
+    ".devcore_master.key",
+    ".vault_master.key",
+    ".devcore_vault.key",
+}
+
+VAULT_KEY_MARKERS = (
+    "::api_vault_gateway",
+    "::_get_devcore_vault_service",
+    "::_ephemeral_vault",
+    "::_derive_vault_key",
+    "::_load_vault",
+    "::_save_vault",
+    "::shieldvaultcontainer",
+    "::transitcryptoenvelope",
+    "vault_mod",
+    ".vault",
+    "vault_store",
+    "bitwarden",
+)
+
+
+def _is_vault_key_or_path(key: str, real_path: str = "") -> bool:
+    """
+    Checks if a VFS key or physical path targets the credential vault,
+    .vault encrypted containers, Bitwarden stores, or cryptographic vault symbols.
+    Direct agent access to these components is strictly forbidden.
+    """
+    if key:
+        k = key.lower()
+        if any(vm in k for vm in VAULT_KEY_MARKERS):
+            return True
+        try:
+            from security.raugus_access import is_vault_key
+            if is_vault_key(key):
+                return True
+        except Exception:
+            pass
+    if real_path:
+        bname = os.path.basename(real_path).lower()
+        if (
+            bname in PROTECTED_VAULT_BASENAMES
+            or bname.endswith(".vault")
+            or "vault_store" in bname
+            or "vault_mod" in bname
+            or "bitwarden" in bname
+        ):
+            return True
+        try:
+            from security.raugus_access import is_vault_path, is_secret_path
+            if is_vault_path(real_path) or is_secret_path(real_path):
+                return True
+        except Exception:
+            pass
+    return False
+
 
 def _is_immutable_jit_key(key: str, real_path: str = "") -> bool:
     base = os.path.basename(real_path) if real_path else ""
@@ -406,6 +464,15 @@ def search_keys(query: str, entry_type: str = "all", limit: int = 30) -> str:
             continue
 
         real_p = data.get("real_path", "")
+        if _is_vault_key_or_path(alias, real_p):
+            continue
+        try:
+            from security.raugus_access import is_secret_path
+            if real_p and is_secret_path(real_p):
+                continue
+        except Exception:
+            pass
+
         ok, via, _ = acc.check(data, real_p, "read")
         if not ok:
             continue
@@ -445,6 +512,18 @@ def list_module_keys(module_key: str) -> str:
     ident = _identity()
     if not ident:
         return _deny_no_identity(key=module_key)
+
+    if _is_vault_key_or_path(module_key):
+        return _json_response({
+            "status": "DENIED_VAULT_ACCESS",
+            "key": module_key,
+            "reason": (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Module key '{module_key}' resides inside or targets the credential vault. "
+                "Direct agent access is strictly forbidden."
+            ),
+        })
+
     acc = _Access(ident)
     resolver, mod_key, _, mod_entry, _ = _resolve_module_and_symbol(module_key)
     if not mod_entry:
@@ -456,6 +535,18 @@ def list_module_keys(module_key: str) -> str:
 
     req_tier = int(mod_entry.get("required_tier", 5))
     real_path = resolver.get_path(mod_key, 5)
+
+    if _is_vault_key_or_path(mod_key, real_path):
+        return _json_response({
+            "status": "DENIED_VAULT_ACCESS",
+            "key": mod_key,
+            "reason": (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Module key '{mod_key}' resides inside or targets the credential vault. "
+                "Direct agent access is strictly forbidden."
+            ),
+        })
+
     ok, via, why = acc.check(mod_entry, real_path, "read")
     if not ok:
         return _json_response({"status": "DENIED", "key": mod_key, "reason": why})
@@ -501,6 +592,8 @@ def list_module_keys(module_key: str) -> str:
         ast_map = _extract_ast_nodes(source)
         for sym_name, (kind, s_line, e_line) in ast_map.items():
             full_sym_key = f"{mod_key}::{sym_name}"
+            if _is_vault_key_or_path(full_sym_key, real_path):
+                continue
             mapped_sym = resolver.phonebook.get(full_sym_key, {})
             sym_perms = mapped_sym.get("permissions", perms)
             w_ok, w_mode = _w(full_sym_key, mapped_sym, mapped_sym)
@@ -521,6 +614,8 @@ def list_module_keys(module_key: str) -> str:
         prefix_colon = mod_key + "::"
         for k, sec_data in resolver.phonebook.items():
             if k.startswith(prefix_colon) and sec_data.get("type") == "section":
+                if _is_vault_key_or_path(k, real_path):
+                    continue
                 sec_name = sec_data.get("symbol_name", k[len(prefix_colon):])
                 s_l = int(sec_data.get("start_line", 1))
                 e_l = int(sec_data.get("end_line", s_l))
@@ -574,6 +669,19 @@ def read_by_key(key: str) -> str:
     ident = _identity()
     if not ident:
         return _deny_no_identity(key=key)
+
+    if _is_vault_key_or_path(key):
+        return _json_response({
+            "status": "DENIED_VAULT_ACCESS",
+            "key": key,
+            "reason": (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Direct agent access to credential vault key '{key}' is strictly forbidden.\n"
+                "Agents may not read, inspect, or interact with .vault files, Bitwarden credentials, "
+                "or cryptographic vault management symbols."
+            ),
+        })
+
     acc = _Access(ident)
     resolver, mod_key, symbol_name, mod_entry, sym_entry = _resolve_module_and_symbol(key)
     target_entry = sym_entry or mod_entry
@@ -586,6 +694,20 @@ def read_by_key(key: str) -> str:
 
     req_tier = max(int(mod_entry.get("required_tier", 5)), int(target_entry.get("required_tier", 5)))
     real_path = resolver.get_path(mod_key, 5)
+
+    # 1. Credential Vault Isolation Gate: Zero agent access to credential vaults, .vault files, Bitwarden, or vault symbols
+    if _is_vault_key_or_path(key, real_path):
+        return _json_response({
+            "status": "DENIED_VAULT_ACCESS",
+            "key": key,
+            "reason": (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Direct agent access to credential vault key '{key}' is strictly forbidden.\n"
+                "Agents may not read, inspect, or interact with .vault files, Bitwarden credentials, "
+                "or cryptographic vault management symbols."
+            ),
+        })
+
     ok, via, why = acc.check({"required_tier": req_tier}, real_path, "read")
     if not ok:
         logging.warning(f"[{ident.get('agent_id')}] Tier {acc.tier} denied read_by_key on '{key}'")
@@ -747,7 +869,15 @@ def get_block_by_tag(tag_or_id: str) -> str:
                 "tag_or_id": tag_or_id,
                 "reason": f"No block found with tag or id '{tag_or_id}'."
             })
-        return read_by_key(entry.get("key", ""))
+        entry_key = entry.get("key", "")
+        entry_real_p = entry.get("real_path", "")
+        if _is_vault_key_or_path(entry_key, entry_real_p):
+            return _json_response({
+                "status": "DENIED_VAULT_ACCESS",
+                "tag_or_id": tag_or_id,
+                "reason": "Vault blocks and tags cannot be accessed by agents.",
+            })
+        return read_by_key(entry_key)
     except Exception as e:
         return _json_response({
             "status": "ERROR",
@@ -768,6 +898,18 @@ def write_by_key(key: str, new_code: str, elevation_token: str = "") -> str:
     ident = _identity()
     if not ident:
         return _deny_no_identity(key=key)
+
+    if _is_vault_key_or_path(key):
+        return _json_response({
+            "status": "DENIED_VAULT_ACCESS",
+            "key": key,
+            "reason": (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Direct agent modification of vault key '{key}' is strictly forbidden.\n"
+                "Credential vault containers, Bitwarden vaults, and vault symbols cannot be modified by agents."
+            ),
+        })
+
     acc = _Access(ident)
     resolver, mod_key, symbol_name, mod_entry, sym_entry = _resolve_module_and_symbol(key)
     if not mod_entry:
@@ -782,6 +924,19 @@ def write_by_key(key: str, new_code: str, elevation_token: str = "") -> str:
         req_tier = max(req_tier, int(sym_entry.get("required_tier", req_tier)))
 
     real_path = resolver.get_path(mod_key, 5)
+
+    # 0. Credential Vault Isolation Gate
+    if _is_vault_key_or_path(key, real_path):
+        return _json_response({
+            "status": "DENIED_VAULT_ACCESS",
+            "key": key,
+            "reason": (
+                "[RAUGUS VAULT ISOLATION]\n"
+                f"Direct agent modification of vault key '{key}' is strictly forbidden.\n"
+                "Credential vault containers, Bitwarden vaults, and vault symbols cannot be modified by agents."
+            ),
+        })
+
     ok, via, why = acc.check({"required_tier": req_tier}, real_path, "write")
     if not ok:
         logging.warning(f"[{ident.get('agent_id')}] Tier {acc.tier} denied write_by_key on '{key}'")
@@ -966,6 +1121,11 @@ def create_by_key(directory_key: str, filename: str, content: str = "") -> str:
                                "reason": "Filename must be a plain name (no folders, no leading dot)."})
     dir_path = resolver.get_path(directory_key, 5)
     target = os.path.join(dir_path, name)
+
+    if _is_vault_key_or_path(f"{directory_key}.{name}", target):
+        return _json_response({"status": "DENIED_VAULT_ACCESS", "key": directory_key,
+                               "reason": "Cannot create credential vault files (.vault) or vault management modules."})
+
     ok, via, why = acc.check(d_entry, target, "create")
     if not ok:
         return _json_response({"status": "DENIED", "key": directory_key, "reason": why})
@@ -1030,6 +1190,11 @@ def delete_by_key(key: str) -> str:
     if not entry or entry.get("type") == "directory":
         return _json_response({"status": "DENIED", "key": key, "reason": "Not a file key in the Raugus Map."})
     real_path = resolver.get_path(key, 5)
+
+    if _is_vault_key_or_path(key, real_path):
+        return _json_response({"status": "DENIED_VAULT_ACCESS", "key": key,
+                               "reason": "Credential vault files cannot be deleted by agents."})
+
     ok, via, why = acc.check(entry, real_path, "delete")
     if not ok:
         return _json_response({"status": "DENIED", "key": key, "reason": why})
@@ -1211,6 +1376,11 @@ def _load_readable_file(key: str):
     ident = _identity()
     if not ident:
         return None, _deny_no_identity(key=key)
+    if _is_vault_key_or_path(key):
+        return None, _json_response({
+            "status": "DENIED_VAULT_ACCESS", "key": key,
+            "reason": "Credential vault files cannot be digested or read by agents.",
+        })
     if "::" in key:
         return None, _json_response({
             "status": "DENIED", "key": key,
@@ -1222,6 +1392,13 @@ def _load_readable_file(key: str):
         return None, _json_response({"status": "DENIED", "key": key,
                                      "reason": f"Key '{key}' does not exist in the Raugus Map."})
     real_path = resolver.get_path(mod_key, 5)
+
+    if _is_vault_key_or_path(key, real_path):
+        return None, _json_response({
+            "status": "DENIED_VAULT_ACCESS", "key": key,
+            "reason": "Credential vault files cannot be digested or read by agents.",
+        })
+
     ok, _, why = acc.check({"required_tier": int(mod_entry.get("required_tier", 5))}, real_path, "read")
     if not ok:
         logging.warning(f"[{ident.get('agent_id')}] Tier {acc.tier} denied digest read on '{key}'")

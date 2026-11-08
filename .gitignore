@@ -8,6 +8,8 @@ data/
 archives/
 archive_scripts/
 .agents/
+.playwright-mcp/
+demo/
 sessions.json
 install_done.txt
 __pycache__/
@@ -24,6 +26,7 @@ crash_log*.txt
 
 # Dynamic Exam & Content Payloads
 sandbox/static/*.json
+sandbox/static/exams/
 desktop_app.dist/sandbox/static/*.json
 plugins/exam_application/content/
 core/plugins/exam_application/content/
@@ -44,6 +47,7 @@ users/
 # Secrets / local env
 .env
 security/ai_credentials.json
+security/webauthn_credentials.json
 
 # Resolver access registry (machine-specific, HMAC-signed) and agent identity secrets
 security/raugus_access.json

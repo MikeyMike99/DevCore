@@ -72,6 +72,15 @@ except ImportError:
                 logging.warning(f"[RAUGUS BLOCKED] Invalid alias requested: {alias}. Potential traversal attack.")
                 raise KeyError(f"Alias '{alias}' does not exist in the Raugus Map.")
 
+            try:
+                from security.raugus_access import is_vault_key
+                if is_vault_key(alias):
+                    logging.warning(f"[RAUGUS VAULT ISOLATION] Access to vault key '{alias}' blocked.")
+                    raise PermissionError(f"Raugus Vault Isolation: Direct agent access to vault key '{alias}' is strictly forbidden.")
+            except (ImportError, Exception) as err:
+                if isinstance(err, PermissionError):
+                    raise
+
             entry = self.phonebook[alias]
             required_tier = entry.get("required_tier", 5)
 
@@ -104,6 +113,15 @@ except ImportError:
             Raises PermissionError if the user's tier is too low to access it.
             """
             target_path = os.path.abspath(path)
+
+            try:
+                from security.raugus_access import is_vault_path
+                if is_vault_path(target_path):
+                    logging.error(f"[RAUGUS VAULT ISOLATION] Access to vault asset '{target_path}' blocked.")
+                    raise PermissionError("Raugus Vault Isolation: Direct agent access to vault assets is strictly forbidden.")
+            except (ImportError, Exception) as err:
+                if isinstance(err, PermissionError):
+                    raise
 
             highest_tier_required = 1  # Default to Safe Workspace
 
@@ -174,6 +192,8 @@ except ImportError:
             # 1. Direct match by UUID
             for k, entry in self.phonebook.items():
                 if entry.get("id") == tag_or_id:
+                    if self.is_vault_key(k) or self.is_vault_path(entry.get("real_path", "")):
+                        raise PermissionError(f"Raugus Vault Isolation: Direct agent access to vault block '{tag_or_id}' is strictly forbidden.")
                     req_tier = int(entry.get("required_tier", 5))
                     if int(user_tier) < req_tier:
                         raise PermissionError(f"Access Denied to tag '{tag_or_id}'. Tier {req_tier} required.")
@@ -184,6 +204,8 @@ except ImportError:
             # 2. Match by symbol_name or section tag
             for k, entry in self.phonebook.items():
                 if entry.get("symbol_name") == tag_or_id or k.endswith(f"::{tag_or_id}"):
+                    if self.is_vault_key(k) or self.is_vault_path(entry.get("real_path", "")):
+                        raise PermissionError(f"Raugus Vault Isolation: Direct agent access to vault block '{tag_or_id}' is strictly forbidden.")
                     req_tier = int(entry.get("required_tier", 5))
                     if int(user_tier) < req_tier:
                         raise PermissionError(f"Access Denied to symbol/section '{tag_or_id}'. Tier {req_tier} required.")
@@ -192,6 +214,20 @@ except ImportError:
                     return res
 
             return None
+
+        def is_vault_key(self, key: str) -> bool:
+            try:
+                from security.raugus_access import is_vault_key
+                return is_vault_key(key)
+            except Exception:
+                return False
+
+        def is_vault_path(self, path: str) -> bool:
+            try:
+                from security.raugus_access import is_vault_path
+                return is_vault_path(path)
+            except Exception:
+                return False
 
 
     ONEDRIVE_GUID_MARKER = ".849C9593-D756-4E56-8D6E-42412F2A707B"

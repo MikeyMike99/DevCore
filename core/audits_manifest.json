@@ -1,6 +1,15 @@
 {
   "custom_audits": [
     {
+      "id": "vault_isolation",
+      "name": "Credential Vault & Container Isolation Auditor",
+      "description": "Validates Zero Agent Access to credential vaults, Bitwarden stores, .vault containers, and cryptographic engine symbols across Hook, Resolver, and CLI layers.",
+      "category": "security",
+      "command": ["python3", "scripts/audit_vault_isolation.py", "--json"],
+      "target_file": "scripts/audit_vault_isolation.py",
+      "enabled": true
+    },
+    {
       "id": "custom_sample",
       "name": "Sample Custom Health Check",
       "description": "Example template for user-defined audit commands.",

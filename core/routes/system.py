@@ -1,5 +1,7 @@
 import asyncio
 import importlib
+import importlib.util
+import sys
 from core.routes.auth import get_current_user
 from quart import Blueprint, request, jsonify, current_app, Response
 import os, json
@@ -38,6 +40,27 @@ def _is_jit_active() -> bool:
     except Exception:
         return False
 
+def _get_devcore_vault_service():
+    mod_name = "eprofile_vault_mod"
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    documents_dir = os.path.dirname(repo_root)
+    vault_mod_path = os.path.join(documents_dir, "e_profile", "vault_mod.py")
+    if not os.path.exists(vault_mod_path):
+        raise RuntimeError(f"Unified Vault module not found at {vault_mod_path}")
+    mtime = os.path.getmtime(vault_mod_path)
+    if mod_name in sys.modules and hasattr(sys.modules[mod_name], "vault_service"):
+        existing_mod = sys.modules[mod_name]
+        if getattr(existing_mod, "_loaded_mtime", None) == mtime:
+            return existing_mod.vault_service
+    spec = importlib.util.spec_from_file_location(mod_name, vault_mod_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Failed to create module spec for e_profile/vault_mod.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[mod_name] = mod
+    spec.loader.exec_module(mod)
+    mod._loaded_mtime = mtime
+    return mod.vault_service
+
 async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_countdown=False):
     """Safe zero-downtime hot-patching sequence with syntax validation (py_compile), backup, and automated rollback."""
     global sm, pm, am, sec_m
@@ -50,7 +73,6 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         try:
             target_app = current_app._get_current_object()
         except Exception:
-            import sys
             main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
             target_app = getattr(main_mod, "app", None) if main_mod else None
 
@@ -97,7 +119,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                 await agent_mgr.broadcast({
                     "type": "system",
                     "level": "error",
-                    "message": f"❌ PATCH BLOCKED: '{patch}' is an immutable Human-in-the-Loop JIT authority file."
+                    "message": f"\u274c PATCH BLOCKED: '{patch}' is an immutable Human-in-the-Loop JIT authority file."
                 })
                 return {"success": False, "error": f"Patch target '{patch}' is an immutable JIT authority file."}
 
@@ -109,14 +131,14 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                 await agent_mgr.broadcast({
                     "type": "system",
                     "level": "error",
-                    "message": f"❌ PATCH BLOCKED: '{patch}' is a locked Raugus Firewall guard file. Elevate Super Admin JIT (5m) first."
+                    "message": f"\u274c PATCH BLOCKED: '{patch}' is a locked Raugus Firewall guard file. Elevate Super Admin JIT (5m) first."
                 })
                 return {"success": False, "error": f"Patch target '{patch}' is locked by Raugus Self-Protection."}
 
         await agent_mgr.broadcast({
             "type": "system",
             "level": "warning",
-            "message": f"🚨 EXPLOIT / PATCH DETECTED: Initiating safe zero-downtime hot-patching sequence for {', '.join(patches_found)}..."
+            "message": f"\ud83d\udea8 EXPLOIT / PATCH DETECTED: Initiating safe zero-downtime hot-patching sequence for {', '.join(patches_found)}..."
         })
 
         for patch in patches_found:
@@ -126,7 +148,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                 await agent_mgr.broadcast({
                     "type": "system",
                     "level": "error",
-                    "message": f"❌ PATCH ABORTED: Syntax error detected in {patch}. Server protection engaged."
+                    "message": f"\u274c PATCH ABORTED: Syntax error detected in {patch}. Server protection engaged."
                 })
                 return {"success": False, "error": f"Syntax error in {patch}: {ce}"}
 
@@ -158,7 +180,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         await agent_mgr.broadcast({
             "type": "system",
             "level": "warning",
-            "message": "🛡️ AUTO-PATCH ENGINE: Manual hot-patch sequence initiated (0 external files in core/patches/). Validating core engine modules..."
+            "message": "\ud83d\udee1\ufe0f AUTO-PATCH ENGINE: Manual hot-patch sequence initiated (0 external files in core/patches/). Validating core engine modules..."
         })
         try:
             from core.bootstrap_gateway import get_engine_files
@@ -183,7 +205,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                     await agent_mgr.broadcast({
                         "type": "system",
                         "level": "error",
-                        "message": f"❌ VALIDATION ABORTED: Syntax error detected in {label}. Server protection engaged."
+                        "message": f"\u274c VALIDATION ABORTED: Syntax error detected in {label}. Server protection engaged."
                     })
                     return {"success": False, "error": f"Syntax error in {label}: {ce}"}
         await asyncio.sleep(0.2 if fast_countdown else 0.6)
@@ -196,6 +218,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
     })
 
     active_clients = dict(agent_mgr.connected_clients)
+    old_sessions = dict(getattr(agent_mgr, "sessions_by_key", {}))
     is_busy = agent_mgr.is_running()
     old_proc = getattr(agent_mgr, "active_proc", None)
     old_task = getattr(agent_mgr, "active_task", None)
@@ -223,6 +246,8 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         if hasattr(sm, "_sync_live_blueprint_routes"):
             sm._sync_live_blueprint_routes()
 
+        sys_mod = sys.modules.get("core.routes.system")
+
         target_app.project_mgr = pm.ProjectManager()
         target_app.project_mgr.active_project = old_active_proj
         target_app.project_mgr.reinit()
@@ -231,13 +256,14 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
 
         target_app.agent_mgr = am.AgentTaskManager(project_manager=target_app.project_mgr)
         target_app.agent_mgr.connected_clients = active_clients
+        if old_sessions:
+            target_app.agent_mgr.sessions_by_key = old_sessions
         if is_busy:
             target_app.agent_mgr.active_proc = old_proc
             target_app.agent_mgr.active_task = old_task
             target_app.agent_mgr.task_start_time = old_start
             target_app.agent_mgr.actions = old_actions
 
-        import sys
         main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
         if main_mod:
             main_mod.project_mgr = target_app.project_mgr
@@ -246,16 +272,23 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
             main_mod.agent_mgr = target_app.agent_mgr
 
         try:
+            def _sys_fn(attr_n, fallback):
+                return getattr(sys_mod, attr_n, fallback) if sys_mod else fallback
+
             dynamic_endpoints = [
-                ('/telemetry', 'system_bp.telemetry_page', telemetry_page, ['GET']),
-                ('/plugin/telemetry', 'system_bp.telemetry_page_plugin', telemetry_page, ['GET']),
-                ('/api/telemetry/tokens', 'system_bp.api_token_telemetry', api_token_telemetry, ['GET']),
-                ('/audits', 'system_bp.audits_page', audits_page, ['GET']),
-                ('/plugin/audits', 'system_bp.audits_page_plugin', audits_page, ['GET']),
-                ('/api/audits', 'system_bp.api_get_audits', api_get_audits, ['GET']),
-                ('/api/audits/run', 'system_bp.api_run_audit', api_run_audit, ['POST']),
-                ('/api/audits/refresh', 'system_bp.api_refresh_audits', api_refresh_audits, ['POST']),
-                ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', api_audit_result, ['GET']),
+                ('/api/reload', 'system_bp.reload_system', _sys_fn('reload_system', reload_system), ['POST']),
+                ('/api/simulate-patch', 'system_bp.trigger_hot_patch', _sys_fn('trigger_hot_patch', trigger_hot_patch), ['POST']),
+                ('/telemetry', 'system_bp.telemetry_page', _sys_fn('telemetry_page', telemetry_page), ['GET']),
+                ('/plugin/telemetry', 'system_bp.telemetry_page_plugin', _sys_fn('telemetry_page', telemetry_page), ['GET']),
+                ('/api/telemetry/tokens', 'system_bp.api_token_telemetry', _sys_fn('api_token_telemetry', api_token_telemetry), ['GET']),
+                ('/api/telemetry/models', 'system_bp.api_model_telemetry', _sys_fn('api_model_telemetry', api_model_telemetry), ['GET']),
+                ('/audits', 'system_bp.audits_page', _sys_fn('audits_page', audits_page), ['GET']),
+                ('/plugin/audits', 'system_bp.audits_page_plugin', _sys_fn('audits_page', audits_page), ['GET']),
+                ('/api/audits', 'system_bp.api_get_audits', _sys_fn('api_get_audits', api_get_audits), ['GET']),
+                ('/api/audits/run', 'system_bp.api_run_audit', _sys_fn('api_run_audit', api_run_audit), ['POST']),
+                ('/api/audits/refresh', 'system_bp.api_refresh_audits', _sys_fn('api_refresh_audits', api_refresh_audits), ['POST']),
+                ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', _sys_fn('api_audit_result', api_audit_result), ['GET']),
+                ('/api/vault/<path:subpath>', 'system_bp.api_vault_gateway', _sys_fn('api_vault_gateway', api_vault_gateway), ['GET', 'POST', 'DELETE']),
             ]
             if auth_mod:
                 reset_auth_fn = getattr(auth_mod, 'reset_auth_session', None)
@@ -294,9 +327,9 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                     pass
 
         msg = (
-            f"✅ Server successfully hot-patched ({len(applied_targets)} patch(es) applied) and secured with zero downtime."
+            f"\u2705 Server successfully hot-patched ({len(applied_targets)} patch(es) applied) and secured with zero downtime."
             if applied_targets
-            else "✅ Auto-Patch verification complete: Syntax validated (py_compile), backups saved (core/backups/), and engine hot-swapped in memory."
+            else "\u2705 Auto-Patch verification complete: Syntax validated (py_compile), backups saved (core/backups/), and engine hot-swapped in memory."
         )
         await target_app.agent_mgr.broadcast({
             "type": "system",
@@ -308,7 +341,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         await agent_mgr.broadcast({
             "type": "system",
             "level": "error",
-            "message": f"⚠️ CRITICAL: Patch crashed the server engine ({e})! Initiating emergency rollback..."
+            "message": f"\u26a0\ufe0f CRITICAL: Patch crashed the server engine ({e})! Initiating emergency rollback..."
         })
         for patch, target_file, backup_file in applied_targets:
             if os.path.exists(backup_file):
@@ -326,16 +359,25 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         if not is_busy:
             target_app.agent_mgr = am.AgentTaskManager(project_manager=target_app.project_mgr)
             target_app.agent_mgr.connected_clients = active_clients
+            if old_sessions:
+                target_app.agent_mgr.sessions_by_key = old_sessions
 
         await target_app.agent_mgr.broadcast({
             "type": "system",
             "level": "warning",
-            "message": "🔄 Rollback complete. Previous stable state restored from core/backups/."
+            "message": "\ud83d\udd04 Rollback complete. Previous stable state restored from core/backups/."
         })
         return {"success": False, "error": f"Patch failed and rolled back: {e}"}
 
 @system_bp.route('/api/reload', methods=['POST'])
+@system_bp.route("/api/reload", methods=["POST"])
 async def reload_system():
+    user = get_current_user()
+    sec = current_app.security_mgr
+    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
+    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+    if not (is_admin or is_host):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         app_obj = current_app._get_current_object()
         res = await execute_hot_patch_sequence(app_obj=app_obj, manual_trigger=True, fast_countdown=True)
@@ -367,7 +409,6 @@ async def api_bootstrap_preflight():
 
 @system_bp.route('/api/security/csp-report', methods=['POST'])
 async def csp_report():
-    import json
     from datetime import datetime
     try:
         report = await request.get_json(force=True)
@@ -484,7 +525,12 @@ async def api_jit_revoke():
 
 @system_bp.route('/telemetry', methods=['GET'])
 @system_bp.route('/plugin/telemetry', methods=['GET'])
+@system_bp.route("/telemetry", methods=["GET"])
 async def telemetry_page():
+    user = get_current_user()
+    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
+    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+        return "Forbidden: Tier 5 Administrator clearance required.", 403
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     candidates = [
         os.path.join(repo_root, "sandbox", "templates", "telemetry.html"),
@@ -498,7 +544,12 @@ async def telemetry_page():
     return "Telemetry template not found", 404
 
 @system_bp.route('/api/telemetry/tokens', methods=['GET'])
+@system_bp.route("/api/telemetry/tokens", methods=["GET"])
 async def api_token_telemetry():
+    user = get_current_user()
+    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
+    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         import core.token_telemetry as tt
         engine = tt.get_telemetry_engine()
@@ -511,8 +562,13 @@ async def api_token_telemetry():
 
 
 @system_bp.route('/api/telemetry/models', methods=['GET'])
+@system_bp.route("/api/telemetry/models", methods=["GET"])
 async def api_model_telemetry():
     """Per-brain usage (Claude, Gemini/agy, Ollama, local, ...) from the SwarmFlow log."""
+    user = get_current_user()
+    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
+    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         from security.swarm_telemetry import SwarmFlowLogger
         tf = request.args.get("timeframe", "all")
@@ -523,7 +579,12 @@ async def api_model_telemetry():
 
 
 @system_bp.route('/audits', methods=['GET'])
+@system_bp.route("/audits", methods=["GET"])
 async def audits_page():
+    user = get_current_user()
+    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
+    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+        return "Forbidden: Tier 5 Administrator clearance required.", 403
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     candidates = [
         os.path.join(repo_root, "sandbox", "templates", "audits.html"),
@@ -538,7 +599,14 @@ async def audits_page():
 
 
 @system_bp.route('/api/audits', methods=['GET'])
+@system_bp.route("/api/audits", methods=["GET"])
 async def api_get_audits():
+    user = get_current_user()
+    sec = current_app.security_mgr
+    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
+    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+    if not (is_admin or is_host):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         registry = get_audit_registry()
         catalog = registry.get_catalog()
@@ -548,7 +616,14 @@ async def api_get_audits():
 
 
 @system_bp.route('/api/audits/results/<audit_id>', methods=['GET'])
+@system_bp.route("/api/audits/result/<audit_id>", methods=["GET"])
 async def api_audit_result(audit_id):
+    user = get_current_user()
+    sec = current_app.security_mgr
+    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
+    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+    if not (is_admin or is_host):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         registry = get_audit_registry()
         data = registry.get_audit(audit_id)
@@ -560,7 +635,14 @@ async def api_audit_result(audit_id):
 
 
 @system_bp.route('/api/audits/run', methods=['POST'])
+@system_bp.route("/api/audits/run", methods=["POST"])
 async def api_run_audit():
+    user = get_current_user()
+    sec = current_app.security_mgr
+    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
+    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+    if not (is_admin or is_host):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         data = await request.get_json(silent=True) or {}
         audit_id = data.get("audit_id", "all")
@@ -577,7 +659,14 @@ async def api_run_audit():
 
 
 @system_bp.route('/api/audits/refresh', methods=['POST'])
+@system_bp.route("/api/audits/refresh", methods=["POST"])
 async def api_refresh_audits():
+    user = get_current_user()
+    sec = current_app.security_mgr
+    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
+    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+    if not (is_admin or is_host):
+        return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         registry = get_audit_registry()
         registry.discover_audits()
@@ -585,3 +674,178 @@ async def api_refresh_audits():
         return jsonify({"success": True, "audits": catalog, "message": "Audits re-scanned successfully"})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+@system_bp.route('/api/vault/<path:subpath>', methods=['GET', 'POST', 'DELETE'])
+async def api_vault_gateway(subpath: str):
+    """Super Admin Tier 5 Unified Vault & Bitwarden CLI Gateway with AES-256-GCM transit and X_SHI3LD_X .vault fallback."""
+    no_store_headers = {
+        "Cache-Control": "no-store, no-cache, must-revalidate, private",
+        "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff",
+    }
+    user = get_current_user()
+    has_master_sig = current_app.security_mgr.check_master_signature()
+    if not has_master_sig or not (user and current_app.security_mgr.is_admin_user(user)):
+        resp = jsonify({"ok": False, "success": False, "error": "Access Denied: Super Admin Tier 5 clearance and hardware signature required."})
+        resp.headers.update(no_store_headers)
+        return resp, 403
+
+    try:
+        vs = _get_devcore_vault_service()
+        method = request.method.upper()
+        raw_body = (await request.get_json(silent=True) or {}) if method in ("POST", "DELETE") else {}
+        q_arg = request.args.get("q", "")
+        actor_name = user.get("username", "admin")
+
+        def _dispatch():
+            if subpath == "handshake" and method == "POST":
+                return {"ok": True, "handshake": vs.transit.issue_handshake(actor_id=actor_name)}, 200
+
+            if subpath == "status" and method == "GET":
+                return {"ok": True, **vs.get_overview()}, 200
+
+            if subpath == "bw/login" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                ok, msg = vs.bw.login(
+                    email=data.get("email", ""),
+                    password=data.get("password", ""),
+                    code=data.get("code", ""),
+                    method=data.get("method", "0"),
+                    client_id=data.get("client_id", ""),
+                    client_secret=data.get("client_secret", ""),
+                )
+                return {"ok": ok, "message": msg, "status": vs.get_overview()}, (200 if ok else 400)
+
+            if subpath == "bw/unlock" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                ok, msg = vs.bw.unlock(password=data.get("password", ""))
+                return {"ok": ok, "message": msg, "status": vs.get_overview()}, (200 if ok else 400)
+
+            if subpath == "bw/lock" and method == "POST":
+                ok, msg = vs.bw.lock()
+                return {"ok": ok, "message": msg, "status": vs.get_overview()}, 200
+
+            if subpath == "bw/sync" and method == "POST":
+                ok, msg = vs.bw.sync()
+                return {"ok": ok, "message": msg, "status": vs.get_overview()}, (200 if ok else 400)
+
+            if subpath == "local/init" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                uname = data.get("username") or actor_name
+                pwd = data.get("password") or ""
+                st = vs.shield.initialize(username=uname, password=pwd, allow_recovery=True)
+                return {"ok": True, "message": "Local X_SHI3LD_X .vault initialized and unlocked.", "shield_vault": st, "status": vs.get_overview()}, 200
+
+            if subpath == "local/unlock" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                uname = data.get("username") or actor_name
+                pwd = data.get("password") or ""
+                st = vs.shield.unlock(username=uname, password=pwd)
+                return {"ok": True, "message": f"Local .vault unlocked for '{uname}'.", "shield_vault": st, "status": vs.get_overview()}, 200
+
+            if subpath == "local/lock" and method == "POST":
+                st = vs.shield.lock()
+                return {"ok": True, "message": "Local .vault locked in memory.", "shield_vault": st, "status": vs.get_overview()}, 200
+
+            if subpath == "local/user" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                st = vs.shield.add_or_update_user(
+                    target_username=data.get("target_username", ""),
+                    target_password=data.get("target_password", ""),
+                )
+                return {"ok": True, "message": "Team member access updated and recovery bridge rotated.", "shield_vault": st}, 200
+
+            if subpath == "local/recovery-challenge" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                ch = vs.shield.get_recovery_challenge(verify_username=data.get("username", actor_name))
+                return {"ok": True, "challenge": ch}, 200
+
+            if subpath == "local/recover" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                st = vs.shield.emergency_recover(
+                    verify_username=data.get("username", actor_name),
+                    recovery_token=data.get("recovery_token", ""),
+                    new_password=data.get("new_password", ""),
+                )
+                return {"ok": True, "message": "Emergency Split-Key Recovery succeeded and cipher rotated.", "shield_vault": st, "status": vs.get_overview()}, 200
+
+            if subpath == "local/rotate-kms" and method == "POST":
+                new_id = vs.keychain.rotate_key()
+                return {"ok": True, "message": f"Rotated KMS Keychain to active DEK '{new_id}'.", "kms_keychain": vs.keychain.get_status()}, 200
+
+            if subpath == "local/protect-file" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                rel_target = (data.get("target") or "").strip().lstrip("/")
+                allowed = {"profiles.json", "gethub_token.txt", ".env", "cache/bridge_queue.json"}
+                if rel_target not in allowed:
+                    return {"ok": False, "error": f"Target must be one of {sorted(allowed)}"}, 400
+                uname = data.get("username") or actor_name
+                pwd = data.get("password") or ""
+                if not pwd or len(pwd) < 4:
+                    return {"ok": False, "error": "Vault password (min 4 chars) required to encrypt file at rest."}, 400
+                res = vs.shield.encrypt_external_file(vs.base_dir / rel_target, username=uname, password=pwd)
+                return {"ok": True, "message": f"Created encrypted at-rest container '{res['vault_file']}'.", "result": res, "protected_files": vs.get_protected_files_inventory()}, 200
+
+            if subpath == "items":
+                if method == "GET":
+                    return {"ok": True, "items": vs.list_all_items(search=q_arg)}, 200
+                if method == "POST":
+                    data = vs.transit.decrypt_from_transit(raw_body)
+                    saved = vs.add_item(
+                        name=data.get("name", ""),
+                        secret=data.get("secret", ""),
+                        category=data.get("category", "API Key"),
+                        username=data.get("username", ""),
+                        notes=data.get("notes", ""),
+                        uri=data.get("uri", ""),
+                        target_engine=data.get("target_engine", "auto"),
+                    )
+                    return {"ok": True, "message": "Credential encrypted and stored in vault.", "saved": saved, "items": vs.list_all_items()}, 200
+
+            if subpath.startswith("items/") and subpath.endswith("/reveal") and method == "POST":
+                item_id = subpath[len("items/"):-len("/reveal")].strip("/")
+                key_id = raw_body.get("key_id") or ""
+                revealed = vs.reveal_item(item_id)
+                if key_id:
+                    enc = vs.transit.encrypt_for_transit(key_id, revealed)
+                    return {"ok": True, "envelope": enc}, 200
+                return {"ok": True, "item": revealed}, 200
+
+            if subpath.startswith("items/") and method == "DELETE":
+                item_id = subpath[len("items/"):].strip("/")
+                deleted = vs.delete_item(item_id)
+                return {"ok": deleted, "items": vs.list_all_items()}, 200
+
+            if subpath == "harvest/scan" and method == "GET":
+                report = vs.harvester.scan_report(include_raw=False) if hasattr(vs.harvester, "scan_report") else {"findings": vs.harvester.scan(include_raw=False), "stats": {}, "skipped": [], "errors": []}
+                items = report["findings"]
+                return {
+                    "ok": True,
+                    "count": len(items),
+                    "discovered": items,
+                    "stats": report.get("stats", {}),
+                    "skipped": report.get("skipped", []),
+                    "errors": report.get("errors", []),
+                }, 200
+
+            if subpath == "harvest/import" and method == "POST":
+                data = vs.transit.decrypt_from_transit(raw_body)
+                summary = vs.harvest_into_vault(target_engine=data.get("target_engine", "auto"))
+                return {
+                    "ok": True,
+                    "message": f"Harvested {summary['scanned_count']} secrets into vault (Local .vault: {summary['imported_shield_vault']}, Bitwarden CLI: {summary['imported_bitwarden_cli']}). Original files preserved.",
+                    "summary": summary,
+                    "items": vs.list_all_items(),
+                }, 200
+
+            return {"ok": False, "error": f"Unknown vault endpoint: {method} /api/vault/{subpath}"}, 404
+
+        payload, code = await asyncio.to_thread(_dispatch)
+        resp = jsonify(payload)
+        resp.headers.update(no_store_headers)
+        return resp, code
+    except Exception as e:
+        resp = jsonify({"ok": False, "success": False, "error": str(e)})
+        resp.headers.update(no_store_headers)
+        return resp, 400
