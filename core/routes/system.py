@@ -44,7 +44,10 @@ def _get_devcore_vault_service():
     mod_name = "eprofile_vault_mod"
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     documents_dir = os.path.dirname(repo_root)
-    vault_mod_path = os.path.join(documents_dir, "e_profile", "vault_mod.py")
+    # e_profile lives in DevCore's playground; the sibling folder is the old layout (and PythonAnywhere's).
+    vault_mod_path = next((p for p in (os.path.join(repo_root, "playground", "e_profile", "vault_mod.py"),
+                                       os.path.join(documents_dir, "e_profile", "vault_mod.py")) if os.path.exists(p)),
+                          os.path.join(repo_root, "playground", "e_profile", "vault_mod.py"))
     if not os.path.exists(vault_mod_path):
         raise RuntimeError(f"Unified Vault module not found at {vault_mod_path}")
     mtime = os.path.getmtime(vault_mod_path)

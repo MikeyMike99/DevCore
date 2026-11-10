@@ -1,0 +1,20 @@
+name = "joshy-api"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+workers_dev = false
+
+# Public address used by the JOSHY app (demo_license.py).
+routes = [
+  { pattern = "api.mikeytech.dev", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mikeytech"
+database_id = "6b07aa4d-85bc-4bdb-9f2d-0eb565bf9a32"
+
+[vars]
+# Only used if D1 itself fails.
+FALLBACK_URL = "https://mikeymike.pythonanywhere.com"
+# ADMIN_SECRET is a Worker secret (same value as JOSHY_API_ADMIN_SECRET in
+# playground/e_profile/.env), used by the PC's sync.

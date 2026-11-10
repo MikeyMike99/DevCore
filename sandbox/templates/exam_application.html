@@ -68,7 +68,9 @@
     let timeRemaining = 0;
     let originalSendPrompt = null;
     let antiCheatActive = false;
-    const quizFileUrl = '/static/{{ quiz_file }}';
+    const quizFileUrl = {{ (quiz_url or ('/static/' ~ quiz_file)) | tojson }};
+    // Survey mode (ticket gate questionnaires): no right answers, no score; answers go back to the page.
+    let surveyAnswers = [];
 
     fetch(quizFileUrl + '?t=' + new Date().getTime())
         .then(res => { if (!res.ok) throw new Error("Failed"); return res.json(); })
@@ -181,6 +183,17 @@
         if (timerInterval) clearInterval(timerInterval);
         questionContainer.classList.add('hidden');
         scoreContainer.classList.remove('hidden');
+        if (examData.survey) {
+            document.getElementById('score-heading').innerText = 'All done';
+            finalScore.innerText = "Thank you. Your answers have been sent, and we're checking your ticket now.";
+            scoreContainer.setAttribute('tabindex', '-1');
+            scoreContainer.focus();
+            announce("Answers sent. Checking your ticket.");
+            try {
+                window.parent.postMessage({ type: 'devcore-ticket-intake', intake_id: examData.intake_id, answers: surveyAnswers }, window.location.origin);
+            } catch (e) {}
+            return;  // no score and no results upload for a questionnaire
+        }
         let percentage = totalPointsPossible > 0 ? ((totalPointsEarned / totalPointsPossible) * 100).toFixed(1) : 0;
         if (examData.weighted_scoring) {
             finalScore.innerText = `You scored ${percentage}% (${totalPointsEarned} / ${totalPointsPossible} points).`;
@@ -415,6 +428,22 @@
 
         const q = examData.questions[currentIndex];
         const qType = q.type || 'multiple_choice';
+        if (examData.survey) {
+            // Record the answer and move on: nothing is marked right or wrong
+            let answer = '';
+            if (qType === 'multiple_choice') {
+                const selected = document.querySelector('.custom-radio[aria-checked="true"]');
+                if (!selected) { announce("Please select an option first."); return; }
+                answer = q.options[parseInt(selected.getAttribute('data-value'), 10)];
+            } else if (qType === 'text_response') {
+                answer = document.getElementById('text-answer').value.trim();
+                if (answer.length < 2) { announce("Please type a short answer first."); return; }
+            }
+            surveyAnswers.push(answer);
+            currentIndex++;
+            renderQuestion();
+            return;
+        }
         let isCorrect = false;
         let isPartial = false;
         let qWeight = q.weight || 1;
@@ -561,7 +590,16 @@
         }
     });
 
-    document.getElementById('main-heading').focus();
+    // Move focus to the exam title on load, except when that would pull focus away from the
+    // page around it: the featured exam on the welcome screen (?autofocus=0), or while the
+    // parent page has a dialog open (e.g. "Before you start" terms), which left screen readers stuck.
+    (function() {
+        if (new URLSearchParams(location.search).get('autofocus') === '0') return;
+        try {
+            if (window.self !== window.top && window.parent.document.querySelector('dialog[open]')) return;
+        } catch (e) { /* different origin: cannot check, so focus as before */ }
+        document.getElementById('main-heading').focus();
+    })();
 </script>
 </body>
 </html>

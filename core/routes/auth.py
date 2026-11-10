@@ -849,7 +849,7 @@ async def oauth_callback_page():
     </div>
     <h1 class="text-lg font-bold text-white">{'Authorization Successful' if code else 'Authorization Notice'}</h1>
     <p class="text-xs text-slate-300 leading-relaxed">
-      {'Your authorization code has been captured. If this window was opened from DevCore, it will connect automatically.' if code else (error or 'No authorization code received.')}
+      {'Your authorization code has been captured. If this window was opened from Siraugga, it will connect automatically.' if code else (error or 'No authorization code received.')}
     </p>
     {f'''
     <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl font-mono text-xs text-teal-300 break-all select-all text-left">
@@ -1012,8 +1012,8 @@ async def user_claude_login_complete():
 async def set_user_subscription_route():
     user = get_current_user()
     if not user:
-        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
-        user = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest"}
+        from security import guest_session
+        user = {"username": guest_session.guest_username(request.headers), "name": "Guest", "role": "guest"}  # session cookie, never the IP
 
     data = await request.get_json() or {}
     provider = str(data.get("provider", "gemini")).lower().strip()
@@ -1113,6 +1113,121 @@ async def restore_root():
     res = current_app.security_mgr.create_owner_session()
     res["success"] = True
     return jsonify(res)
+
+
+# ---- Trusted owner devices (security/owner_device.py) -------------------------------------
+# Lets the owner be Super Admin on the public domain from their own browser, without trusting
+# an IP address: a one-time code made on the host is swapped for a device cookie on the domain.
+
+def _public_url() -> str:
+    return (os.environ.get("DEVCORE_PUBLIC_URL") or "https://mikeytech.dev").rstrip("/")
+
+
+_LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
+
+
+def _handoff_cors_headers() -> dict:
+    """The public domain's page may ask this computer's server for a handoff ("Owner sign-in"),
+    so allow exactly that origin (plus the browser's local-network preflight)."""
+    origin = request.headers.get("Origin", "")
+    h = {"Cache-Control": "no-store", "Vary": "Origin"}
+    if origin == _public_url():
+        h.update({"Access-Control-Allow-Origin": origin,
+                  "Access-Control-Allow-Methods": "POST",
+                  "Access-Control-Allow-Headers": "Content-Type",
+                  "Access-Control-Allow-Private-Network": "true",
+                  "Access-Control-Max-Age": "600"})
+    return h
+
+
+def _handoff_request_ok() -> bool:
+    """Host header must be loopback (a site that re-points its own name at 127.0.0.1, "DNS
+    rebinding", arrives with its own name as Host and is refused), and the Origin, if any, must be
+    this server on loopback or the public domain."""
+    host = (request.headers.get("Host") or "").strip().lower()
+    host_name = host.rsplit(":", 1)[0] if not host.startswith("[") else host.split("]")[0] + "]"
+    if host_name not in _LOOPBACK_HOSTS:
+        return False
+    origin = (request.headers.get("Origin") or "").strip()
+    if not origin:
+        return True
+    if origin == _public_url():
+        return True
+    try:
+        o = urllib.parse.urlsplit(origin)
+        return (o.hostname or "") in {"localhost", "127.0.0.1", "::1"}
+    except Exception:
+        return False
+
+
+@auth_bp.route('/api/owner-device/handoff', methods=['POST', 'OPTIONS'])
+async def owner_device_handoff():
+    """Host only (direct local connection + master key): a single-use, 2-minute link that makes
+    the browser opening it a trusted owner device on the public domain. Called from localhost's
+    Settings card, or by the public domain's page in the owner's browser ("Owner sign-in")."""
+    cors = _handoff_cors_headers()
+    if request.method == "OPTIONS":
+        return "", 204, cors
+    if not _handoff_request_ok() or not current_app.security_mgr.is_host_owner_local(request.remote_addr, request.headers):
+        return jsonify({"success": False, "error": "Owner sign-in only works on the Siraugga host computer."}), 403, cors
+    from security import owner_device
+    code = owner_device.new_handoff()
+    return jsonify({"success": True, "url": f"{_public_url()}/owner-device/claim?code={code}",
+                    "expires_in": owner_device.HANDOFF_TTL}), 200, cors
+
+
+@auth_bp.route('/owner-device/claim', methods=['GET'])
+async def owner_device_claim():
+    """Opened on the public domain with the one-time code: sets the trusted-device cookie."""
+    from security import owner_device
+    code = (request.args.get("code") or "").strip()
+    secret = owner_device.claim(code, label=(request.headers.get("User-Agent") or "")[:120])
+    headers = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex"}
+    if not secret:
+        page = ("<!doctype html><meta charset='utf-8'><title>Link expired</title>"
+                "<body style='font-family:sans-serif;background:#0a0a0b;color:#e2e8f0;padding:32px'>"
+                "<h1>This link has expired or was already used</h1>"
+                "<p>Open Siraugga on the host machine (localhost) and choose <strong>Trust this browser on the domain</strong> again.</p>"
+                "<p><a style='color:#2dd4bf' href='/'>Open Siraugga</a></p></body>")
+        return page, 400, {**headers, "Content-Type": "text/html; charset=utf-8"}
+    # Not a 302: a SameSite=Strict cookie isn't sent on a redirect that began on another site
+    # (localhost), so continue with a same-site navigation from this page instead.
+    page = ("<!doctype html><meta charset='utf-8'><title>Browser trusted</title>"
+            "<meta http-equiv='refresh' content='1;url=/?owner_device=1'>"
+            "<body style='font-family:sans-serif;background:#0a0a0b;color:#e2e8f0;padding:32px'>"
+            "<h1>This browser is now trusted</h1><p>Opening Siraugga as Super Admin…</p>"
+            "<p><a style='color:#2dd4bf' href='/?owner_device=1'>Continue</a></p></body>")
+    resp = await current_app.make_response((page, 200, {**headers, "Content-Type": "text/html; charset=utf-8"}))
+    resp.set_cookie(owner_device.COOKIE_NAME, secret, max_age=owner_device.DEVICE_TTL, path="/",
+                    httponly=True, secure=True, samesite="Strict")
+    # Not a credential, just "the owner has signed in from this browser before": lets the page
+    # renew the trust silently when it runs out, without the owner pressing anything.
+    resp.set_cookie(owner_device.HINT_COOKIE, "1", max_age=365 * 86400, path="/",
+                    httponly=False, secure=True, samesite="Lax")
+    return resp
+
+
+@auth_bp.route('/api/owner-device/status', methods=['GET'])
+async def owner_device_status():
+    from security import owner_device
+    sec = current_app.security_mgr
+    is_owner = sec.is_host_owner_request(request.remote_addr, request.headers)
+    out = {"success": True,
+           "is_host": sec.is_host_owner_local(request.remote_addr, request.headers),
+           "this_browser_trusted": owner_device.is_trusted(request.headers),
+           "public_url": _public_url()}
+    if is_owner:
+        out["trusted_devices"] = owner_device.count()
+    return jsonify(out), 200, {"Cache-Control": "no-store"}
+
+
+@auth_bp.route('/api/owner-device/revoke-all', methods=['POST'])
+async def owner_device_revoke_all():
+    """Owner only: forget every trusted browser (they must be trusted again from the host)."""
+    if not current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers):
+        return jsonify({"success": False, "error": "Owner only."}), 403
+    from security import owner_device
+    return jsonify({"success": True, "revoked": owner_device.revoke_all()})
 
 
 @auth_bp.route('/api/auth/reset', methods=['POST'])

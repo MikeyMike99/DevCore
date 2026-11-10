@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>CyberBrief Admin</title>
+    <style>
+        :root {
+            --bg-base: #070a0f;
+            --panel: rgba(10, 14, 20, 0.94);
+            --cyan: #00e5ff;
+            --magenta: #ff2d8d;
+            --green: #00ff88;
+            --amber: #ffc857;
+            --text-main: #ffffff;
+            --text-dim: #a3b1c6;
+            --border: rgba(0, 229, 255, 0.3);
+            --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 24px 16px; background: var(--bg-base); color: var(--text-main); font-family: var(--font-mono); line-height: 1.5; }
+        main { max-width: 1100px; margin: 0 auto; }
+        section { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        h1 { color: var(--cyan); font-size: 1.6rem; margin: 0 0 4px; }
+        h2 { color: var(--cyan); font-size: 1.15rem; margin-top: 0; }
+        a { color: var(--cyan); }
+        .dim { color: var(--text-dim); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 0; }
+        .stat { border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+        .stat dt { color: var(--text-dim); font-size: 0.85rem; }
+        .stat dd { margin: 4px 0 0; font-size: 1.6rem; font-weight: bold; color: var(--cyan); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px 16px; }
+        label, legend { display: block; margin-bottom: 4px; }
+        input[type="email"], select { width: 100%; padding: 8px; background: #000; color: var(--text-main); border: 1px solid var(--border); border-radius: 4px; font: inherit; }
+        fieldset { border: 1px solid var(--border); border-radius: 4px; margin: 12px 0; padding: 8px 12px; }
+        fieldset label { display: inline-flex; gap: 6px; align-items: center; margin-right: 16px; }
+        button { background: var(--cyan); color: #000; border: none; border-radius: 4px; padding: 8px 14px; font: inherit; font-weight: bold; cursor: pointer; }
+        button.secondary { background: transparent; color: var(--cyan); border: 1px solid var(--cyan); }
+        button.danger { background: var(--magenta); color: #fff; }
+        button:disabled { opacity: 0.5; cursor: wait; }
+        button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; min-width: 760px; }
+        caption { text-align: left; color: var(--text-dim); padding-bottom: 8px; }
+        th, td { text-align: left; padding: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); vertical-align: top; }
+        th { color: var(--text-dim); font-weight: normal; }
+        td.actions, td.date { white-space: nowrap; }
+        td.actions button { margin: 0 4px 4px 0; padding: 6px 10px; }
+        .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 0.85rem; border: 1px solid; }
+        .badge.active { color: var(--green); border-color: var(--green); }
+        .badge.paused { color: var(--amber); border-color: var(--amber); }
+        .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 12px; }
+        .filters > div { min-width: 180px; }
+        .warn { color: var(--amber); }
+        #status { min-height: 1.5em; color: var(--green); font-weight: bold; }
+        #status.error { color: var(--magenta); }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>CyberBrief admin</h1>
+    <p class="dim">Newsletter backend running inside DevCore. Sender: <strong>{{ sender }}</strong> (replies are dropped).
+        Public site: <a href="{{ public_url }}/newsletter" rel="noopener">{{ public_url }}</a>.
+        {% if mail_backend != 'smtp' %}<br><span class="warn">Mail backend is "{{ mail_backend }}": emails are stored locally, not sent.</span>{% endif %}</p>
+    <p id="status" role="status" aria-live="polite"></p>
+
+    <section aria-labelledby="stats-heading">
+        <h2 id="stats-heading">Overview</h2>
+        <dl class="stats">
+            <div class="stat"><dt>Subscribers</dt><dd>{{ stats.total }}</dd></div>
+            <div class="stat"><dt>Active</dt><dd>{{ stats.active }}</dd></div>
+            <div class="stat"><dt>Paused</dt><dd>{{ stats.paused }}</dd></div>
+            {% for c in cadences %}<div class="stat"><dt>Active, {{ c }}</dt><dd>{{ stats.by_cadence.get(c, 0) }}</dd></div>{% endfor %}
+        </dl>
+    </section>
+
+    <section aria-labelledby="schedule-heading">
+        <h2 id="schedule-heading">Automatic schedule</h2>
+        {% if not schedule.enabled %}
+        <p class="warn">The schedule is switched off (CYBERBRIEF_SCHEDULE=off in services/cyberbrief/.env).</p>
+        {% else %}
+        <p>
+            {% if schedule.paused %}<span class="badge paused">Sending paused</span>{% else %}<span class="badge active">Sending on</span>{% endif %}
+            {% if not schedule.running %}<span class="warn"> Scheduler thread is not running; restart DevCore.</span>{% endif %}
+        </p>
+        <ul>
+            <li>Sends at <strong>{{ '%02d' % schedule.send_hour }}:00</strong> ({{ schedule.timezone }}): daily list every day, weekly list on {{ schedule.weekly_day }}, monthly list on the 1st.</li>
+            <li>Next possible send: <strong>{{ schedule.next_send }}</strong>{% if schedule.paused %} (paused){% endif %}. Skipped automatically when there are no new stories.</li>
+            <li>News feed last refreshed: {{ schedule.last_refresh or 'not yet' }}{% if schedule.last_refresh_result %} ({{ schedule.last_refresh_result }}){% endif %}. It refreshes every few hours, even while sending is paused.</li>
+        </ul>
+        {% if schedule.history %}
+        <details>
+            <summary>Recent automatic sends</summary>
+            <ul>{% for h in schedule.history %}<li>{{ h.at }}: {{ h.cadence }}, {{ h.sent }} sent{% if h.message %} ({{ h.message }}){% endif %}</li>{% endfor %}</ul>
+        </details>
+        {% endif %}
+        <button type="button" class="secondary" id="schedule-toggle" data-paused="{{ 'false' if schedule.paused else 'true' }}">{{ 'Resume automatic sending' if schedule.paused else 'Pause automatic sending' }}</button>
+        {% endif %}
+    </section>
+
+    <section aria-labelledby="send-heading">
+        <h2 id="send-heading">Send the digest now</h2>
+        <p>Current digest: <strong>{{ (manifest['items'] or [])|length }}</strong> stories, generated {{ manifest.dispatched_at or 'unknown' }}.
+            <a href="{{ url_for('newsletter.newsletter_index') }}">Review it</a> before sending.</p>
+        <button type="button" id="send-digest" data-confirm="Send the current digest to all {{ stats.active }} active subscribers now?">Send digest to {{ stats.active }} active subscriber{{ '' if stats.active == 1 else 's' }}</button>
+    </section>
+
+    <section aria-labelledby="add-heading">
+        <h2 id="add-heading">Add a subscriber</h2>
+        <form id="add-form" novalidate>
+            <div class="grid">
+                <div>
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" name="email" required autocomplete="off">
+                </div>
+                <div>
+                    <label for="cadence">How often</label>
+                    <select id="cadence" name="cadence">{% for c in cadences %}<option value="{{ c }}">{{ c|capitalize }}</option>{% endfor %}</select>
+                </div>
+                <div>
+                    <label for="format">Format</label>
+                    <select id="format" name="format">{% for f in formats %}<option value="{{ f }}"{% if f == 'hybrid_brief' %} selected{% endif %}>{{ f|clean_text }}</option>{% endfor %}</select>
+                </div>
+                <div>
+                    <label for="appetite">Story style</label>
+                    <select id="appetite" name="appetite">{% for a in appetites %}<option value="{{ a }}"{% if a == 'cyber_thriller' %} selected{% endif %}>{{ a|clean_text }}</option>{% endfor %}</select>
+                </div>
+            </div>
+            <fieldset>
+                <legend>Topics</legend>
+                {% for t in content_topics %}<label><input type="checkbox" name="topics" value="{{ t }}"{% if t in ('zero_days', 'cisa_kev') %} checked{% endif %}> {{ t|clean_text }}</label>{% endfor %}
+            </fieldset>
+            <p><label><input type="checkbox" name="send_welcome"> Send a welcome email now</label></p>
+            <button type="submit">Add subscriber</button>
+        </form>
+    </section>
+
+    <section aria-labelledby="list-heading">
+        <h2 id="list-heading">Subscribers</h2>
+        <div class="filters">
+            <div>
+                <label for="search">Search by email</label>
+                <input type="email" id="search" inputmode="email" autocomplete="off" placeholder="name@example.com">
+            </div>
+            <div>
+                <label for="status-filter">Show</label>
+                <select id="status-filter">
+                    <option value="all">Everyone</option>
+                    <option value="active">Active only</option>
+                    <option value="unsubscribed">Paused only</option>
+                </select>
+            </div>
+            <p class="dim" id="shown-count" aria-live="polite"></p>
+        </div>
+        {% if subscribers %}
+        <div class="table-wrap">
+        <table>
+            <caption>Everyone on the CyberBrief list, newest first</caption>
+            <thead>
+                <tr><th scope="col">Email</th><th scope="col">Status</th><th scope="col">How often</th><th scope="col">Format / style</th><th scope="col">Topics</th><th scope="col">Joined</th><th scope="col">Last active</th><th scope="col">Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for sub in subscribers %}
+                {% set d = sub.delivery or {} %}{% set c = sub.content or {} %}
+                {% set is_active = sub.status == 'active' %}
+                <tr data-email="{{ sub.email }}" data-status="{{ 'active' if is_active else 'unsubscribed' }}">
+                    <th scope="row">{{ sub.email }}</th>
+                    <td><span class="badge {{ 'active' if is_active else 'paused' }}">{{ 'Active' if is_active else 'Paused' }}</span></td>
+                    <td>{{ (d.cadence or 'daily')|capitalize }}</td>
+                    <td>{{ (d.format or '-')|clean_text }}<br><span class="dim">{{ (c.primary_appetite or '-')|clean_text }}</span></td>
+                    <td>{{ (c.topics or [])|map('clean_text')|join(', ') or '-' }}</td>
+                    <td class="date">{{ (sub.created_at or sub.added_at or '-')[:10] }}</td>
+                    <td class="date">{{ (sub.last_active_at or '-')[:10] }}</td>
+                    <td class="actions">
+                        {% if is_active %}
+                        <button type="button" class="secondary status-btn" data-status="unsubscribed" aria-label="Pause {{ sub.email }}">Pause</button>
+                        {% else %}
+                        <button type="button" class="secondary status-btn" data-status="active" aria-label="Resume {{ sub.email }}">Resume</button>
+                        {% endif %}
+                        <button type="button" class="danger remove-btn" aria-label="Remove {{ sub.email }} permanently">Remove</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <p class="dim">No subscribers yet.</p>
+        {% endif %}
+    </section>
+</main>
+<script>
+(function () {
+    const status = document.getElementById('status');
+    try {
+        const pending = sessionStorage.getItem('cyberbriefStatus');
+        if (pending) { status.textContent = pending; sessionStorage.removeItem('cyberbriefStatus'); }
+    } catch (e) { /* storage blocked: no carried-over message */ }
+
+    function announce(message, isError) {
+        status.classList.toggle('error', Boolean(isError));
+        status.textContent = message;
+    }
+
+    async function post(url, payload) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload || {})
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || data.message || ('Request failed with status ' + response.status));
+        return data;
+    }
+
+    function reloadWith(message) {
+        try { sessionStorage.setItem('cyberbriefStatus', message); } catch (e) {}
+        window.location.reload();
+    }
+
+    document.getElementById('add-form').addEventListener('submit', async function (event) {
+        event.preventDefault();
+        const email = this.email.value.trim();
+        if (!email || !this.email.checkValidity()) { announce('Enter a valid email address.', true); this.email.focus(); return; }
+        const topics = Array.from(this.querySelectorAll('input[name="topics"]:checked')).map(b => b.value);
+        const button = this.querySelector('button[type="submit"]');
+        button.disabled = true;
+        try {
+            const data = await post('{{ url_for("notify.admin_add_subscriber") }}', {
+                email: email, topics: topics, cadence: this.cadence.value,
+                format: this.format.value, appetite: this.appetite.value,
+                send_welcome: this.send_welcome.checked
+            });
+            reloadWith(data.message);
+        } catch (err) { announce(err.message, true); button.disabled = false; }
+    });
+
+    document.querySelectorAll('.status-btn').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            const email = button.closest('tr').dataset.email;
+            button.disabled = true;
+            try {
+                const data = await post('{{ url_for("notify.admin_set_subscriber_status") }}', { email: email, status: button.dataset.status });
+                reloadWith(data.message);
+            } catch (err) { announce(err.message, true); button.disabled = false; }
+        });
+    });
+
+    document.querySelectorAll('.remove-btn').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            const email = button.closest('tr').dataset.email;
+            if (!confirm('Remove ' + email + ' permanently? Pausing keeps their settings instead.')) return;
+            button.disabled = true;
+            try {
+                const data = await post('{{ url_for("notify.admin_remove_subscriber") }}', { email: email });
+                reloadWith(data.message);
+            } catch (err) { announce(err.message, true); button.disabled = false; }
+        });
+    });
+
+    const sendBtn = document.getElementById('send-digest');
+    sendBtn.addEventListener('click', async function () {
+        if (!confirm(sendBtn.dataset.confirm)) return;
+        sendBtn.disabled = true;
+        announce('Sending...');
+        try {
+            const data = await post('/admin/notify/send/newsletter', {});
+            announce(data.message || 'Sent.');
+        } catch (err) { announce(err.message, true); }
+        finally { sendBtn.disabled = false; }
+    });
+
+    const toggle = document.getElementById('schedule-toggle');
+    if (toggle) {
+        toggle.addEventListener('click', async function () {
+            toggle.disabled = true;
+            try {
+                const data = await post('/admin/notify/schedule', { paused: toggle.dataset.paused === 'true' });
+                reloadWith(data.message);
+            } catch (err) { announce(err.message, true); toggle.disabled = false; }
+        });
+    }
+
+    const search = document.getElementById('search');
+    const filter = document.getElementById('status-filter');
+    const shown = document.getElementById('shown-count');
+    const rows = Array.from(document.querySelectorAll('tbody tr'));
+    function applyFilter() {
+        const q = search.value.trim().toLowerCase();
+        const want = filter.value;
+        let n = 0;
+        rows.forEach(function (row) {
+            const ok = (!q || row.dataset.email.includes(q)) && (want === 'all' || row.dataset.status === want);
+            row.hidden = !ok;
+            if (ok) n++;
+        });
+        shown.textContent = rows.length ? ('Showing ' + n + ' of ' + rows.length) : '';
+    }
+    search.addEventListener('input', applyFilter);
+    filter.addEventListener('change', applyFilter);
+    applyFilter();
+})();
+</script>
+</body>
+</html>

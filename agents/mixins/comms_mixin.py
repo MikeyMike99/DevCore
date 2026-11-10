@@ -9,6 +9,9 @@ from pathlib import Path
 
 _existing_cm = _sys.modules.get(__name__)
 _TASK_OWNER_CTX = getattr(_existing_cm, "_TASK_OWNER_CTX", None) or contextvars.ContextVar("devcore_task_owner", default=None)
+# Set for the whole of an in-game/app developer's task: everything it broadcasts is scrubbed of
+# code, file names, paths and tool details (security/dev_workspaces.py).
+_DEV_TASK_CTX = getattr(_existing_cm, "_DEV_TASK_CTX", None) or contextvars.ContextVar("devcore_dev_task", default=False)
 
 
 def _get_shared_stream_file() -> Path:
@@ -55,11 +58,17 @@ class CommsMixin:
     def get_task_context(self):
         return _TASK_OWNER_CTX.get()
 
+    def set_dev_task(self, on: bool = True):
+        _DEV_TASK_CTX.set(bool(on))
+
     async def broadcast(self, message: dict):
         target_owner = message.get("owner") or _TASK_OWNER_CTX.get() or getattr(self, "active_task_owner", None)
         self.current_seq = getattr(self, "current_seq", 0) + 1
         seq_val = self.current_seq
         msg_copy = dict(message)
+        if _DEV_TASK_CTX.get():
+            from security import dev_workspaces
+            msg_copy = dev_workspaces.scrub_message(msg_copy, target_owner or "")
         msg_copy["seq"] = seq_val
         if target_owner and "owner" not in msg_copy:
             msg_copy["owner"] = target_owner

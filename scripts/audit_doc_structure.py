@@ -45,6 +45,7 @@ LEAK_PATTERNS = [
 PATH_REPLACEMENTS = [
     (re.compile(r'/mnt/c/Users/[a-zA-Z0-9_\-\.]+/Documents/DevCore', re.IGNORECASE), '<project_root>'),
     (re.compile(r'/mnt/c/Users/[a-zA-Z0-9_\-\.]+/Documents/Central_Docs', re.IGNORECASE), '<central_docs_root>'),
+    (re.compile(r'/mnt/c/Users/[a-zA-Z0-9_\-\.]+/Documents/DevCore/playground/e_profile', re.IGNORECASE), '<eprofile_root>'),
     (re.compile(r'/mnt/c/Users/[a-zA-Z0-9_\-\.]+/Documents/e_profile', re.IGNORECASE), '<eprofile_root>'),
     (re.compile(r'/home/[a-zA-Z0-9_\-\.]+/', re.IGNORECASE), '$HOME/'),
     (re.compile(r'/mnt/c/Users/[a-zA-Z0-9_\-\.]+/', re.IGNORECASE), '%USERPROFILE%/'),

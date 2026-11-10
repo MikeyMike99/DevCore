@@ -298,7 +298,7 @@ def find_target_templates(specified_path: Optional[str] = None) -> List[Path]:
     base_dirs = [
         Path("/mnt/c/Users/michael/Documents/DevCore/sandbox/templates"),
         Path("/mnt/c/Users/michael/Documents/DevCore/templates"),
-        Path("/mnt/c/Users/michael/Documents/e_profile/templates"),
+        Path("/mnt/c/Users/michael/Documents/DevCore/playground/e_profile/templates"),
     ]
     for b in base_dirs:
         if b.is_dir():

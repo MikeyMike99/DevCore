@@ -12,6 +12,7 @@ import time
 from pathlib import Path
 
 from quart import Blueprint, request, jsonify, current_app
+from security import guest_session
 
 ai_bp = Blueprint("ai_routes_bp", __name__)
 
@@ -178,8 +179,7 @@ async def start_chat():
     if not user:
         user = security_mgr.get_user_from_token(None, remote_addr=request.remote_addr, headers=request.headers)
     if not user:
-        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
-        guest_name = f"guest-{cf_ip}"
+        guest_name = guest_session.guest_username(request.headers)  # session cookie, never the IP
         user = {"username": guest_name, "name": "Guest", "role": "guest", "token_scope": "user"}
 
     base_user = user.get("username") or user.get("name") or "guest"
@@ -187,22 +187,38 @@ async def start_chat():
     user = dict(user)
     user["username"] = base_user
     user["_slot_key"] = slot_key
-    if hasattr(agent_mgr, "set_task_context"):
-        agent_mgr.set_task_context(slot_key)
+    try:
+        from agents import unlock_links
+        user["_unlimited"] = unlock_links.is_unlimited(request.headers)
+    except Exception:
+        user["_unlimited"] = False
 
     from core.roles import is_admin_role
     is_role_admin = bool(user and is_admin_role(user.get("role")))
+    # Everyone except admins must accept the Terms & Privacy first (enforced here, not only in the page)
+    if not is_role_admin and msg_type in ("prompt", "steer", "queue_prompt") and not guest_session.terms_accepted(request.headers):
+        return jsonify({"success": False, "terms_required": True,
+                        "error": "Please accept the Terms & Privacy before using Siraugga."}), 403
+    if guest_session.terms_accepted(request.headers):
+        # Abuse guard explained in the terms: in-memory, daily-rotating hash; never stored
+        user["_net_key"] = guest_session.network_key(guest_session.connection_address(request.headers, request.remote_addr))
+    if hasattr(agent_mgr, "set_task_context"):
+        agent_mgr.set_task_context(slot_key)
     admin_override = is_role_admin or (os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true")
 
     target_project = (data.get("project") or "").strip()
     if target_project and hasattr(current_app, "project_mgr"):
-        try:
-            if target_project.lower() in ("root", "system_core", "workspaces"):
-                current_app.project_mgr.set_active_project("")
-            elif target_project in current_app.project_mgr.list_projects(user=user):
-                current_app.project_mgr.set_active_project(target_project)
-        except Exception:
-            pass
+        # The active project is shared by everyone, so only someone allowed may switch it
+        # (root: admins only). Otherwise the chat still runs; the switch is just ignored.
+        if security_mgr.can_switch_project(user, target_project):
+            try:
+                if target_project.lower() in security_mgr.ROOT_PROJECT_NAMES:
+                    current_app.project_mgr.set_active_project("")
+                elif target_project in current_app.project_mgr.list_projects(user=user):
+                    from core.roles import tier_for_role
+                    current_app.project_mgr.set_active_project(target_project, user_tier=tier_for_role(user.get("role")))
+            except Exception:
+                pass
 
     if msg_type == "cli_input":
         cli_in = data.get("input") or data.get("text") or prompt
@@ -248,8 +264,7 @@ async def get_stream():
 
     user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
     if not user:
-        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
-        base_user = f"guest-{cf_ip}"
+        base_user = guest_session.guest_username(request.headers)  # session cookie, never the IP
     else:
         base_user = user.get("username") or user.get("name") or "guest"
     if base_user.strip().lower() in ("admin", "michael (admin)", "michael"):
@@ -333,8 +348,7 @@ async def heartbeat_endpoint():
     if not user:
         user = security_mgr.get_user_from_token(None, remote_addr=request.remote_addr, headers=request.headers)
     if not user:
-        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
-        base_user = f"guest-{cf_ip}"
+        base_user = guest_session.guest_username(request.headers)  # session cookie, never the IP
     else:
         base_user = user.get("username") or user.get("name") or "guest"
     slot_key = f"{base_user}::{client_id}" if client_id else base_user
@@ -358,8 +372,7 @@ async def kill_chat():
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip() or request.args.get("token", "").strip()
     user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
     if not user:
-        cf_ip = request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip() or request.remote_addr or "anon"
-        user = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest", "token_scope": "user"}
+        user = {"username": guest_session.guest_username(request.headers), "name": "Guest", "role": "guest", "token_scope": "user"}
     base_user = user.get("username") or user.get("name") or "guest"
     slot_key = f"{base_user}::{client_id}" if client_id else base_user
     user = dict(user)

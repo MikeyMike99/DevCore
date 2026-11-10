@@ -215,7 +215,22 @@ class SecurityManager:
         return addr in host_ips or bare in host_ips
 
     def is_host_owner_request(self, remote_addr, headers=None) -> bool:
-        """Master key present on the server AND the request comes from this machine."""
+        """Master key present on the server AND the request comes from the owner: either a direct
+        connection from this machine, or (e.g. through the public domain) a browser the owner
+        trusted with a one-time handoff from this machine (security/owner_device.py)."""
+        if not self.check_master_signature():
+            return False
+        if self.is_trusted_local_request(remote_addr, headers):
+            return True
+        try:
+            from security import owner_device
+            return owner_device.is_trusted(headers)
+        except Exception:
+            return False
+
+    def is_host_owner_local(self, remote_addr, headers=None) -> bool:
+        """Strict version: master key AND a direct local connection only (no device cookie).
+        Used to mint owner-device handoff codes, so only the machine itself can trust a browser."""
         return self.is_trusted_local_request(remote_addr, headers) and self.check_master_signature()
 
     def create_session(self, user: dict, kind: str = "user") -> dict:
@@ -236,6 +251,10 @@ class SecurityManager:
             "expires_at": now + ttl,
             "token_scope": "demo" if kind == "demo" else ("root" if is_admin else "user"),
         }
+        # In-game/app developers: the project and parts they were handed (security/dev_workspaces.py)
+        if user.get("dev_project"):
+            session_data["dev_project"] = str(user["dev_project"])
+            session_data["dev_parts"] = list(user.get("dev_parts") or [])
         self.sessions[hashlib.sha256(token.encode()).hexdigest()] = session_data
         self._save_sessions()
         return {"token": token, "user": dict(session_data)}
@@ -454,6 +473,31 @@ class SecurityManager:
     def is_admin_user(self, user):
         return bool(user and user.get("role") in (self.ROLE_ADMIN, "super_admin", "super admin", "Tier5_SysAdmin"))
 
+    ROOT_PROJECT_NAMES = ("", "root", "system_core", "workspaces")
+
+    def is_super_admin(self, user) -> bool:
+        """The owner only (Tier 5 Super Admin), not every admin-type role: an admin is bound to the
+        project they were given. The owner identity (key_id "owner") is only ever issued to the
+        verified owner (this computer, a trusted device, or the owner's access key) on the
+        master-key machine."""
+        return bool(user and user.get("key_id") == "owner"
+                    and user.get("role") == "super_admin" and self.check_master_signature())
+
+    def can_create_project(self, user) -> bool:
+        """New project folders: Super Admin only."""
+        return self.is_super_admin(user)
+
+    def can_switch_project(self, user, project_name) -> bool:
+        """May `user` change the active project (shared by everyone) to `project_name`?
+        The root workspace (the whole playground) is Super Admin only; any other project needs a
+        signed-in user with access to it. Nobody anonymous or guest-only may switch it."""
+        if not user:
+            return False
+        name = str(project_name or "").strip()
+        if name.lower() in self.ROOT_PROJECT_NAMES:
+            return self.is_super_admin(user)
+        return self.can_access_project(user, name)
+
     def can_access_project(self, user, project_name):
         if not user:
             return False
@@ -510,9 +554,11 @@ class SecurityManager:
             target_base = os.path.join(self.base_dir, "playground")
             os.makedirs(target_base, exist_ok=True)
         else:
-            target_base = "/mnt/c/Users/michael/Documents/e_profile"
+            # e_profile lives in DevCore's playground; the others are the old sibling layout.
+            target_base = os.path.join(self.base_dir, "playground", "e_profile")
             if not os.path.exists(target_base):
                 for candidate in [
+                    "/mnt/c/Users/michael/Documents/e_profile",
                     os.path.expanduser("~/Documents/e_profile"),
                     r"C:\Users\Robert\Documents\e_profile",
                     r"C:\Users\michael\Documents\e_profile"

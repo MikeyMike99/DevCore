@@ -32,9 +32,14 @@ async def apply_security_headers(response):
 
     response.headers['Content-Security-Policy'] = (
         f"default-src 'self'; "
-        f"script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com https://static.cloudflareinsights.com; "
+        # 'wasm-unsafe-eval' lets the browser compile the self-hosted speech-to-text
+        # WebAssembly (sandbox/static/speech/); it does not allow JS eval().
+        f"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com https://static.cloudflareinsights.com; "
+        f"worker-src 'self'; "
         f"frame-src {frame_src_str}; "
-        f"connect-src 'self' ws: wss: https://generativelanguage.googleapis.com; "
+        # 127.0.0.1:5000 = the Siraugga server on the owner's own computer, asked by the "Owner sign-in"
+        # on the public domain (core/routes/auth.py owner_device_handoff; it only answers locally).
+        f"connect-src 'self' ws: wss: https://generativelanguage.googleapis.com http://127.0.0.1:5000; "
         f"style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; "
         f"font-src 'self' data: https://fonts.gstatic.com; "
         f"img-src 'self' data: https: https://i.ytimg.com; "
@@ -56,7 +61,8 @@ async def apply_security_headers(response):
     perm_origins_str = " ".join(perm_origins)
 
     response.headers['Permissions-Policy'] = (
-        f'geolocation=(), microphone=(), camera=(), '
+        # microphone=(self): only Siraugga's own pages may ask, for on-device dictation.
+        f'geolocation=(), microphone=(self), camera=(), '
         f'publickey-credentials-create=({perm_origins_str}), '
         f'publickey-credentials-get=({perm_origins_str})'
     )

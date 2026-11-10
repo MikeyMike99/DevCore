@@ -41,7 +41,7 @@ def _load_env_secrets() -> dict[str, str]:
     candidate_paths = [
         Path.cwd() / ".env",
         Path(__file__).resolve().parent.parent / ".env",
-        Path("/mnt/c/Users/michael/Documents/e_profile/.env"),
+        Path("/mnt/c/Users/michael/Documents/DevCore/playground/e_profile/.env"),
         Path("/mnt/c/Users/michael/Documents/DevCore/.env"),
         Path.home() / ".env",
     ]

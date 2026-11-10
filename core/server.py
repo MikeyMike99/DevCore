@@ -11,6 +11,8 @@ import json
 import os
 import time
 import sys
+import html as _html
+import re
 import httpx
 
 from quart import Quart, websocket, request, jsonify, render_template_string
@@ -30,6 +32,7 @@ from core.routes.files import files_bp
 from core.routes.system import system_bp
 from core.routes.ai import ai_bp as ai_routes_bp
 from core.routes.access import access_bp
+from core.routes.device_keys import device_keys_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(projects_bp)
@@ -37,9 +40,80 @@ app.register_blueprint(files_bp)
 app.register_blueprint(system_bp)
 app.register_blueprint(ai_routes_bp)
 app.register_blueprint(access_bp)
+app.register_blueprint(device_keys_bp)
 
 from security import security_headers
 security_headers.init_security_headers(app)
+
+
+def _cookie_secure() -> bool:
+    """Mark cookies Secure only on https (directly, or via Cloudflare/a proxy). Browsers drop a
+    Secure cookie sent over plain http on any address but the literal name 'localhost', which
+    left visitors on http://127.0.0.1 or the LAN/WSL address stuck on the terms screen."""
+    try:
+        if request.scheme == "https":
+            return True
+        if (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower() == "https":
+            return True
+        return '"scheme":"https"' in (request.headers.get("CF-Visitor") or "").replace(" ", "")
+    except Exception:
+        return True
+
+
+def _cookie_samesite() -> str:
+    """'None' on https so the guest/terms cookies also travel with calls from the E-Profile front
+    end (another site, see PORTAL_ORIGINS); 'Lax' on plain http, where browsers reject 'None'."""
+    return "None" if _cookie_secure() else "Lax"
+
+
+# Front ends on other sites that call this server's API directly (E-Profile is only a front end
+# for the agent). Exact origins only; extra ones via DEVCORE_PORTAL_ORIGINS (comma-separated).
+PORTAL_ORIGINS = {o.strip().rstrip("/") for o in (
+    ["https://mikeymike.pythonanywhere.com", "https://eprofile-eou.pages.dev"]
+    + os.environ.get("DEVCORE_PORTAL_ORIGINS", "").split(","))
+    if o.strip()}
+
+
+@app.after_request
+async def _portal_cors(response):
+    """Let the E-Profile front end call /api/* with the visitor's mikeytech.dev cookies."""
+    try:
+        origin = (request.headers.get("Origin") or "").rstrip("/")
+        if origin in PORTAL_ORIGINS and request.path.startswith("/api/"):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Client-ID"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response.headers["Access-Control-Max-Age"] = "600"
+            response.headers.add("Vary", "Origin")
+    except Exception:
+        pass
+    return response
+
+
+@app.after_request
+async def _ensure_guest_session_cookie(response):
+    """Give every browser a random guest session cookie on its first visit; guests are identified
+    by it (hashed), never by IP address. See security/guest_session.py."""
+    try:
+        from quart import g
+        from security import guest_session
+        existing = guest_session.session_from_headers(request.headers)
+        if not existing:
+            sid = getattr(g, "devcore_guest_sid", "") or guest_session.new_session_id()
+            response.set_cookie(guest_session.COOKIE_NAME, sid, max_age=guest_session.COOKIE_MAX_AGE, path="/",
+                                httponly=True, secure=_cookie_secure(), samesite=_cookie_samesite())
+        elif request.path == "/" and _cookie_secure():
+            # Re-issue cookies set before the E-Profile front end existed (SameSite=Lax) as
+            # SameSite=None, once per page load, so they travel with E-Profile's calls too.
+            response.set_cookie(guest_session.COOKIE_NAME, existing, max_age=guest_session.COOKIE_MAX_AGE, path="/",
+                                httponly=True, secure=True, samesite="None")
+            if guest_session.terms_accepted(request.headers):
+                response.set_cookie(guest_session.TERMS_COOKIE, guest_session.TERMS_VERSION, max_age=365 * 86400,
+                                    path="/", httponly=True, secure=True, samesite="None")
+    except Exception:
+        pass
+    return response
 
 project_mgr = pm.ProjectManager()
 session_mgr = sm.SessionManager()
@@ -76,30 +150,41 @@ async def raugus_map_watcher_daemon():
         os.path.join(devcore_root, 'docs'),
     ]
     seen_mtimes = {}
+    # Folders that are never project source: version control, environments, caches, sandboxes.
+    skip_dirs = {'.git', 'node_modules', '__pycache__', 'venv', '.venv', '.virtualenvs', '.local', '.cache',
+                 '.dev_sandboxes', 'site-packages', 'backups', '.ipython', '.ssh', '.gemini'}
+
+    def _scan_once():
+        """One pass over the watched folders. Runs in a worker thread: on /mnt/c every stat is slow,
+        and walking the playground on the event loop (it now holds e_profile, with its .git and
+        virtualenvs) froze the whole server for ~20 s every few seconds."""
+        for wdir in watched_dirs:
+            if not os.path.exists(wdir):
+                continue
+            for root, dirs, files in os.walk(wdir):
+                dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith('.')]
+                for fname in files:
+                    if fname.startswith('.') or fname.endswith(('.pyc', '.tmp', '.log')):
+                        continue
+                    fpath = os.path.join(root, fname)
+                    try:
+                        mtime = os.stat(fpath).st_mtime
+                        if fpath not in seen_mtimes:
+                            seen_mtimes[fpath] = mtime
+                        elif seen_mtimes[fpath] != mtime:
+                            seen_mtimes[fpath] = mtime
+                            try:
+                                from security.raugus_sync import sync_path
+                                sync_path(fpath, root_dir=devcore_root)
+                            except Exception:
+                                pass
+                    except Exception:
+                        continue
+
     while True:
         try:
             await asyncio.sleep(4)
-            for wdir in watched_dirs:
-                if not os.path.exists(wdir):
-                    continue
-                for root, _, files in os.walk(wdir):
-                    for fname in files:
-                        if fname.startswith('.') or fname.endswith(('.pyc', '.tmp', '.log')):
-                            continue
-                        fpath = os.path.join(root, fname)
-                        try:
-                            mtime = os.stat(fpath).st_mtime
-                            if fpath not in seen_mtimes:
-                                seen_mtimes[fpath] = mtime
-                            elif seen_mtimes[fpath] != mtime:
-                                seen_mtimes[fpath] = mtime
-                                try:
-                                    from security.raugus_sync import sync_path
-                                    sync_path(fpath, root_dir=devcore_root)
-                                except Exception:
-                                    pass
-                        except Exception:
-                            continue
+            await asyncio.to_thread(_scan_once)
         except asyncio.CancelledError:
             break
         except Exception:
@@ -146,8 +231,21 @@ async def custom_static(filename):
     import mimetypes
     data = read_asset(f"sandbox/static/{filename}")
     if data:
-        mime_type, _ = mimetypes.guess_type(filename)
-        return data, 200, {'Content-Type': mime_type or 'application/octet-stream'}
+        # Windows' mimetypes table lacks these; module scripts and WebAssembly
+        # refuse to load with the wrong Content-Type (on-device dictation needs them).
+        ext = os.path.splitext(filename)[1].lower()
+        mime_type = {
+            '.js': 'text/javascript', '.mjs': 'text/javascript',
+            '.wasm': 'application/wasm', '.onnx': 'application/octet-stream',
+        }.get(ext) or mimetypes.guess_type(filename)[0]
+        headers = {'Content-Type': mime_type or 'application/octet-stream'}
+        if filename.startswith('speech/vendor/') or filename.startswith('speech/models/'):
+            headers['Cache-Control'] = 'public, max-age=604800'  # large, rarely-changing files
+        elif filename in ('speech/speech-worker.js', 'speech/dictation.js', 'device-keys.js', 'device-keys-ui.js'):
+            # A worker runs under the CSP of its own response; if Cloudflare caches it,
+            # header changes (e.g. 'wasm-unsafe-eval') never reach the browser.
+            headers['Cache-Control'] = 'no-cache'
+        return data, 200, headers
     return "Not Found", 404
 
 TEMPLATE_FILE = get_live_override_path("sandbox/templates/index.html")
@@ -281,16 +379,22 @@ async def plugin_exam():
     import json
     quiz_file = request.args.get('quiz', 'quiz_temp.json')
     exam_title = request.args.get('title', 'Siraugga Exam')
-    
+    # Ticket gate questionnaires are private: served only to the visitor they were made for
+    intake = request.args.get('intake', '')
+    if intake and re.fullmatch(r"I-[A-Za-z0-9_-]{8,40}", intake):
+        quiz_url = f"/api/tickets/intake/{intake}/exam"
+    else:
+        quiz_url = f"/static/{quiz_file}"
+
     template_bytes = read_asset("sandbox/templates/exam_application.html")
     if not template_bytes:
         return "Exam template not found", 404
     content = template_bytes.decode('utf-8')
-    
+
     ui_bytes = read_asset("core/ui_config.json")
     ui_strings = json.loads(ui_bytes.decode('utf-8')) if ui_bytes else {}
-    
-    rendered = await render_template_string(content, ui=ui_strings, quiz_file=quiz_file, exam_title=exam_title)
+
+    rendered = await render_template_string(content, ui=ui_strings, quiz_file=quiz_file, quiz_url=quiz_url, exam_title=exam_title)
     return rendered, 200, {'Content-Type': 'text/html; charset=utf-8'}
 
 @app.route('/plugin/exam_builder')
@@ -350,7 +454,9 @@ def _artifact_admin_user(token=None):
         user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
     except Exception:
         user = None
-    return user if (user and is_admin_role(user.get("role"))) else None
+    # The Super Admin (owner) only: these endpoints read/write any file on the machine, and an
+    # admin is bound to their project and may not see code.
+    return user if security_mgr.is_super_admin(user) else None
 
 
 def _artifact_path_blocked(path: str) -> bool:
@@ -524,6 +630,10 @@ async def ws_endpoint():
     _ws_args = getattr(websocket, "args", {}) or {}
     init_token = (_ws_args.get("token") or (_ws_hdrs.get("Authorization", "") if _ws_hdrs else "").replace("Bearer ", "")).strip()
     init_cid = (_ws_args.get("client_id") or "").strip()
+    from security import guest_session
+    _ws_guest_name = guest_session.guest_username(_ws_hdrs)
+    _ws_net_key = (guest_session.network_key(guest_session.connection_address(_ws_hdrs, _ws_addr))
+                   if guest_session.terms_accepted(_ws_hdrs) else "")
 
     def _resolve_ws_user_and_slot(tok=None, cid=None):
         use_tok = tok if tok is not None else init_token
@@ -533,17 +643,23 @@ async def ws_endpoint():
             u = security_mgr.get_user_from_token(use_tok, remote_addr=_ws_addr, headers=_ws_hdrs)
         if not u:
             u = security_mgr.get_user_from_token(None, remote_addr=_ws_addr, headers=_ws_hdrs)
-        cf_ip = (_ws_hdrs.get("CF-Connecting-IP") if _ws_hdrs else None) or ((_ws_hdrs.get("X-Forwarded-For") if _ws_hdrs else "") or "").split(",")[0].strip() or _ws_addr or "anon"
         if not u:
-            u = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest", "token_scope": "user"}
+            # Guests are identified by their session cookie, never by IP address
+            u = {"username": _ws_guest_name, "name": "Guest", "role": "guest", "token_scope": "user"}
         base_u = u.get("username") or u.get("name") or "guest"
         s_key = f"{base_u}::{use_cid}" if use_cid else base_u
         u = dict(u)
         u["username"] = base_u
         u["_slot_key"] = s_key
-        u["_client_ip"] = cf_ip
         u["_client_id"] = use_cid
         u["_device_id"] = use_cid
+        try:
+            from agents import unlock_links
+            u["_unlimited"] = unlock_links.is_unlimited(_ws_hdrs)
+        except Exception:
+            u["_unlimited"] = False
+        if _ws_net_key:
+            u["_net_key"] = _ws_net_key  # abuse guard explained in the terms; in memory, rotates daily
         return u, s_key
 
     curr_user, curr_slot_key = _resolve_ws_user_and_slot()
@@ -688,6 +804,11 @@ async def ws_endpoint():
                         init_token = str(token or "").strip()
                     curr_user, curr_slot_key = _resolve_ws_user_and_slot(init_token, init_cid)
                     user = curr_user
+                    # Everyone except admins must accept the Terms & Privacy first (server-side check)
+                    if not is_admin_role((curr_user or {}).get("role")) and not guest_session.terms_accepted(_ws_hdrs):
+                        await _safe_send({"type": "system", "level": "error", "terms_required": True,
+                                          "message": "Please accept the Terms & Privacy before using Siraugga (reload the page to see them)."})
+                        continue
                     await agent_mgr.authenticate_client(client_queue, curr_slot_key)
                     if hasattr(agent_mgr, "set_task_context"):
                         agent_mgr.set_task_context(curr_slot_key)
@@ -795,13 +916,12 @@ def _extract_document_text(name: str, data: bytes) -> str:
 @app.route('/api/extract-text', methods=['POST'])
 async def extract_document_text():
     """Any tier: turn an uploaded document into text for the user's own prompt. Nothing is stored."""
-    client_ip = (request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-                 or request.remote_addr or "anon")
+    who = _http_user_id()  # logged-in user or session-cookie guest, never the IP
     now = time.time()
-    recent = [t for t in _EXTRACT_RATE.get(client_ip, []) if now - t < 60]
+    recent = [t for t in _EXTRACT_RATE.get(who, []) if now - t < 60]
     if len(recent) >= 10:
         return jsonify({"success": False, "error": "Too many uploads. Wait a minute and try again."}), 429
-    _EXTRACT_RATE[client_ip] = recent + [now]
+    _EXTRACT_RATE[who] = recent + [now]
 
     if (request.content_length or 0) > _EXTRACT_MAX_BYTES + 64 * 1024:
         return jsonify({"success": False, "error": "File too large (limit 5 MB)."}), 413
@@ -828,42 +948,20 @@ async def extract_document_text():
     return jsonify({"success": True, "name": name, "text": text[:_EXTRACT_MAX_CHARS], "truncated": truncated, "chars": min(len(text), _EXTRACT_MAX_CHARS)})
 
 
-_CLAUDE_USAGE_CACHE = {"at": 0.0, "data": None}
-
-
-def _read_claude_usage() -> dict:
-    """Claude subscription usage from `claude -p /usage` (a local CLI command, no model tokens). Cached 5 minutes."""
-    import subprocess, shutil, re
-    now = time.time()
-    if _CLAUDE_USAGE_CACHE["data"] is not None and now - _CLAUDE_USAGE_CACHE["at"] < 300:
-        return _CLAUDE_USAGE_CACHE["data"]
-    data = {"available": False}
-    cb = shutil.which("claude") or os.path.expanduser("~/.local/bin/claude")
-    try:
-        r = subprocess.run([cb, "-p", "/usage"], capture_output=True, text=True, timeout=45, cwd="/tmp")
-        out = r.stdout or ""
-        m = re.search(r"Current session:\s*(\d+)%\s*used\s*[·\-]\s*resets\s*([^\n]+)", out)
-        w = re.search(r"Current week[^:]*:\s*(\d+)%\s*used\s*[·\-]\s*resets\s*([^\n]+)", out)
-        if m or w:
-            data = {"available": True}
-            if m:
-                data.update(session_pct=int(m.group(1)), session_resets=re.sub(r"\s*\([^)]*\)\s*$", "", m.group(2)).strip())
-            if w:
-                data.update(week_pct=int(w.group(1)), week_resets=re.sub(r"\s*\([^)]*\)\s*$", "", w.group(2)).strip())
-    except Exception:
-        pass
-    _CLAUDE_USAGE_CACHE.update(at=now, data=data)
-    return data
-
-
 @app.route('/api/usage', methods=['GET'])
 async def api_usage():
     """Public usage overview for the /usage chat command: shared model quotas plus the viewer's own daily prompts."""
     from agents import model_router, tier_limits
-    claude = await asyncio.get_event_loop().run_in_executor(None, _read_claude_usage)
+    # Both CLIs' own /usage readings, shared with the router (refreshed every 5 minutes)
+    snap = await asyncio.get_event_loop().run_in_executor(None, lambda: model_router.usage_snapshot(wait=True))
+    c = snap.get("claude") or {}
+    claude = dict(c, available=bool(c))
+    google = [{"group": g["group"], "period": g["period"], "remaining_pct": g["remaining_pct"],
+               "resets": time.strftime("%a %d %b, %H:%M", time.localtime(g["reset_ts"]))}
+              for g in snap.get("google", [])]
     out_now = model_router.status()
     models = []
-    for name in (model_router.ARGON, model_router.CLAUDE, model_router.FLASH):
+    for name in model_router.configured_models():
         fam = model_router.family(name)
         entry = out_now.get(fam)
         back_at = (time.time() + entry["available_in_s"]) if entry else None
@@ -875,22 +973,26 @@ async def api_usage():
         u = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
     except Exception:
         u = None
-    cf_ip = (request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-             or request.remote_addr or "anon")
     cid = (request.args.get("client_id") or "").strip()[:80]
     if not u:
-        u = {"username": f"guest-{cf_ip}", "name": "Guest", "role": "guest", "token_scope": "user"}
+        from security import guest_session
+        u = {"username": guest_session.guest_username(request.headers), "name": "Guest", "role": "guest", "token_scope": "user"}
     u = dict(u)
-    u.update(_client_ip=cf_ip, _client_id=cid, _device_id=cid,
-             _slot_key=f"{u.get('username')}::{cid}" if cid else u.get("username"))
+    from agents import unlock_links
+    u.update(_client_id=cid, _device_id=cid,
+             _slot_key=f"{u.get('username')}::{cid}" if cid else u.get("username"),
+             _unlimited=unlock_links.is_unlimited(request.headers))
     _ok, used, limit, tier = tier_limits.check_prompt(u)
     you = {"tier": tier, "tier_name": "Super Admin" if tier >= 5 else tier_limits.TIER_NAMES.get(tier, f"Tier {tier}"),
-           "used": used, "limit": limit, "unlimited": tier >= 5 or limit is None}
-    return jsonify({"claude": claude, "models": models, "you": you, "exams_unlimited": True})
+           "used": used, "limit": limit, "unlimited": tier >= 5 or limit is None, "unlocked_by_link": bool(u["_unlimited"])}
+    # Daily limit of every tier (admin-configurable), for the Help menu's "Tiers" guide
+    limits = tier_limits.load_limits()
+    tiers = [{"tier": t, "name": tier_limits.TIER_NAMES[t], "limit": limits.get(t)} for t in sorted(tier_limits.TIER_NAMES)]
+    return jsonify({"claude": claude, "google": google, "models": models, "you": you, "tiers": tiers, "exams_unlimited": True})
 
 
 def _http_user_id() -> str:
-    """Same identity the WebSocket uses: the logged-in username, else guest-<visitor IP>."""
+    """Same identity the WebSocket uses: the logged-in username, else the guest session cookie (never the IP)."""
     token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
     try:
         user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
@@ -898,9 +1000,8 @@ def _http_user_id() -> str:
         user = None
     if user:
         return user.get("username") or user.get("name") or "guest"
-    ip = (request.headers.get("CF-Connecting-IP") or (request.headers.get("X-Forwarded-For") or "").split(",")[0].strip()
-          or request.remote_addr or "anon")
-    return f"guest-{ip}"
+    from security import guest_session
+    return guest_session.guest_username(request.headers)
 
 
 @app.route('/api/exam-content', methods=['GET', 'POST'])
@@ -942,6 +1043,310 @@ async def exam_content_delete(file_id):
     user_id = _http_user_id()
     ok = await asyncio.to_thread(exam_content.delete_file, user_id, file_id)
     return jsonify({"success": ok, "files": exam_content.list_files(user_id)}), (200 if ok else 404)
+
+
+# ---- Change-request tickets -------------------------------------------------------------
+_TICKET_JOBS = set()
+
+
+def _start_ticket_review(ticket_id: str) -> None:
+    from agents import ticket_mail
+    task = asyncio.create_task(asyncio.to_thread(ticket_mail.review_and_notify, ticket_id))
+    _TICKET_JOBS.add(task)
+    task.add_done_callback(_TICKET_JOBS.discard)
+
+
+def _ticket_notify_submitter(t: dict) -> None:
+    from agents import ticket_mail
+    task = asyncio.create_task(asyncio.to_thread(ticket_mail.notify_submitter, t))
+    _TICKET_JOBS.add(task)
+    task.add_done_callback(_TICKET_JOBS.discard)
+
+
+def _ticket_after_decision(t: dict) -> None:
+    """Approved: DevCore's agent implements it (and tells everyone). Otherwise: tell the submitter."""
+    from agents import ticket_mail
+    if t.get("status") == "approved":
+        task = asyncio.create_task(asyncio.to_thread(ticket_mail.implement_and_notify, t["id"]))
+        _TICKET_JOBS.add(task)
+        task.add_done_callback(_TICKET_JOBS.discard)
+    else:
+        _ticket_notify_submitter(t)
+
+
+@app.route('/terms', methods=['GET'])
+async def terms_page():
+    """Terms & Privacy (every visitor accepts these before using DevCore)."""
+    from security import guest_session
+    page = read_asset("sandbox/templates/terms.html")
+    if not page:
+        return "Terms not found", 404
+    rendered = await render_template_string(page.decode("utf-8"), version=guest_session.TERMS_VERSION)
+    return rendered, 200, {"Content-Type": "text/html; charset=utf-8"}
+
+
+@app.route('/api/terms', methods=['GET', 'POST'])
+async def terms_accept():
+    """GET: has this browser accepted the current terms? POST: accept them (sets an HttpOnly cookie)."""
+    from security import guest_session
+    if request.method == "GET":
+        return jsonify({"accepted": guest_session.terms_accepted(request.headers), "version": guest_session.TERMS_VERSION})
+    data = await request.get_json(silent=True) or {}
+    if str(data.get("version") or "") != guest_session.TERMS_VERSION or data.get("agree") is not True:
+        return jsonify({"success": False, "error": "Please tick the box to agree to the current terms."}), 400
+    resp = jsonify({"success": True, "accepted": True, "version": guest_session.TERMS_VERSION})
+    resp.set_cookie(guest_session.TERMS_COOKIE, guest_session.TERMS_VERSION, max_age=365 * 86400, path="/",
+                    httponly=True, secure=_cookie_secure(), samesite=_cookie_samesite())
+    return resp
+
+
+@app.route('/api/tickets', methods=['GET', 'POST'])
+async def tickets_mine():
+    """Any tier: send a ticket, or list your own tickets with their status."""
+    from agents import tickets, tier_limits
+    from security import guest_session
+    owner = _http_user_id()
+    if request.method == "GET":
+        return jsonify({"success": True, "tickets": tickets.list_for_owner(owner), "categories": tickets.CATEGORIES})
+    data = await request.get_json(silent=True) or {}
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    try:
+        user = security_mgr.get_user_from_token(token or None, remote_addr=request.remote_addr, headers=request.headers)
+    except Exception:
+        user = None
+    tier = tier_limits.get_tier_for_user(user or {"role": "guest"})
+    if tier < 5 and not guest_session.terms_accepted(request.headers):
+        return jsonify({"success": False, "terms_required": True,
+                        "error": "Please accept the Terms & Privacy before sending a ticket."}), 403
+    from agents import ticket_gate
+    try:
+        session_id = request.cookies.get(ticket_gate.SESSION_COOKIE, "")
+        if tier <= 1 and not data.get("intake_id"):
+            # Tier 1, step 1: a few questions about the visitor's goal before anything is created.
+            # The questions are tied to this browser session (HttpOnly cookie; only its hash is kept).
+            if not re.fullmatch(r"[A-Za-z0-9_-]{24,64}", session_id or ""):
+                session_id = ticket_gate.new_session_id()
+            intake = await asyncio.to_thread(ticket_gate.start, owner, tier, data.get("title"), data.get("description"),
+                                             data.get("category"), data.get("email"), session_id)
+            resp = jsonify({"success": True, "needs_answers": True, **intake})
+            resp.set_cookie(ticket_gate.SESSION_COOKIE, session_id, max_age=ticket_gate.INTAKE_TTL, path="/",
+                            httponly=True, secure=_cookie_secure(), samesite="Strict")
+            return resp
+        if tier <= 1:
+            # Tier 1, step 2: the gate AI reads the ticket with the answers and accepts or refuses it
+            t = await asyncio.to_thread(ticket_gate.finish, owner, data.get("intake_id"), data.get("answers"), session_id)
+        else:
+            t = await asyncio.to_thread(tickets.create, owner, tier, data.get("title"), data.get("description"),
+                                        data.get("category"), data.get("email"))
+    except ticket_gate.Refused as e:
+        return jsonify({"success": False, "refused": True, "error": str(e)}), 422
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 400
+    _start_ticket_review(t["id"])
+    return jsonify({"success": True, "ticket": tickets.public_view(t), "tickets": tickets.list_for_owner(owner)})
+
+
+@app.route('/api/tickets/intake/<intake_id>/exam', methods=['GET'])
+async def tickets_intake_exam(intake_id):
+    """The gate questionnaire (exam JSON) for the exam player; only for the browser session that sent the ticket."""
+    from agents import ticket_gate
+    exam = ticket_gate.get_exam(intake_id, request.cookies.get(ticket_gate.SESSION_COOKIE, ""))
+    if not exam:
+        return jsonify({"error": "Not found"}), 404
+    return jsonify(exam), 200, {"Cache-Control": "no-store", "X-Robots-Tag": "noindex"}
+
+
+@app.route('/api/tickets/admin', methods=['GET'])
+async def tickets_admin_list():
+    """Tier 5 only: every ticket, with the review agent's assessment."""
+    from agents import tickets
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+    from agents import ticket_impl
+    all_tickets = tickets.list_all()
+    # Re-run reviews that were cut off (e.g. by a server restart)
+    for t in all_tickets:
+        if t["status"] == "submitted" and time.time() - t["created"] > 600:
+            _start_ticket_review(t["id"])
+        # An implementation cut off by a restart: put it back to approved so it can be done by hand
+        if t["status"] == "implementing" and ticket_impl.RUNNING["id"] != t["id"] and time.time() - t["updated"] > 60:
+            await asyncio.to_thread(tickets.set_status, t["id"], "approved",
+                                    "The automatic implementation was interrupted (server restart). Nothing went live.")
+            all_tickets = tickets.list_all()
+    from agents import ticket_gate
+    return jsonify({"success": True, "tickets": all_tickets, "refused": ticket_gate.recent_refusals(20)})
+
+
+@app.route('/api/tickets/admin/<ticket_id>', methods=['POST'])
+async def tickets_admin_decide(ticket_id):
+    """Tier 5 only: approve, decline, or mark an approved ticket implemented."""
+    from agents import tickets
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    admin = _artifact_admin_user(token)
+    if not admin:
+        return jsonify({"error": "Admin authorization required"}), 403
+    data = await request.get_json(silent=True) or {}
+    action = str(data.get("action") or "")
+    try:
+        if action == "undo":
+            from agents import ticket_impl
+            await asyncio.to_thread(ticket_impl.undo, ticket_id)
+            t = tickets.get(ticket_id)
+        else:
+            t = await asyncio.to_thread(tickets.decide, ticket_id, action,
+                                        admin.get("username") or "admin", "app", data.get("note"))
+    except LookupError as e:
+        return jsonify({"success": False, "error": str(e)}), 404
+    except ValueError as e:
+        return jsonify({"success": False, "error": str(e)}), 409
+    _ticket_after_decision(t)
+    return jsonify({"success": True, "ticket": tickets.admin_view(t)})
+
+
+def _ticket_page(title: str, body_html: str, status: int = 200):
+    page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex"><title>{_html.escape(title)}</title>
+<style>body{{margin:0;background:#0a0a0b;color:#e2e8f0;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;}}
+main{{max-width:620px;margin:40px auto;padding:24px 16px;}}.card{{background:#10141d;border:1px solid rgba(45,212,191,.3);border-radius:10px;padding:24px;}}
+h1{{color:#fff;font-size:22px;margin:0 0 12px}}.kicker{{font:12px monospace;color:#2dd4bf;text-transform:uppercase;letter-spacing:1px}}
+.desc{{white-space:pre-wrap;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:12px;margin:12px 0}}
+label{{display:block;font-size:14px;margin:14px 0 6px}}textarea{{width:100%;box-sizing:border-box;min-height:70px;background:#0b0f16;color:#e2e8f0;border:1px solid #334155;border-radius:6px;padding:8px;font:inherit}}
+button{{margin-top:16px;padding:12px 26px;font-size:16px;font-weight:bold;color:#fff;border:0;border-radius:6px;cursor:pointer}}
+.approve{{background:#16a34a}}.decline{{background:#dc2626}}button:focus{{outline:3px solid #2dd4bf;outline-offset:2px}}a{{color:#2dd4bf}}</style></head>
+<body><main><div class="card">{body_html}</div></main></body></html>"""
+    return page, status, {"Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Robots-Tag": "noindex"}
+
+
+@app.route('/tickets/decide', methods=['GET', 'POST'])
+async def tickets_email_decide():
+    """One-click link from the admin email. GET shows the ticket and a confirm button (so link
+    scanners that open email links can't decide by accident); POST records the decision."""
+    from agents import tickets
+    src = (await request.form) if request.method == "POST" else request.args
+    tid, action, exp, sig = src.get("id", ""), src.get("a", ""), src.get("exp", ""), src.get("sig", "")
+    if not tickets.verify_link(tid, action, exp, sig):
+        return _ticket_page("Link not valid", "<h1>This link isn't valid</h1><p>It may have expired (links last 14 days) or been changed. "
+                            "Tier-5 users can still decide in Settings &amp; Sessions → Ticket queue.</p>", 403)
+    t = tickets.get(tid)
+    if not t:
+        return _ticket_page("Ticket not found", "<h1>Ticket not found</h1>", 404)
+    if action == "undo":
+        return await _ticket_undo_page(t, tid, exp, sig)
+    verb = "Approve" if action == "approve" else "Decline"
+    if request.method == "GET":
+        if t["status"] != "awaiting_approval":
+            label = tickets.STATUS_TEXT.get(t["status"], (t["status"],))[0]
+            return _ticket_page("Already decided", f"<p class='kicker'>{_html.escape(t['id'])}</p><h1>{_html.escape(t['title'])}</h1>"
+                                f"<p>This ticket is already <strong>{_html.escape(label)}</strong>. Nothing more to do.</p>")
+        review = t.get("review") or {}
+        body = (f"<p class='kicker'>{_html.escape(t['id'])} · {verb} this ticket?</p><h1>{_html.escape(t['title'])}</h1>"
+                f"<div class='desc'>{_html.escape(t['description'])}</div>"
+                f"<p><strong>Review agent:</strong> {_html.escape(review.get('risk', '?'))} risk, recommends "
+                f"{_html.escape(review.get('recommendation', '?'))}. {_html.escape(review.get('reason', ''))}</p>"
+                f"<form method='post' action='/tickets/decide'>"
+                + "".join(f"<input type='hidden' name='{k}' value='{_html.escape(str(v))}'>" for k, v in
+                          (("id", tid), ("a", action), ("exp", exp), ("sig", sig)))
+                + f"<label for='note'>Note for the person who sent it (optional)</label><textarea id='note' name='note' maxlength='500'></textarea>"
+                f"<button type='submit' class='{action}'>{'✅' if action == 'approve' else '❌'} Confirm: {verb}</button></form>")
+        return _ticket_page(f"{verb} ticket {t['id']}", body)
+    try:
+        t = await asyncio.to_thread(tickets.decide, tid, action, "admin (email link)", "email", src.get("note", ""))
+    except ValueError as e:
+        return _ticket_page("Already decided", f"<h1>Nothing changed</h1><p>{_html.escape(str(e))}</p>", 409)
+    _ticket_after_decision(t)
+    done = ("Approved. Siraugga's agent is making the change now and it goes live as soon as it's done. "
+            "You'll get an email showing exactly what changed, with a one-click Undo button."
+            if action == "approve" else "Declined. The person who sent it has been told.")
+    return _ticket_page(f"Ticket {verb.lower()}d", f"<p class='kicker'>{_html.escape(t['id'])}</p><h1>{_html.escape(t['title'])}</h1><p>{done}</p>"
+                        f"<p><a href='/'>Open Siraugga</a></p>")
+
+
+async def _ticket_undo_page(t: dict, tid: str, exp: str, sig: str):
+    """Undo link from the 'Live now' email: GET confirms, POST restores the previous files."""
+    from agents import tickets, ticket_impl
+    impl = t.get("implementation") or {}
+    head = f"<p class='kicker'>{_html.escape(t['id'])} · Undo</p><h1>{_html.escape(t['title'])}</h1>"
+    if request.method == "GET":
+        if t["status"] != "implemented" or not impl.get("files"):
+            label = tickets.STATUS_TEXT.get(t["status"], (t["status"],))[0]
+            return _ticket_page("Nothing to undo", head + f"<p>This ticket is <strong>{_html.escape(label)}</strong>, so there's nothing to undo.</p>")
+        files = "".join(f"<li><code>{_html.escape(f)}</code></li>" for f in impl["files"])
+        body = (head + f"<p>This puts these files back the way they were before the agent's change:</p><ul>{files}</ul>"
+                f"<div class='desc'>{_html.escape(impl.get('summary', ''))}</div>"
+                "<form method='post' action='/tickets/decide'>"
+                + "".join(f"<input type='hidden' name='{k}' value='{_html.escape(str(v))}'>" for k, v in
+                          (("id", tid), ("a", "undo"), ("exp", exp), ("sig", sig)))
+                + "<button type='submit' class='decline'>↩️ Confirm: Undo the change</button></form>")
+        return _ticket_page(f"Undo ticket {t['id']}", body)
+    try:
+        res = await asyncio.to_thread(ticket_impl.undo, tid)
+    except ValueError as e:
+        return _ticket_page("Nothing to undo", head + f"<p>{_html.escape(str(e))}</p>", 409)
+    _ticket_notify_submitter(tickets.get(tid))
+    msg = f"<p>Done. {len(res['restored'])} file(s) are back to how they were. The change is no longer live.</p>"
+    if res["skipped"]:
+        msg += ("<p>These files were changed again after the agent's change, so they were left alone: "
+                + ", ".join(f"<code>{_html.escape(f)}</code>" for f in res["skipped"]) + "</p>")
+    return _ticket_page("Change undone", head + msg + "<p><a href='/'>Open Siraugga</a></p>")
+
+
+# ---- Reusable "no limit" links -----------------------------------------------------------
+_UNLOCK_REASONS = {"full": "This link has reached its limit of browsers.", "expired": "This link has expired.",
+                   "revoked": "This link was turned off by the admin.", "invalid": "This link isn't valid."}
+
+
+@app.route('/unlock/<code>', methods=['GET'])
+async def unlock_link(code):
+    """Opens the normal site; the page shows a one-time popup for the link (see /api/unlock)."""
+    from urllib.parse import quote
+    return "", 302, {"Location": "/?unlock=" + quote(code[:64], safe=""), "Cache-Control": "no-store", "X-Robots-Tag": "noindex"}
+
+
+@app.route('/api/unlock', methods=['GET', 'POST'])
+async def unlock_api():
+    """GET ?code=: what the popup should say. POST {code}: use the link and set the no-limit cookie.
+    Using it needs the popup's button press, so link previews and scanners can't use it up."""
+    from agents import unlock_links
+    if unlock_links.is_unlimited(request.headers):
+        return jsonify({"state": "already_unlimited"})
+    if request.method == "GET":
+        st = unlock_links.status(request.args.get("code", ""))
+        return jsonify({"state": st, "message": _UNLOCK_REASONS.get(st, "")})
+    data = await request.get_json(silent=True) or {}
+    token = unlock_links.claim(str(data.get("code") or ""))
+    if not token:
+        st = unlock_links.status(str(data.get("code") or ""))
+        return jsonify({"state": st, "message": _UNLOCK_REASONS.get(st, "This link can't be used.")}), 410
+    print("[Unlock] A no-limit link was used.")
+    resp = jsonify({"state": "unlocked"})
+    resp.headers["Set-Cookie"] = f"{unlock_links.COOKIE_NAME}={token}; Max-Age={unlock_links.COOKIE_MAX_AGE}; Path=/; HttpOnly; Secure; SameSite=Lax"
+    return resp
+
+
+@app.route('/api/admin/unlock-links', methods=['GET', 'POST'])
+async def admin_unlock_links():
+    """Tier 5 only: create a reusable no-limit link, or list them."""
+    from agents import unlock_links
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+    if request.method == "POST":
+        data = await request.get_json(silent=True) or {}
+        link = unlock_links.create(data.get("label", ""), int(data.get("days") or unlock_links.DEFAULT_TTL_DAYS))
+        return jsonify({"success": True, "url": link["url"], "links": unlock_links.list_links()})
+    return jsonify({"success": True, "links": unlock_links.list_links()})
+
+
+@app.route('/api/admin/unlock-links/<link_id>', methods=['DELETE'])
+async def admin_unlock_link_revoke(link_id):
+    """Tier 5 only: turn a link off (also ends unlimited access for every browser that used it)."""
+    from agents import unlock_links
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        return jsonify({"error": "Admin authorization required"}), 403
+    ok = unlock_links.revoke(link_id)
+    return jsonify({"success": ok, "links": unlock_links.list_links()}), (200 if ok else 404)
 
 
 @app.route('/api/admin/tier-limits', methods=['GET', 'POST'])
@@ -1260,4 +1665,25 @@ if __name__ == '__main__':
     else:
         config.bind = ['0.0.0.0:5000', '[::1]:5000']
         
-    asyncio.run(serve(app, config))
+    # CyberBrief newsletter backend (moved from e-profile) is mounted on its own paths;
+    # if it fails to load, DevCore still starts without it.
+    asgi_entry = app
+    try:
+        from services.cyberbrief.app import mount as _mount_cyberbrief
+        asgi_entry = _mount_cyberbrief(app)
+        print('[CyberBrief] Newsletter backend mounted.')
+    except Exception as cyberbrief_err:
+        print(f'[CyberBrief] Not mounted: {cyberbrief_err}')
+    # e-profile backend (login, admin, projects) runs as its own local process; requests
+    # from the e-profile Pages proxy (secret header) are streamed to it.
+    try:
+        from services import eprofile_bridge
+        from services.cyberbrief.app import owns as _cyberbrief_owns
+        if eprofile_bridge.SECRET:
+            asgi_entry = eprofile_bridge.mount(asgi_entry, owns_path=_cyberbrief_owns)
+            print(f'[e-profile] Bridge to 127.0.0.1:{eprofile_bridge.PORT} mounted.')
+        else:
+            print('[e-profile] Bridge not mounted: no PROXY_SECRET in services/eprofile_bridge/.env')
+    except Exception as bridge_err:
+        print(f'[e-profile] Bridge not mounted: {bridge_err}')
+    asyncio.run(serve(asgi_entry, config))

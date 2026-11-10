@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Device Setup · Siraugga</title>
+<style>
+:root { --bg:#0a0a0b; --card:#10141d; --text:#e2e8f0; --muted:#9aa4b2; --accent:#2dd4bf; --accent-ink:#04201c; --border:rgba(45,212,191,.3); --field:#0a0d14; --error:#fca5a5; --ok:#5eead4; }
+@media (prefers-color-scheme: light) { :root { --bg:#f6f7f9; --card:#ffffff; --text:#1f2937; --muted:#4b5563; --accent:#0f766e; --accent-ink:#ffffff; --border:rgba(15,118,110,.3); --field:#ffffff; --error:#b91c1c; --ok:#0f766e; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:16px/1.6 -apple-system,'Segoe UI',Roboto,Arial,sans-serif; }
+main { max-width:480px; margin:0 auto; padding:40px 16px 64px; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:24px; }
+h1 { margin:0 0 6px; font-size:24px; }
+h2 { margin:0 0 6px; font-size:17px; }
+p { margin:0 0 14px; }
+.muted { color:var(--muted); font-size:14px; }
+label { display:block; font-weight:600; margin:0 0 6px; }
+input[type=password], input[type=email] { width:100%; min-height:44px; padding:10px 12px; font:inherit; color:var(--text); background:var(--field); border:1px solid var(--border); border-radius:8px; }
+button { width:100%; min-height:44px; padding:10px 16px; font:inherit; font-weight:600; border-radius:8px; cursor:pointer; border:1px solid var(--accent); }
+.primary { background:var(--accent); color:var(--accent-ink); }
+.secondary { background:transparent; color:var(--accent); }
+button:disabled { opacity:.6; cursor:wait; }
+input:focus-visible, button:focus-visible, a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.stack > * + * { margin-top:14px; }
+.divider { border:0; border-top:1px solid var(--border); margin:22px 0; }
+#msg { min-height:1.6em; margin:14px 0 0; font-size:15px; }
+#msg.error { color:var(--error); } #msg.ok { color:var(--ok); }
+a { color:var(--accent); }
+.hidden { display:none; }
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+  <h1 id="title">Set up this device</h1>
+
+  <!-- Owner: password, then create an access key on this device -->
+  <form id="owner-form" class="stack hidden" novalidate>
+    <p class="muted">Type your owner password, then confirm with this device's fingerprint, face or PIN. After that, this device signs in to Siraugga as Super Admin with the access key alone.</p>
+    <div>
+      <label for="password">Owner password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" class="primary" id="owner-btn">Create access key on this device</button>
+    <button type="button" class="secondary" id="recover-btn">Forgot your password? Email me a setup link</button>
+  </form>
+
+  <!-- Someone invited with a one-time link -->
+  <div id="invite-box" class="stack hidden">
+    <p id="invite-text"></p>
+    <p class="muted">You'll be asked to confirm with this device's fingerprint, face or PIN. Nothing secret is sent to Siraugga; the key stays on your device. This link works only once.</p>
+    <button type="button" class="primary" id="invite-btn">Create access key on this device</button>
+  </div>
+
+  <div id="signin-box">
+    <hr class="divider" id="signin-divider">
+    <h2>Already set up?</h2>
+    <p class="muted">If this device already has a Siraugga access key, sign in with it.</p>
+    <button type="button" class="secondary" id="signin-btn">Sign in with access key</button>
+
+    <hr class="divider">
+    <form id="person-recover-form" class="stack" novalidate>
+      <h2>Invited before, on a new device?</h2>
+      <p class="muted">Type the email address you were invited with. We'll send a new one-time setup link to it, with the same access as before.</p>
+      <div>
+        <label for="recover-email">Your email</label>
+        <input id="recover-email" type="email" autocomplete="email" maxlength="254" required>
+      </div>
+      <button type="submit" class="secondary" id="person-recover-btn">Email me a new link</button>
+    </form>
+  </div>
+
+  <p id="msg" role="status" aria-live="polite"></p>
+  <p class="muted"><a href="/">Back to Siraugga</a></p>
+</div>
+</main>
+<script src="/static/device-keys.js?v=1"></script>
+<script>
+(function () {
+    var msg = document.getElementById('msg');
+    var params = new URLSearchParams(location.search);
+    var invite = params.get('invite');
+
+    function show(text, kind) { msg.textContent = text; msg.className = kind || ''; }
+    function busy(btn, on) { btn.disabled = on; btn.setAttribute('aria-busy', on ? 'true' : 'false'); }
+    function done(res) {
+        var role = res.user && res.user.role ? res.user.role.replace('_', ' ') : 'signed in';
+        show('Done. Signed in as ' + role + '. Opening Siraugga…', 'ok');
+        setTimeout(function () { location.href = '/'; }, 1200);
+    }
+
+    if (!window.PublicKeyCredential) {
+        show('This browser cannot use access keys. Try an up-to-date Chrome, Edge, Safari or Firefox.', 'error');
+    }
+
+    if (invite) {
+        // Remove the code from the address bar and history; it stays in memory for this page.
+        history.replaceState(null, '', '/setup');
+        document.getElementById('signin-box').classList.add('hidden');
+        fetch('/api/device-keys/invite-info?code=' + encodeURIComponent(invite), { cache: 'no-store' })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.success) { document.getElementById('title').textContent = 'Link not valid'; show(d.error, 'error'); return; }
+                document.getElementById('title').textContent = d.recovery ? 'Set up this device' : 'Welcome, ' + d.name;
+                document.getElementById('invite-text').textContent = d.recovery
+                    ? 'This link from your recovery email makes this device Super Admin.'
+                    : 'You have been invited to Siraugga as: ' + d.role_label + '.';
+                document.getElementById('invite-box').classList.remove('hidden');
+                document.getElementById('invite-btn').focus();
+            })
+            .catch(function () { show('Could not check this link. Reload the page to try again.', 'error'); });
+    } else {
+        document.getElementById('owner-form').classList.remove('hidden');
+    }
+
+    document.getElementById('owner-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('owner-btn');
+        var pw = document.getElementById('password');
+        if (!pw.value) { show('Type your owner password first.', 'error'); pw.focus(); return; }
+        busy(btn, true); show('Confirm on your device…');
+        try { done(await SirauggaKeys.register({ password: pw.value })); }
+        catch (err) { show(err.message, 'error'); pw.focus(); }
+        finally { busy(btn, false); pw.value = ''; }
+    });
+
+    document.getElementById('recover-btn').addEventListener('click', async function () {
+        var btn = this;
+        busy(btn, true);
+        try {
+            var r = await fetch('/api/device-keys/recover', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+            var d = await r.json();
+            show(d.message || d.error || 'Could not send the email.', d.success ? 'ok' : 'error');
+        } catch (err) { show('Could not reach Siraugga. Check your connection and try again.', 'error'); }
+        finally { busy(btn, false); }
+    });
+
+    document.getElementById('person-recover-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('person-recover-btn');
+        var em = document.getElementById('recover-email');
+        if (!em.value.trim()) { show('Type your email address first.', 'error'); em.focus(); return; }
+        busy(btn, true);
+        try {
+            var r = await fetch('/api/device-keys/recover', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: em.value }) });
+            var d = await r.json();
+            show(d.message || d.error || 'Could not send the email.', d.success ? 'ok' : 'error');
+        } catch (err) { show('Could not reach Siraugga. Check your connection and try again.', 'error'); }
+        finally { busy(btn, false); }
+    });
+
+    document.getElementById('invite-btn').addEventListener('click', async function () {
+        var btn = this;
+        busy(btn, true); show('Confirm on your device…');
+        try { done(await SirauggaKeys.register({ invite: invite })); }
+        catch (err) { show(err.message, 'error'); }
+        finally { busy(btn, false); }
+    });
+
+    document.getElementById('signin-btn').addEventListener('click', async function () {
+        var btn = this;
+        busy(btn, true); show('Confirm on your device…');
+        try { done(await SirauggaKeys.signIn()); }
+        catch (err) { show(err.message, 'error'); }
+        finally { busy(btn, false); }
+    });
+})();
+</script>
+</body>
+</html>

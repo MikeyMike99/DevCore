@@ -31,11 +31,26 @@ def _strip_fences(body: str) -> str:
     return m.group(1).strip() if m else body
 
 
+FEATURED_FILE = os.path.join(DEVCORE_ROOT, "sandbox", "static", "featured_exam.json")
+
+
+def _featured_name() -> str:
+    """File name of the exam shown to every visitor, which must survive cleanup."""
+    try:
+        with open(FEATURED_FILE, "r", encoding="utf-8") as f:
+            return os.path.basename(str(json.load(f).get("quiz") or ""))
+    except Exception:
+        return ""
+
+
 def _cleanup_old() -> None:
     cutoff = time.time() - KEEP_DAYS * 86400
+    keep = _featured_name()
     try:
         for name in os.listdir(EXAMS_DIR):
             path = os.path.join(EXAMS_DIR, name)
+            if name == keep:
+                continue
             if name.endswith(".json") and os.path.isfile(path) and os.path.getmtime(path) < cutoff:
                 os.remove(path)
     except Exception:

@@ -88,6 +88,9 @@ PROTECTED_SECURITY_FILES = {
     os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "core", "roles.py")),
     os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "core", "routes", "auth.py")),
     os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "core", "routes", "access.py")),
+    # In-game/app developer containment (sealed test box + workspace rules)
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "scripts", "dev_jail.sh")),
+    os.path.abspath(os.path.join(_HOOK_DEVCORE_ROOT, "security", "dev_workspaces.py")),
 }
 
 # Shell fragments an agent may never run: they would mint identities, change
@@ -319,6 +322,8 @@ def check_self_protection(tool_name, args):
             "routes/auth.py",
             "routes/access.py",
             "core/roles.py",
+            "dev_jail.sh",
+            "dev_workspaces.py",
         )
         destructive_patterns = (
             r"\bsed\b", r"\bawk\b", r"\bmv\b", r"\brm\b", r"\bcp\b",
@@ -334,6 +339,80 @@ def check_self_protection(tool_name, args):
                     "Raugus Self-Protection Firewall: Modifying, renaming, or overwriting core security "
                     "guard files via shell commands is strictly forbidden without an active Super Admin JIT Elevation Token."
                 )
+    return None
+
+
+_DEV_PATH_KEYS = ("AbsolutePath", "TargetFile", "target_file", "SearchPath", "SearchDirectory", "DirectoryPath",
+                  "File", "Path", "path", "Source", "Destination", "SourcePath", "DestinationPath")
+_DEV_SYSTEM_PREFIXES = ("/usr/", "/bin/", "/lib/", "/lib64/", "/etc/alternatives/", "/dev/null", "/tmp/", "/proc/self/")
+
+
+def check_dev_sandbox(tool_name, args):
+    """In-game/app developer tasks (security/dev_workspaces.py): DEVCORE_DEV_SANDBOX is set by the
+    server for them only. The agent may work only inside that sandbox copy and may only change the
+    assigned parts (DEVCORE_DEV_PARTS). Returns a deny reason, or None."""
+    import re
+    box = os.environ.get("DEVCORE_DEV_SANDBOX")
+    if not box:
+        return None
+    box = os.path.realpath(box)
+    try:
+        parts = [p for p in json.loads(os.environ.get("DEVCORE_DEV_PARTS") or "[]") if p]
+    except Exception:
+        parts = []
+
+    def inside(p, base):
+        return p == base or p.startswith(base.rstrip(os.sep) + os.sep)
+
+    def resolve(p):
+        p = str(p)
+        if p.startswith("file://"):
+            p = p[7:]
+        return os.path.realpath(p if os.path.isabs(p) else os.path.join(box, p))
+
+    outside = "Developer workspace: only this project's sandbox copy may be used."
+    if tool_name in ("mcp_tool", "call_mcp_tool"):
+        # Shared code tools (the resolver's read_by_key etc.) reach DevCore itself.
+        return "Developer workspace: shared code tools aren't available here; work with the files in this sandbox copy."
+    if tool_name in FILE_AND_SEARCH_TOOLS:
+        if tool_name == "read_url_content":
+            url = str(args.get("Url") or "")
+            return outside if url.startswith("file:") else None
+        writing = tool_name in WRITE_TOOLS or tool_name in ("delete_directory", "move")
+        for key in _DEV_PATH_KEYS:
+            val = args.get(key)
+            if not val:
+                continue
+            target = resolve(val)
+            if not inside(target, box):
+                return outside
+            if writing and parts and not any(inside(target, os.path.realpath(os.path.join(box, part))) for part in parts):
+                return ("Developer workspace: that part of the project wasn't handed to this developer. "
+                        "Only the assigned parts may be changed.")
+        return None
+    if tool_name in COMMAND_TOOLS:
+        # Every command runs inside the sealed box (scripts/dev_jail.sh: only the sandbox copy,
+        # no home, no /mnt, no network). One command per call: no ; & | ` $( < > or newlines,
+        # which could start a second command outside the box.
+        jail = os.path.join(_HOOK_DEVCORE_ROOT, "scripts", "dev_jail.sh")
+        how = (f"Developer workspace: run commands only through the sealed test box, one at a time, e.g. "
+               f"`{jail} python3 -m pytest -q` (no ; && | > < or $(...)).")
+        cwd = args.get("Cwd")
+        if cwd and not inside(resolve(cwd), box):
+            return outside
+        cmd = str(args.get("CommandLine") or args.get("Input") or "").strip()
+        if tool_name == "send_command_input":
+            return how
+        if re.search(r"[;&|`<>\n\r]|\$\(", cmd):
+            return how
+        if not (cmd.startswith(jail + " ") or cmd.startswith("bash " + jail + " ")):
+            return how
+    else:
+        # Any other tool: whatever paths it names must be inside the sandbox.
+        for key in _DEV_PATH_KEYS:
+            val = args.get(key)
+            if val and not inside(resolve(val), box):
+                return outside
     return None
 
 
@@ -527,7 +606,14 @@ def main():
                 args.setdefault(k, v)
         
         tool_name = raw_name.replace("default_api:", "").lower()
-        
+
+        # --- IN-GAME/APP DEVELOPER SANDBOX (developer tasks only; checked first, for every tool) ---
+        dev_reason = check_dev_sandbox(tool_name, args)
+        if dev_reason:
+            log_violation(tool_name, json.dumps(args, default=str)[:200], dev_reason)
+            print(json.dumps({"decision": "deny", "reason": dev_reason}))
+            return
+
         if tool_name in ("mcp_tool", "call_mcp_tool") and raw_args.get("ToolName") in (
             "search_keys",
             "list_module_keys",

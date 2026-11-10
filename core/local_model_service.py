@@ -560,7 +560,14 @@ _RESOLVER_TOOLS = [
     "mcp__raugus-resolver__delete_by_key",
     "mcp__raugus-resolver__digest_file",
     "mcp__raugus-resolver__read_chunk",
+    # Research for every tier: public-internet-only GET (security/safe_fetch.py).
+    "mcp__raugus-resolver__web_fetch",
 ]
+# Web search runs on Anthropic's side (it never touches this machine's network), so
+# it is safe for every tier. Raw curl / WebFetch stay Tier 5 only, because a fetch
+# from this PC could otherwise reach its private services (127.0.0.1, LAN, metadata).
+_RESEARCH_TOOLS_ALL_TIERS = ["WebSearch"]
+_RESEARCH_TOOLS_OWNER = ["WebSearch", "WebFetch"]
 
 
 def _brain_read_scopes(identity: dict) -> list:
@@ -804,6 +811,9 @@ def run_claude_cli_model(
         # (_BRAIN_SECRET_READ_DENY) still blocks tokens, keys, .env, .ssh,
         # credentials, the DevCore master key, etc.
         allowed += ["Read(/**)", "Grep(/**)", "Glob(/**)", "Edit(/**)", "Bash(*)"]
+        allowed += _RESEARCH_TOOLS_OWNER
+    elif identity:
+        allowed += _RESEARCH_TOOLS_ALL_TIERS
     if _raugus_mcp:
         allowed += _RESOLVER_TOOLS
     if allowed:

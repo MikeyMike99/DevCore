@@ -5,11 +5,25 @@ import os, json
 
 files_bp = Blueprint('files_bp', __name__)
 
+_CODE_PRIVATE = ("Project files are opened only by the Super Admin. Admins and developers work "
+                 "through the agent and never see the code.")
+
+
+def _super_admin_or_403(user):
+    """Direct file access (list, read, write) is Super Admin only: admins can't see code, and an
+    in-game dev may only change what was handed to them, through the agent."""
+    if not current_app.security_mgr.is_super_admin(user):
+        return jsonify({"error": _CODE_PRIVATE}), 403
+    return None
+
 @files_bp.route('/api/files', methods=['GET'])
 async def list_files():
     user = get_current_user()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    denied = _super_admin_or_403(user)
+    if denied:
+        return denied
     workspace = current_app.project_mgr.get_active_workspace_path()
     if not current_app.security_mgr.can_access_project(user, current_app.project_mgr.active_project):
         return jsonify({"error": "Access Denied: You do not have permission for this workspace"}), 403
@@ -23,6 +37,9 @@ async def get_file_content():
     user = get_current_user()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    denied = _super_admin_or_403(user)
+    if denied:
+        return denied
     path = request.args.get('path', '')
     workspace = current_app.project_mgr.get_active_workspace_path()
     if not current_app.security_mgr.can_access_project(user, current_app.project_mgr.active_project):
@@ -40,6 +57,9 @@ async def save_file_content():
     user = get_current_user()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
+    denied = _super_admin_or_403(user)
+    if denied:
+        return denied
     data = await request.get_json() or {}
     path = data.get('path')
     content = data.get('content', '')

@@ -1520,6 +1520,30 @@ def read_chunk(key: str = "", chunk: int = 1, digest_id: str = "", focus: str = 
     return _json_response({"status": "GRANTED", "key": key or None, **out})
 
 
+@mcp.tool()
+def web_fetch(url: str, raw: bool = False) -> str:
+    """
+    Fetch a PUBLIC web page or API (HTTP GET) for research, like `curl <url>`.
+    Returns the status, final URL, content type and the text (HTML is converted to plain
+    text unless raw=true; long pages are truncated). Only the public internet is
+    reachable: localhost, private/home networks, cloud metadata and non-web ports are
+    refused, redirects included. Use WebSearch first to find good URLs.
+    """
+    ident = _identity()
+    if not ident:
+        return _deny_no_identity(url=url)
+    from security import safe_fetch
+    try:
+        result = safe_fetch.fetch(str(url or ""), raw=bool(raw))
+    except safe_fetch.FetchBlocked as exc:
+        logging.warning(f"[{ident.get('agent_id')}] Tier {ident.get('tier')} web_fetch blocked: {url!r} ({exc})")
+        return _json_response({"status": "BLOCKED", "url": url, "reason": str(exc)})
+    except Exception as exc:
+        return _json_response({"status": "ERROR", "url": url, "reason": f"{type(exc).__name__}: {exc}"})
+    logging.info(f"[{ident.get('agent_id')}] Tier {ident.get('tier')} web_fetch {result['status']} {result['url']}")
+    return _json_response({"status": "OK", **result})
+
+
 if __name__ == "__main__":
     try:
         mcp.run()

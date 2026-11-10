@@ -117,6 +117,10 @@ def is_exam_request(prompt: str) -> bool:
     if not prompt:
         return False
     low = prompt.lower().strip()
+    # Ticket requests ("create a ticket: the exam page is broken", "ticket to test X") are about
+    # reporting a problem, not building an exam: no exam builder, no exam brief, no free prompt.
+    if "[save_exam]" not in low and re.search(r"\b(tickets?|bug\s+reports?|report\s+a\s+(bug|problem|issue))\b", low):
+        return False
     if any(k in low for k in ("[save_exam]", "/plugin/exam", "exam_builder", "help exam", "quiz guide", "exam guide", "/exam")):
         return True
     if re.search(r"\b(exam|exams|quiz|quizzes|assessment|assessments|questionnaire)\b", low):

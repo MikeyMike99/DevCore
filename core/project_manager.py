@@ -68,15 +68,17 @@ class ProjectManager:
                 projects = [p for p in projects if p in allowed]
         return projects
 
-    def create_project(self, name):
+    def create_project(self, name, user_tier=1):
+        """user_tier: the caller's tier (the route has already checked they may create). It was
+        hard-coded to 1, so the resolver refused everyone, the Super Admin included."""
         if not name or '..' in name or '/' in name or '\\' in name:
             raise ValueError("Invalid project name")
         if name in self.EXCLUDED_DIRS or name.startswith('.') or name.endswith(('.dist-info', '.egg-info')):
             raise ValueError("Reserved directory name cannot be used as a project")
-        
+
         project_dir = os.path.join(self.base_dir, name)
-        
-        resolver.enforce_path_security(project_dir, user_tier=1)
+
+        resolver.enforce_path_security(project_dir, user_tier=user_tier)
         
         if os.path.exists(project_dir):
             raise FileExistsError("Project already exists")
@@ -84,17 +86,19 @@ class ProjectManager:
         os.makedirs(project_dir, exist_ok=True)
         return project_dir
 
-    def set_active_project(self, name):
+    def set_active_project(self, name, user_tier=1):
+        """user_tier: the caller's tier (routes check can_switch_project first). It was hard-coded
+        to 1, so the resolver refused every switch, the Super Admin's included."""
         if not name:
             self.active_project = None
             return self.base_dir
-        
+
         if '..' in name or '/' in name or '\\' in name:
             raise ValueError("Invalid project name")
-        
+
         project_dir = os.path.join(self.base_dir, name)
-        
-        resolver.enforce_path_security(project_dir, user_tier=1)
+
+        resolver.enforce_path_security(project_dir, user_tier=user_tier)
         
         if not self._is_valid_project_dir(name, project_dir):
             raise FileNotFoundError(f"Project directory '{name}' does not exist")

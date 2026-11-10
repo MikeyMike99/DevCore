@@ -58,3 +58,20 @@ keys.json
 
 # First-time setup scripts (contain the WSL sudo password; machine-local only)
 scripts/setup/
+
+# On-device dictation assets, fetched by scripts/fetch_speech_assets.py
+sandbox/static/speech/vendor/
+sandbox/static/speech/models/
+
+# e_profile is its own git repo (github.com/MikeyMike99/E-profile), kept here as a playground project.
+# Never commit it into DevCore: it holds .ssh keys, .env and the vault.
+playground/e_profile/
+
+# In-game/app developer sandbox copies (security/dev_workspaces.py)
+playground/.dev_sandboxes/
+
+.env.cloudflare
+services/cyberbrief/.env
+services/cyberbrief/cache/
+services/cyberbrief/traffic_metrics.json
+services/eprofile_bridge/.env

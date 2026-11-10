@@ -64,7 +64,13 @@
             #attach-btn { padding-left: 10px; padding-right: 10px; }
             #attach-btn-label { display: none; }
             #send-btn { padding-left: 14px; padding-right: 14px; }
+            #mic-btn { padding-left: 10px; padding-right: 10px; }
+            #mic-btn-label { display: none; }
         }
+        #mic-btn.mic-recording { background-color: #b91c1c; border-color: #ef4444; color: #fff; }
+        #mic-btn.mic-recording svg { animation: mic-pulse 1.2s ease-in-out infinite; }
+        @keyframes mic-pulse { 50% { opacity: 0.4; } }
+        @media (prefers-reduced-motion: reduce) { #mic-btn.mic-recording svg { animation: none; } }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-full flex flex-col font-sans overflow-hidden">
@@ -257,7 +263,7 @@
                                 </a>
                             </li>
                             <li id="quick-action-passkeys-li" class="hidden">
-                                <button type="button" onclick="openPasskeyWizardModal()" id="quick-action-passkeys" aria-haspopup="dialog" aria-controls="passkey-wizard-modal" aria-label="Open DevCore Passkey and Bitwarden Setup Wizard" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-cyan-800/60 rounded-lg text-cyan-300 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none transition-colors flex items-center justify-between cursor-pointer">
+                                <button type="button" onclick="openPasskeyWizardModal()" id="quick-action-passkeys" aria-haspopup="dialog" aria-controls="passkey-wizard-modal" aria-label="Open Siraugga Passkey and Bitwarden Setup Wizard" class="w-full text-left px-4 py-3 bg-slate-800 hover:bg-slate-700 border border-cyan-800/60 rounded-lg text-cyan-300 font-medium focus:ring-2 focus:ring-cyan-500 focus:outline-none transition-colors flex items-center justify-between cursor-pointer">
                                     <span class="text-base flex items-center gap-2"><span aria-hidden="true">🔑</span> Passkey &amp; Bitwarden Setup</span>
                                     <span class="text-xs text-cyan-400 font-mono">Hardware Biometrics &amp; WebAuthn</span>
                                 </button>
@@ -325,22 +331,44 @@
                     </div>
 
                     <label for="prompt" class="sr-only">{{ ui.chat_input.label_sr }}</label>
-                    <textarea 
-                        id="prompt" 
-                        role="combobox" 
-                        aria-autocomplete="list" 
-                        aria-expanded="false" 
-                        aria-controls="slash-command-menu" 
+                    <!-- Plain text box on purpose: role="combobox" made screen readers say
+                         "combo box, collapsed, has autocomplete, opens list" every time.
+                         The / command list is announced through the live region instead. -->
+                    <textarea
+                        id="prompt"
                         rows="2"
                         data-default-placeholder="{{ ui.chat_input.placeholder }}"
                         style="white-space: pre-wrap !important; word-break: break-word !important;"
                         class="w-full bg-slate-950 text-slate-100 rounded-lg px-4 py-2.5 border border-slate-700 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 resize-none text-sm placeholder-slate-500" 
                         placeholder="{{ ui.chat_input.placeholder }}"
                         onkeydown="handleKeyDown(event)"></textarea>
+                    <p id="mic-notice" class="hidden absolute bottom-full left-1 mb-1 text-xs text-amber-300 bg-slate-900/95 border border-amber-500/40 rounded px-2 py-1" aria-hidden="true"></p>
                     <div id="chat-input-helper" class="text-[11px] text-slate-500 absolute bottom-2 right-3 pointer-events-none" aria-hidden="true">
                         {{ ui.chat_input.helper_text }}
                     </div>
                 </div>
+                <!-- Voice dictation: speech is turned into text on the user's own device
+                     (sandbox/static/speech/), audio is never uploaded. -->
+                <button
+                    type="button"
+                    id="mic-btn"
+                    aria-pressed="false"
+                    aria-label="Speak"
+                    class="bg-slate-800 hover:bg-slate-700 disabled:opacity-60 disabled:cursor-wait text-slate-200 border border-slate-700 font-medium rounded-lg px-3 py-2.5 transition-colors h-[58px] flex items-center justify-center gap-1.5 shrink-0 text-sm cursor-pointer focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="22"/></svg>
+                    <span id="mic-btn-label">Speak</span>
+                </button>
+                <span id="mic-status" class="sr-only" role="status" aria-live="polite"></span>
+                <!-- Asked once, before the first dictation; changeable in Settings (#dictation-autosend). -->
+                <dialog id="dictation-choice-modal" aria-labelledby="dictation-choice-title" aria-describedby="dictation-choice-desc" class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-sm w-[calc(100%-32px)] backdrop:bg-slate-950/70 text-slate-200">
+                    <h3 id="dictation-choice-title" class="text-lg font-bold text-white mb-2">Send automatically?</h3>
+                    <p id="dictation-choice-desc" class="text-sm text-slate-300 mb-2">When you press <strong>Stop</strong>, should your words be sent straight away, or put in the message box so you can check them first?</p>
+                    <p class="text-xs text-slate-400 mb-5">If a recording reaches the 2-minute limit it is never sent automatically. You can change this any time in Settings.</p>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                        <button type="button" id="dictation-choice-review" class="px-4 py-2 min-h-[44px] text-sm font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">Let me check first</button>
+                        <button type="button" id="dictation-choice-auto" class="px-4 py-2 min-h-[44px] text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">Send automatically</button>
+                    </div>
+                </dialog>
                 <input type="file" id="attach-input" class="hidden" accept=".pdf,.docx,.txt,.md,.csv" onchange="handleAttachChosen(this)">
                 <button
                     type="button"
@@ -392,7 +420,77 @@
                     <button type="button" onclick="toggleLoginModal()" id="login-btn" class="flex-1 text-[11px] text-teal-400 hover:text-teal-200 font-bold bg-slate-800 px-1.5 py-1.5 rounded border border-teal-800/50 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">Login</button>
                     <button type="button" onclick="logout()" id="logout-btn" class="hidden flex-1 text-[11px] text-rose-400 hover:text-rose-200 font-bold bg-slate-800 px-1.5 py-1.5 rounded border border-rose-800/50 focus:ring-2 focus:ring-rose-500 focus:outline-none cursor-pointer">Logout</button>
                 </div>
+                <!-- Public domain only: the owner, on the host computer, becomes Super Admin with one click -->
+                <button type="button" id="owner-signin-btn" onclick="ownerSignInFromDomain(false)" class="hidden min-h-[44px] text-[11px] text-amber-200 font-bold bg-amber-950/70 hover:bg-amber-900/70 px-2 py-1.5 rounded border border-amber-600/60 focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer">👑 Owner sign-in (on the host computer)</button>
+                <p id="owner-signin-feedback" class="text-xs text-amber-200 m-0 empty:hidden" role="status" aria-live="polite"></p>
+                <!-- Any device with a Siraugga access key (passkey); see sandbox/static/device-keys-ui.js -->
+                <button type="button" id="access-key-signin-btn" class="hidden min-h-[44px] text-[11px] text-teal-200 font-bold bg-teal-950/70 hover:bg-teal-900/70 px-2 py-1.5 rounded border border-teal-600/60 focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer">🔑 Sign in with access key</button>
+                <a id="access-key-setup-link" href="/setup" class="hidden text-[11px] text-teal-300 underline focus:ring-2 focus:ring-teal-400 focus:outline-none">Set up this device</a>
+                <p id="access-key-feedback" class="text-xs text-amber-200 m-0 empty:hidden" role="status" aria-live="polite"></p>
             </div>
+
+            <!-- Voice dictation preference (read/written by sandbox/static/speech/dictation.js) -->
+            <section aria-labelledby="dictation-settings-heading" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
+                <h3 id="dictation-settings-heading" class="text-xs font-bold text-teal-300 m-0">🎤 Voice dictation</h3>
+                <label for="dictation-autosend" class="flex items-center justify-between gap-3 text-sm text-slate-200 cursor-pointer min-h-[44px]">
+                    <span>Send automatically when I press Stop</span>
+                    <input type="checkbox" role="switch" id="dictation-autosend" class="w-5 h-5 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
+                </label>
+                <p class="text-[11px] text-slate-400 m-0">Recordings that hit the 2-minute limit are never sent automatically. Your voice is processed on this device and never uploaded.</p>
+            </section>
+
+            <!-- Access keys: Super Admin only (shown when /api/device-keys answers); sandbox/static/device-keys-ui.js -->
+            <section id="access-keys-card" aria-labelledby="access-keys-heading" class="hidden flex flex-col gap-3 bg-slate-900/80 border border-teal-500/40 rounded-lg p-3">
+                <h3 id="access-keys-heading" class="text-xs font-bold text-teal-300 m-0">🔑 Access keys</h3>
+
+                <form id="ak-password-form" class="flex flex-col gap-1.5">
+                    <label for="ak-password" class="text-xs text-slate-300">Owner password <span id="ak-password-state" class="text-slate-500"></span></label>
+                    <input id="ak-password" type="password" autocomplete="new-password" minlength="10" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <button type="submit" class="min-h-[44px] text-xs font-bold text-white bg-teal-700 hover:bg-teal-600 rounded px-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">Save password</button>
+                    <p class="text-[11px] text-slate-400 m-0">On a new device, open <span id="ak-setup-url" class="text-teal-300 break-all"></span>, type this password and confirm with the fingerprint, face or PIN. That device then signs you in automatically.</p>
+                </form>
+
+                <form id="ak-invite-form" class="flex flex-col gap-1.5 border-t border-slate-800 pt-3">
+                    <span class="text-xs text-slate-300">Invite someone (one-time link)</span>
+                    <label for="ak-invite-name" class="sr-only">Their name</label>
+                    <input id="ak-invite-name" type="text" maxlength="60" placeholder="Their name" autocomplete="off" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label for="ak-invite-email" class="sr-only">Their email (optional: we email them the link)</label>
+                    <input id="ak-invite-email" type="email" maxlength="254" placeholder="Their email (we send them the link)" autocomplete="off" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <label for="ak-invite-role" class="sr-only">What they may do</label>
+                    <select id="ak-invite-role" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none"></select>
+                    <!-- Game developer only: the work they are handed -->
+                    <div id="ak-dev-fields" class="hidden flex flex-col gap-1.5">
+                        <label for="ak-invite-project" class="text-[11px] text-slate-400">Project they work on</label>
+                        <select id="ak-invite-project" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none"></select>
+                        <label for="ak-invite-parts" class="text-[11px] text-slate-400">Parts they may change (folders or files, comma-separated; empty = whole project)</label>
+                        <input id="ak-invite-parts" type="text" maxlength="500" placeholder="e.g. levels, ui/menu" autocomplete="off" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        <p class="text-[11px] text-slate-500 m-0">They work in a sandbox copy through the agent and never see code. Their changes need your approval.</p>
+                    </div>
+                    <button type="submit" class="min-h-[44px] text-xs font-bold text-white bg-teal-700 hover:bg-teal-600 rounded px-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">Create link</button>
+                    <div id="ak-invite-result" class="hidden flex flex-col gap-1">
+                        <label for="ak-invite-url" class="text-[11px] text-slate-400">Send this link. It works once, for 3 days:</label>
+                        <input id="ak-invite-url" type="text" readonly class="bg-slate-950 border border-slate-700 rounded px-2 py-1.5 text-[11px] text-teal-200">
+                        <button type="button" id="ak-invite-copy" class="min-h-[44px] text-xs font-bold text-teal-200 bg-slate-800 hover:bg-slate-700 rounded px-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">Copy link</button>
+                    </div>
+                </form>
+
+                <div class="border-t border-slate-800 pt-3">
+                    <span class="text-xs text-slate-300">Devices and people</span>
+                    <ul id="ak-list" class="list-none m-0 p-0 mt-1 flex flex-col gap-1.5 text-[11px] text-slate-300"></ul>
+                </div>
+                <p id="ak-feedback" class="text-xs text-amber-200 m-0 empty:hidden" role="status" aria-live="polite"></p>
+            </section>
+
+            <!-- Owner devices: be Super Admin on the public domain from this browser (host owner only) -->
+            <section id="owner-device-card" aria-labelledby="owner-device-heading" class="hidden flex flex-col gap-2 bg-slate-900/80 border border-amber-500/40 rounded-lg p-3 shadow-md">
+                <h3 id="owner-device-heading" class="text-xs font-bold text-amber-300 m-0">👑 Super Admin on the domain</h3>
+                <p id="owner-device-desc" class="text-[11px] text-slate-400 m-0">Make this browser recognise you as Super Admin when you visit the public site. Other devices and people on your network are not affected.</p>
+                <div class="flex flex-col gap-2">
+                    <button type="button" id="owner-device-trust" onclick="trustBrowserOnDomain()" class="hidden min-h-[44px] text-xs text-white font-bold bg-amber-700 hover:bg-amber-600 px-2 py-1.5 rounded border border-amber-500/50 focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer">👑 Trust this browser on the domain</button>
+                    <button type="button" id="owner-device-revoke" onclick="revokeOwnerDevices()" class="min-h-[44px] text-xs text-rose-300 font-bold bg-slate-800 hover:bg-rose-950/60 px-2 py-1.5 rounded border border-rose-800/60 focus:ring-2 focus:ring-rose-500 focus:outline-none cursor-pointer">Forget all trusted browsers</button>
+                </div>
+                <p id="owner-device-feedback" class="text-[11px] text-slate-300 m-0" role="status" aria-live="polite"></p>
+            </section>
 
             <!-- Personal Subscription (BYOS) & Trust Hub -->
             <div id="byos-settings-card" class="flex flex-col gap-2 bg-slate-900/80 border border-teal-500/30 rounded-lg p-3 shadow-md">
@@ -428,6 +526,59 @@
                 <button type="button" id="exam-content-upload" onclick="document.getElementById('exam-content-input').click()" class="text-xs text-white font-bold bg-teal-700 hover:bg-teal-600 px-2 py-1.5 rounded border border-teal-500/50 focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">⬆️ Upload a file</button>
                 <ul id="exam-content-list" class="flex flex-col gap-1 text-[11px] text-slate-300" aria-label="Files in your exam content folder"></ul>
                 <p id="exam-content-feedback" class="hidden text-[11px]" role="status"></p>
+            </div>
+
+            <!-- My Tickets (every tier; each user sees only their own tickets) -->
+            <div id="tickets-card" class="flex flex-col gap-2 bg-slate-900/80 border border-indigo-500/30 rounded-lg p-3 shadow-md">
+                <div class="flex items-center justify-between">
+                    <h3 id="tickets-heading" class="text-xs font-bold text-indigo-300 m-0">🎫 My Tickets</h3>
+                    <span id="tickets-count" class="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">0 open</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Found a problem or want something changed? Send a ticket. Our review agent checks it, then the Siraugga admin team approves or declines it. You'll see each step here and by email.</p>
+                <button type="button" id="ticket-new-btn" onclick="toggleTicketForm(true)" aria-expanded="false" aria-controls="ticket-form" class="text-xs text-white font-bold bg-indigo-700 hover:bg-indigo-600 px-2 py-1.5 rounded border border-indigo-500/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">➕ New ticket</button>
+                <form id="ticket-form" class="hidden flex flex-col gap-1.5 text-[11px]" onsubmit="submitTicket(event)">
+                    <label for="ticket-category" class="text-slate-300">What kind of ticket?</label>
+                    <select id="ticket-category" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="bug">Something is broken</option>
+                        <option value="feature" selected>New feature or change</option>
+                        <option value="content">Content or wording</option>
+                        <option value="other">Other</option>
+                    </select>
+                    <label for="ticket-title" class="text-slate-300">Title</label>
+                    <input id="ticket-title" type="text" maxlength="120" required minlength="4" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="e.g. Add a dark/light theme switch">
+                    <label for="ticket-description" class="text-slate-300">What should change, and why?</label>
+                    <textarea id="ticket-description" maxlength="4000" required minlength="10" rows="4" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none"></textarea>
+                    <label for="ticket-email" class="text-slate-300">Your email <span id="ticket-email-req">(required)</span></label>
+                    <input id="ticket-email" type="email" maxlength="254" autocomplete="email" required aria-describedby="ticket-email-hint" class="bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="you@example.com">
+                    <p id="ticket-email-hint" class="m-0 text-[10px] text-slate-500">We email you when your ticket is approved, declined or done. It's only used for this ticket.</p>
+                    <fieldset id="ticket-questions" class="hidden flex flex-col gap-2 border border-indigo-500/40 rounded p-2 mt-1">
+                        <legend class="px-1 text-indigo-200 font-bold">A few quick questions</legend>
+                        <p class="m-0 text-[10px] text-slate-400">Press Start and answer these so we understand what you'd like to achieve. There are no right or wrong answers. Our AI checks your ticket and answers before sending it on, and may decline it if it could put the site or other visitors at risk.</p>
+                        <div id="ticket-questions-list" class="flex flex-col gap-2"></div>
+                        <button type="button" onclick="resetTicketQuestions(true)" class="self-start text-[10px] text-slate-300 underline cursor-pointer focus:ring-2 focus:ring-indigo-500 focus:outline-none">✏️ Edit my ticket</button>
+                    </fieldset>
+                    <div class="flex gap-2 mt-1">
+                        <button type="submit" id="ticket-submit" class="flex-1 text-xs text-white font-bold bg-indigo-700 hover:bg-indigo-600 px-2 py-1.5 rounded border border-indigo-500/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">Send ticket</button>
+                        <button type="button" onclick="toggleTicketForm(false)" class="text-xs text-slate-300 bg-slate-800 hover:bg-slate-700 px-2 py-1.5 rounded border border-slate-700 focus:ring-2 focus:ring-indigo-500 focus:outline-none cursor-pointer">Cancel</button>
+                    </div>
+                </form>
+                <p id="tickets-feedback" class="hidden text-[11px]" role="status" aria-live="polite"></p>
+                <ul id="tickets-list" class="flex flex-col gap-1.5 text-[11px] text-slate-300" aria-labelledby="tickets-heading"></ul>
+            </div>
+
+            <!-- Ticket queue (tier 5 only; shown when the server confirms admin access) -->
+            <div id="ticket-queue-card" class="hidden flex flex-col gap-2 bg-slate-900/80 border border-amber-500/40 rounded-lg p-3 shadow-md">
+                <div class="flex items-center justify-between">
+                    <h3 id="ticket-queue-heading" class="text-xs font-bold text-amber-300 m-0">🛂 Ticket queue (Tier 5)</h3>
+                    <button type="button" onclick="refreshTicketQueue()" class="text-[10px] text-slate-300 bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-700 focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer">↻ Refresh</button>
+                </div>
+                <p class="text-[11px] text-slate-400">Reviewed by the tier-5 agent. Approving one lets Siraugga's agent make the change and put it live straight away; you can undo it here or from the email.</p>
+                <p id="ticket-queue-feedback" class="hidden text-[11px]" role="status" aria-live="polite"></p>
+                <ul id="ticket-queue-list" class="flex flex-col gap-2 text-[11px] text-slate-300" aria-labelledby="ticket-queue-heading"></ul>
+                <details id="ticket-refused" class="hidden text-[11px] text-slate-300">
+                    <summary id="ticket-refused-summary" class="cursor-pointer text-rose-300 font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none">Refused at the gate</summary>
+                    <ul id="ticket-refused-list" class="flex flex-col gap-1.5 mt-1.5"></ul>
+                </details>
             </div>
 
             <!-- Tier Limits (super admin only; hidden for everyone else) -->
@@ -504,6 +655,7 @@
             if (typeof initProjects === 'function') initProjects();
             if (typeof initConversations === 'function') initConversations();
             if (typeof refreshByosStatus === 'function') refreshByosStatus();
+            if (typeof refreshOwnerDeviceCard === 'function') refreshOwnerDeviceCard();
         }
 
         function closeSettingsPanel() {
@@ -936,7 +1088,11 @@
                 }
                 
                 let token = localStorage.getItem('agy_auth_token') || '';
-                if ((!token || token.startsWith('sec-demo-')) && sysData.super_admin && !window.location.search.includes('demo=1') && !sessionStorage.getItem('agy_manual_logout')) {
+                // A demo/guest session must not hide the owner (e.g. on the public domain, where this
+                // browser got a demo session before it was trusted). A real login as another account is kept.
+                var storedRole = String((currentUser && currentUser.role) || '').toLowerCase();
+                var onlyGuestSession = !!currentUser && (currentUser.token_scope === 'demo' || storedRole.indexOf('guest') !== -1 || storedRole.indexOf('demo') !== -1);
+                if ((!token || token.startsWith('sec-demo-') || onlyGuestSession) && sysData.super_admin && !window.location.search.includes('demo=1') && !sessionStorage.getItem('agy_manual_logout')) {
                     try {
                         const autoRes = await fetch('/api/auth/login', {
                             method: 'POST',
@@ -2919,19 +3075,27 @@
             sendBtn.disabled = false;
             sendBtnSpinner.classList.remove('hidden');
             sendBtnText.innerText = "🎯 Steer";
-            sendBtn.setAttribute('aria-label', 'Steer Agent Now — interrupt current step and inject this context immediately (Enter)');
+            // Phones have no Alt key and Enter adds a new line, so name the buttons instead
+            var touchUi = (typeof helpIsTouchDevice === 'function') && helpIsTouchDevice();
+            sendBtn.setAttribute('aria-label', 'Steer Agent Now — interrupt current step and inject this context immediately' + (touchUi ? '' : ' (Enter)'));
             sendBtn.classList.remove('bg-teal-600', 'hover:bg-teal-500');
             sendBtn.classList.add('bg-amber-600', 'hover:bg-amber-500');
 
             var queueBtn = document.getElementById('queue-btn');
-            if (queueBtn) queueBtn.classList.remove('hidden');
-
+            if (queueBtn) {
+                queueBtn.classList.remove('hidden');
+                var queueHint = 'Queue context for next turn without interrupting current action' + (touchUi ? '' : ' (Alt+Enter)');
+                queueBtn.setAttribute('aria-label', queueHint);
+                queueBtn.title = queueHint;
+            }
             if (inputEl) {
-                inputEl.placeholder = "Task running — Press Enter to Steer Now (redirect immediately), or Alt+Enter to Queue Next...";
+                inputEl.placeholder = touchUi
+                    ? "Task running — tap 🎯 Steer to redirect now, or 📥 Queue for the next step…"
+                    : "Task running — Press Enter to Steer Now (redirect immediately), or Alt+Enter to Queue Next...";
             }
             var helperEl = document.getElementById('chat-input-helper');
             if (helperEl) {
-                helperEl.innerText = "Enter: Steer Now · Alt+Enter: Queue Next";
+                helperEl.innerText = touchUi ? "Tap Steer: redirect now · Tap Queue: next step" : "Enter: Steer Now · Alt+Enter: Queue Next";
             }
 
             updateTimer();
@@ -3000,7 +3164,9 @@
             }
             var helperEl = document.getElementById('chat-input-helper');
             if (helperEl) {
-                helperEl.innerText = "Enter to send, Shift+Enter for newline";
+                helperEl.innerText = ((typeof helpIsTouchDevice === 'function') && helpIsTouchDevice())
+                    ? "Tap Execute to run • type help for the menu"
+                    : "Enter to send, Shift+Enter for newline";
             }
             
             var isSteered = (status === 'STEERED');
@@ -3075,7 +3241,7 @@
                         }
                     }
                     
-                    if (responseText && (responseText.includes("Siraugga Exam Generator Guide") || responseText.includes("Exam Generator Guide"))) {
+                    if (isExamGuideReply(responseText)) {
                         if (!currentAgentArticle.querySelector('iframe[src*="/plugin/exam_builder"]')) {
                             var iframeWrap = document.createElement('div');
                             iframeWrap.className = 'mt-4 border-t border-slate-700/50 pt-4';
@@ -3122,12 +3288,62 @@
             'help': 'menu', '/help': 'menu',
             'help exam': 'exam', '/help exam': 'exam', 'help quiz': 'exam', '/help quiz': 'exam', 'help test': 'exam',
             'exam help': 'exam', 'quiz help': 'exam', 'exam guide': 'exam', 'quiz guide': 'exam',
-            'help media': 'media', '/help media': 'media'
+            'help media': 'media', '/help media': 'media',
+            'help privacy': 'privacy', '/help privacy': 'privacy', 'help terms': 'privacy', '/help terms': 'privacy',
+            'privacy': 'privacy', 'terms': 'privacy', '/privacy': 'privacy', '/terms': 'privacy',
+            'terms and privacy': 'privacy', 'privacy policy': 'privacy',
+            'help tickets': 'tickets', '/help tickets': 'tickets', 'help ticket': 'tickets', '/help ticket': 'tickets',
+            'ticket': 'tickets', 'tickets': 'tickets', '/ticket': 'tickets', '/tickets': 'tickets',
+            'report a problem': 'tickets', 'report a bug': 'tickets'
         };
-        function localHelpButton(label, topic) {
-            return '<button type="button" onclick="showLocalHelp(\'' + topic + '\')" class="px-4 py-2 mt-2 mr-2 bg-indigo-600 text-white rounded font-bold hover:bg-indigo-500 focus:ring-2 focus:ring-teal-400 focus:outline-none transition-colors">' + label + '</button>';
+        // Phones and tablets have no Alt key, so Help is opened by typing "help" or "/help"
+        function helpIsTouchDevice() {
+            return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
         }
-        function localHelpMarkdown(topic) {
+        // "Help", " help? ", "/HELP!" and "help  media" all match their topic
+        function normalizeHelpPrompt(text) {
+            return String(text || '').toLowerCase().trim().replace(/[\s.!?,;:]+$/, '').replace(/\s+/g, ' ');
+        }
+        var HELP_OPEN_TIP = '## Opening Help\n- Type **help** or **/help** in the chat box at any time and press ' +
+            '**Execute** (or **Enter** on a keyboard).\n- For one guide, add its name: **help exam**, **help media**, **help tickets**, **help usage**, **help privacy**.\n\n';
+        var HELP_BTN_BASE ='inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 rounded-lg font-bold text-white border focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 focus:ring-teal-300 focus:outline-none transition-colors cursor-pointer';
+        // True only when a reply IS the Exam Generator guide (its title is a heading). The words
+        // "Exam Generator Guide" also appear on Help-menu buttons and in AI replies about other
+        // things (like tickets), and those must not get the exam builder attached.
+        function isExamGuideReply(text) {
+            if (!text) return false;
+            return /^\s{0,3}#{1,3}\s*(Siraugga\s+)?Exam Generator Guide\s*$/im.test(text) ||
+                   /<h[1-3][^>]*>\s*(Siraugga\s+)?Exam Generator Guide\s*<\/h[1-3]>/i.test(text);
+        }
+        function localHelpButton(label, topic) {
+            return '<button type="button" onclick="showLocalHelp(\'' + topic + '\')" class="' + HELP_BTN_BASE + ' bg-indigo-600 hover:bg-indigo-500 border-indigo-400/40">' + label + '</button>';
+        }
+        function usageHelpButton(label) {
+            return '<button type="button" onclick="showUsageCard()" class="' + HELP_BTN_BASE + ' bg-indigo-600 hover:bg-indigo-500 border-indigo-400/40">' + label + '</button>';
+        }
+        function byosHelpButton(label) {
+            return '<button type="button" onclick="openByosModal()" aria-haspopup="dialog" class="' + HELP_BTN_BASE + ' bg-teal-700 hover:bg-teal-600 border-teal-400/40">' + label + '</button>';
+        }
+        function ticketHelpButton(label) {
+            return '<button type="button" onclick="openTicketFromHelp()" aria-haspopup="dialog" class="' + HELP_BTN_BASE + ' bg-emerald-700 hover:bg-emerald-600 border-emerald-400/40">' + label + '</button>';
+        }
+        // A labelled, spaced group of help buttons (screen readers announce the group name)
+        var _helpGroupSeq = 0;
+        function helpButtonGroup(title, buttons) {
+            var id = 'help-group-' + (++_helpGroupSeq);
+            return '\n\n<div class="my-4"><p id="' + id + '" class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">' + title + '</p>' +
+                '<div role="group" aria-labelledby="' + id + '" class="flex flex-wrap gap-3">' + buttons.join('') + '</div></div>\n\n';
+        }
+        function openTicketFromHelp() {
+            if (typeof openSettingsPanel === 'function') openSettingsPanel();
+            var card = document.getElementById('tickets-card');
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            var form = document.getElementById('ticket-form');
+            if (form && form.classList.contains('hidden') && typeof toggleTicketForm === 'function') toggleTicketForm(true);
+            else { var t = document.getElementById('ticket-title'); if (t) t.focus(); }
+            if (typeof announce === 'function') announce('New ticket form opened in Settings and Sessions');
+        }
+        function localHelpMarkdown(topic, data) {
             var admin = (typeof isTier5AdminUser === 'function') && isTier5AdminUser();
             var contentHow = admin
                 ? 'Put source files (notes, PDFs, docs) into the `plugins/exam_application/content/` folder and ask for an exam from them. They are read through the local privacy broker.'
@@ -3138,10 +3354,93 @@
                     '## Supported question types\n- **Multiple choice** (true/false is multiple choice with two options)\n- **Select all that apply**\n- **Fill in the blank**\n- **Dropdown**\n- **Matching**\n- **Terminal command**\n\n' +
                     '## Features\n- **Timers** for the whole exam\n- **Anti-cheat mode** (flags leaving the exam tab)\n- **Weighted scoring** and **partial credit**\n- **Answer explanations**\n- **Embedded media** (image, audio or video, with alt text)\n\n' +
                     '## Not available\n- Retake or resume a past exam (ask for a new one instead)\n- Changing colours or text size during a test\n\n' +
-                    '## Keyboard shortcuts\n- **Alt+N**: submit answer / next question\n- **Alt+T**: announce time remaining\n- **Alt+H**: open this Help menu\n- **H**: jump between headings (exam title, question, answer options)\n\n' +
+                    HELP_OPEN_TIP +
+                    (helpIsTouchDevice() ? '' : '## Keyboard shortcuts\n- **Alt+N**: submit answer / next question\n- **Alt+T**: announce time remaining\n- **Alt+H**: open this Help menu\n- **H**: jump between headings (exam title, question, answer options)\n\n') +
                     '## Example prompts\n- "Generate a quick 3-question multiple-choice quiz on JavaScript arrays."\n- "Make a 5-question exam from my content folder using dropdowns and fill-in-the-blanks."\n- "Create a 10-minute weighted exam on Linux commands with 2 terminal-command questions and 2 matching questions."\n\n' +
                     '## Build one now\n<iframe src="/plugin/exam_builder" class="w-full min-h-[600px] border-0 rounded-lg shadow-xl" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Exam Generator Builder"></iframe>\n\n' +
                     localHelpButton('⬅️ Back to Help Menu', 'menu');
+            }
+            if (topic === 'privacy') {
+                return '# Terms & Privacy\n\n' +
+                    'You accepted these when you first opened Siraugga. In short:\n\n' +
+                    '## Cookies\n- We only use cookies the site needs to work and stay secure: your guest session, your acceptance of these terms, ticket questions, and "no limit" links if you used one.\n- No advertising or tracking cookies. You can delete them any time in your browser settings.\n\n' +
+                    '## Your IP address\n- Siraugga does **not** use your IP address to identify you and does **not** store it.\n- To stop abuse of the free limit, guest prompts are also counted per network, using a scrambled code that changes every day and is kept in memory only.\n- Our hosting and security provider, Cloudflare, sees IP addresses when you connect.\n\n' +
+                    '## What you send us\n- **Chat messages and files** go to AI providers (such as Claude and Gemini) or our own model to answer you. AI answers can be wrong.\n- **Tickets** (with your email address) are checked by an AI, sent to the admin team and, if approved, may be made live by an AI agent. Your email is only used for updates about your ticket.\n\n' +
+                    '## Bring your own key (BYOS)\n- If you add your own Google AI key, **you are responsible for its usage and charges**. Use a separate key with a spending cap.\n' +
+                    '- **In My Browser Only** (recommended) keeps the key on this device. **7-Day Vault** stores it encrypted on our server for up to 7 days. **Ephemeral RAM Only** keeps it in server memory for this session.\n' +
+                    '- The agent runs on our server, so the operator can see your prompts and the agent\'s work. Remove your key any time with **Revoke & Scrub**.\n' +
+                    '- You accept the full Bring Your Own Key terms in the key window before your key is used.\n\n' +
+                    '## Fair use\n- Please don\'t try to break into, overload or misuse the site, or hide instructions for Siraugga\'s AI agents. Tickets that could put the site or others at risk are refused.\n\n' +
+                    '## Your rights\n- To see, correct or delete your information, email **devcore.fammaly@gmail.com**.\n\n' +
+                    helpButtonGroup('Read more', [
+                        '<a href="/terms" target="_blank" rel="noopener" class="' + HELP_BTN_BASE + ' bg-teal-700 hover:bg-teal-600 border-teal-400/40 no-underline">📄 Full Terms &amp; Privacy (new tab)</a>',
+                        '<a href="/terms#byos" target="_blank" rel="noopener" class="' + HELP_BTN_BASE + ' bg-teal-700 hover:bg-teal-600 border-teal-400/40 no-underline">🔑 Bring Your Own Key terms (new tab)</a>',
+                        byosHelpButton('🛡️ Open the key window'),
+                        localHelpButton('⬅️ Back to Help Menu', 'menu')]);
+            }
+            if (topic === 'tiers') {
+                // data = /api/usage reply (filled in after the card first shows); limits are admin-configurable
+                var lim = {};
+                ((data && data.tiers) || []).forEach(function(t) { lim[t.tier] = t.limit; });
+                var perDay = function(t, fallback) {
+                    if (!(t in lim)) return fallback;
+                    return lim[t] == null ? 'no daily limit' : lim[t] + ' a day';
+                };
+                var you = data && data.you;
+                var youLine = you
+                    ? 'You are **' + escapeHtml(you.tier_name) + '** (Tier ' + you.tier + ')' +
+                      (you.unlimited ? ', with no daily limit.' : ', with ' + you.used + ' of ' + you.limit + ' prompts used today.') +
+                      (you.unlocked_by_link ? ' A "no limit" link is active in this browser.' : '')
+                    : (data === false ? 'Could not check your tier right now.' : 'Checking your tier…');
+                return '# Tiers: What You Can Do\n\n' + youLine + '\n\n' +
+                    // Source: README.md (access tiers, baselines), GEMINI.md (security tiers, roles, artifact access),
+                    // sandbox/ projects/ core/ README.md (layers), agents/tier_limits.py + core/roles.py (limits, roles).
+                    // Keep paths, file names and test accounts out: this page is shown to every visitor.
+                    'Every account has a tier. Each tier keeps everything from the tiers below it, and Siraugga checks your tier on the server for every request, so these rules can\'t be skipped from the browser.\n\n' +
+                    '## Tier 1 · Guest (everyone starts here)\n' +
+                    '**Where you work:** the public part of Siraugga (the sandbox): the chat, the exam tools, the media player and other public tools.\n\n' +
+                    '**You can:**\n' +
+                    '- **Chat with Siraugga:** ' + perDay(1, 'a small number of prompts each day') + ' on Siraugga\'s shared subscription. They reset at midnight.\n' +
+                    '- **Make and take exams and quizzes as often as you like.** They don\'t count toward your daily prompts.\n' +
+                    '- **Use your own study material:** upload files to **📁 My Exam Content** in Settings & Sessions (only you can see them; deleted after 30 days), or attach a file to a message.\n' +
+                    '- **Bring your own key** (🔑 in the top bar) to chat without using your daily prompts.\n' +
+                    '- **Send tickets** to report problems or ask for changes. Guests answer a few quick questions first, then an AI check decides whether the ticket goes to the admin team.\n' +
+                    '- **Ask about how something was built.** You get a plain-language summary written for your tier.\n\n' +
+                    '**You can\'t:** see or change any source code, project files, plans, settings or logs. The AI works for you inside a locked sandbox.\n\n' +
+                    '## Tier 2 · Modder\n' +
+                    '**Where you work:** the same public sandbox as Guests, plus the safe game and project content you are given access to.\n\n' +
+                    '**You can:**\n' +
+                    '- **Daily prompts:** ' + perDay(2, 'more than Tier 1') + '.\n' +
+                    '- **Read** safe content such as game scripts, settings files, data, dialogue and documentation.\n' +
+                    '- **Send tickets straight to review**, without the extra questions.\n\n' +
+                    '**You can\'t:** save changes to files (Modder access is read-only), or see the engine code, logs or admin settings.\n\n' +
+                    '## Tier 3 · Developer\n' +
+                    '**Where you work:** your own assigned project workspace, where applications, games and plugins are built.\n\n' +
+                    '**You can:**\n' +
+                    '- **Daily prompts:** ' + perDay(3, 'more than Tier 2') + '.\n' +
+                    '- **Read and edit** the files in your assigned projects: game scripts, settings files, data, dialogue and documentation.\n' +
+                    '- **Have the AI read** the docs, sandbox and playground areas when it helps you.\n' +
+                    '- **Ask for technical summaries** of implementation plans. The AI removes any passwords or secrets before showing them.\n\n' +
+                    '**You can\'t:** leave your project workspace, see the core engine, the security system or the logs, or open plans and system files directly.\n\n' +
+                    '## Tier 4 · Plugin Master\n' +
+                    '**Where you work:** the project workspaces, like Developers.\n\n' +
+                    '- **Daily prompts:** ' + perDay(4, 'more than Tier 3') + '.\n' +
+                    '- Builds and maintains larger projects and plugins. Like Developers, Plugin Masters can\'t reach the core engine or security system.\n\n' +
+                    '## Tier 5 · Super Admin (Siraugga admin team)\n' +
+                    '- **No daily limit**, and full access to the whole system: the core engine, the AI agents, the security system and the logs.\n' +
+                    '- Admin tools: telemetry, audits, the ticket queue (approving or declining tickets) and setting the daily limits on this page.\n\n' +
+                    '## Blocked for Tiers 1 to 4\n' +
+                    '- Secret settings, passwords and keys, version-control internals and hidden system folders are blocked, and so are the AI agents working for you.\n' +
+                    '- Tricks to reach files outside your area (such as shortcuts or "../" paths) are detected and refused.\n\n' +
+                    '## Getting a higher tier\n' +
+                    '- Tiers are given by the Siraugga admin team. Send a ticket (choose **Other**) saying what you need, or email **devcore.fammaly@gmail.com**.' +
+                    helpButtonGroup('Actions', [ticketHelpButton('🎫 Send a ticket'), usageHelpButton('📊 My usage today'), byosHelpButton('🔑 Bring your own key'), localHelpButton('🔒 Terms & Privacy', 'privacy'), localHelpButton('⬅️ Back to Help Menu', 'menu')]);
+            }
+            if (topic === 'tickets') {
+                return '# Tickets: Report a Problem or Request a Change\n\n' +
+                    '## How it works\n- **Send a ticket** describing the problem or the change you want.\n- Our **review agent** checks it first, then the **Siraugga admin team** approves or declines it.\n- You can follow every step under **Settings & Sessions → 🎫 My Tickets**, and by email.\n\n' +
+                    '## Tips for a good ticket\n- Use a short, clear title, e.g. "Add a dark/light theme switch".\n- Say what you expected and what happened instead.\n- Don\'t include passwords or other private details.' +
+                    helpButtonGroup('Actions', [ticketHelpButton('🎫 Send a ticket'), localHelpButton('⬅️ Back to Help Menu', 'menu')]);
             }
             if (topic === 'media') {
                 return '# Siraugga Media Player Guide\n\n' +
@@ -3152,14 +3451,21 @@
                     localHelpButton('⬅️ Back to Help Menu', 'menu');
             }
             return '# Siraugga Help Menu\n\n' +
-                'Choose a guide, or just type what you need in the chat box.\n\n' +
-                localHelpButton('📝 Exam Generator Guide', 'exam') + localHelpButton('🎬 Media Player Guide', 'media') + '\n\n' +
+                'Choose a guide, or just type what you need in the chat box.' +
+                helpButtonGroup('Guides', [localHelpButton('📝 Exam Generator Guide', 'exam'), localHelpButton('🎬 Media Player Guide', 'media')]) +
+                helpButtonGroup('Get support', [ticketHelpButton('🎫 Send a ticket'), localHelpButton('❓ How tickets work', 'tickets')]) +
+                helpButtonGroup('Your account', [localHelpButton('🏅 Tiers: what you can do', 'tiers'), usageHelpButton('📊 Usage & limits'), localHelpButton('🔒 Terms & Privacy', 'privacy')]) +
                 '## Quick tips\n' +
                 '- **Make an exam:** "Make a 5-question quiz on photosynthesis."\n' +
                 '- **Use your own notes:** ' + (admin ? 'put files in the exam content folder.' : 'upload them under **Settings & Sessions → 📁 My Exam Content**, or use **📎 Attach** next to the chat box.') + '\n' +
                 '- **Bring your own key:** **🔑 Authenticate Subscription** in the top bar.\n' +
-                '- **See usage:** type **/usage** to see how much of each model is used.\n\n' +
-                '## Keyboard shortcuts\n- **Alt+H**: this Help menu\n- **Alt+C**: jump to the chat box\n- **Alt+E**: jump to the latest exam\n- **Enter**: send (on phones, tap **Execute**)\n- **Shift+Enter**: new line';
+                '- **See usage:** type **/usage** (or use **📊 Usage & limits** above) to see your prompts left today and which models are available.\n' +
+                '- **Terms & Privacy:** type **/terms** to see what we collect and why.\n' +
+                '- **Report a problem:** type **/ticket**, or use **🎫 Send a ticket** above.\n\n' +
+                HELP_OPEN_TIP +
+                (helpIsTouchDevice()
+                    ? '## On a phone or tablet\n- Tap **Execute** to send. The keyboard\'s Enter key adds a new line.'
+                    : '## Keyboard shortcuts\n- **Alt+H**: this Help menu\n- **Alt+C**: jump to the chat box\n- **Alt+E**: jump to the latest exam\n- **Enter**: send\n- **Shift+Enter**: new line');
         }
         function usageBar(pct) {
             var n = Math.max(0, Math.min(100, Math.round(pct)));
@@ -3195,6 +3501,16 @@
                 } else {
                     lines.push('- Usage figures are not available right now.');
                 }
+                lines.push('', '## Google subscription (Antigravity)');
+                if (u.google && u.google.length) {
+                    u.google.forEach(function(g) {
+                        var usedPct = 100 - g.remaining_pct;
+                        lines.push('- **' + escapeHtml(g.group) + ' · ' + escapeHtml(g.period) + ':** ' + usageBar(usedPct) +
+                                   ' used (' + g.remaining_pct + '% left) · resets ' + escapeHtml(g.resets));
+                    });
+                } else {
+                    lines.push('- Usage figures are not available right now.');
+                }
                 lines.push('', '## Models');
                 (u.models || []).forEach(function(m) {
                     lines.push('- **' + escapeHtml(m.name) + ':** ' + (m.status === 'out'
@@ -3214,7 +3530,7 @@
             }
             var md = lines.join(NL);
             art.dataset.rawMarkdown = md;
-            if (textEl) textEl.innerHTML = marked.parse(md);
+            if (textEl) textEl.innerHTML = marked.parse(md + helpButtonGroup('Actions', [usageHelpButton('🔄 Refresh usage'), localHelpButton('⬅️ Back to Help Menu', 'menu')]));
             if (sb) sb.innerHTML = 'Ready';
             var h = art.querySelector('h2'); if (h) h.focus();
             if (typeof announce === 'function') announce('Usage');
@@ -3222,7 +3538,7 @@
         }
 
         function showLocalHelp(topic) {
-            var titles = { menu: 'Siraugga Help Menu', exam: 'Siraugga Exam Generator Guide', media: 'Siraugga Media Player Guide' };
+            var titles = { menu: 'Siraugga Help Menu', exam: 'Siraugga Exam Generator Guide', media: 'Siraugga Media Player Guide', privacy: 'Terms and Privacy', tickets: 'Tickets', tiers: 'Tiers: what you can do' };
             var feed = document.getElementById('chat-feed');
             // Keep the chat tidy: remove earlier built-in help cards
             if (feed) feed.querySelectorAll('article[data-local-help]').forEach(function(n) { n.remove(); });
@@ -3241,6 +3557,29 @@
             var h = art.querySelector('h2'); if (h) h.focus();
             if (typeof announce === 'function') announce(titles[topic] || 'Help');
             if (feed) art.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (topic === 'tiers') fillTiersCard(art, textEl);
+        }
+        // Fill in the live limits and the viewer's own tier without moving keyboard focus
+        async function fillTiersCard(art, textEl) {
+            var data;
+            try {
+                var res = await fetch('/api/usage?client_id=' + encodeURIComponent(typeof agyClientId !== 'undefined' ? agyClientId : ''), {
+                    headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('agy_auth_token') || '') }
+                });
+                data = res.ok ? await res.json() : false;
+            } catch (e) { data = false; }
+            if (!art.isConnected || !textEl) return;   // card was replaced meanwhile
+            var md = localHelpMarkdown('tiers', data);
+            art.dataset.rawMarkdown = md;
+            var focusLabel = textEl.contains(document.activeElement) ? document.activeElement.textContent : null;
+            textEl.innerHTML = marked.parse(md);
+            if (focusLabel) {   // put focus back on the same button after the refresh
+                var same = Array.prototype.find.call(textEl.querySelectorAll('button'), function(b) { return b.textContent === focusLabel; });
+                if (same) same.focus(); else { var h = art.querySelector('h2'); if (h) h.focus(); }
+            }
+            if (data && data.you && typeof announce === 'function') {
+                announce('You are ' + data.you.tier_name + ', Tier ' + data.you.tier);
+            }
         }
 
         function appendUserMessage(text) {
@@ -3552,12 +3891,13 @@
             var prompt = inputEl.value.trim();
             if (!prompt) return;
 
-            if (prompt.toLowerCase() === '/usage' || prompt.toLowerCase() === 'usage') {
+            var usageWords = { 'usage': 1, '/usage': 1, 'help usage': 1, '/help usage': 1, 'limits': 1, '/limits': 1 };
+            if (usageWords[normalizeHelpPrompt(prompt)]) {
                 inputEl.value = '';
                 showUsageCard();
                 return;
             }
-            var helpTopic = LOCAL_HELP_TOPICS[prompt.toLowerCase()];
+            var helpTopic = LOCAL_HELP_TOPICS[normalizeHelpPrompt(prompt)];
             if (helpTopic) {
                 inputEl.value = '';
                 showLocalHelp(helpTopic);
@@ -3751,7 +4091,13 @@
             renderQueuedPromptsBar([]);
         }
 
+        // True while loadChatHistory() rebuilds the feed. Saving then would store a half-rebuilt
+        // feed (each restored question saves before the reply after it is back), which lost the
+        // latest reply on every page refresh.
+        var isRestoringHistory = false;
+
         function saveChatHistory() {
+            if (isRestoringHistory) return;
             // Screen Reader Fix: Disabled aggressive DOM rolling window pruning.
             // Deleting DOM nodes while a screen reader is actively navigating them causes severe focus loss and navigation resets.
             var MAX_DOM_CHILDREN = 5000;
@@ -3811,6 +4157,7 @@
                 }
                 
                 chatFeed.innerHTML = '';
+                isRestoringHistory = true;
                 items.forEach(function(item) {
                     if (item.sender === 'user') {
                         appendUserMessage(item.text);
@@ -3818,7 +4165,7 @@
                         var art = appendAgentMessageContainer();
                         art.dataset.rawMarkdown = item.markdown;
                         art.querySelector('.agent-text').innerHTML = marked.parse(item.markdown);
-                        if (item.markdown && (item.markdown.includes("Siraugga Exam Generator Guide") || item.markdown.includes("Exam Generator Guide"))) {
+                        if (isExamGuideReply(item.markdown)) {
                             if (!art.querySelector('iframe[src*="/plugin/exam_builder"]')) {
                                 var iframeWrap = document.createElement('div');
                                 iframeWrap.className = 'mt-4 border-t border-slate-700/50 pt-4';
@@ -3838,7 +4185,10 @@
                     }
                 });
                 scrollToBottom();
-            } catch(e) {}
+            } catch(e) {
+            } finally {
+                isRestoringHistory = false;
+            }
         }
 
         async function clearHistory() {
@@ -3970,6 +4320,10 @@
                 'slash-item-5'
             ];
             adminOnlyIds.forEach(function(id) { setVisible(id, isAdmin); });
+            // The ticket queue shows itself only if the server confirms tier-5 access
+            window._isTier5 = !!isAdmin;
+            if (isAdmin && typeof refreshTicketQueue === 'function') refreshTicketQueue();
+            else setVisible('ticket-queue-card', false);
 
             // Gate Tier 3+ Developer controls (Project Workspace selector & Sandbox prompt shortcut)
             setVisible('project-workspace-card', isDev);
@@ -4280,6 +4634,12 @@
                 <button type="button" onclick="closeByosModal()" aria-label="Close subscription dialog" class="text-slate-400 hover:text-white text-xl px-2 py-0.5 rounded focus:ring-2 focus:ring-teal-500 focus:outline-none cursor-pointer">&times;</button>
             </div>
 
+            <p class="text-[11px] text-slate-300">
+                Before adding a key, please read the
+                <a href="#byok-terms-block" onclick="event.preventDefault(); showByokTerms();" class="text-teal-400 underline hover:text-teal-300 font-semibold">Bring Your Own Key terms</a>
+                (also in the <a href="/terms#byos" target="_blank" rel="noopener" class="text-teal-400 underline hover:text-teal-300 font-semibold">full Terms &amp; Privacy, new tab</a>).
+            </p>
+
             <!-- Full Transparency & Security Disclosure Card -->
             <div class="p-3.5 bg-slate-950/90 border border-teal-500/30 rounded-xl space-y-2 text-xs">
                 <div class="flex items-center justify-between">
@@ -4357,7 +4717,7 @@
 
                 <!-- Bring Your Own Key: Terms & Conditions (must be accepted for every storage mode) -->
                 <div id="byok-terms-block" class="space-y-2">
-                    <details class="rounded-lg border border-slate-700 bg-slate-950/80 text-[11px] text-slate-300">
+                    <details id="byok-terms-details" open class="rounded-lg border border-slate-700 bg-slate-950/80 text-[11px] text-slate-300">
                         <summary class="cursor-pointer select-none px-3 py-2 font-bold text-white focus:outline-none focus:ring-2 focus:ring-teal-500 rounded-lg">
                             Bring Your Own Key: Terms &amp; Conditions <span class="text-slate-500 font-normal">(version <span class="byok-terms-version-label">2026-11-08</span>)</span>
                         </summary>
@@ -4628,6 +4988,498 @@
     }
     setTimeout(refreshExamContent, 1500);
 
+    // ---- Tickets (every tier sends; tier 5 reviews the queue) -------------------------
+    var TICKET_COLORS = { submitted: 'text-sky-300', awaiting_approval: 'text-amber-300', approved: 'text-emerald-300', implementing: 'text-violet-300', declined: 'text-rose-300', implemented: 'text-teal-300', reverted: 'text-orange-300' };
+    var lastTicketStatus = null;
+    var ticketPollTimer = null;
+    function ticketEl(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+    function ticketDate(ts) { try { return new Date(ts * 1000).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; } }
+    function ticketFeedback(id, text, ok) {
+        var fb = document.getElementById(id);
+        if (!fb) return;
+        fb.textContent = text;
+        fb.className = 'text-[11px] ' + (ok ? 'text-emerald-300' : 'text-rose-300');
+    }
+    function toggleTicketForm(show) {
+        var form = document.getElementById('ticket-form');
+        var btn = document.getElementById('ticket-new-btn');
+        if (!show && typeof resetTicketQuestions === 'function') resetTicketQuestions(false);
+        form.classList.toggle('hidden', !show);
+        btn.classList.toggle('hidden', show);
+        btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+        // Email is required for tier 1 visitors; admins may leave it empty
+        var em = document.getElementById('ticket-email');
+        em.required = !window._isTier5;
+        document.getElementById('ticket-email-req').textContent = window._isTier5 ? '(optional)' : '(required)';
+        if (show) document.getElementById('ticket-title').focus(); else btn.focus();
+    }
+    function announceTicket(text) {
+        if (typeof announceScreenReader === 'function') announceScreenReader(text);
+        else { var a = document.getElementById('exam-announcer'); if (a) a.innerText = text; }
+    }
+    function renderTickets(list) {
+        var ul = document.getElementById('tickets-list');
+        var count = document.getElementById('tickets-count');
+        if (!ul) return;
+        ul.innerHTML = '';
+        var open = list.filter(function(t) { return t.open; }).length;
+        count.textContent = open + ' open';
+        // Tell the user when a ticket moves on while they are on the page
+        var now = {};
+        list.forEach(function(t) {
+            now[t.id] = t.status;
+            if (lastTicketStatus && lastTicketStatus[t.id] && lastTicketStatus[t.id] !== t.status) {
+                ticketFeedback('tickets-feedback', 'Update on ' + t.id + ' (' + t.title + '): ' + t.status_label + '. ' + t.message, t.status !== 'declined');
+                announceTicket('Ticket update: ' + t.title + ' is now ' + t.status_label + '.');
+            }
+        });
+        lastTicketStatus = now;
+        if (!list.length) { ul.appendChild(ticketEl('li', 'text-slate-500 italic', 'No tickets yet.')); return; }
+        list.forEach(function(t) {
+            var li = ticketEl('li', 'bg-slate-950/60 border border-slate-800 rounded p-2 flex flex-col gap-1');
+            var top = ticketEl('div', 'flex items-center justify-between gap-2');
+            top.appendChild(ticketEl('strong', 'text-slate-200 truncate', t.title));
+            top.appendChild(ticketEl('span', 'shrink-0 font-bold ' + (TICKET_COLORS[t.status] || 'text-slate-300'), t.status_label));
+            li.appendChild(top);
+            li.appendChild(ticketEl('p', 'm-0 text-slate-300', t.message));
+            var steps = t.history.map(function(h) { return h.label + ' (' + ticketDate(h.ts) + ')'; }).join(' → ');
+            li.appendChild(ticketEl('p', 'm-0 text-[10px] text-slate-500', t.id + ' · ' + t.category_label + ' · ' + steps));
+            ul.appendChild(li);
+        });
+        // Check back while something is still open
+        clearTimeout(ticketPollTimer);
+        if (open) ticketPollTimer = setTimeout(refreshTickets, 45000);
+    }
+    async function refreshTickets() {
+        try {
+            var r = await fetch('/api/tickets', { headers: examContentHeaders() });
+            // Hide the card if this server doesn't have tickets yet (not restarted since the update)
+            document.getElementById('tickets-card').classList.toggle('hidden', r.status === 404);
+            if (!r.ok) return;
+            var d = await r.json();
+            if (d && d.success) renderTickets(d.tickets);
+        } catch (e) {}
+    }
+    // Tier 1 tickets: step 1 sends the form and gets a few questions (exam-generator question
+    // format, no right answers); step 2 sends the answers and the gate AI accepts or refuses.
+    var ticketIntake = null;
+    var TICKET_FIELDS = ['ticket-category', 'ticket-title', 'ticket-description', 'ticket-email'];
+    function resetTicketQuestions(focusTitle) {
+        ticketIntake = null;
+        TICKET_FIELDS.forEach(function(id) { document.getElementById(id).disabled = false; });
+        document.getElementById('ticket-questions').classList.add('hidden');
+        document.getElementById('ticket-questions-list').innerHTML = '';
+        document.getElementById('ticket-submit').textContent = 'Send ticket';
+        document.getElementById('ticket-submit').classList.remove('hidden');
+        if (focusTitle) document.getElementById('ticket-title').focus();
+    }
+    // The questions come from the exam generator and are taken in the exam player (survey mode);
+    // the player posts the answers back here when the visitor finishes.
+    function showTicketQuestions(d) {
+        ticketIntake = { id: d.intake_id, questions: d.questions, answers: null };
+        TICKET_FIELDS.forEach(function(id) { document.getElementById(id).disabled = true; });
+        var list = document.getElementById('ticket-questions-list');
+        list.innerHTML = '';
+        var frame = document.createElement('iframe');
+        frame.id = 'ticket-exam-frame';
+        frame.setAttribute('data-ticket-gate', '1');  // not a chat exam: keep it out of the old-exam cleanup
+        frame.src = d.exam_url;
+        frame.title = 'A few questions about your ticket';
+        frame.className = 'w-full border-0 rounded bg-slate-900';
+        frame.style.minHeight = '460px';
+        list.appendChild(frame);
+        document.getElementById('ticket-questions').classList.remove('hidden');
+        document.getElementById('ticket-submit').classList.add('hidden');  // the exam sends the answers
+        frame.focus();
+    }
+    window.addEventListener('message', function(ev) {
+        var frame = document.getElementById('ticket-exam-frame');
+        if (ev.origin !== window.location.origin || !frame || ev.source !== frame.contentWindow) return;
+        var m = ev.data || {};
+        if (m.type !== 'devcore-ticket-intake' || !ticketIntake || m.intake_id !== ticketIntake.id || !Array.isArray(m.answers)) return;
+        ticketIntake.answers = m.answers.map(function(a) { return String(a || ''); });
+        submitTicket(null);
+    });
+    async function submitTicket(ev) {
+        if (ev) ev.preventDefault();
+        var btn = document.getElementById('ticket-submit');
+        var answering = !!(ticketIntake && ticketIntake.answers);
+        if (ticketIntake && !answering) return;  // still taking the questions
+        btn.disabled = true; btn.textContent = 'Sending…';
+        if (answering) ticketFeedback('tickets-feedback', 'Checking your ticket…', true);
+        try {
+            var headers = examContentHeaders();
+            headers['Content-Type'] = 'application/json';
+            var payload = answering ? { intake_id: ticketIntake.id, answers: ticketIntake.answers } : {
+                category: document.getElementById('ticket-category').value,
+                title: document.getElementById('ticket-title').value,
+                description: document.getElementById('ticket-description').value,
+                email: document.getElementById('ticket-email').value
+            };
+            var r = await fetch('/api/tickets', { method: 'POST', headers: headers, body: JSON.stringify(payload) });
+            var d = await r.json();
+            if (d.terms_required) { location.reload(); return; }  // shows the Terms & Privacy dialog
+            if (r.ok && d.success && d.needs_answers) {
+                showTicketQuestions(d);
+                ticketFeedback('tickets-feedback', 'Almost done: please answer ' + d.questions.length + ' quick questions in the exam below.', true);
+                btn.disabled = false;
+                return;
+            }
+            if (r.ok && d.success) {
+                resetTicketQuestions(false);
+                document.getElementById('ticket-form').reset();
+                toggleTicketForm(false);
+                renderTickets(d.tickets);
+                ticketFeedback('tickets-feedback', 'Ticket ' + d.ticket.id + ' sent. ' + d.ticket.message + ' Keep an eye on this list for updates.', true);
+            } else if (d.refused) {
+                resetTicketQuestions(false);
+                document.getElementById('ticket-form').reset();
+                toggleTicketForm(false);
+                ticketFeedback('tickets-feedback', '🚫 Your ticket wasn\'t sent. ' + d.error, false);
+            } else {
+                if (answering) resetTicketQuestions(false);  // each set of questions works once
+                ticketFeedback('tickets-feedback', (d.error || 'Could not send the ticket.') + (answering ? ' Press Send ticket to get new questions.' : ''), false);
+            }
+        } catch (e) {
+            if (answering) resetTicketQuestions(false);
+            ticketFeedback('tickets-feedback', 'Could not send the ticket. Please try again.', false);
+        }
+        btn.disabled = false; btn.textContent = 'Send ticket';
+    }
+    function renderTicketQueue(list) {
+        var ul = document.getElementById('ticket-queue-list');
+        ul.innerHTML = '';
+        if (!list.length) { ul.appendChild(ticketEl('li', 'text-slate-500 italic', 'No tickets.')); return; }
+        list.forEach(function(t) {
+            var li = ticketEl('li', 'bg-slate-950/60 border border-slate-800 rounded p-2 flex flex-col gap-1');
+            var top = ticketEl('div', 'flex items-center justify-between gap-2');
+            top.appendChild(ticketEl('strong', 'text-slate-200', t.id + ' · ' + t.title));
+            top.appendChild(ticketEl('span', 'shrink-0 font-bold ' + (TICKET_COLORS[t.status] || 'text-slate-300'), t.status_label));
+            li.appendChild(top);
+            li.appendChild(ticketEl('p', 'm-0 text-[10px] text-slate-500', t.category_label + ' · Tier ' + t.owner_tier + ' (' + t.owner_ref + ')' + (t.has_contact_email ? ' · gets email updates' : '') + ' · ' + ticketDate(t.created)));
+            li.appendChild(ticketEl('p', 'm-0 whitespace-pre-wrap text-slate-300', t.description));
+            if (t.intake && t.intake.length) {
+                var qv = ticketEl('div', 'border-l-2 border-indigo-500/60 pl-2 text-slate-400');
+                qv.appendChild(ticketEl('p', 'm-0 font-bold text-indigo-200', 'Gate questions (passed' + (t.gate && t.gate.model ? ', ' + t.gate.model : '') + ')'));
+                t.intake.forEach(function(x) { qv.appendChild(ticketEl('p', 'm-0', x.q)); qv.appendChild(ticketEl('p', 'm-0 text-slate-200', '→ ' + x.a)); });
+                if (t.gate && t.gate.concern) qv.appendChild(ticketEl('p', 'm-0 italic', 'Gate note: ' + t.gate.concern));
+                li.appendChild(qv);
+            }
+            if (t.review) {
+                var rv = ticketEl('div', 'border-l-2 border-amber-500/60 pl-2 text-slate-400');
+                rv.appendChild(ticketEl('p', 'm-0 font-bold text-amber-200', 'Review agent: ' + t.review.risk + ' risk, recommends ' + t.review.recommendation));
+                if (t.review.summary) rv.appendChild(ticketEl('p', 'm-0', t.review.summary));
+                if (t.review.reason) rv.appendChild(ticketEl('p', 'm-0', t.review.reason));
+                if (t.review.plan && t.review.plan.length) {
+                    var ol = ticketEl('ol', 'list-decimal pl-4 m-0');
+                    t.review.plan.forEach(function(s) { ol.appendChild(ticketEl('li', '', s)); });
+                    rv.appendChild(ol);
+                }
+                li.appendChild(rv);
+            } else if (t.status === 'submitted') {
+                li.appendChild(ticketEl('p', 'm-0 italic text-sky-300', 'Review agent is checking this ticket…'));
+            }
+            if (t.status === 'implementing') {
+                li.appendChild(ticketEl('p', 'm-0 italic text-violet-300', 'Siraugga\'s agent is making this change now…'));
+            }
+            var impl = t.implementation;
+            if (impl && impl.files && impl.files.length) {
+                var iv = ticketEl('div', 'border-l-2 border-teal-500/60 pl-2 text-slate-400');
+                iv.appendChild(ticketEl('p', 'm-0 font-bold text-teal-200', (impl.undone ? 'Agent change (rolled back): ' : 'Agent change (live): ') + impl.files.join(', ')));
+                if (impl.summary) iv.appendChild(ticketEl('p', 'm-0', impl.summary));
+                li.appendChild(iv);
+            }
+            var lastNote = (t.notes || []).slice(-1)[0];
+            if (t.status === 'approved' && lastNote && /^Automatic implementation/.test(lastNote.note)) {
+                li.appendChild(ticketEl('p', 'm-0 text-amber-300', lastNote.note));
+            }
+            var actions = t.status === 'awaiting_approval' ? [['approve', '✅ Approve', 'bg-emerald-700 hover:bg-emerald-600'], ['decline', '❌ Decline', 'bg-rose-700 hover:bg-rose-600']]
+                        : t.status === 'approved' ? [['implemented', '🚀 Mark implemented', 'bg-teal-700 hover:bg-teal-600']]
+                        : (t.status === 'implemented' && impl && impl.files && impl.files.length && !impl.undone) ? [['undo', '↩️ Undo change', 'bg-amber-700 hover:bg-amber-600']] : [];
+            if (actions.length) {
+                var noteId = 'ticket-note-' + t.id;
+                li.appendChild(Object.assign(ticketEl('label', 'text-slate-400', 'Note for the person who sent it (optional)'), { htmlFor: noteId }));
+                var note = ticketEl('input', 'bg-slate-950 border border-slate-700 rounded px-2 py-1 text-slate-200 focus:ring-2 focus:ring-amber-500 focus:outline-none');
+                note.id = noteId; note.maxLength = 500;
+                li.appendChild(note);
+                var row = ticketEl('div', 'flex gap-2');
+                actions.forEach(function(a) {
+                    var b = ticketEl('button', 'flex-1 text-xs text-white font-bold px-2 py-1 rounded focus:ring-2 focus:ring-amber-500 focus:outline-none cursor-pointer ' + a[2], a[1]);
+                    b.type = 'button';
+                    b.setAttribute('aria-label', a[1].replace(/^\S+\s/, '') + ' ticket ' + t.id);
+                    b.onclick = function() { decideTicket(t.id, a[0], note.value); };
+                    row.appendChild(b);
+                });
+                li.appendChild(row);
+            }
+            ul.appendChild(li);
+        });
+    }
+    function renderRefused(list) {
+        var box = document.getElementById('ticket-refused');
+        box.classList.toggle('hidden', !list.length);
+        document.getElementById('ticket-refused-summary').textContent = 'Refused at the gate (' + list.length + ' recent)';
+        var ul = document.getElementById('ticket-refused-list');
+        ul.innerHTML = '';
+        list.forEach(function(e) {
+            var li = ticketEl('li', 'bg-slate-950/60 border border-rose-900/60 rounded p-2 flex flex-col gap-1');
+            li.appendChild(ticketEl('strong', 'text-slate-200', e.title));
+            li.appendChild(ticketEl('p', 'm-0 text-[10px] text-slate-500', 'Tier ' + e.tier + ' (' + e.owner_ref + ') · ' + ticketDate(e.ts) + ' · ' + e.model));
+            li.appendChild(ticketEl('p', 'm-0 whitespace-pre-wrap text-slate-300', e.description));
+            (e.answers || []).forEach(function(x) { li.appendChild(ticketEl('p', 'm-0 text-slate-400', x.q + ' → ' + x.a)); });
+            li.appendChild(ticketEl('p', 'm-0 text-rose-300', 'Why: ' + (e.concern || e.reason)));
+            ul.appendChild(li);
+        });
+    }
+    async function refreshTicketQueue() {
+        try {
+            var r = await fetch('/api/tickets/admin', { headers: examContentHeaders() });
+            var card = document.getElementById('ticket-queue-card');
+            if (r.status === 403 || r.status === 401) { card.classList.add('hidden'); return; }
+            var d = await r.json();
+            if (d && d.success) { card.classList.remove('hidden'); renderTicketQueue(d.tickets); renderRefused(d.refused || []); }
+        } catch (e) {}
+    }
+    async function decideTicket(id, action, note) {
+        try {
+            var headers = examContentHeaders();
+            headers['Content-Type'] = 'application/json';
+            var r = await fetch('/api/tickets/admin/' + encodeURIComponent(id), { method: 'POST', headers: headers, body: JSON.stringify({ action: action, note: note || '' }) });
+            var d = await r.json();
+            var words = { approve: 'approved. Siraugga\'s agent is making the change now', decline: 'declined', implemented: 'marked implemented', undo: 'rolled back' };
+            if (r.ok && d.success && action === 'approve') setTimeout(refreshTicketQueue, 20000);
+            ticketFeedback('ticket-queue-feedback', r.ok && d.success ? id + ' ' + words[action] + '. The person who sent it can now see this.' : (d.error || 'Could not update the ticket.'), r.ok && d.success);
+            refreshTicketQueue();
+            refreshTickets();
+        } catch (e) {
+            ticketFeedback('ticket-queue-feedback', 'Could not update the ticket.', false);
+        }
+    }
+    setTimeout(refreshTickets, 1600);
+    setTimeout(function() { if (window._isTier5) refreshTicketQueue(); }, 2200);  // admins only
+
+    // ---- Owner devices: Super Admin on the public domain from a browser the owner trusted ----------
+    function onPublicDomain() {
+        return ['localhost', '127.0.0.1', '[::1]', '::1'].indexOf(location.hostname) === -1;
+    }
+    // On the public domain: ask the Siraugga server on THIS computer for a one-time code, then claim
+    // it here. Only works on the host computer (elsewhere nothing answers on 127.0.0.1:5000).
+    // silent = automatic renewal for a browser that signed in before (no messages, no prompts).
+    async function ownerSignInFromDomain(silent) {
+        var fb = document.getElementById('owner-signin-feedback');
+        var say = function(t) { if (!silent && fb) fb.textContent = t; };
+        if (!onPublicDomain()) return false;
+        say('Checking with the Siraugga server on this computer… If your browser asks to let this site access apps or devices on this computer, choose Allow.');
+        var ctrl = new AbortController();
+        // Long enough to answer the browser's "local network access" permission prompt, which
+        // holds the request until it's answered (5 s cancelled it while the prompt was still open).
+        var timer = setTimeout(function() { ctrl.abort(); }, silent ? 8000 : 60000);
+        try {
+            var r = await fetch('http://127.0.0.1:5000/api/owner-device/handoff', {
+                method: 'POST', mode: 'cors', credentials: 'omit', cache: 'no-store',
+                signal: ctrl.signal, targetAddressSpace: 'loopback'
+            });
+            clearTimeout(timer);
+            var d = await r.json();
+            if (!r.ok || !d.url) throw new Error(d.error || 'refused');
+            var c = await fetch(d.url, { credentials: 'same-origin', cache: 'no-store' });
+            if (!c.ok) throw new Error('claim');
+            try { sessionStorage.removeItem('agy_manual_logout'); } catch (e2) {}
+            say('Signed in as Super Admin. Reloading…');
+            location.reload();
+            return true;
+        } catch (e) {
+            clearTimeout(timer);
+            say(e && e.name === 'AbortError'
+                ? 'No answer from the Siraugga server on this computer. Is it running? If your browser showed a permission prompt, choose Allow and try again.'
+                : 'Your browser blocked the connection to the Siraugga server on this computer. Click the icon left of the address bar, open Site settings, set "Local network access" (or "Apps on device") to Allow, then try again. This only works on the host computer.');
+            return false;
+        }
+    }
+
+    async function refreshOwnerDeviceCard() {
+        var card = document.getElementById('owner-device-card');
+        if (!card) return;
+        try {
+            var s = await (await fetch('/api/owner-device/status', { cache: 'no-store' })).json();
+            var signinBtn = document.getElementById('owner-signin-btn');
+            if (signinBtn) signinBtn.classList.toggle('hidden', !(onPublicDomain() && !s.this_browser_trusted && !s.is_host));
+            // Signed in from this browser before but the trust ran out: renew silently, once per tab
+            if (onPublicDomain() && !s.this_browser_trusted && /(?:^|;\s*)devcore_owner_hint=1/.test(document.cookie)) {
+                var tried = false;
+                try { tried = sessionStorage.getItem('owner_renew_tried') === '1'; sessionStorage.setItem('owner_renew_tried', '1'); } catch (e3) {}
+                if (!tried) ownerSignInFromDomain(true);
+            }
+            var show = !!(s && (s.is_host || s.this_browser_trusted));
+            card.classList.toggle('hidden', !show);
+            if (!show) return;
+            document.getElementById('owner-device-trust').classList.toggle('hidden', !s.is_host);
+            var host = (s.public_url || '').replace(/^https?:\/\//, '');
+            var n = s.trusted_devices || 0;
+            document.getElementById('owner-device-desc').textContent = s.is_host
+                ? 'Make a browser on this computer recognise you as Super Admin on ' + host + '. Other devices and people on your network are not affected. Trusted browsers: ' + n + '.'
+                : 'This browser is trusted: you are Super Admin on ' + host + '. Trusted browsers: ' + n + '.';
+        } catch (e) { card.classList.add('hidden'); }
+    }
+    async function trustBrowserOnDomain() {
+        var fb = document.getElementById('owner-device-feedback');
+        try {
+            var r = await fetch('/api/owner-device/handoff', { method: 'POST', cache: 'no-store' });
+            var d = await r.json();
+            if (!r.ok || !d.url) throw new Error(d.error || 'Could not create the link.');
+            // Not the 'noopener' feature: with it window.open always returns null, which looked like a block
+            var w = window.open(d.url, '_blank');
+            if (w) {
+                try { w.opener = null; } catch (e2) {}
+                fb.textContent = 'Opened the domain in a new tab. It becomes Super Admin there. The link works once, for 2 minutes.';
+            } else {
+                // Pop-up blocked: go there in this tab instead (same browser, so the cookie still lands here)
+                fb.textContent = 'Opening the domain in this tab…';
+                location.href = d.url;
+            }
+            setTimeout(refreshOwnerDeviceCard, 4000);
+        } catch (e) {
+            fb.textContent = e.message || 'Could not create the link.';
+        }
+    }
+    async function revokeOwnerDevices() {
+        var fb = document.getElementById('owner-device-feedback');
+        if (!confirm('Forget every trusted browser? They will no longer be Super Admin on the domain until you trust them again from this computer.')) return;
+        try {
+            var r = await fetch('/api/owner-device/revoke-all', { method: 'POST' });
+            var d = await r.json();
+            fb.textContent = r.ok && d.success ? 'Done. ' + d.revoked + ' trusted browser(s) forgotten.' : (d.error || 'Could not do that.');
+        } catch (e) { fb.textContent = 'Could not do that.'; }
+        refreshOwnerDeviceCard();
+    }
+    (function() {
+        refreshOwnerDeviceCard();
+        var params = new URLSearchParams(location.search);
+        if (params.get('owner_device') === '1') {
+            params.delete('owner_device');
+            history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
+            setTimeout(function() {
+                if (typeof announce === 'function') announce('This browser is now trusted. You are signed in as Super Admin.');
+            }, 1500);
+        }
+    })();
+
+    // ---- Terms & Privacy: everyone accepts them before using Siraugga (also enforced on the server)
+    window.devcoreTermsReady = (async function() {
+        var info = null;
+        try { info = await (await fetch('/api/terms', { cache: 'no-store' })).json(); } catch (e) { return true; }
+        if (!info || info.accepted) {
+            // Just agreed to the terms (page reloaded): put the cursor in the chat box
+            var wantChat = false;
+            try { wantChat = sessionStorage.getItem('devcore_focus_chat') === '1'; sessionStorage.removeItem('devcore_focus_chat'); } catch (e) {}
+            if (wantChat) {
+                var box = document.getElementById('prompt');
+                if (box && !document.querySelector('dialog[open]')) box.focus();
+                if (typeof announce === 'function') announce('Terms accepted. You are in the chat box. Type help for the menu.');
+            }
+            return true;
+        }
+        var d = document.createElement('dialog');
+        d.id = 'terms-dialog';
+        d.className = 'bg-slate-900 text-slate-200 border border-teal-500/40 rounded-xl p-5 max-w-md w-[calc(100%-2rem)] shadow-2xl backdrop:bg-black/70';
+        d.setAttribute('aria-labelledby', 'terms-title');
+        d.setAttribute('aria-describedby', 'terms-desc');
+        d.innerHTML =
+            '<h2 id="terms-title" class="text-lg font-bold text-teal-300 m-0 mb-2">Before you start</h2>' +
+            '<div id="terms-desc" class="text-sm text-slate-300 flex flex-col gap-2 mb-4">' +
+            '<p class="m-0">Siraugga is an AI workspace. To use it, please read and accept our Terms &amp; Privacy. In short:</p>' +
+            '<ul class="list-disc pl-5 m-0 flex flex-col gap-1">' +
+            '<li>We use a few cookies the site needs to work and stay secure. No advertising or tracking cookies.</li>' +
+            '<li>We don\'t store your IP address. To stop abuse of the free limit, guest prompts are counted per network with a scrambled code that changes every day and is never saved.</li>' +
+            '<li>Your chat messages are sent to AI providers to answer you. AI answers can be wrong.</li>' +
+            '<li>Please don\'t try to break or misuse the site. Tickets are checked by an AI and may be refused.</li>' +
+            '</ul>' +
+            '<p class="m-0"><a href="/terms" target="_blank" rel="noopener" class="text-teal-300 underline focus:ring-2 focus:ring-teal-400 focus:outline-none">Read the full Terms &amp; Privacy</a> (opens in a new tab)</p>' +
+            '</div>' +
+            '<label class="flex items-start gap-2 text-sm text-slate-200 mb-3 cursor-pointer"><input id="terms-agree" type="checkbox" class="mt-1 focus:ring-2 focus:ring-teal-400"> <span>I have read and agree to the Terms &amp; Privacy.</span></label>' +
+            '<p id="terms-error" class="hidden text-sm text-rose-300 m-0 mb-3" role="alert"></p>' +
+            '<div class="flex justify-end"><button type="button" id="terms-continue" class="px-4 py-2 rounded text-sm font-bold bg-teal-600 hover:bg-teal-500 text-white focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer">Agree and continue</button></div>';
+        document.body.appendChild(d);
+        d.addEventListener('cancel', function(e) { e.preventDefault(); });  // can't be dismissed without agreeing
+        d.showModal();
+        document.getElementById('terms-agree').focus();
+        document.getElementById('terms-continue').onclick = async function() {
+            var err = document.getElementById('terms-error');
+            if (!document.getElementById('terms-agree').checked) {
+                err.textContent = 'Please tick the box to agree first.'; err.classList.remove('hidden');
+                document.getElementById('terms-agree').focus();
+                return;
+            }
+            try {
+                var r = await fetch('/api/terms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ agree: true, version: info.version }) });
+                if (!r.ok) throw new Error();
+                try { sessionStorage.setItem('devcore_focus_chat', '1'); } catch (e2) {}  // land in the chat box after the reload
+                location.reload();  // reconnect the chat with the new cookie (an ?unlock= link is kept for after)
+            } catch (e) {
+                err.textContent = 'Could not save that. Please try again.'; err.classList.remove('hidden');
+            }
+        };
+        return new Promise(function() {});  // the page reloads once accepted
+    })();
+
+    // ---- "No limit" link: /unlock/<code> lands here as ?unlock=<code> -------------------
+    (async function() {
+        var params = new URLSearchParams(location.search);
+        var code = params.get('unlock');
+        if (!code) return;
+        await window.devcoreTermsReady;  // terms first; the unlock popup follows after acceptance
+        // Clear it from the address bar straight away so a reload never shows the popup again
+        params.delete('unlock');
+        history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params : '') + location.hash);
+
+        function popup(title, text, buttons) {
+            var d = document.createElement('dialog');
+            d.className = 'bg-slate-900 text-slate-200 border border-teal-500/40 rounded-xl p-5 max-w-sm w-[calc(100%-2rem)] shadow-2xl backdrop:bg-black/60';
+            d.setAttribute('aria-labelledby', 'unlock-title');
+            var h = document.createElement('h2'); h.id = 'unlock-title'; h.className = 'text-lg font-bold text-teal-300 m-0 mb-2'; h.textContent = title;
+            var p = document.createElement('p'); p.className = 'text-sm text-slate-300 m-0 mb-4'; p.textContent = text;
+            var row = document.createElement('div'); row.className = 'flex gap-2 justify-end';
+            buttons.forEach(function(b) {
+                var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = b.label;
+                btn.className = 'px-3 py-1.5 rounded text-sm font-bold focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer ' +
+                    (b.primary ? 'bg-teal-700 hover:bg-teal-600 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700');
+                btn.onclick = function() { b.run ? b.run(d, btn) : d.close(); };
+                row.appendChild(btn);
+            });
+            d.appendChild(h); d.appendChild(p); d.appendChild(row);
+            d.addEventListener('close', function() { d.remove(); });
+            document.body.appendChild(d);
+            d.showModal();
+            return d;
+        }
+
+        fetch('/api/unlock?code=' + encodeURIComponent(code), { credentials: 'same-origin' })
+            .then(function(r) { return r.json(); })
+            .then(function(s) {
+                if (s.state === 'already_unlimited') return;  // nothing to say
+                if (s.state !== 'ok') { popup('Link not available', s.message || "This link can't be used.", [{ label: 'Close', primary: true }]); return; }
+                popup('Remove your daily limit?', 'This link removes the daily prompt limit for this browser.', [
+                    { label: 'Not now' },
+                    { label: '✅ Remove my limit', primary: true, run: function(d, btn) {
+                        btn.disabled = true; btn.textContent = 'Removing…';
+                        fetch('/api/unlock', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: code }) })
+                            .then(function(r) { return r.json(); })
+                            .then(function(res) {
+                                d.close();
+                                if (res.state === 'unlocked' || res.state === 'already_unlimited') {
+                                    popup('Done ✅', 'Your daily limit is gone. You have unlimited prompts in this browser.', [{ label: 'Start chatting', primary: true, run: function(d2) { d2.close(); var p = document.getElementById('prompt'); if (p) p.focus(); } }]);
+                                    if (typeof refreshUsageCard === 'function') refreshUsageCard();
+                                } else {
+                                    popup('Link not available', res.message || "This link can't be used.", [{ label: 'Close', primary: true }]);
+                                }
+                            })
+                            .catch(function() { d.close(); popup('Something went wrong', 'Please try the link again.', [{ label: 'Close', primary: true }]); });
+                    } }
+                ]);
+            })
+            .catch(function() {});
+    })();
+
     // ---- Tier limits (super admin only) -------------------------------------------------
     function tierAuthHeaders(extra) {
         var h = extra || {};
@@ -4855,7 +5707,18 @@
         refreshByosStatus();
         const fb = document.getElementById('byos-feedback');
         if (fb) { fb.classList.add('hidden'); fb.innerText = ''; }
+        var terms = document.getElementById('byok-terms-details');
+        if (terms) terms.open = true;   // always show the terms when the window opens
         modal.showModal();
+    }
+    // "Bring Your Own Key terms" link at the top of the key window
+    function showByokTerms() {
+        var terms = document.getElementById('byok-terms-details');
+        if (!terms) return;
+        terms.open = true;
+        terms.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        var summary = terms.querySelector('summary');
+        if (summary) summary.focus();
     }
 
     function closeByosModal() {
@@ -5312,6 +6175,23 @@
 
     
     <script>
+    // Phones/tablets: no Alt or Enter-to-send, so point people at "help" and Execute instead
+    (function() {
+        function mobileHint() {
+            if (!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches)) return;
+            // The helper line under the box is hidden on small screens, so use the placeholder
+            var input = document.getElementById('prompt');
+            if (input) {
+                var tip = 'Type a request, or type help for the menu…';
+                input.dataset.defaultPlaceholder = tip;
+                input.placeholder = tip;
+            }
+            var hint = document.getElementById('chat-input-helper');
+            if (hint) hint.textContent = 'Tap Execute to run • type help for the menu';
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mobileHint); else mobileHint();
+    })();
+
     // Global shortcut to trigger Help (Alt+H)
     document.addEventListener('keydown', function(e) {
         if (e.altKey && !e.ctrlKey && !e.metaKey && (e.key === 'h' || e.key === 'H' || e.code === 'KeyH')) {
@@ -5360,8 +6240,66 @@
     <!-- Singleton Plugin Cleanup Script -->
     <script>
     (function() {
+        // Featured exam: shown at the top of the chat for every visitor (pointer in /static/featured_exam.json)
+        var featuredExam = null;
+        function ensureFeaturedExam() {
+            var feed = document.getElementById('chat-feed');
+            if (!feed || !featuredExam || document.getElementById('featured-exam-card')) return;
+            // Only on an empty chat: on top of a restored conversation its 600px frame pushed the
+            // messages off screen, so a refresh looked like a blank chat.
+            if (feed.querySelector('.message-card[data-sender]')) return;
+            var url = '/plugin/exam?quiz=' + encodeURIComponent(featuredExam.quiz) + '&title=' + encodeURIComponent(featuredExam.title || 'Exam');
+            var embedUrl = url + '&autofocus=0';   // shown on every visit: must not steal focus from the page
+            var title = featuredExam.title || 'Exam';
+            // Styled like an agent response card so it reads as a message announcing the new exam
+            var card = document.createElement('article');
+            card.id = 'featured-exam-card';
+            card.className = 'message-card agent-message p-4 rounded-xl bg-slate-900/90 border border-teal-500/40 shadow-sm flex flex-col gap-3';
+            card.setAttribute('aria-labelledby', 'featured-exam-heading');
+            var head = document.createElement('div');
+            head.className = 'flex items-center gap-2';
+            head.innerHTML = '<div class="w-5 h-5 rounded bg-teal-900/60 border border-teal-700/50 text-teal-300 flex items-center justify-center text-[10px] font-bold" aria-hidden="true">{{ ui.welcome.icon }}</div>' +
+                '<h2 id="featured-exam-heading" class="text-xs font-bold uppercase tracking-wider text-cyan-300 m-0">New exam ready</h2>' +
+                '<span class="text-[11px] text-emerald-400 font-mono flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Just generated</span>';
+            var body = document.createElement('div');
+            body.className = 'agent-text text-sm text-slate-200 leading-relaxed';
+            var p1 = document.createElement('p');
+            p1.className = 'm-0';
+            p1.appendChild(document.createTextNode('📝 A new exam has just been generated: '));
+            var strong = document.createElement('strong');
+            strong.className = 'text-teal-300';
+            strong.textContent = title;
+            p1.appendChild(strong);
+            p1.appendChild(document.createTextNode(featuredExam.questions ? ' (' + featuredExam.questions + ' questions).' : '.'));
+            var p2 = document.createElement('p');
+            p2.className = 'm-0 mt-1 text-slate-400 text-xs';
+            p2.appendChild(document.createTextNode('You can start it right here, or '));
+            var link = document.createElement('a');
+            link.href = url; link.target = '_blank'; link.rel = 'noopener';
+            link.className = 'text-teal-300 underline focus:ring-2 focus:ring-teal-500 focus:outline-none';
+            link.textContent = 'open it in a new tab';
+            p2.appendChild(link);
+            p2.appendChild(document.createTextNode('.'));
+            body.appendChild(p1); body.appendChild(p2);
+            var frame = document.createElement('iframe');
+            frame.src = embedUrl;
+            frame.dataset.featured = '1';
+            frame.className = 'w-full min-h-[600px] border-0 rounded-lg';
+            frame.title = title;
+            frame.setAttribute('allowfullscreen', '');
+            card.appendChild(head); card.appendChild(body); card.appendChild(frame);
+            feed.insertBefore(card, feed.firstChild);
+        }
+        fetch('/static/featured_exam.json?t=' + Date.now())
+            .then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(d) { if (d && d.quiz) { featuredExam = d; ensureFeaturedExam(); } })
+            .catch(function() {});
+        // Chat history restores and "clear" rewrite the feed; put the card back when that happens
+        new MutationObserver(function() { if (featuredExam) ensureFeaturedExam(); })
+            .observe(document.getElementById('chat-feed') || document.body, { childList: true });
+
         function cleanupOldExams() {
-            const allExams = document.querySelectorAll('iframe[src*="/plugin/exam"]');
+            const allExams = document.querySelectorAll('iframe[src*="/plugin/exam"]:not([data-featured]):not([data-ticket-gate])');
             if (allExams.length > 1) {
                 // Keep the last one, destroy the rest
                 for (let i = 0; i < allExams.length - 1; i++) {
@@ -5419,15 +6357,30 @@
             });
         }
 
+        // The text box is a plain textarea (no combobox role), so tell screen reader
+        // users about the command list through the live region instead.
+        let lastAnnouncedCount = -1;
+        function srSay(text) { if (typeof announce === 'function') announce(text); }
+        function spokenCommand(item) {
+            const cmd = (item.getAttribute('data-command') || '').replace(/^\//, '');
+            const desc = item.querySelector('.text-xs');
+            return 'slash ' + cmd + (desc ? ', ' + desc.textContent.trim() : '');
+        }
+
         function showMenu() {
+            const count = getVisibleItems().length;
+            const wasHidden = menuEl.classList.contains('hidden');
             menuEl.classList.remove('hidden');
-            inputEl.setAttribute('aria-expanded', 'true');
+            if (wasHidden || count !== lastAnnouncedCount) {
+                lastAnnouncedCount = count;
+                srSay(count + (count === 1 ? ' command matches' : ' commands match') +
+                      '. Up and Down arrows to choose, Enter to pick, Escape to close.');
+            }
         }
 
         function hideMenu() {
             menuEl.classList.add('hidden');
-            inputEl.setAttribute('aria-expanded', 'false');
-            inputEl.removeAttribute('aria-activedescendant');
+            lastAnnouncedCount = -1;
             activeIndex = -1;
             const isAdmin = typeof isTier5AdminUser === 'function' && isTier5AdminUser();
             menuEl.querySelectorAll('.slash-item').forEach(function(item) {
@@ -5441,13 +6394,13 @@
             });
         }
 
-        function updateActiveItem() {
+        function updateActiveItem(speak) {
             const visible = getVisibleItems();
             visible.forEach((item, index) => {
                 if (index === activeIndex) {
                     item.classList.add('bg-slate-700');
                     item.setAttribute('aria-selected', 'true');
-                    inputEl.setAttribute('aria-activedescendant', item.id);
+                    if (speak) srSay(spokenCommand(item) + ', ' + (index + 1) + ' of ' + visible.length);
                 } else {
                     item.classList.remove('bg-slate-700');
                     item.setAttribute('aria-selected', 'false');
@@ -5524,13 +6477,13 @@
                     e.preventDefault();
                     if (visible.length > 0) {
                         activeIndex = (activeIndex + 1) % visible.length;
-                        updateActiveItem();
+                        updateActiveItem(true);
                     }
                 } else if (e.key === 'ArrowUp') {
                     e.preventDefault();
                     if (visible.length > 0) {
                         activeIndex = (activeIndex - 1 + visible.length) % visible.length;
-                        updateActiveItem();
+                        updateActiveItem(true);
                     }
                 } else if (e.key === 'Enter') {
                     if (activeIndex >= 0 && visible[activeIndex]) {
@@ -5539,6 +6492,7 @@
                     }
                 } else if (e.key === 'Escape') {
                     hideMenu();
+                    srSay('Command list closed');
                 }
             }
         });
@@ -6170,7 +7124,7 @@
     </div>
 </dialog>
 
-<!-- DevCore Passkey & Bitwarden Setup Wizard Modal -->
+<!-- Siraugga Passkey & Bitwarden Setup Wizard Modal -->
 <dialog id="passkey-wizard-modal" aria-labelledby="passkey-modal-title" class="bg-transparent p-0 m-auto backdrop:bg-slate-950/85 backdrop:backdrop-blur-sm w-full max-w-5xl">
     <div class="bg-slate-900 border border-cyan-700/60 rounded-2xl shadow-2xl overflow-hidden text-slate-100 max-h-[92vh] flex flex-col">
         <div class="bg-slate-950 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-3 shrink-0">
@@ -6212,7 +7166,7 @@
         </div>
 
         <div class="p-0 overflow-hidden flex-1 bg-slate-950">
-            <iframe id="passkey-wizard-frame" src="about:blank" title="DevCore Setup and CLI Management Interface" class="w-full h-[76vh] border-0" allow="publickey-credentials-create; publickey-credentials-get"></iframe>
+            <iframe id="passkey-wizard-frame" src="about:blank" title="Siraugga Setup and CLI Management Interface" class="w-full h-[76vh] border-0" allow="publickey-credentials-create; publickey-credentials-get"></iframe>
         </div>
     </div>
 </dialog>
@@ -6824,5 +7778,10 @@
     };
 })();
 </script>
+<!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
+     browsers can't serve an old copy (an old worker copy carries an old CSP). -->
+<script src="/static/speech/dictation.js?v=5" defer></script>
+<script src="/static/device-keys.js?v=1" defer></script>
+<script src="/static/device-keys-ui.js?v=1" defer></script>
 </body>
 </html>

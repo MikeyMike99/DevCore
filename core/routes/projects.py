@@ -9,7 +9,8 @@ projects_bp = Blueprint('projects_bp', __name__)
 async def list_projects():
     user = get_current_user()
     current_app.project_mgr.get_active_workspace_path()
-    projects = current_app.project_mgr.list_projects(user=user)
+    # Anonymous visitors see no project names (list_projects without a user returns them all).
+    projects = current_app.project_mgr.list_projects(user=user) if user else []
     active = current_app.project_mgr.active_project
     root_name = "Workspaces"
     return jsonify({"projects": projects, "active": active, "root_name": root_name})
@@ -17,12 +18,15 @@ async def list_projects():
 @projects_bp.route('/api/projects', methods=['POST'])
 async def create_project():
     user = get_current_user()
-    if user and user.get("role") == "modder":
-        return jsonify({"error": "Access Denied: Modder role has read-only permissions"}), 403
+    # Creating a project adds a folder to the shared playground: Super Admin only. Admins are bound
+    # to the project they were given (anonymous visitors, guests and modders could create folders before).
+    if not current_app.security_mgr.can_create_project(user):
+        return jsonify({"error": "Access Denied: only the Super Admin can create projects"}), 403
     data = await request.get_json() or {}
     name = (data.get('name') or '').strip()
+    from core.roles import tier_for_role
     try:
-        current_app.project_mgr.create_project(name)
+        current_app.project_mgr.create_project(name, user_tier=tier_for_role(user.get("role")))
         return jsonify({"success": True, "project": name})
     except (ValueError, FileExistsError, PermissionError) as e:
         return jsonify({"error": str(e)}), 400
@@ -34,10 +38,12 @@ async def set_active_project():
     name = data.get('name')
     if name:
         name = name.strip()
-    if user and name and not current_app.security_mgr.can_access_project(user, name):
+    # Checked for everyone (it used to skip anonymous callers and the root workspace).
+    if not current_app.security_mgr.can_switch_project(user, name):
         return jsonify({"error": "Access Denied: You do not have permission for this project"}), 403
+    from core.roles import tier_for_role
     try:
-        p = current_app.project_mgr.set_active_project(name)
+        p = current_app.project_mgr.set_active_project(name, user_tier=tier_for_role(user.get("role")))
         return jsonify({"success": True, "active": current_app.project_mgr.active_project, "path": p})
     except Exception as e:
         return jsonify({"error": str(e)}), 400

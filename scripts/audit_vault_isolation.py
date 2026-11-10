@@ -89,6 +89,8 @@ INTEGRITY_FILES = [
     "scripts/setup/cli_bridge_ui.py",
     "scripts/setup/vault_health.py",
     "scripts/setup/passkey_setup_wizard.py",
+    "scripts/dev_jail.sh",
+    "security/dev_workspaces.py",
     ".claude/settings.json",
     ".claude/settings.local.json",
 ]
@@ -369,9 +371,9 @@ def run_vault_audit(live: bool = True, bridge_url: str = DEFAULT_BRIDGE_URL, acc
     from security.raugus_access import is_vault_path, is_vault_key, is_secret_path
 
     sample_vault_paths = [
-        os.path.join(DEVCORE_ROOT, "..", "e_profile", "vault_store.json.vault"),
-        os.path.join(DEVCORE_ROOT, "..", "e_profile", "vault_mod.py"),
-        r"C:\Users\michael\Documents\e_profile\vault_store.json.vault",
+        os.path.join(DEVCORE_ROOT, "playground", "e_profile", "vault_store.json.vault"),
+        os.path.join(DEVCORE_ROOT, "playground", "e_profile", "vault_mod.py"),
+        r"C:\Users\michael\Documents\DevCore\playground\e_profile\vault_store.json.vault",
         r"C:\Users\michael\AppData\Roaming\Bitwarden CLI\data.json",
         "/home/michael/.bitwarden/data.json",
         "/mnt/c/Users/michael/Documents/DevCore/.devcore_master.key",
@@ -406,8 +408,8 @@ def run_vault_audit(live: bool = True, bridge_url: str = DEFAULT_BRIDGE_URL, acc
     # =========================================================================
     # 2. PreToolUse Security Hook Interception
     # =========================================================================
-    vault_file_target = os.path.join(DEVCORE_ROOT, "..", "e_profile", "vault_store.json.vault")
-    vault_mod_target = os.path.join(DEVCORE_ROOT, "..", "e_profile", "vault_mod.py")
+    vault_file_target = os.path.join(DEVCORE_ROOT, "playground", "e_profile", "vault_store.json.vault")
+    vault_mod_target = os.path.join(DEVCORE_ROOT, "playground", "e_profile", "vault_mod.py")
 
     d_view_vault = simulate_hook("view_file", {"AbsolutePath": vault_file_target})
     d_view_mod = simulate_hook("view_file", {"AbsolutePath": vault_mod_target})
@@ -425,7 +427,7 @@ def run_vault_audit(live: bool = True, bridge_url: str = DEFAULT_BRIDGE_URL, acc
     )
     d_cmd_vault_cat = simulate_hook(
         "run_command",
-        {"CommandLine": f"cat ../e_profile/vault_mod.py # {AUDIT_CANARY}", "Cwd": os.path.join(DEVCORE_ROOT, "playground")},
+        {"CommandLine": f"cat e_profile/vault_mod.py # {AUDIT_CANARY}", "Cwd": os.path.join(DEVCORE_ROOT, "playground")},
     )
     cmds_blocked = d_cmd_bw.get("decision") == "deny" and d_cmd_vault_cat.get("decision") == "deny"
     record_check(

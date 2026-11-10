@@ -1,0 +1,21 @@
+{
+    "_help": "Hybrid routing preferences. The models themselves are NOT listed here: they are discovered from the CLIs (Antigravity 'agy models' = Google subscription, the Claude CLI catalog = Claude subscription), and so are their quotas (each CLI's /usage). Each chain is your order of preference for one kind of work, best first. Each step picks the first discovered model whose name contains every word in 'match' (case-insensitive; a single string or a list) on that 'backend' ('antigravity' or 'claude_cli'). Steps that match nothing are skipped. heavy = exams, code, documents. light = everyday questions. analyst = the planning step before heavy work (runs with no tools). Edit freely; changes apply on the next message.",
+    "chains": {
+        "heavy": [
+            {"backend": "antigravity", "match": ["Argon", "(Medium)"]},
+            {"backend": "antigravity", "match": ["Claude Sonnet", "(Medium)"]},
+            {"backend": "claude_cli", "match": "Sonnet"},
+            {"backend": "antigravity", "match": ["Flash", "(High)"]}
+        ],
+        "light": [
+            {"backend": "antigravity", "match": ["Claude Sonnet", "(Medium)"]},
+            {"backend": "claude_cli", "match": "Sonnet"},
+            {"backend": "antigravity", "match": ["Flash", "(High)"]},
+            {"backend": "antigravity", "match": ["Argon", "(Medium)"]}
+        ],
+        "analyst": [
+            {"backend": "antigravity", "match": ["Claude Sonnet", "(Medium)"]},
+            {"backend": "claude_cli", "match": "Sonnet"}
+        ]
+    }
+}
