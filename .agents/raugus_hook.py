@@ -45,6 +45,22 @@ def log_violation(tool_name, target, reason):
 
 _HOOK_DEVCORE_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 
+
+def _agent_tier() -> int:
+    """Tier of the agent this hook guards: 5 for admin runs (set by Siraugga), else from the
+    signed agent credential in the environment; 0 when unknown."""
+    if os.environ.get("DEVCORE_AGENT_IS_ADMIN") == "1":
+        return 5
+    try:
+        if _HOOK_DEVCORE_ROOT not in sys.path:
+            sys.path.insert(0, _HOOK_DEVCORE_ROOT)
+        from security.agent_identity import credential_from_env, verify_agent_credential
+        cred = credential_from_env()
+        ident = verify_agent_credential(cred) if isinstance(cred, str) else cred
+        return int((ident or {}).get("tier", 0))
+    except Exception:
+        return 0
+
 IMMUTABLE_JIT_BASENAMES = {
     "jit_elevation.py",
     ".jit_elevation_lease.json",
@@ -254,6 +270,16 @@ def check_self_protection(tool_name, args):
                 "Raugus Anti-Self-Minting Firewall: Autonomous agents are strictly forbidden from "
                 "invoking Human-in-the-Loop JIT elevation endpoints."
             )
+        # Research below Tier 5 is public-internet only: this machine's own services
+        # (127.0.0.1), the LAN and cloud metadata stay unreachable. Tier 5 is unchanged.
+        if _agent_tier() < 5:
+            try:
+                from security.safe_fetch import vet_url, FetchBlocked
+                vet_url(url_val)
+            except FetchBlocked as exc:
+                return f"Research is limited to public websites: {exc}."
+            except Exception:
+                return "Research is limited to public websites (the address could not be checked)."
 
     if tool_name in WRITE_TOOLS:
         cand = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath")
