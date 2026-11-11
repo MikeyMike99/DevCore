@@ -448,16 +448,6 @@
                 <p id="access-key-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
             </div>
 
-            <!-- Screen reader chatter (read by announce() and dictation.js) -->
-            <section aria-labelledby="quiet-sr-heading" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
-                <h3 id="quiet-sr-heading" class="text-xs font-bold text-teal-300 m-0">🔈 Screen reader</h3>
-                <label for="quiet-sr" class="flex items-center justify-between gap-3 text-sm text-slate-200 cursor-pointer min-h-[44px]">
-                    <span>Quiet mode (fewer announcements)</span>
-                    <input type="checkbox" role="switch" id="quiet-sr" class="w-5 h-5 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
-                </label>
-                <p class="text-[11px] text-slate-400 m-0">Skips progress and tool chatter, and does not read the whole answer aloud: it just says the task finished, and you can swipe to read the answer. On by default on phones.</p>
-            </section>
-
             <!-- Voice dictation preference (read/written by sandbox/static/speech/dictation.js) -->
             <section aria-labelledby="dictation-settings-heading" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <h3 id="dictation-settings-heading" class="text-xs font-bold text-teal-300 m-0">🎤 Voice dictation</h3>
@@ -2366,28 +2356,9 @@
             return s.replace(/\s+/g, ' ').trim();
         }
 
-        // Quiet mode: saved choice, else on for touch phones/tablets (TalkBack / VoiceOver already
-        // narrate a lot there). Chatter (progress, thoughts, tool steps) is dropped when quiet.
-        window.sirQuiet = function () {
-            var v = null;
-            try { v = localStorage.getItem('siraugga.quietSR'); } catch (_) {}
-            if (v === '1') return true;
-            if (v === '0') return false;
-            try { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (_) { return false; }
-        };
-        (function () {
-            var t = document.getElementById('quiet-sr');
-            if (!t) return;
-            t.checked = window.sirQuiet();
-            t.addEventListener('change', function () {
-                try { localStorage.setItem('siraugga.quietSR', t.checked ? '1' : '0'); } catch (_) {}
-            });
-        })();
-
-        function announce(text, isAlert, kind) {
+        function announce(text, isAlert) {
             var target = isAlert ? srAlerts : srAnnouncer;
             if (!target) return;
-            if (kind === 'chatter' && window.sirQuiet()) return;
             
             // Sanitize markdown links, file paths, line numbers, and punctuation before announcing
             var cleanText = cleanTextForAria(text);
@@ -2764,7 +2735,7 @@
                     }
                 }
                 if (data.progress_tick && heartbeatMsg) {
-                    announce(heartbeatMsg, false, 'chatter');
+                    announce(heartbeatMsg);
                 }
                 return;
             }
@@ -2992,14 +2963,14 @@
                     currentAgentArticle = appendAgentMessageContainer(data.model);
                 }
                 if (data.message) {
-                    announce(data.message, false, 'chatter');
+                    announce(data.message);
                 }
             }
             else if (data.type === 'agent_thought') {
                 if (data.announcement) {
-                    announce(data.announcement, false, 'chatter');
+                    announce(data.announcement);
                 } else if (data.thought) {
-                    announce('Thinking: ' + data.thought, false, 'chatter');
+                    announce('Thinking: ' + data.thought);
                 }
                 if (!currentAgentArticle) {
                     currentAgentArticle = appendAgentMessageContainer();
@@ -3043,7 +3014,7 @@
                 }
                 
                 if (data.action.announcement !== "" && !announcedActions.has(data.action.id)) {
-                    announce(data.action.announcement || 'Action started', false, 'chatter');
+                    announce(data.action.announcement || 'Action started');
                     announcedActions.add(data.action.id);
                 }
             }
@@ -3059,7 +3030,7 @@
                 }
                 // Insightful Outcome Generator Announcement
                 if (data.action.announcement !== "" && !announcedActions.has(data.action.id)) {
-                    announce(data.action.announcement || 'Action complete', false, 'chatter');
+                    announce(data.action.announcement || 'Action complete');
                     announcedActions.add(data.action.id);
                 }
             }
@@ -3158,7 +3129,7 @@
             clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 500);
 
-            announce("Task started with " + modelDisplay + ". Analyzing request...", false, 'chatter');
+            announce("Task started with " + modelDisplay + ". Analyzing request...");
 
             window.onbeforeunload = function() {
                 return "Task is running in the background. It will continue safely.";
@@ -3306,8 +3277,7 @@
                         }
                     }
                     if (responseText && status !== 'SYNC_IDLE' && status !== 'Server restarted') {
-                        if (window.sirQuiet()) announce("Task completed in " + elapStr + ". The answer is ready.");
-                        else announce("Task completed in " + elapStr + ". Response: " + (responseText || "").replace(/<[^>]*>?/gm, '').trim());
+                        announce("Task completed in " + elapStr + ". Response: " + (responseText || "").replace(/<[^>]*>?/gm, '').trim());
                     }
                 }
 
@@ -7993,7 +7963,7 @@
 </script>
 <!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
-<script src="/static/speech/dictation.js?v=10" defer></script>
+<script src="/static/speech/dictation.js?v=11" defer></script>
 <script src="/static/device-keys.js?v=3" defer></script>
 <script src="/static/device-keys-ui.js?v=2" defer></script>
 </body>

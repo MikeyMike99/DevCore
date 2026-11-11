@@ -182,7 +182,7 @@
             prompt.setSelectionRange(caret, caret);
         }
         prompt.dispatchEvent(new Event('input', { bubbles: true }));
-        say(window.sirQuiet && window.sirQuiet() ? 'Text added.' : 'Inserted: ' + text.trim());
+        say('Inserted: ' + text.trim());
         return true;
     }
 
