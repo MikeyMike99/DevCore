@@ -66,6 +66,25 @@
             #send-btn { padding-left: 14px; padding-right: 14px; }
             #mic-btn { padding-left: 10px; padding-right: 10px; }
             #mic-btn-label { display: none; }
+            /* Response / question cards: header rows wrap, content never wider than the screen */
+            .message-card { max-width: 100%; min-width: 0; }
+            .message-card .flip-front > div:first-child,
+            .message-card .flip-back > div:first-child,
+            .message-card > div:first-child { flex-wrap: wrap; gap: 6px; }
+            .message-card .flip-front > div:first-child > div,
+            .message-card .flip-back > div:first-child > div,
+            .message-card > div:first-child > div { flex-wrap: wrap; min-width: 0; row-gap: 4px; }
+            .message-card h2 { font-size: 11px; }
+            .message-card .flip-front > div:last-child,
+            .message-card .flip-back > div:last-child { padding: 0.75rem; }
+            .message-card .markdown-body,
+            .message-card .whitespace-pre-wrap { overflow-wrap: anywhere; word-break: break-word; }
+            .message-card .markdown-body { font-size: 0.9rem; }
+            .message-card .markdown-body ul, .message-card .markdown-body ol { margin-left: 1.1rem; }
+            .message-card .markdown-body pre { max-width: 100%; padding: 0.6rem; font-size: 0.78rem; }
+            .message-card .markdown-body table { display: block; overflow-x: auto; max-width: 100%; white-space: nowrap; }
+            .message-card .markdown-body img, .message-card .markdown-body video { max-width: 100%; height: auto; }
+            .message-card button { min-height: 28px; }
         }
         #mic-btn.mic-recording { background-color: #b91c1c; border-color: #ef4444; color: #fff; }
         #mic-btn.mic-recording svg { animation: mic-pulse 1.2s ease-in-out infinite; }
