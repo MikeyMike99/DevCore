@@ -498,6 +498,19 @@ class ExecutionMixin:
         available worker; a different available model analyses the request first and hands it a brief,
         so the worker spends its tokens on doing, not on working things out."""
         from agents import model_router as mr
+        # High usage and an economy tier: skip the premium planning step, the economy model answers
+        # (the message about it is sent by _execute_agent).
+        if not admin_override and not (isinstance(user, dict) and (is_admin_role(user.get("role")) or user.get("_browser_key"))):
+            try:
+                from agents import tier_limits as _tl
+                from security.subscription_guard import get_user_subscription
+                u = user if isinstance(user, dict) else {}
+                own_key = bool(u) and bool(get_user_subscription(u.get("username") or u.get("name") or u.get("key_id") or "guest"))
+                eco, _busy = (None, []) if own_key else mr.economy_model(_tl.get_tier_for_user(u))
+                if eco:
+                    return eco, prompt
+            except Exception:
+                pass
         heavy = self._smart_is_heavy(prompt) and not (prompt or "").startswith("SYSTEM TRIGGER")
         if not heavy:
             light = mr.pick(mr.LIGHT_CHAIN) or mr.FLASH
@@ -692,6 +705,23 @@ class ExecutionMixin:
                 self.active_task = None
                 self.start_time = None
                 return
+
+        # High usage: Tier 1 (see core/model_routing.json "tier_economy") moves to the economy model
+        # before the premium pools run out. Never admins, never people on their own key or a local model.
+        if (not is_effective_admin and not has_own_sub and isinstance(model, str)
+                and not model.lower().startswith(("local ", "ollama:"))):
+            try:
+                from agents import tier_limits as _tl, model_router as _mr
+                eco, _busy = _mr.economy_model(_tl.get_tier_for_user(user if isinstance(user, dict) else {}),
+                                               tried=_tried_models)
+                if eco and eco != model:
+                    await self.broadcast({"type": "smart_route", "fallback_model": eco,
+                                          "message": f"High demand right now, so this answer uses {eco}. "
+                                                     "Higher tiers and your own key get the premium models."})
+                    model = eco
+                    self.current_model = model
+            except Exception as e:
+                logging.warning(f"[ExecutionMixin] tier economy check skipped: {e}")
 
         # Which tool runs this model comes from core/model_routing.json: 'claude_cli' (Claude subscription)
         # or 'antigravity' (Google subscription, which also offers Claude models).

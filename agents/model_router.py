@@ -363,6 +363,58 @@ def _usage_exhausted() -> dict:
     return out
 
 
+def pool_left_pct() -> dict:
+    """{quota_group: percent left}, the lowest of each pool's 5-hour and weekly windows."""
+    snap = usage_snapshot()
+    out = {}
+    for row in snap.get("google", []):
+        g = _USAGE_GROUP_TO_QUOTA.get(row["group"].lower())
+        if g:
+            out[g] = min(out.get(g, 100), int(row["remaining_pct"]))
+    c = snap.get("claude", {})
+    if "session_pct" in c or "week_pct" in c:
+        out["claude_sub"] = max(0, 100 - max(int(c.get("session_pct", 0)), int(c.get("week_pct", 0))))
+    return out
+
+
+def _resolve_rule(rule) -> str:
+    """The discovered model a single chain-style rule points to, or None."""
+    if not rule:
+        return None
+    if isinstance(rule, str):
+        rule = {"match": rule}
+    raw = rule.get("match", "")
+    words = [str(w).lower() for w in (raw if isinstance(raw, list) else [raw]) if str(w)]
+    for label, info in discovered_models().items():
+        if rule.get("backend") and info.get("backend") != rule["backend"]:
+            continue
+        if all(w in (info.get("cli_model", "") + " " + label).lower() for w in words):
+            return label
+    return None
+
+
+def economy_model(tier: int, tried: tuple = ()):
+    """When usage is high, the tiers in model_routing.json 'tier_economy' get the economy model
+    before the premium pools run out. Returns (model, busy_pools) or (None, [])."""
+    cfg = load_config().get("tier_economy") or {}
+    if tier not in (cfg.get("tiers") or []):
+        return None, []
+    floor = int(cfg.get("min_left_pct", 30))
+    left = pool_left_pct()
+    busy = [g for g in (cfg.get("premium_pools") or []) if g in left and left[g] < floor]
+    if not busy:
+        return None, []
+    eco = _resolve_rule(cfg.get("model")) or FLASH_FALLBACK()
+    if not eco or eco in tried or not is_available(eco):
+        return None, busy      # economy model is out too: the normal chain decides
+    return eco, busy
+
+
+def FLASH_FALLBACK() -> str:
+    heavy = chain("heavy")
+    return heavy[-1] if heavy else LAST_RESORT
+
+
 def is_available(model: str) -> bool:
     g = family(model)
     if g in _usage_exhausted():

@@ -17,5 +17,12 @@
             {"backend": "antigravity", "match": ["Claude Sonnet", "(Medium)"]},
             {"backend": "claude_cli", "match": "Sonnet"}
         ]
+    },
+    "tier_economy": {
+        "_help": "When usage is high, the tiers listed here are moved to the economy model before the premium pools run out. High = any pool in premium_pools (claude_sub = Claude subscription, google:claude_gpt = Claude/GPT via Google, google:argon = Gemini 4 Argon) has less than min_left_pct percent left in its 5-hour or weekly window. Admins and people using their own key are never moved. Set tiers to [] to turn this off. Changes apply on the next message.",
+        "tiers": [1],
+        "min_left_pct": 30,
+        "premium_pools": ["claude_sub", "google:claude_gpt", "google:argon"],
+        "model": {"backend": "antigravity", "match": ["Flash", "(High)"]}
     }
 }
