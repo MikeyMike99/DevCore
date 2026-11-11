@@ -81,9 +81,28 @@ def _fail(msg: str, code: int = 400):
     return jsonify({"success": False, "error": msg}), code, _NO_STORE
 
 
+def _mask_email(email: str) -> str:
+    """j***@gmail.com: enough to tell which address was typed, never the whole thing."""
+    e = str(email or "").strip().lower()
+    if "@" not in e:
+        return "(none)" if not e else "(not an email)"
+    name, _, dom = e.partition("@")
+    return f"{name[:1]}***@{dom[:40]}"
+
+
+def _slog(event: str, **fields) -> None:
+    """One sign-in log line: [SignIn] event key=value ... Never passwords, codes or full emails."""
+    import time as _t
+    ip = (request.headers.get("CF-Connecting-IP") or request.remote_addr or "?")[:45]
+    host = (request.headers.get("Host") or "?")[:60]
+    extra = " ".join(f"{k}={str(v).replace(chr(10), ' ')[:120]!r}" for k, v in fields.items())
+    print(f"[SignIn] {_t.strftime('%Y-%m-%d %H:%M:%S')} {event} ip={ip} host={host} {extra}".rstrip(), flush=True)
+
+
 def _site_or_fail():
     site = _site()
     if not site:
+        _slog("rejected_address", path=request.path)
         return None, _fail(f"Access keys only work on {_public_url()} (or on localhost on the host computer).")
     return site, None
 
@@ -174,6 +193,7 @@ async def recover():
     data = await _json()
     ua = (request.headers.get("User-Agent") or "unknown device")[:160]
     email = str(data.get("email") or "").strip()
+    _slog("recovery_requested", email=_mask_email(email))
     if email:
         found = dk.create_person_recovery_invite(email)
         if found:
@@ -292,7 +312,9 @@ async def login_password():
         step = dk.start_login(str(data.get("username") or ""), str(data.get("password") or ""))
     except ValueError as e:
         msg = str(e)
+        _slog("password_failed", username=str(data.get("username") or "").strip().lower()[:40], reason=msg)
         return _fail(msg, 429 if msg.startswith("Too many") else 401)
+    _slog("password_ok", username=str(data.get("username") or "").strip().lower()[:40])
     return jsonify({"success": True, "step_id": step}), 200, _NO_STORE
 
 
@@ -306,11 +328,13 @@ async def login_email():
     try:
         target = dk.login_email_target(step, str(data.get("email") or ""))
     except ValueError as e:
+        _slog("email_rejected", email=_mask_email(data.get("email")), reason=str(e))
         return _fail(str(e))
     import html as _html
     try:
         code = dk.new_login_link(step)        # uses up the password step
     except ValueError as e:
+        _slog("email_step_expired", reason=str(e))
         return _fail(str(e))
     url = f"{site[1]}/setup?signin={code}"
     ua = (request.headers.get("User-Agent") or "unknown device")[:160]
@@ -321,11 +345,14 @@ async def login_email():
         url=url, expiry="15 minutes", requested_from=ua, button="Sign in to Siraugga",
         only_if_matches=(target["typed"] if target["to"] == "__admin__" else ""))
     if sent.get("status") == "mismatch":
+        _slog("email_mismatch", email=_mask_email(target["typed"]), kind=target["who"].get("kind"))
         dk.cancel_login_link(code)
         return _fail("That email address doesn't match this account. Sign in again and use the right address.")
     if not sent.get("ok"):
+        _slog("email_send_failed", email=_mask_email(target["typed"]), detail=sent.get("message"))
         dk.cancel_login_link(code)
         return _fail("The email could not be sent right now. Try again in a minute.", 502)
+    _slog("email_sent", email=_mask_email(target["typed"]), kind=target["who"].get("kind"))
     return jsonify({"success": True, "message": "Sign-in link sent. Open your email on this device and press "
                     "\"Sign in to Siraugga\". The link works once, for 15 minutes."}), 200, _NO_STORE
 
@@ -339,7 +366,9 @@ async def login_link():
     try:
         rec = dk.take_login_link(str(data.get("code") or "").strip())
     except ValueError as e:
+        _slog("link_rejected", reason=str(e))
         return _fail(str(e))
+    _slog("link_ok", role=rec.get("role"), name=rec.get("name"))
     return await _signed_in(rec)
 
 
@@ -373,10 +402,12 @@ async def login_finish():
         rec = dk.finish_authentication(str(data.get("login_id") or ""), data.get("credential") or {},
                                        origin=site[1])
     except ValueError as e:
+        _slog("passkey_rejected", reason=str(e))
         return _fail(str(e))
     except Exception as e:
-        print(f"[DeviceKeys] sign-in rejected: {e}")
+        _slog("passkey_error", reason=f"{e.__class__.__name__}: {e}")
         return _fail("The access key could not be verified. Try again.")
+    _slog("passkey_ok", role=rec.get("role"), name=rec.get("name"))
     return await _signed_in(rec)
 
 
