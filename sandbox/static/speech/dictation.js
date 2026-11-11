@@ -174,7 +174,7 @@
         prompt.focus();
         prompt.setSelectionRange(caret, caret);
         prompt.dispatchEvent(new Event('input', { bubbles: true }));
-        say('Inserted: ' + text.trim());
+        say(window.sirQuiet && window.sirQuiet() ? 'Text added.' : 'Inserted: ' + text.trim());
         return true;
     }
 
@@ -239,7 +239,7 @@
         recorder.start();
         stopTimer = setTimeout(function () { stopRecording('timeout'); }, MAX_SECONDS * 1000);
         setState('recording');
-        say('Listening. Press the button again to stop.');
+        say(window.sirQuiet && window.sirQuiet() ? 'Listening.' : 'Listening. Press the button again to stop.');
     }
 
     function stopRecording(reason) {
