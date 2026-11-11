@@ -23,6 +23,8 @@ env.backends.onnx.wasm.proxy = false;
 // (Mixed fp32/q8 on WebGPU produced garbage text, so the GPU path is all-fp32.)
 async function hasWebGPU() {
     try {
+        // Phones: the 145 MB GPU model often runs out of memory or gives bad text, use the small CPU one.
+        if (/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')) return false;
         return !!(navigator.gpu && await navigator.gpu.requestAdapter());
     } catch (_) {
         return false;

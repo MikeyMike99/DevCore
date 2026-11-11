@@ -91,6 +91,7 @@
     function say(text, isError) {
         if (status) status.textContent = text;
         if (isError) {
+            showVisible(text);
             if (label) {
                 label.textContent = 'Mic error';
                 setTimeout(function () { if (state === 'idle') label.textContent = 'Speak'; }, 4000);
@@ -100,7 +101,10 @@
 
     // A short visible note above the message box (also announced to screen readers).
     function showNotice(text) {
-        say(text);
+        if (status) status.textContent = text;
+        showVisible(text);
+    }
+    function showVisible(text) {
         if (!notice) return;
         notice.textContent = text;
         notice.classList.remove('hidden');
@@ -120,7 +124,7 @@
     // ---- transcription -------------------------------------------------------
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=4', { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=5', { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
             if (m.type === 'progress') {
@@ -204,7 +208,13 @@
     }
 
     async function startRecording() {
-        getWorker().postMessage({ type: 'load' });   // warm the model while the user talks
+        try {
+            getWorker().postMessage({ type: 'load' });   // warm the model while the user talks
+        } catch (err) {
+            console.error('[dictation] worker', err);
+            say('Voice dictation could not start in this browser (' + ((err && err.message) || err) + ').', true);
+            return;
+        }
         try {
             stream = await navigator.mediaDevices.getUserMedia({
                 audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
@@ -212,12 +222,18 @@
         } catch (err) {
             say(err && err.name === 'NotAllowedError'
                 ? 'Microphone access was blocked. Allow it in your browser to use dictation.'
-                : 'No microphone could be opened.', true);
+                : 'No microphone could be opened (' + ((err && err.name) || 'error') + ').', true);
             return;
         }
         chunks = [];
         stoppedBy = null;
-        recorder = new MediaRecorder(stream);
+        try {
+            recorder = new MediaRecorder(stream);
+        } catch (err) {
+            releaseMic();
+            say('This browser could not start recording (' + ((err && err.message) || err) + ').', true);
+            return;
+        }
         recorder.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
         recorder.onstop = onRecordingStopped;
         recorder.start();
@@ -246,16 +262,36 @@
         } catch (err) {
             console.error('[dictation]', err);
             setState('idle');
-            say('The recording could not be processed.', true);
+            say('The recording could not be processed: ' + ((err && err.message) || err), true);
         }
     }
 
-    // Whisper expects 16 kHz mono float samples.
+    // Whisper expects 16 kHz mono float samples. Some phone browsers refuse an
+    // AudioContext at 16 kHz, so fall back to the default rate and resample.
     async function toMono16k(arrayBuffer) {
         var Ctx = window.AudioContext || window.webkitAudioContext;
-        var ctx = new Ctx({ sampleRate: 16000 });
+        var ctx;
+        try { ctx = new Ctx({ sampleRate: 16000 }); } catch (_) { ctx = new Ctx(); }
         try {
-            var decoded = await ctx.decodeAudioData(arrayBuffer);
+            // Safari's older decodeAudioData only takes callbacks.
+            var decoded = await new Promise(function (resolve, reject) {
+                var p = ctx.decodeAudioData(arrayBuffer, resolve, reject);
+                if (p && p.then) p.then(resolve, reject);
+            });
+            if (decoded.sampleRate !== 16000 && window.OfflineAudioContext) {
+                var len = Math.max(1, Math.ceil(decoded.duration * 16000));
+                var off = new OfflineAudioContext(1, len, 16000);   // mixes down to mono too
+                var src = off.createBufferSource();
+                src.buffer = decoded;
+                src.connect(off.destination);
+                src.start();
+                var rendered = await new Promise(function (resolve, reject) {
+                    var p = off.startRendering();
+                    off.oncomplete = function (ev) { resolve(ev.renderedBuffer); };
+                    if (p && p.then) p.then(resolve, reject);
+                });
+                return new Float32Array(rendered.getChannelData(0));
+            }
             if (decoded.numberOfChannels === 1) return new Float32Array(decoded.getChannelData(0));
             var out = new Float32Array(decoded.length);
             for (var c = 0; c < decoded.numberOfChannels; c++) {
