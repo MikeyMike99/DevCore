@@ -422,11 +422,11 @@
                 </div>
                 <!-- Public domain only: the owner, on the host computer, becomes Super Admin with one click -->
                 <button type="button" id="owner-signin-btn" onclick="ownerSignInFromDomain(false)" class="hidden min-h-[44px] text-[11px] text-amber-200 font-bold bg-amber-950/70 hover:bg-amber-900/70 px-2 py-1.5 rounded border border-amber-600/60 focus:ring-2 focus:ring-amber-400 focus:outline-none cursor-pointer">👑 Owner sign-in (on the host computer)</button>
-                <p id="owner-signin-feedback" class="text-xs text-amber-200 m-0 empty:hidden" role="status" aria-live="polite"></p>
+                <p id="owner-signin-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
                 <!-- Any device with a Siraugga access key (passkey); see sandbox/static/device-keys-ui.js -->
                 <button type="button" id="access-key-signin-btn" class="hidden min-h-[44px] text-[11px] text-teal-200 font-bold bg-teal-950/70 hover:bg-teal-900/70 px-2 py-1.5 rounded border border-teal-600/60 focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer">🔑 Sign in with access key</button>
                 <a id="access-key-setup-link" href="/setup" class="hidden text-[11px] text-teal-300 underline focus:ring-2 focus:ring-teal-400 focus:outline-none">Set up this device</a>
-                <p id="access-key-feedback" class="text-xs text-amber-200 m-0 empty:hidden" role="status" aria-live="polite"></p>
+                <p id="access-key-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
             </div>
 
             <!-- Voice dictation preference (read/written by sandbox/static/speech/dictation.js) -->
@@ -478,7 +478,7 @@
                     <span class="text-xs text-slate-300">Devices and people</span>
                     <ul id="ak-list" class="list-none m-0 p-0 mt-1 flex flex-col gap-1.5 text-[11px] text-slate-300"></ul>
                 </div>
-                <p id="ak-feedback" class="text-xs text-amber-200 m-0 empty:hidden" role="status" aria-live="polite"></p>
+                <p id="ak-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
             </section>
 
             <!-- Owner devices: be Super Admin on the public domain from this browser (host owner only) -->
@@ -5267,8 +5267,23 @@
     // silent = automatic renewal for a browser that signed in before (no messages, no prompts).
     async function ownerSignInFromDomain(silent) {
         var fb = document.getElementById('owner-signin-feedback');
-        var say = function(t) { if (!silent && fb) fb.textContent = t; };
-        if (!onPublicDomain()) return false;
+        var btn = document.getElementById('owner-signin-btn');
+        // Clear first, then set on the next tick, so screen readers announce every message,
+        // even when the same text is shown twice in a row.
+        var say = function(t) {
+            if (silent || !fb) return;
+            fb.textContent = '';
+            setTimeout(function() { fb.textContent = t; }, 60);
+        };
+        var busy = function(on) {
+            if (silent || !btn) return;
+            if (on) { btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = 'Signing in…'; }
+            else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+            btn.disabled = !!on;
+            btn.setAttribute('aria-busy', on ? 'true' : 'false');
+        };
+        if (!onPublicDomain()) { say('You are already on the address of this computer, so you are signed in as the owner here.'); return false; }
+        busy(true);
         say('Checking with the Siraugga server on this computer… If your browser asks to let this site access apps or devices on this computer, choose Allow.');
         var ctrl = new AbortController();
         // Long enough to answer the browser's "local network access" permission prompt, which
@@ -5285,14 +5300,22 @@
             var c = await fetch(d.url, { credentials: 'same-origin', cache: 'no-store' });
             if (!c.ok) throw new Error('claim');
             try { sessionStorage.removeItem('agy_manual_logout'); } catch (e2) {}
-            say('Signed in as Super Admin. Reloading…');
-            location.reload();
+            say('Signed in as Super Admin. Reloading the page…');
+            setTimeout(function() { location.reload(); }, 1200);
             return true;
         } catch (e) {
             clearTimeout(timer);
-            say(e && e.name === 'AbortError'
-                ? 'No answer from the Siraugga server on this computer. Is it running? If your browser showed a permission prompt, choose Allow and try again.'
-                : 'Your browser blocked the connection to the Siraugga server on this computer. Click the icon left of the address bar, open Site settings, set "Local network access" (or "Apps on device") to Allow, then try again. This only works on the host computer.');
+            busy(false);
+            var msg = (e && e.message) || '';
+            if (e && e.name === 'AbortError') {
+                say('Sign-in failed: no answer from the Siraugga server on this computer. Is it running? If your browser showed a permission prompt, choose Allow and try again.');
+            } else if (msg === 'claim') {
+                say('Sign-in failed: the one-time sign-in link could not be used. Please press the button again.');
+            } else if (msg && msg !== 'refused' && msg !== 'Failed to fetch' && e.name !== 'TypeError') {
+                say('Sign-in failed: ' + msg);
+            } else {
+                say('Sign-in failed: your browser blocked the connection to the Siraugga server on this computer. Click the icon left of the address bar, open Site settings, set "Local network access" (or "Apps on device") to Allow, then press the button again. This only works on the host computer.');
+            }
             return false;
         }
     }
