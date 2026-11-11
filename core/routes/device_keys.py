@@ -183,7 +183,22 @@ async def recover():
                               "If that was you, press the button on your new device.",
                         url=f"{_public_url()}/setup?invite={code}", expiry="30 minutes", requested_from=ua)
         else:
-            print("[DeviceKeys] person recovery: no email sent (unknown address or daily limit)")
+            # One of the owner's extra sign-in addresses: an owner setup link goes to it
+            # (the reply is the same either way).
+            from security import owner_emails
+            code = None
+            if owner_emails.is_extra_owner_email(email):
+                try:
+                    code = dk.create_recovery_invite()
+                except ValueError:
+                    code = None
+            if code:
+                _email_link(email.lower(), kicker="Owner access request", heading="Owner setup link (expires in 30 minutes)",
+                            intro="Someone asked for a new Siraugga setup link for this owner email address. If that was you, "
+                                  "press the button on the new device to make it Super Admin. You can also cancel it in Settings → Access keys.",
+                            url=f"{_public_url()}/setup?invite={code}", expiry="30 minutes", requested_from=ua, warn_inbox=True)
+            else:
+                print("[DeviceKeys] person recovery: no email sent (unknown address or daily limit)")
         return jsonify({"success": True, "message": _PERSON_RECOVERY_REPLY}), 200, _NO_STORE
     try:
         code = dk.create_recovery_invite()

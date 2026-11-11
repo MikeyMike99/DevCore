@@ -4331,7 +4331,7 @@
             // The ticket queue shows itself only if the server confirms tier-5 access
             window._isTier5 = !!isAdmin;
             if (isAdmin && typeof refreshTicketQueue === 'function') refreshTicketQueue();
-            else setVisible('ticket-queue-card', false);
+            else { setVisible('ticket-queue-card', false); setVisible('direct-mode-card', false); }
 
             // Gate Tier 3+ Developer controls (Project Workspace selector & Sandbox prompt shortcut)
             setVisible('project-workspace-card', isDev);

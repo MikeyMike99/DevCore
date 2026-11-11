@@ -4,7 +4,9 @@ Sends one email through the e_profile email engine (Gmail SMTP or its local mock
 Runs in its own process so e_profile's `config` module never clashes with DevCore's
 imports. Reads {"to", "subject", "html", "text"} as JSON on stdin and prints
 {"ok", "message", "status"} as JSON. "to": "__admin__" sends to the DevCore inbox
-(TICKET_ADMIN_EMAIL, else e_profile's MAIL_USERNAME / MAIL_DEFAULT_SENDER).
+(TICKET_ADMIN_EMAIL, else e_profile's MAIL_USERNAME / MAIL_DEFAULT_SENDER). With "only_if_matches",
+it sends only if that typed address is the owner inbox or an extra owner address
+(see _extra_owner_emails), and then to the typed address.
 """
 import json
 import os
@@ -41,6 +43,17 @@ def _shim_dotenv() -> None:
     sys.modules["dotenv"] = types.SimpleNamespace(load_dotenv=load_dotenv)
 
 
+def _extra_owner_emails() -> list:
+    """Extra owner sign-in addresses (security/owner_emails.py; kept outside the repo)."""
+    devcore = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(os.path.join(devcore, "security"))
+    try:
+        import owner_emails
+        return owner_emails.extra_owner_emails()
+    except Exception:
+        return []
+
+
 def main() -> int:
     devcore = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # e_profile lives in DevCore's playground; the sibling folder is the old layout (and PythonAnywhere's).
@@ -61,9 +74,12 @@ def main() -> int:
             # Sign-in check: send only if the address the person typed IS the owner inbox.
             # The real address is never printed back.
             want = str(req.get("only_if_matches") or "").strip().lower()
-            if want and want != str(to or "").strip().lower():
-                print(json.dumps({"ok": False, "message": "Address does not match.", "status": "mismatch"}))
-                return 1
+            if want:
+                allowed = [str(to or "").strip().lower()] + _extra_owner_emails()
+                if want not in allowed:
+                    print(json.dumps({"ok": False, "message": "Address does not match.", "status": "mismatch"}))
+                    return 1
+                to = want   # the owner's own inbox, or one of their extra owner addresses
         if not to:
             print(json.dumps({"ok": False, "message": "No recipient address is configured."}))
             return 1
