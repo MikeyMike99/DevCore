@@ -85,9 +85,9 @@ def _mask_email(email: str) -> str:
     """j***@gmail.com: enough to tell which address was typed, never the whole thing."""
     e = str(email or "").strip().lower()
     if "@" not in e:
-        return "(none)" if not e else "(not an email)"
+        return "(none)" if not e else f"(not an email, {len(e)} chars)"
     name, _, dom = e.partition("@")
-    return f"{name[:1]}***@{dom[:40]}"
+    return f"{name[:3]}***@{dom[:40]} ({len(e)} chars)"
 
 
 def _slog(event: str, **fields) -> None:
