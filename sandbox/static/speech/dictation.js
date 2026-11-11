@@ -116,7 +116,9 @@
         state = s;
         btn.setAttribute('aria-pressed', s === 'recording' ? 'true' : 'false');
         btn.classList.toggle('mic-recording', s === 'recording');
-        btn.disabled = s === 'working';
+        // Not 'disabled': that makes screen readers drop focus and say "dimmed". Clicks are ignored while working.
+        btn.setAttribute('aria-disabled', s === 'working' ? 'true' : 'false');
+        btn.style.opacity = s === 'working' ? '0.6' : '';
         // Accessible name stays "Speak" (set in index.html); only aria-pressed changes.
         if (label) label.textContent = text || (s === 'recording' ? 'Stop' : 'Speak');
     }
@@ -207,6 +209,28 @@
         if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
     }
 
+    // Phones with TalkBack / VoiceOver speak "Stop, button, pressed" (and such) the moment the
+    // button is tapped, and the open mic would record that voice into the dictation. So on touch
+    // devices we wait a moment for it to finish, then give a short beep + buzz as the "go" cue
+    // instead of a spoken "Listening".
+    var SETTLE_MS = 900;
+    var settleTimer = null;
+    function isTouch() {
+        try { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (_) { return false; }
+    }
+    function goCue() {
+        try { if (navigator.vibrate) navigator.vibrate(60); } catch (_) {}
+        try {
+            var Ctx = window.AudioContext || window.webkitAudioContext;
+            var c = new Ctx();
+            var o = c.createOscillator(), g = c.createGain();
+            o.frequency.value = 880; g.gain.value = 0.06;
+            o.connect(g); g.connect(c.destination);
+            o.start(); o.stop(c.currentTime + 0.12);
+            setTimeout(function () { if (c.close) c.close(); }, 400);
+        } catch (_) {}
+    }
+
     async function startRecording() {
         try {
             getWorker().postMessage({ type: 'load' });   // warm the model while the user talks
@@ -236,13 +260,25 @@
         }
         recorder.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
         recorder.onstop = onRecordingStopped;
-        recorder.start();
-        stopTimer = setTimeout(function () { stopRecording('timeout'); }, MAX_SECONDS * 1000);
         setState('recording');
-        say(window.sirQuiet && window.sirQuiet() ? 'Listening.' : 'Listening. Press the button again to stop.');
+        function begin() {
+            settleTimer = null;
+            recorder.start();
+            stopTimer = setTimeout(function () { stopRecording('timeout'); }, MAX_SECONDS * 1000);
+            if (isTouch()) goCue();                   // no spoken words: they would be recorded
+            else say('Listening. Press the button again to stop.');
+        }
+        if (isTouch()) settleTimer = setTimeout(begin, SETTLE_MS);
+        else begin();
     }
 
     function stopRecording(reason) {
+        if (settleTimer) {                            // stopped before recording began: nothing to transcribe
+            clearTimeout(settleTimer); settleTimer = null;
+            releaseMic(); recorder = null; chunks = [];
+            setState('idle');
+            return;
+        }
         if (!stoppedBy) stoppedBy = reason;
         if (recorder && recorder.state !== 'inactive') recorder.stop();
         releaseMic();
