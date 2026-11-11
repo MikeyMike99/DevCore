@@ -5313,8 +5313,16 @@
                 say('Sign-in failed: the one-time sign-in link could not be used. Please press the button again.');
             } else if (msg && msg !== 'refused' && msg !== 'Failed to fetch' && e.name !== 'TypeError') {
                 say('Sign-in failed: ' + msg);
-            } else {
-                say('Sign-in failed: your browser blocked the connection to the Siraugga server on this computer. Click the icon left of the address bar, open Site settings, set "Local network access" (or "Apps on device") to Allow, then press the button again. This only works on the host computer.');
+            } else if (!silent) {
+                // The browser blocked the background request to this computer ("Local network
+                // access"). A normal page jump is still allowed: go through the server on this
+                // computer, which sends the browser straight back here signed in.
+                say('Your browser blocked the direct check, so opening the owner sign-in page on this computer instead…');
+                try { sessionStorage.removeItem('agy_manual_logout'); } catch (e2) {}
+                setTimeout(function() {
+                    location.href = 'http://127.0.0.1:5000/owner-device/start?return=' + encodeURIComponent(location.origin);
+                }, 800);
+                return false;
             }
             return false;
         }

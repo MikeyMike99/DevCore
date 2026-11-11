@@ -1188,6 +1188,27 @@ async def owner_device_handoff():
                     "expires_in": owner_device.HANDOFF_TTL}), 200, cors
 
 
+@auth_bp.route('/owner-device/start', methods=['GET'])
+async def owner_device_start():
+    """Same as the handoff, but as a page the public domain *navigates* to. Browsers that block a
+    public site's background requests to 127.0.0.1 ("Local network access") still allow a normal
+    page jump, so "Owner sign-in" falls back to this. Host only (loopback Host + direct local
+    connection + master key); it only ever trusts the browser that opened it, and only sends it
+    back to one of Siraugga's own public addresses."""
+    headers = {"Cache-Control": "no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex"}
+    if not _handoff_request_ok() or not current_app.security_mgr.is_host_owner_local(request.remote_addr, request.headers):
+        page = ("<!doctype html><meta charset='utf-8'><title>Owner sign-in</title>"
+                "<body style='font-family:sans-serif;background:#0a0a0b;color:#e2e8f0;padding:32px'>"
+                "<h1>Owner sign-in only works on the Siraugga host computer</h1>"
+                "<p>Open this from a browser on the computer that runs Siraugga.</p></body>")
+        return page, 403, {**headers, "Content-Type": "text/html; charset=utf-8"}
+    from security import owner_device
+    back = (request.args.get("return") or "").strip().rstrip("/")
+    claim_base = back if back in _public_origins() else _public_url()
+    code = owner_device.new_handoff()
+    return "", 302, {**headers, "Location": f"{claim_base}/owner-device/claim?code={code}"}
+
+
 @auth_bp.route('/owner-device/claim', methods=['GET'])
 async def owner_device_claim():
     """Opened on the public domain with the one-time code: sets the trusted-device cookie."""
