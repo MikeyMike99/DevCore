@@ -425,7 +425,7 @@
                 <p id="owner-signin-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
                 <!-- Any device with a Siraugga access key (passkey); see sandbox/static/device-keys-ui.js -->
                 <button type="button" id="access-key-signin-btn" class="hidden min-h-[44px] text-[11px] text-teal-200 font-bold bg-teal-950/70 hover:bg-teal-900/70 px-2 py-1.5 rounded border border-teal-600/60 focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer">🔑 Sign in with access key</button>
-                <a id="access-key-setup-link" href="/setup" class="hidden text-[11px] text-teal-300 underline focus:ring-2 focus:ring-teal-400 focus:outline-none">Set up this device</a>
+                <a id="access-key-setup-link" href="/setup" class="hidden text-[11px] text-teal-300 underline focus:ring-2 focus:ring-teal-400 focus:outline-none">Owner: sign in with password</a>
                 <p id="access-key-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
             </div>
 
@@ -1766,6 +1766,7 @@
                             <i class="fas fa-sign-in-alt"></i> Authenticate Key
                         </button>
                     </form>
+                    <a href="/setup" class="mt-3 w-full bg-amber-950/70 hover:bg-amber-900/70 border border-amber-600/60 text-amber-200 font-bold py-2.5 px-4 rounded-lg flex items-center justify-center gap-2 text-xs focus:ring-2 focus:ring-amber-400 focus:outline-none">👑 Owner sign-in (password, then fingerprint / face)</a>
                 </div>
             `;
             document.body.appendChild(overlay);
@@ -7812,7 +7813,7 @@
 <!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
 <script src="/static/speech/dictation.js?v=5" defer></script>
-<script src="/static/device-keys.js?v=1" defer></script>
+<script src="/static/device-keys.js?v=2" defer></script>
 <script src="/static/device-keys-ui.js?v=1" defer></script>
 </body>
 </html>

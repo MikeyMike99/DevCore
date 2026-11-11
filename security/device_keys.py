@@ -110,6 +110,8 @@ def check_password(password: str) -> str:
         if len(_pw_failures) >= PW_FAIL_LIMIT:
             wait = int((_pw_failures[0] + PW_FAIL_WINDOW - now) / 60) + 1
             return f"Too many wrong passwords. Try again in {wait} minute(s)."
+        if not password:          # nothing typed: not a guess, so it doesn't count
+            return "Type your owner password first."
         stored = _load().get("owner_password")
         if not stored:
             return "No owner password has been set yet. Set one in Settings on a device where you are already Super Admin."
@@ -293,7 +295,7 @@ def _pop_challenge(cid: str, kind: str):
     return ch
 
 
-def registration_options(rp_id: str, *, password: str = "", invite: str = "") -> dict:
+def registration_options(rp_id: str, *, password: str = "", invite: str = "", owner_ok: bool = False) -> dict:
     """Step 1 of setting up a device. Proves the right to add a key (owner password or a
     one-time link) and returns the browser's passkey-creation options."""
     from webauthn import generate_registration_options, options_to_json
@@ -305,9 +307,10 @@ def registration_options(rp_id: str, *, password: str = "", invite: str = "") ->
             raise ValueError("This setup link has expired or was already used. Ask for a new one.")
         name, role = inv["name"], inv["role"]
     else:
-        err = check_password(password)
-        if err:
-            raise ValueError(err)
+        if not owner_ok:   # owner_ok: the caller is already signed in as the verified owner
+            err = check_password(password)
+            if err:
+                raise ValueError(err)
         name, role = "Owner", OWNER_ROLE
     user_handle = secrets.token_bytes(16)
     cid, challenge = _new_challenge("register", rp_id=rp_id, name=name, role=role, invite=invite,

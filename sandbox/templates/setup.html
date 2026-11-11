@@ -34,18 +34,26 @@ a { color:var(--accent); }
 <body>
 <main>
 <div class="card">
-  <h1 id="title">Set up this device</h1>
+  <h1 id="title">Owner sign-in</h1>
 
   <!-- Owner: password, then create an access key on this device -->
   <form id="owner-form" class="stack hidden" novalidate>
-    <p class="muted">Type your owner password, then confirm with this device's fingerprint, face or PIN. After that, this device signs in to Siraugga as Super Admin with the access key alone.</p>
+    <p class="muted">Type your owner password to sign in as Super Admin. Then confirm with this device's fingerprint, face or PIN, and next time this device signs you in by itself.</p>
     <div>
       <label for="password">Owner password</label>
       <input id="password" type="password" autocomplete="current-password" required>
     </div>
-    <button type="submit" class="primary" id="owner-btn">Create access key on this device</button>
+    <button type="submit" class="primary" id="owner-btn">Sign in</button>
     <button type="button" class="secondary" id="recover-btn">Forgot your password? Email me a setup link</button>
   </form>
+
+  <!-- Signed in with the password, but the fingerprint/face step didn't finish -->
+  <div id="bio-box" class="stack hidden">
+    <p>You are signed in as Super Admin.</p>
+    <p class="muted">Turn on fingerprint, face or PIN so this device signs you in by itself next time.</p>
+    <button type="button" class="primary" id="bio-btn">Turn on fingerprint / face</button>
+    <a href="/" class="secondary" style="text-align:center">Skip for now, open Siraugga</a>
+  </div>
 
   <!-- Someone invited with a one-time link -->
   <div id="invite-box" class="stack hidden">
@@ -76,7 +84,7 @@ a { color:var(--accent); }
   <p class="muted"><a href="/">Back to Siraugga</a></p>
 </div>
 </main>
-<script src="/static/device-keys.js?v=1"></script>
+<script src="/static/device-keys.js?v=2"></script>
 <script>
 (function () {
     var msg = document.getElementById('msg');
@@ -115,15 +123,34 @@ a { color:var(--accent); }
         document.getElementById('owner-form').classList.remove('hidden');
     }
 
+    async function addBiometrics() {
+        show('Confirm with your fingerprint, face or PIN…');
+        try { done(await SirauggaKeys.register({})); }
+        catch (err) {
+            document.getElementById('owner-form').classList.add('hidden');
+            document.getElementById('signin-box').classList.add('hidden');
+            document.getElementById('bio-box').classList.remove('hidden');
+            show(err.message, 'error');
+            document.getElementById('bio-btn').focus();
+        }
+    }
+
     document.getElementById('owner-form').addEventListener('submit', async function (e) {
         e.preventDefault();
         var btn = document.getElementById('owner-btn');
         var pw = document.getElementById('password');
         if (!pw.value) { show('Type your owner password first.', 'error'); pw.focus(); return; }
-        busy(btn, true); show('Confirm on your device…');
-        try { done(await SirauggaKeys.register({ password: pw.value })); }
-        catch (err) { show(err.message, 'error'); pw.focus(); }
-        finally { busy(btn, false); pw.value = ''; }
+        busy(btn, true); show('Signing in…');
+        try { await SirauggaKeys.passwordLogin(pw.value); }
+        catch (err) { show(err.message, 'error'); busy(btn, false); pw.focus(); return; }
+        pw.value = ''; busy(btn, false);
+        if (!window.PublicKeyCredential) { done({ user: { role: 'super_admin' } }); return; }
+        await addBiometrics();
+    });
+
+    document.getElementById('bio-btn').addEventListener('click', async function () {
+        var btn = this; busy(btn, true);
+        try { await addBiometrics(); } finally { busy(btn, false); }
     });
 
     document.getElementById('recover-btn').addEventListener('click', async function () {

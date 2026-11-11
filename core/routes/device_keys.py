@@ -15,15 +15,30 @@ def _public_url() -> str:
     return (os.environ.get("DEVCORE_PUBLIC_URL") or "https://mikeytech.dev").rstrip("/")
 
 
+def _public_hosts() -> set:
+    """Every public address that serves this same Siraugga (the tunnel routes all of them here).
+    Extra ones via DEVCORE_PUBLIC_ORIGINS (comma-separated)."""
+    hosts = {"mikeytech.dev", "www.mikeytech.dev", "siraugga.mikeytech.dev"}
+    pub = urllib.parse.urlparse(_public_url())
+    if pub.hostname:
+        hosts.add(pub.hostname.lower())
+    for o in os.environ.get("DEVCORE_PUBLIC_ORIGINS", "").split(","):
+        h = urllib.parse.urlparse(o.strip()).hostname
+        if h:
+            hosts.add(h.lower())
+    return hosts
+
+
 def _site():
     """(rp_id, origin) for this request, or None when keys can't be used on this address.
-    Taken from configuration, never from what the browser claims, so a key can only ever be
-    used on the real site."""
+    Only Siraugga's own public addresses (from configuration, never what the browser claims).
+    The key is tied to the main domain, so one made on www. or siraugga. works on all of them."""
     raw_host = (request.headers.get("Host") or "").strip()
     host = raw_host.split(":")[0].lower()
-    pub = urllib.parse.urlparse(_public_url())
-    if pub.hostname and host == pub.hostname.lower():
-        return pub.hostname.lower(), f"{pub.scheme}://{pub.netloc}"
+    if host in _public_hosts():
+        base = (urllib.parse.urlparse(_public_url()).hostname or "mikeytech.dev").lower()
+        rp_id = base if (host == base or host.endswith("." + base)) else host
+        return rp_id, f"https://{host}"
     if host == "localhost":
         return "localhost", f"http://{raw_host}"
     return None
@@ -179,9 +194,11 @@ async def setup_start():
     if err:
         return err
     data = await _json()
+    invite = str(data.get("invite") or "").strip()
+    password = str(data.get("password") or "")
     try:
-        out = dk.registration_options(site[0], password=str(data.get("password") or ""),
-                                      invite=str(data.get("invite") or "").strip())
+        out = dk.registration_options(site[0], password=password, invite=invite,
+                                      owner_ok=(not invite and not password and _is_owner()))
     except ValueError as e:
         return _fail(str(e))
     return jsonify({"success": True, **out}), 200, _NO_STORE
@@ -205,6 +222,20 @@ async def setup_finish():
 
 
 # ---- sign in -------------------------------------------------------------------------------
+@device_keys_bp.route("/api/device-keys/password-login", methods=["POST"])
+async def password_login():
+    """Owner password alone -> Super Admin, from any of Siraugga's public addresses. Wrong
+    passwords are rate-limited across all visitors (see security/device_keys.py)."""
+    site, err = _site_or_fail()
+    if err:
+        return err
+    data = await _json()
+    msg = dk.check_password(str(data.get("password") or ""))
+    if msg:
+        return _fail(msg, 429 if msg.startswith("Too many") else 401)
+    return await _signed_in({"role": dk.OWNER_ROLE, "name": "Owner"})
+
+
 @device_keys_bp.route("/api/device-keys/login/start", methods=["POST"])
 async def login_start():
     site, err = _site_or_fail()

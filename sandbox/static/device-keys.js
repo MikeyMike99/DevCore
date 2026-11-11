@@ -17,9 +17,11 @@
     }
 
     async function post(url, body) {
+        var headers = { 'Content-Type': 'application/json' };
+        try { var t = localStorage.getItem('agy_auth_token'); if (t) headers.Authorization = 'Bearer ' + t; } catch (_) {}
         var r = await fetch(url, {
             method: 'POST', credentials: 'same-origin', cache: 'no-store',
-            headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}),
+            headers: headers, body: JSON.stringify(body || {}),
         });
         var data = {};
         try { data = await r.json(); } catch (_) {}
@@ -36,16 +38,24 @@
         return (err && err.message) || String(err);
     }
 
-    function saveSession(data) {
+    function saveSession(data, withKey) {
         try {
             localStorage.setItem('agy_auth_token', data.token);
             localStorage.setItem('agy_user', JSON.stringify(data.user));
-            localStorage.setItem('siraugga_access_key', '1');   // lets the app sign in automatically
+            if (withKey !== false) localStorage.setItem('siraugga_access_key', '1');   // lets the app sign in automatically
             sessionStorage.removeItem('agy_manual_logout');
         } catch (_) {}
     }
 
-    // Set up this device. `proof` is { password } (owner) or { invite } (one-time link).
+    // Owner password alone: signs this browser in as Super Admin (no access key yet).
+    async function passwordLogin(password) {
+        var done = await post('/api/device-keys/password-login', { password: password });
+        saveSession(done, false);
+        return done;
+    }
+
+    // Set up this device. `proof` is { password } (owner), { invite } (one-time link), or {}
+    // when already signed in as the owner.
     async function register(proof) {
         if (!window.PublicKeyCredential) throw new Error('This browser cannot create access keys.');
         var start = await post('/api/device-keys/setup/start', proof);
@@ -99,5 +109,5 @@
         return done;
     }
 
-    window.SirauggaKeys = { register: register, signIn: signIn };
+    window.SirauggaKeys = { register: register, signIn: signIn, passwordLogin: passwordLogin };
 })();
