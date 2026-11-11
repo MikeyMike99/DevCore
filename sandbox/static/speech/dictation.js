@@ -161,6 +161,12 @@
         return (text || '').replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
+    // True when this recording will be sent without the user touching Send (same rules as afterInsert).
+    function willAutoSend() {
+        return getPref() === true && stoppedBy === 'user' && !taskRunning() &&
+            !!form && !!sendBtn && !sendBtn.disabled;
+    }
+
     function insertText(text) {
         if (!text) { say('No speech was detected.', true); return false; }
         var start = caretTouched && prompt.selectionStart != null ? prompt.selectionStart : prompt.value.length;
@@ -171,8 +177,10 @@
         if (after && !/^\s/.test(after)) text = text + ' ';
         prompt.value = before + text + after;
         var caret = before.length + text.length;
-        prompt.focus();
-        prompt.setSelectionRange(caret, caret);
+        if (!willAutoSend()) {                    // auto-send: leave focus (and the keyboard) alone
+            prompt.focus();
+            prompt.setSelectionRange(caret, caret);
+        }
         prompt.dispatchEvent(new Event('input', { bubbles: true }));
         say(window.sirQuiet && window.sirQuiet() ? 'Text added.' : 'Inserted: ' + text.trim());
         return true;
@@ -207,6 +215,37 @@
         if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
     }
 
+    // Sound cues instead of speech. A screen reader says "Stop, button..." when the button is
+    // pressed, so recording starts after a short wait, then a rising two-note beep means "the mic
+    // is live, talk now". A falling two-note beep means "recording stopped". Made with the browser's
+    // own audio, so there is no file to load; the beep ends before recording starts, so it is
+    // never part of the dictation.
+    var START_DELAY_MS = 700;
+    var BEEP_MS = 220;
+    var startTimer = null;
+    var cueCtx = null;
+    function cue(freqs) {
+        try {
+            var Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!cueCtx || cueCtx.state === 'closed') cueCtx = new Ctx();
+            if (cueCtx.state === 'suspended') cueCtx.resume();
+            var t = cueCtx.currentTime;
+            freqs.forEach(function (f, i) {
+                var o = cueCtx.createOscillator(), g = cueCtx.createGain();
+                o.type = 'sine';
+                o.frequency.value = f;
+                o.connect(g); g.connect(cueCtx.destination);
+                var a = t + i * 0.1;
+                g.gain.setValueAtTime(0.0001, a);
+                g.gain.exponentialRampToValueAtTime(0.18, a + 0.015);
+                g.gain.exponentialRampToValueAtTime(0.0001, a + 0.09);
+                o.start(a); o.stop(a + 0.1);
+            });
+        } catch (_) {}
+    }
+    var cueStart = function () { cue([660, 990]); };    // rising
+    var cueStop = function () { cue([990, 660]); };     // falling
+
     async function startRecording() {
         try {
             getWorker().postMessage({ type: 'load' });   // warm the model while the user talks
@@ -236,19 +275,31 @@
         }
         recorder.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
         recorder.onstop = onRecordingStopped;
-        recorder.start();
-        stopTimer = setTimeout(function () { stopRecording('timeout'); }, MAX_SECONDS * 1000);
         setState('recording');
-        say(window.sirQuiet && window.sirQuiet() ? 'Listening.' : 'Listening. Press the button again to stop.');
+        startTimer = setTimeout(function () {
+            cueStart();
+            startTimer = setTimeout(function () {
+                startTimer = null;
+                recorder.start();
+                stopTimer = setTimeout(function () { stopRecording('timeout'); }, MAX_SECONDS * 1000);
+            }, BEEP_MS);
+        }, START_DELAY_MS);
     }
 
     function stopRecording(reason) {
+        if (startTimer) {                         // pressed again before recording began: just cancel
+            clearTimeout(startTimer); startTimer = null;
+            releaseMic(); recorder = null; chunks = [];
+            setState('idle');
+            return;
+        }
         if (!stoppedBy) stoppedBy = reason;
         if (recorder && recorder.state !== 'inactive') recorder.stop();
         releaseMic();
     }
 
     async function onRecordingStopped() {
+        cueStop();
         setState('working', 'Transcribing');
         try {
             var blob = new Blob(chunks, { type: (recorder && recorder.mimeType) || 'audio/webm' });
