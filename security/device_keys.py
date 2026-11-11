@@ -12,6 +12,12 @@ Stored in ~/.config/devcore/device_keys.json (mode 600):
   owner_password  werkzeug scrypt hash (never the password)
   keys            credential id -> public key, sign count, name, role, label, dates
   invites         sha256(code) -> name, role, expiry   (codes are single use)
+  people          username -> name, role, email, password hash (invited people's own sign-in)
+
+Signing in with a password always takes three steps, for the owner and for everyone else:
+username + password, then the account's email address, then a one-time link emailed to that
+address. Opening the link signs in that device, which may then add a passkey (fingerprint /
+face / PIN) so it signs in by itself from then on.
 Challenges for an in-progress setup/sign-in live in memory only and expire in 5 minutes.
 
 A passkey's private key never leaves the user's device; the server only keeps the public key.
@@ -63,6 +69,7 @@ def _load() -> dict:
     if not isinstance(data, dict):
         data = {}
     data.setdefault("owner_password", None)
+    data.setdefault("people", {})
     data.setdefault("keys", {})
     data.setdefault("invites", {})
     return data
@@ -122,6 +129,168 @@ def check_password(password: str) -> str:
 
 
 # ---- invites (one-time setup links) --------------------------------------------------------
+# ---- invited people's own username + password -------------------------------------------
+_USERNAME_RE = __import__("re").compile(r"^[a-z0-9][a-z0-9._-]{2,31}$")
+
+
+def clean_username(username: str) -> str:
+    u = (username or "").strip().lower()
+    if not _USERNAME_RE.match(u):
+        raise ValueError("Choose a username of 3 to 32 letters or numbers (dots, dashes and underscores are fine).")
+    if u in ("owner", "admin", "root", "superadmin", "super_admin", "michael"):
+        raise ValueError("That username is reserved. Choose another one.")
+    return u
+
+
+def _check_new_password(password: str) -> str:
+    from werkzeug.security import generate_password_hash
+    if not isinstance(password, str) or len(password) < MIN_PASSWORD_LEN:
+        raise ValueError(f"The password needs at least {MIN_PASSWORD_LEN} characters.")
+    if len(password) > 256:
+        raise ValueError("That password is too long.")
+    return generate_password_hash(password)
+
+
+def delete_person(username: str) -> bool:
+    """Owner: remove an invited person's password sign-in and all their access keys."""
+    with _lock:
+        data = _load()
+        rec = data["people"].pop(str(username or "").lower(), None)
+        if not rec:
+            return False
+        for cid in [c for c, k in data["keys"].items() if k.get("username") == username.lower()]:
+            del data["keys"][cid]
+        _save(data)
+    return True
+
+
+LOGIN_STEP_TTL = 10 * 60        # between a correct password and asking for the email link
+LOGIN_LINK_TTL = 15 * 60        # the emailed sign-in link
+LOGIN_EMAIL_TRIES = 3           # wrong email addresses per password step
+_login_steps = {}               # id -> {"who": {...}, "expires_at", "tries"}   (memory only)
+_login_links = {}               # sha256(code) -> {"who": {...}, "expires_at"}  (memory only)
+
+
+def _too_many_failures(now: float) -> str:
+    _pw_failures[:] = [t for t in _pw_failures if t > now - PW_FAIL_WINDOW]
+    if len(_pw_failures) >= PW_FAIL_LIMIT:
+        wait = int((_pw_failures[0] + PW_FAIL_WINDOW - now) / 60) + 1
+        return f"Too many wrong passwords. Try again in {wait} minute(s)."
+    return ""
+
+
+def start_login(username: str, password: str) -> str:
+    """Step 1: username + password. Returns a step id; raises ValueError with a message.
+    The owner's username can be anything; invited people use the username they chose."""
+    from werkzeug.security import check_password_hash
+    if not password:
+        raise ValueError("Type your password first.")
+    uname = str(username or "").strip().lower()
+    now = time.time()
+    with _lock:
+        msg = _too_many_failures(now)
+        if msg:
+            raise ValueError(msg)
+        data = _load()
+        who = None
+        person = data["people"].get(uname)
+        if person and len(password) <= 256 and check_password_hash(person["pw_hash"], password):
+            who = {"kind": "person", "username": uname}
+        elif data.get("owner_password") and len(password) <= 256 \
+                and check_password_hash(data["owner_password"], password):
+            who = {"kind": "owner"}
+        if not who:
+            _pw_failures.append(now)
+            raise ValueError("Wrong username or password.")
+        for k in [k for k, v in _login_steps.items() if v["expires_at"] <= now]:
+            _login_steps.pop(k, None)
+        sid = secrets.token_urlsafe(18)
+        _login_steps[sid] = {"who": who, "expires_at": now + LOGIN_STEP_TTL, "tries": 0}
+    return sid
+
+
+def login_email_target(step_id: str, email: str) -> dict:
+    """Step 2: the email address. For a person it must match the one on their account; for
+    the owner the mail sender checks it against the owner inbox (returns to="__admin__").
+    Returns {"to", "typed", "who", "name"}; raises ValueError."""
+    typed = clean_email(email)
+    if not typed:
+        raise ValueError("Type your email address.")
+    now = time.time()
+    with _lock:
+        st = _login_steps.get(step_id or "")
+        if not st or st["expires_at"] <= now:
+            _login_steps.pop(step_id or "", None)
+            raise ValueError("This sign-in took too long. Type your username and password again.")
+        who = st["who"]
+        if who["kind"] == "owner":
+            return {"to": "__admin__", "typed": typed, "who": who, "name": "Owner"}
+        person = _load()["people"].get(who["username"])
+        if not person:
+            raise ValueError("This account no longer exists.")
+        if person.get("email", "").lower() != typed:
+            note_wrong_email(step_id, locked=True)
+            raise ValueError("That email address doesn't match this account.")
+        return {"to": person["email"], "typed": typed, "who": who, "name": person.get("name") or who["username"]}
+
+
+def note_wrong_email(step_id: str, locked: bool = False) -> None:
+    """Count a wrong email; after LOGIN_EMAIL_TRIES the password step must be redone."""
+    def _do():
+        st = _login_steps.get(step_id or "")
+        if st:
+            st["tries"] += 1
+            if st["tries"] >= LOGIN_EMAIL_TRIES:
+                _login_steps.pop(step_id, None)
+    if locked:
+        _do()
+    else:
+        with _lock:
+            _do()
+
+
+def new_login_link(step_id: str) -> str:
+    """Step 3: a one-time sign-in code for the email (the step is used up)."""
+    now = time.time()
+    with _lock:
+        st = _login_steps.pop(step_id or "", None)
+        if not st or st["expires_at"] <= now:
+            raise ValueError("This sign-in took too long. Type your username and password again.")
+        for k in [k for k, v in _login_links.items() if v["expires_at"] <= now]:
+            _login_links.pop(k, None)
+        code = secrets.token_urlsafe(32)
+        _login_links[_h(code)] = {"who": st["who"], "expires_at": now + LOGIN_LINK_TTL}
+    return code
+
+
+def cancel_login_link(code: str) -> None:
+    with _lock:
+        _login_links.pop(_h(code or ""), None)
+
+
+def take_login_link(code: str) -> dict:
+    """Open the emailed link: returns the user record to sign in ({role, name, ...}), once."""
+    if not code or len(code) > 100:
+        raise ValueError("This sign-in link is not valid.")
+    with _lock:
+        link = _login_links.pop(_h(code), None)
+        if not link or link["expires_at"] <= time.time():
+            raise ValueError("This sign-in link has expired or was already used. Sign in again to get a new one.")
+        who = link["who"]
+        if who["kind"] == "owner":
+            return {"role": OWNER_ROLE, "name": "Owner"}
+        p = _load()["people"].get(who["username"])
+        if not p:
+            raise ValueError("This account no longer exists.")
+        return {"role": p["role"], "name": p.get("name") or who["username"], "username": who["username"],
+                "email": p.get("email", ""), "project": p.get("project", ""), "parts": p.get("parts") or []}
+
+
+def person_record(username: str):
+    p = _load()["people"].get(str(username or "").lower())
+    return dict(p, username=username.lower()) if p else None
+
+
 _EMAIL_RE = __import__("re").compile(r"^[^@\s<>\"']{1,64}@[A-Za-z0-9.-]{1,190}\.[A-Za-z]{2,24}$")
 
 
@@ -158,6 +327,8 @@ def create_invite(name: str, role: str, email: str = "", ttl: int = INVITE_TTL,
     if role not in INVITE_ROLES:
         raise ValueError("Pick one of the listed roles.")
     email = clean_email(email)
+    if not email:
+        raise ValueError("Add their email address: everyone confirms sign-in with a link sent to it.")
     project, parts = _clean_assignment(role, project, parts)
     code = secrets.token_urlsafe(24)
     now = time.time()
@@ -258,7 +429,9 @@ def overview() -> dict:
                 "email": v.get("email", ""), "project": v.get("project", ""), "parts": v.get("parts") or [],
                 "expires_at": v["expires_at"]}
                for v in data["invites"].values() if v.get("expires_at", 0) > now]
-    return {"has_password": bool(data.get("owner_password")), "keys": keys, "invites": invites,
+    people = [{"username": u, "name": p.get("name"), "role": p.get("role"), "email": p.get("email", "")}
+              for u, p in data["people"].items()]
+    return {"has_password": bool(data.get("owner_password")), "keys": keys, "invites": invites, "people": people,
             "roles": INVITE_ROLES,                                            # what may be handed out
             "role_labels": {**INVITE_ROLES, OWNER_ROLE: "Super Admin (you)"}}  # display only
 
@@ -295,28 +468,47 @@ def _pop_challenge(cid: str, kind: str):
     return ch
 
 
-def registration_options(rp_id: str, *, password: str = "", invite: str = "", owner_ok: bool = False) -> dict:
+def registration_options(rp_id: str, *, password: str = "", invite: str = "", owner_ok: bool = False,
+                         username: str = "", new_password: str = "", person: dict = None) -> dict:
     """Step 1 of setting up a device. Proves the right to add a key (owner password or a
     one-time link) and returns the browser's passkey-creation options."""
     from webauthn import generate_registration_options, options_to_json
     from webauthn.helpers.structs import (AuthenticatorSelectionCriteria, ResidentKeyRequirement,
                                           UserVerificationRequirement)
-    if invite:
+    pw_hash = ""
+    if person:                 # an invited person already signed in (password + email link)
+        inv = {"email": person.get("email", ""), "project": person.get("project", ""), "parts": person.get("parts") or []}
+        name, role, username = person.get("name") or person["username"], person["role"], person["username"]
+        invite = ""
+    elif invite:
         inv = peek_invite(invite)
         if not inv:
             raise ValueError("This setup link has expired or was already used. Ask for a new one.")
         name, role = inv["name"], inv["role"]
+        if role != OWNER_ROLE:
+            # Everyone gets the same sign-in as the owner: username + password + email link.
+            username = clean_username(username)
+            if not inv.get("email"):
+                raise ValueError("This invitation has no email address, so it can't be used for sign-in. "
+                                 "Ask the owner for a new invitation with your email.")
+            other = _load()["people"].get(username)
+            if other and other.get("email", "").lower() != inv["email"].lower():
+                raise ValueError("That username is taken. Choose another one.")
+            pw_hash = _check_new_password(new_password)
+        else:
+            username = ""
     else:
         if not owner_ok:   # owner_ok: the caller is already signed in as the verified owner
-            err = check_password(password)
-            if err:
-                raise ValueError(err)
+            # A password alone is not enough any more: sign in (password + email link) first.
+            raise ValueError("Sign in first (username, password and the emailed link), then add fingerprint or face.")
         name, role = "Owner", OWNER_ROLE
     user_handle = secrets.token_bytes(16)
+    has_inv = bool(invite or person)
     cid, challenge = _new_challenge("register", rp_id=rp_id, name=name, role=role, invite=invite,
-                                    user_handle=user_handle, email=(inv.get("email", "") if invite else ""),
-                                    project=(inv.get("project", "") if invite else ""),
-                                    parts=(inv.get("parts") or [] if invite else []))
+                                    user_handle=user_handle, email=(inv.get("email", "") if has_inv else ""),
+                                    project=(inv.get("project", "") if has_inv else ""),
+                                    parts=(inv.get("parts") or [] if has_inv else []),
+                                    username=(username if role != OWNER_ROLE else ""), pw_hash=pw_hash)
     opts = generate_registration_options(
         rp_id=rp_id, rp_name="Siraugga", user_id=user_handle,
         user_name=f"{name} (Siraugga)" if role != OWNER_ROLE else "Siraugga owner",
@@ -349,9 +541,16 @@ def finish_registration(setup_id: str, credential: dict, origin: str, label: str
             "name": ch["name"], "role": ch["role"], "rp_id": ch["rp_id"], "email": ch.get("email", ""),
             "project": ch.get("project", ""), "parts": ch.get("parts") or [],
             "label": str(label or "")[:120], "created_at": now, "last_used": now,
+            "username": ch.get("username", ""),
         }
+        if ch.get("username") and ch.get("pw_hash"):
+            data["people"][ch["username"]] = {
+                "name": ch["name"], "role": ch["role"], "email": ch.get("email", ""),
+                "project": ch.get("project", ""), "parts": ch.get("parts") or [],
+                "pw_hash": ch["pw_hash"], "created_at": now}
         _save(data)
-    return {"name": ch["name"], "role": ch["role"], "project": ch.get("project", ""), "parts": ch.get("parts") or []}
+    return {"name": ch["name"], "role": ch["role"], "project": ch.get("project", ""), "parts": ch.get("parts") or [],
+            "username": ch.get("username", "")}
 
 
 def authentication_options(rp_id: str) -> dict:
@@ -383,4 +582,5 @@ def finish_authentication(login_id: str, credential: dict, origin: str) -> dict:
         rec["sign_count"] = v.new_sign_count
         rec["last_used"] = time.time()
         _save(data)
-    return {"name": rec["name"], "role": rec["role"], "project": rec.get("project", ""), "parts": rec.get("parts") or []}
+    return {"name": rec["name"], "role": rec["role"], "project": rec.get("project", ""), "parts": rec.get("parts") or [],
+            "username": rec.get("username", "")}

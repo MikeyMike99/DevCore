@@ -58,6 +58,12 @@ def main() -> int:
         to = req.get("to") or ""
         if to == "__admin__":
             to = os.environ.get("TICKET_ADMIN_EMAIL") or cfg.MAIL_USERNAME or cfg.MAIL_DEFAULT_SENDER
+            # Sign-in check: send only if the address the person typed IS the owner inbox.
+            # The real address is never printed back.
+            want = str(req.get("only_if_matches") or "").strip().lower()
+            if want and want != str(to or "").strip().lower():
+                print(json.dumps({"ok": False, "message": "Address does not match.", "status": "mismatch"}))
+                return 1
         if not to:
             print(json.dumps({"ok": False, "message": "No recipient address is configured."}))
             return 1

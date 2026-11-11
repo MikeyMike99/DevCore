@@ -58,6 +58,14 @@ def _is_owner() -> bool:
     return bool(user and user.get("key_id") == "owner" and sec.check_master_signature())
 
 
+def _session_person():
+    """The invited person signed in with this request's session, or None."""
+    tok = _bearer()
+    user = current_app.security_mgr.get_user_from_token(tok) if tok else None
+    kid = str((user or {}).get("key_id") or "")
+    return dk.person_record(kid[4:]) if kid.startswith("dkp-") else None
+
+
 def _owner_only():
     if not _is_owner():
         return jsonify({"success": False, "error": "Only the Super Admin can do this."}), 403, _NO_STORE
@@ -114,7 +122,8 @@ _PERSON_RECOVERY_REPLY = ("If that address belongs to someone with Siraugga acce
 
 
 def _email_link(to: str, *, kicker: str, heading: str, intro: str, url: str, expiry: str,
-                requested_from: str = "", warn_inbox: bool = False):
+                requested_from: str = "", warn_inbox: bool = False, button: str = "Set up this device",
+                only_if_matches: str = ""):
     """Send a setup-link email on a worker thread; returns an awaitable with the send result."""
     import asyncio
     import html
@@ -128,7 +137,7 @@ def _email_link(to: str, *, kicker: str, heading: str, intro: str, url: str, exp
         f'<h2 style="margin:0 0 14px 0;color:#fff;font-size:20px;">{html.escape(heading)}</h2>'
         f'<p style="margin:0 0 10px 0;">{intro}</p>{req}'
         '<table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center" style="margin:22px auto 8px auto;"><tr>'
-        f'{_mail()._button(url, "Set up this device", "#0f766e")}</tr></table>'
+        f'{_mail()._button(url, button, "#0f766e")}</tr></table>'
         f'<p style="margin:10px 0 0 0;font-size:12px;color:#888;">Open this email <strong>on the device you want to use</strong>. '
         f"The link works once and expires in {html.escape(expiry)}. <strong>If you didn't expect this, ignore it.</strong>{inbox}</p>")
     text = (f"{heading}\n\n{html.unescape(__import__('re').sub('<[^>]+>', '', intro))}\n"
@@ -138,9 +147,15 @@ def _email_link(to: str, *, kicker: str, heading: str, intro: str, url: str, exp
 
     def _send():
         m = _mail()
-        result = m._send(to, f"[Siraugga] {heading}", m._wrap(heading, inner), text)
-        if not result.get("ok"):                 # one retry: Gmail SMTP sometimes times out once
+        if only_if_matches:
+            result = _send_if_owner_inbox(to, f"[Siraugga] {heading}", m._wrap(heading, inner), text, only_if_matches)
+            if result.get("status") == "mismatch":
+                return result
+        else:
             result = m._send(to, f"[Siraugga] {heading}", m._wrap(heading, inner), text)
+        if not result.get("ok"):                 # one retry: Gmail SMTP sometimes times out once
+            result = (_send_if_owner_inbox(to, f"[Siraugga] {heading}", m._wrap(heading, inner), text, only_if_matches)
+                      if only_if_matches else m._send(to, f"[Siraugga] {heading}", m._wrap(heading, inner), text))
         return result
 
     # Returns a future: the owner's invite awaits it to report failures; recovery doesn't wait.
@@ -187,6 +202,23 @@ def _mail():
     return ticket_mail
 
 
+def _send_if_owner_inbox(to, subject, html_body, text_body, typed_email) -> dict:
+    """Send to the owner inbox only when `typed_email` is that inbox's address. The sender
+    script does the comparison, so the address itself never comes back to this server."""
+    import json as _j
+    import subprocess
+    import sys
+    payload = _j.dumps({"to": to, "subject": subject, "html": html_body, "text": text_body,
+                        "only_if_matches": typed_email})
+    try:
+        r = subprocess.run([sys.executable, _mail().SENDER_SCRIPT], input=payload, capture_output=True,
+                           text=True, timeout=60)
+        out = (r.stdout or "").strip().splitlines()
+        return _j.loads(out[-1]) if out else {"ok": False, "message": (r.stderr or "No output")[-300:]}
+    except Exception as e:
+        return {"ok": False, "message": f"{e.__class__.__name__}: {e}"}
+
+
 # ---- set up a device -----------------------------------------------------------------------
 @device_keys_bp.route("/api/device-keys/setup/start", methods=["POST"])
 async def setup_start():
@@ -196,9 +228,16 @@ async def setup_start():
     data = await _json()
     invite = str(data.get("invite") or "").strip()
     password = str(data.get("password") or "")
+    person = None
+    if not invite and not password and not _is_owner():
+        person = _session_person()
+        if not person:
+            return _fail("Sign in first (username, password and the emailed link), then add fingerprint or face.", 403)
     try:
         out = dk.registration_options(site[0], password=password, invite=invite,
-                                      owner_ok=(not invite and not password and _is_owner()))
+                                      owner_ok=(not invite and not password and _is_owner()),
+                                      username=str(data.get("username") or ""),
+                                      new_password=str(data.get("new_password") or ""), person=person)
     except ValueError as e:
         return _fail(str(e))
     return jsonify({"success": True, **out}), 200, _NO_STORE
@@ -223,17 +262,78 @@ async def setup_finish():
 
 # ---- sign in -------------------------------------------------------------------------------
 @device_keys_bp.route("/api/device-keys/password-login", methods=["POST"])
-async def password_login():
-    """Owner password alone -> Super Admin, from any of Siraugga's public addresses. Wrong
-    passwords are rate-limited across all visitors (see security/device_keys.py)."""
+async def password_login_removed():
+    return _fail("Sign-in now also checks your email. Reload the page and sign in again.", 410)
+
+
+# Username + password -> email address -> one-time link by email. Same for every account.
+@device_keys_bp.route("/api/login/password", methods=["POST"])
+async def login_password():
     site, err = _site_or_fail()
     if err:
         return err
     data = await _json()
-    msg = dk.check_password(str(data.get("password") or ""))
-    if msg:
+    try:
+        step = dk.start_login(str(data.get("username") or ""), str(data.get("password") or ""))
+    except ValueError as e:
+        msg = str(e)
         return _fail(msg, 429 if msg.startswith("Too many") else 401)
-    return await _signed_in({"role": dk.OWNER_ROLE, "name": "Owner"})
+    return jsonify({"success": True, "step_id": step}), 200, _NO_STORE
+
+
+@device_keys_bp.route("/api/login/email", methods=["POST"])
+async def login_email():
+    site, err = _site_or_fail()
+    if err:
+        return err
+    data = await _json()
+    step = str(data.get("step_id") or "")
+    try:
+        target = dk.login_email_target(step, str(data.get("email") or ""))
+    except ValueError as e:
+        return _fail(str(e))
+    import html as _html
+    try:
+        code = dk.new_login_link(step)        # uses up the password step
+    except ValueError as e:
+        return _fail(str(e))
+    url = f"{site[1]}/setup?signin={code}"
+    ua = (request.headers.get("User-Agent") or "unknown device")[:160]
+    sent = await _email_link(
+        target["to"], kicker="Sign-in", heading="Your Siraugga sign-in link",
+        intro=f"Hi {_html.escape(target['name'])}, your username and password were just entered correctly. "
+              "Press the button to finish signing in.",
+        url=url, expiry="15 minutes", requested_from=ua, button="Sign in to Siraugga",
+        only_if_matches=(target["typed"] if target["to"] == "__admin__" else ""))
+    if sent.get("status") == "mismatch":
+        dk.cancel_login_link(code)
+        return _fail("That email address doesn't match this account. Sign in again and use the right address.")
+    if not sent.get("ok"):
+        dk.cancel_login_link(code)
+        return _fail("The email could not be sent right now. Try again in a minute.", 502)
+    return jsonify({"success": True, "message": "Sign-in link sent. Open your email on this device and press "
+                    "\"Sign in to Siraugga\". The link works once, for 15 minutes."}), 200, _NO_STORE
+
+
+@device_keys_bp.route("/api/login/link", methods=["POST"])
+async def login_link():
+    site, err = _site_or_fail()
+    if err:
+        return err
+    data = await _json()
+    try:
+        rec = dk.take_login_link(str(data.get("code") or "").strip())
+    except ValueError as e:
+        return _fail(str(e))
+    return await _signed_in(rec)
+
+
+@device_keys_bp.route("/api/device-keys/people/<username>", methods=["DELETE"])
+async def keys_delete_person(username):
+    denied = _owner_only()
+    if denied:
+        return denied
+    return jsonify({"success": dk.delete_person(username)}), 200, _NO_STORE
 
 
 @device_keys_bp.route("/api/device-keys/login/start", methods=["POST"])
@@ -277,7 +377,8 @@ async def _signed_in(rec: dict):
         is_admin = rec["role"] == "admin"
         sess_user = {"username": rec["name"], "name": rec["name"], "role": rec["role"],
                      "allowed_projects": ["*"] if is_admin else [],
-                     "key_id": "dk-" + rec["name"].lower().replace(" ", "-")[:40]}
+                     "key_id": ("dkp-" + rec["username"]) if rec.get("username")
+                               else "dk-" + rec["name"].lower().replace(" ", "-")[:40]}
         if rec.get("project"):
             # An in-game/app developer: only the project (and parts) they were handed.
             sess_user.update(allowed_projects=[rec["project"]], dev_project=rec["project"],

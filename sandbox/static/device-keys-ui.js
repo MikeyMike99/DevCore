@@ -128,6 +128,15 @@
                 refresh();
             });
         });
+        (d.people || []).forEach(function (pp) {
+            row(pp.name + ' · username "' + pp.username + '"' + (pp.email ? ' (' + pp.email + ')' : '') + ' · ' + ((d.roles || {})[pp.role] || pp.role),
+                'Remove person', async function () {
+                if (!window.confirm('Remove ' + pp.name + '? Their password and all their devices stop working.')) return;
+                var r = await api('DELETE', '/api/device-keys/people/' + encodeURIComponent(pp.username));
+                asay(r.ok ? pp.name + ' removed.' : (r.data.error || 'Could not remove them.'));
+                refresh();
+            });
+        });
         (d.invites || []).forEach(function (v) {
             row(v.name + (v.email ? ' (' + v.email + ')' : '') + ' · ' + ((d.role_labels || d.roles || {})[v.role] || v.role) + ' · link not used yet (until ' + fmtDate(v.expires_at) + ')', 'Cancel link', async function () {
                 var r = await api('DELETE', '/api/device-keys/invites/' + encodeURIComponent(v.id));

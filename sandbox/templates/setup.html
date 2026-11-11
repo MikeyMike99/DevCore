@@ -38,18 +38,31 @@ a { color:var(--accent); }
 
   <!-- Owner: password, then create an access key on this device -->
   <form id="owner-form" class="stack hidden" novalidate>
-    <p class="muted">Type your owner password to sign in as Super Admin. Then confirm with this device's fingerprint, face or PIN, and next time this device signs you in by itself.</p>
+    <p class="muted">Type your username and password, then your email address. We'll email you a one-time sign-in link. After that you can turn on fingerprint or Face ID for this device.</p>
     <div>
-      <label for="password">Owner password</label>
+      <label for="username">Username</label>
+      <input id="username" type="text" autocomplete="username" maxlength="64">
+    </div>
+    <div>
+      <label for="password">Password</label>
       <input id="password" type="password" autocomplete="current-password" required>
     </div>
     <button type="submit" class="primary" id="owner-btn">Sign in</button>
     <button type="button" class="secondary" id="recover-btn">Forgot your password? Email me a setup link</button>
   </form>
 
+  <form id="email-form" class="stack hidden" novalidate>
+    <p>Password correct. Now type your email address.</p>
+    <div>
+      <label for="login-email">Your email address</label>
+      <input id="login-email" type="email" autocomplete="email" maxlength="254" required>
+    </div>
+    <button type="submit" class="primary" id="email-btn">Email me a sign-in link</button>
+  </form>
+
   <!-- Signed in with the password, but the fingerprint/face step didn't finish -->
   <div id="bio-box" class="stack hidden">
-    <p>You are signed in as Super Admin.</p>
+    <p id="bio-who">You are signed in.</p>
     <p class="muted">Turn on fingerprint, face or PIN so this device signs you in by itself next time.</p>
     <button type="button" class="primary" id="bio-btn">Turn on fingerprint / face</button>
     <a href="/" class="secondary" style="text-align:center">Skip for now, open Siraugga</a>
@@ -69,6 +82,17 @@ a { color:var(--accent); }
   <!-- Someone invited with a one-time link -->
   <div id="invite-box" class="stack hidden">
     <p id="invite-text"></p>
+    <div id="invite-account" class="stack hidden">
+      <p class="muted">Choose a username and password. You'll use them (plus a link sent to your email) to sign in on other devices.</p>
+      <div>
+        <label for="inv-username">Choose a username</label>
+        <input id="inv-username" type="text" autocomplete="username" maxlength="32">
+      </div>
+      <div>
+        <label for="inv-password">Choose a password (at least 10 characters)</label>
+        <input id="inv-password" type="password" autocomplete="new-password" minlength="10">
+      </div>
+    </div>
     <p class="muted">You'll be asked to confirm with this device's fingerprint, face or PIN. Nothing secret is sent to Siraugga; the key stays on your device. This link works only once.</p>
     <button type="button" class="primary" id="invite-btn">Create access key on this device</button>
   </div>
@@ -95,13 +119,15 @@ a { color:var(--accent); }
   <p class="muted"><a href="/">Back to Siraugga</a></p>
 </div>
 </main>
-<script src="/static/device-keys.js?v=2"></script>
+<script src="/static/device-keys.js?v=3"></script>
 <script>
 (function () {
     var msg = document.getElementById('msg');
     var params = new URLSearchParams(location.search);
     var invite = params.get('invite');
     var isRecovery = false;
+    var signinCode = params.get('signin');
+    var stepId = '';
 
     function show(text, kind) { msg.textContent = text; msg.className = kind || ''; }
     function busy(btn, on) { btn.disabled = on; btn.setAttribute('aria-busy', on ? 'true' : 'false'); }
@@ -124,6 +150,10 @@ a { color:var(--accent); }
             .then(function (d) {
                 if (!d.success) { document.getElementById('title').textContent = 'Link not valid'; show(d.error, 'error'); return; }
                 isRecovery = !!d.recovery;
+                if (d.role !== 'owner') {
+                    document.getElementById('invite-account').classList.remove('hidden');
+                    document.getElementById('inv-username').value = (d.name || '').toLowerCase().replace(/[^a-z0-9._-]+/g, '.').replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '').slice(0, 32);
+                }
                 document.getElementById('title').textContent = d.recovery ? 'Reset owner access' : 'Welcome, ' + d.name;
                 document.getElementById('invite-text').textContent = d.recovery
                     ? 'This link from your recovery email makes this device Super Admin, then lets you choose a new password.'
@@ -132,12 +162,70 @@ a { color:var(--accent); }
                 document.getElementById('invite-btn').focus();
             })
             .catch(function () { show('Could not check this link. Reload the page to try again.', 'error'); });
+    } else if (signinCode) {
+        // Opened from the sign-in email: finish signing in on this device.
+        history.replaceState(null, '', '/setup');
+        document.getElementById('title').textContent = 'Signing you in…';
+        document.getElementById('signin-box').classList.add('hidden');
+        SirauggaKeys.loginLink(signinCode).then(function (res) {
+            var role = res.user && res.user.role ? res.user.role.replace('_', ' ') : 'signed in';
+            document.getElementById('title').textContent = 'Signed in';
+            if (!window.PublicKeyCredential || SirauggaKeys.hasKeyHere()) { done(res); return; }
+            document.getElementById('bio-who').textContent = 'You are signed in as ' + role + '.';
+            document.getElementById('bio-box').classList.remove('hidden');
+            show('Signed in as ' + role + '. Press "Turn on fingerprint / face" so this device signs you in by itself next time.', 'ok');
+            document.getElementById('bio-btn').focus();
+        }).catch(function (err) {
+            document.getElementById('title').textContent = 'Link not valid';
+            document.getElementById('owner-form').classList.remove('hidden');
+            document.getElementById('signin-box').classList.remove('hidden');
+            show(err.message, 'error');
+        });
     } else {
         document.getElementById('owner-form').classList.remove('hidden');
     }
 
+    document.getElementById('owner-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('owner-btn');
+        var pw = document.getElementById('password');
+        if (!pw.value) { show('Type your password first.', 'error'); pw.focus(); return; }
+        busy(btn, true); show('Checking…');
+        try {
+            stepId = await SirauggaKeys.loginPassword(document.getElementById('username').value.trim(), pw.value);
+            pw.value = '';
+            document.getElementById('owner-form').classList.add('hidden');
+            document.getElementById('signin-box').classList.add('hidden');
+            document.getElementById('email-form').classList.remove('hidden');
+            show('Password correct. Now type your email address.', 'ok');
+            document.getElementById('login-email').focus();
+        } catch (err) { show(err.message, 'error'); pw.focus(); }
+        finally { busy(btn, false); }
+    });
+
+    document.getElementById('email-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('email-btn');
+        var em = document.getElementById('login-email');
+        if (!em.value.trim()) { show('Type your email address first.', 'error'); em.focus(); return; }
+        busy(btn, true); show('Sending…');
+        try {
+            show(await SirauggaKeys.loginEmail(stepId, em.value.trim()), 'ok');
+            em.value = '';
+            document.getElementById('email-form').classList.add('hidden');
+        } catch (err) {
+            show(err.message, 'error');
+            if (/again/.test(err.message) && !/doesn't match this account\.$/.test(err.message)) {
+                document.getElementById('email-form').classList.add('hidden');
+                document.getElementById('owner-form').classList.remove('hidden');
+                document.getElementById('password').focus();
+            } else { em.focus(); }
+        }
+        finally { busy(btn, false); }
+    });
+
     async function addBiometrics() {
-        show('Confirm with your fingerprint, face or PIN…');
+        show('Confirm with your fingerprint, Face ID or PIN…');
         try { done(await SirauggaKeys.register({})); }
         catch (err) {
             document.getElementById('owner-form').classList.add('hidden');
@@ -147,19 +235,6 @@ a { color:var(--accent); }
             document.getElementById('bio-btn').focus();
         }
     }
-
-    document.getElementById('owner-form').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        var btn = document.getElementById('owner-btn');
-        var pw = document.getElementById('password');
-        if (!pw.value) { show('Type your owner password first.', 'error'); pw.focus(); return; }
-        busy(btn, true); show('Signing in…');
-        try { await SirauggaKeys.passwordLogin(pw.value); }
-        catch (err) { show(err.message, 'error'); busy(btn, false); pw.focus(); return; }
-        pw.value = ''; busy(btn, false);
-        if (!window.PublicKeyCredential) { done({ user: { role: 'super_admin' } }); return; }
-        await addBiometrics();
-    });
 
     document.getElementById('newpw-form').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -211,8 +286,16 @@ a { color:var(--accent); }
     document.getElementById('invite-btn').addEventListener('click', async function () {
         var btn = this;
         busy(btn, true); show('Confirm on your device…');
+        var proof = { invite: invite };
+        if (!document.getElementById('invite-account').classList.contains('hidden')) {
+            proof.username = document.getElementById('inv-username').value.trim();
+            proof.new_password = document.getElementById('inv-password').value;
+            if (!proof.username) { show('Choose a username first.', 'error'); busy(btn, false); document.getElementById('inv-username').focus(); return; }
+            if (proof.new_password.length < 10) { show('The password needs at least 10 characters.', 'error'); busy(btn, false); document.getElementById('inv-password').focus(); return; }
+        }
         try {
-            var res = await SirauggaKeys.register({ invite: invite });
+            var res = await SirauggaKeys.register(proof);
+            document.getElementById('inv-password').value = '';
             if (isRecovery) {
                 document.getElementById('invite-box').classList.add('hidden');
                 document.getElementById('newpw-form').classList.remove('hidden');

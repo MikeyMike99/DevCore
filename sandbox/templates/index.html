@@ -4591,6 +4591,9 @@
             finally { if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); } }
         };
 
+        var loginStepId = '';
+
+        // Step 1: username + password (every account, owner included).
         async function handleCustomLogin(e) {
             e.preventDefault();
             var u = document.getElementById('login-username').value.trim();
@@ -4598,49 +4601,53 @@
             var p = pwEl.value;
             var btn = document.getElementById('login-submit-btn');
             if (!p) { loginSay('Type your password first.'); pwEl.focus(); return; }
-            if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Signing in…'; }
-            loginSay('Signing in…');
+            if (!window.SirauggaKeys) { loginSay('The page is still loading. Try again in a moment.'); return; }
+            if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Checking…'; }
+            loginSay('Checking…');
             try {
-                // 1) Regular accounts (username + password).
-                if (u) {
-                    var r1 = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-                                                              body: JSON.stringify({ access_key: u + ':' + p }) });
-                    var d1 = {}; try { d1 = await r1.json(); } catch (_) {}
-                    if (d1.token) {
-                        await finishSignIn(d1);
-                        pwEl.value = '';
-                        loginDone('Signed in as ' + (d1.user.name || d1.user.username) + '.');
-                        return;
-                    }
-                }
-                // 2) The owner password -> Super Admin.
-                var r2 = await fetch('/api/device-keys/password-login', { method: 'POST', cache: 'no-store', credentials: 'same-origin',
-                                                                          headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: p }) });
-                var d2 = {}; try { d2 = await r2.json(); } catch (_) {}
-                if (d2.success && d2.token) {
-                    pwEl.value = '';
-                    await finishSignIn(d2);
-                    var hasKey = false; try { hasKey = localStorage.getItem('siraugga_access_key') === '1'; } catch (_) {}
-                    if (hasKey || !window.PublicKeyCredential || !window.SirauggaKeys) {
-                        loginDone('Signed in as Super Admin.');
-                    } else {
-                        loginSay('Signed in as Super Admin.');
-                        var bio = document.getElementById('login-bio-btn');
-                        if (bio) bio.classList.remove('hidden');
-                        await window.loginTurnOnBiometrics();
-                    }
-                    return;
-                }
-                var msg = d2.error || 'Wrong username or password.';
-                if (msg === 'Wrong password.') msg = 'Wrong username or password. If you forgot the owner password, use "Forgot or reset owner password" below.';
+                loginStepId = await window.SirauggaKeys.loginPassword(u, p);
+                pwEl.value = '';
+                document.getElementById('login-email-form').classList.remove('hidden');
+                loginSay('Password correct. Now type your email address and press "Email me a sign-in link".');
+                document.getElementById('login-email').focus();
+            } catch (err) {
+                var msg = err.message || 'Wrong username or password.';
+                if (/^Wrong/.test(msg)) msg += ' If you forgot it, use "Forgot or reset owner password" below.';
                 loginSay(msg);
                 pwEl.focus();
-            } catch (err) {
-                loginSay('Could not reach Siraugga. Check your connection and try again.');
             } finally {
                 if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); btn.textContent = 'Sign In'; }
             }
         }
+
+        // Step 2: the email address -> a one-time sign-in link is emailed.
+        window.handleLoginEmail = async function (e) {
+            e.preventDefault();
+            var em = document.getElementById('login-email');
+            var btn = document.getElementById('login-email-btn');
+            if (!em.value.trim()) { loginSay('Type your email address first.'); em.focus(); return; }
+            if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Sending…'; }
+            loginSay('Sending…');
+            try {
+                var msg = await window.SirauggaKeys.loginEmail(loginStepId, em.value.trim());
+                em.value = ''; loginStepId = '';
+                document.getElementById('login-email-form').classList.add('hidden');
+                loginDone(msg);
+            } catch (err) {
+                var m = err.message || 'Could not send the link.';
+                if (/Sign in again|too long|again\./.test(m) && !/doesn't match this account\.$/.test(m)) {
+                    document.getElementById('login-email-form').classList.add('hidden');
+                    loginStepId = '';
+                    loginSay(m);
+                    document.getElementById('login-password').focus();
+                } else {
+                    loginSay(m);
+                    em.focus();
+                }
+            } finally {
+                if (btn) { btn.disabled = false; btn.removeAttribute('aria-busy'); btn.textContent = 'Email me a sign-in link'; }
+            }
+        };
 
         // Start WebSocket
         connectWebSocket();
@@ -6290,7 +6297,7 @@
             </div>
             <div class="border-t border-slate-800 pt-3">
                 <h3 class="text-sm font-bold text-amber-200 m-0 mb-1">👑 Owner / account sign-in</h3>
-                <p class="text-[11px] text-slate-400 m-0 mb-2">Owner: type your owner password (the username can be anything). You'll then be offered fingerprint or face sign-in for this device.</p>
+                <p class="text-[11px] text-slate-400 m-0 mb-2">Type your username and password, then your email address. We'll email you a one-time sign-in link. After that you can turn on fingerprint or Face ID for this device.</p>
                 <form onsubmit="handleCustomLogin(event)" class="space-y-3">
                     <div>
                         <label for="login-username" class="text-xs text-slate-300 font-medium block mb-1">Username</label>
@@ -6304,6 +6311,13 @@
                         <button type="button" onclick="toggleLoginModal()" class="px-3 py-1.5 rounded text-xs border border-slate-700 text-slate-400 hover:bg-slate-800 focus:ring-2 focus:ring-teal-500 focus:outline-none">Cancel</button>
                         <button type="submit" id="login-submit-btn" class="px-3 py-1.5 rounded text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none">Sign In</button>
                     </div>
+                </form>
+                <form id="login-email-form" onsubmit="handleLoginEmail(event)" class="hidden space-y-3 mt-3">
+                    <div>
+                        <label for="login-email" class="text-xs text-slate-300 font-medium block mb-1">Your email address</label>
+                        <input id="login-email" type="email" autocomplete="email" maxlength="254" class="w-full bg-slate-950 border border-slate-700 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    </div>
+                    <button type="submit" id="login-email-btn" class="w-full min-h-[44px] px-3 py-1.5 rounded text-xs bg-teal-600 hover:bg-teal-500 text-white font-bold focus:ring-2 focus:ring-teal-500 focus:outline-none">Email me a sign-in link</button>
                 </form>
                 <p id="login-feedback" class="text-sm text-amber-200 mt-2 mb-0" role="status" aria-live="assertive" aria-atomic="true"></p>
                 <button type="button" id="login-bio-btn" onclick="loginTurnOnBiometrics()" class="hidden w-full mt-2 min-h-[44px] py-2 px-3 rounded-lg bg-teal-700 hover:bg-teal-600 text-white font-bold text-xs focus:ring-2 focus:ring-teal-400 focus:outline-none">Turn on fingerprint / face for this device</button>
@@ -7923,7 +7937,7 @@
 <!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
 <script src="/static/speech/dictation.js?v=5" defer></script>
-<script src="/static/device-keys.js?v=2" defer></script>
-<script src="/static/device-keys-ui.js?v=1" defer></script>
+<script src="/static/device-keys.js?v=3" defer></script>
+<script src="/static/device-keys-ui.js?v=2" defer></script>
 </body>
 </html>

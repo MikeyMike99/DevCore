@@ -47,12 +47,19 @@
         } catch (_) {}
     }
 
-    // Owner password alone: signs this browser in as Super Admin (no access key yet).
-    async function passwordLogin(password) {
-        var done = await post('/api/device-keys/password-login', { password: password });
+    // Sign-in for every account: username + password -> email -> one-time emailed link.
+    async function loginPassword(username, password) {
+        return (await post('/api/login/password', { username: username, password: password })).step_id;
+    }
+    async function loginEmail(stepId, email) {
+        return (await post('/api/login/email', { step_id: stepId, email: email })).message;
+    }
+    async function loginLink(code) {
+        var done = await post('/api/login/link', { code: code });
         saveSession(done, false);
         return done;
     }
+    function hasKeyHere() { try { return localStorage.getItem('siraugga_access_key') === '1'; } catch (_) { return false; } }
 
     // Set up this device. `proof` is { password } (owner), { invite } (one-time link), or {}
     // when already signed in as the owner.
@@ -109,5 +116,6 @@
         return done;
     }
 
-    window.SirauggaKeys = { register: register, signIn: signIn, passwordLogin: passwordLogin };
+    window.SirauggaKeys = { register: register, signIn: signIn, loginPassword: loginPassword, loginEmail: loginEmail,
+                            loginLink: loginLink, hasKeyHere: hasKeyHere };
 })();
