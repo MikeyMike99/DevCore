@@ -2,6 +2,7 @@ import sys
 import json
 import os
 import ast
+import re
 
 def get_ast_symbols(source_code):
     symbols = {}
@@ -44,6 +45,80 @@ def log_violation(tool_name, target, reason):
         pass
 
 _HOOK_DEVCORE_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+# Research mode (Tier 1-4 chats, set by Siraugga as DEVCORE_RESEARCH_MODE=1): the CLI's own
+# terminal sandbox is off, so this hook decides every command. Only curl/wget reading public
+# websites is allowed; all other system commands stay blocked.
+_CURL_FLAGS_NOARG = {"-s", "--silent", "-S", "--show-error", "-L", "--location", "-I", "--head", "-i",
+                     "--include", "-v", "--verbose", "-f", "--fail", "-G", "--get", "--compressed", "-k",
+                     "--insecure", "-sS", "-fsSL", "-sSL", "-sL", "-fsS", "-fL", "-Ls", "-LsS", "--http1.1",
+                     "--http2", "-4", "-6", "--no-progress-meter"}
+_CURL_FLAGS_ARG = {"-H", "--header", "-A", "--user-agent", "-m", "--max-time", "--connect-timeout", "-X",
+                   "--request", "-d", "--data", "--data-raw", "--data-urlencode", "--json", "-e", "--referer",
+                   "-r", "--range", "--retry", "--max-redirs", "-w", "--write-out"}
+_WGET_FLAGS_NOARG = {"-q", "--quiet", "-S", "--server-response", "--spider", "-nv", "--no-verbose",
+                     "--no-check-certificate"}
+_WGET_FLAGS_ARG = {"-U", "--user-agent", "--header", "-T", "--timeout", "-t", "--tries", "-O", "-qO",
+                   "--output-document", "--max-redirect"}
+_SHELL_META = re.compile(r"[;&|`<>\n\r]|\$\(|\$\{")
+
+
+def check_research_command(tool_name, args):
+    """Deny reason for a command in research mode, or None when it is an allowed curl/wget."""
+    import shlex
+    if tool_name == "send_command_input":
+        return "Research mode: interactive command input is not available."
+    cmd = str(args.get("CommandLine") or args.get("command") or args.get("Command") or "").strip()
+    if not cmd:
+        return "Research mode: empty command."
+    if _SHELL_META.search(cmd):
+        return "Research mode: one curl/wget command at a time, without pipes, redirects or chaining."
+    try:
+        tokens = shlex.split(cmd)
+    except ValueError:
+        return "Research mode: the command could not be parsed."
+    prog = os.path.basename(tokens[0]) if tokens else ""
+    if prog not in ("curl", "wget"):
+        return "Research mode: only curl and wget (reading public websites) are available; other system commands are blocked."
+    noarg, witharg = (_CURL_FLAGS_NOARG, _CURL_FLAGS_ARG) if prog == "curl" else (_WGET_FLAGS_NOARG, _WGET_FLAGS_ARG)
+    urls, i = [], 1
+    while i < len(tokens):
+        t = tokens[i]
+        if t.startswith("-"):
+            flag, _, inline = t.partition("=") if t.startswith("--") else (t, "", "")
+            if flag in noarg and not inline:
+                i += 1
+                continue
+            if flag in witharg:
+                val = inline if inline else (tokens[i + 1] if i + 1 < len(tokens) else None)
+                if val is None:
+                    return f"Research mode: {flag} needs a value."
+                if val.startswith("@"):
+                    return "Research mode: reading request data from files (@file) is not allowed."
+                if flag in ("-O", "-qO", "--output-document") and val != "-":
+                    return "Research mode: downloads may only be shown (wget -O -), not saved to files."
+                i += 1 if inline else 2
+                continue
+            return f"Research mode: the option {flag} is not allowed."
+        urls.append(t)
+        i += 1
+    if not urls:
+        return "Research mode: give the web address to fetch."
+    try:
+        if _HOOK_DEVCORE_ROOT not in sys.path:
+            sys.path.insert(0, _HOOK_DEVCORE_ROOT)
+        from security.safe_fetch import vet_url, FetchBlocked
+    except Exception:
+        return "Research mode: address checking is unavailable."
+    for u in urls:
+        if "://" not in u:
+            u = "http://" + u
+        try:
+            vet_url(u)
+        except FetchBlocked as exc:
+            return f"Research mode: {exc}."
+    return None
 
 
 def _agent_tier() -> int:
@@ -639,6 +714,14 @@ def main():
             log_violation(tool_name, json.dumps(args, default=str)[:200], dev_reason)
             print(json.dumps({"decision": "deny", "reason": dev_reason}))
             return
+
+        # --- RESEARCH MODE (Tier 1-4 chats): commands limited to curl/wget on public sites ---
+        if os.environ.get("DEVCORE_RESEARCH_MODE") == "1" and tool_name in COMMAND_TOOLS:
+            research_reason = check_research_command(tool_name, args)
+            if research_reason:
+                log_violation(tool_name, json.dumps(args, default=str)[:200], research_reason)
+                print(json.dumps({"decision": "deny", "reason": research_reason}))
+                return
 
         if tool_name in ("mcp_tool", "call_mcp_tool") and raw_args.get("ToolName") in (
             "search_keys",
