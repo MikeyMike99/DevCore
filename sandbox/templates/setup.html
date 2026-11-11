@@ -55,6 +55,17 @@ a { color:var(--accent); }
     <a href="/" class="secondary" style="text-align:center">Skip for now, open Siraugga</a>
   </div>
 
+  <!-- After a recovery link: choose a new owner password -->
+  <form id="newpw-form" class="stack hidden" novalidate>
+    <p>This device is now Super Admin. Choose a new owner password (at least 10 characters).</p>
+    <div>
+      <label for="newpw">New owner password</label>
+      <input id="newpw" type="password" autocomplete="new-password" minlength="10" required>
+    </div>
+    <button type="submit" class="primary" id="newpw-btn">Save new password</button>
+    <a href="/" class="secondary" style="text-align:center">Skip, open Siraugga</a>
+  </form>
+
   <!-- Someone invited with a one-time link -->
   <div id="invite-box" class="stack hidden">
     <p id="invite-text"></p>
@@ -80,7 +91,7 @@ a { color:var(--accent); }
     </form>
   </div>
 
-  <p id="msg" role="status" aria-live="polite"></p>
+  <p id="msg" role="status" aria-live="assertive" aria-atomic="true"></p>
   <p class="muted"><a href="/">Back to Siraugga</a></p>
 </div>
 </main>
@@ -90,6 +101,7 @@ a { color:var(--accent); }
     var msg = document.getElementById('msg');
     var params = new URLSearchParams(location.search);
     var invite = params.get('invite');
+    var isRecovery = false;
 
     function show(text, kind) { msg.textContent = text; msg.className = kind || ''; }
     function busy(btn, on) { btn.disabled = on; btn.setAttribute('aria-busy', on ? 'true' : 'false'); }
@@ -111,9 +123,10 @@ a { color:var(--accent); }
             .then(function (r) { return r.json(); })
             .then(function (d) {
                 if (!d.success) { document.getElementById('title').textContent = 'Link not valid'; show(d.error, 'error'); return; }
-                document.getElementById('title').textContent = d.recovery ? 'Set up this device' : 'Welcome, ' + d.name;
+                isRecovery = !!d.recovery;
+                document.getElementById('title').textContent = d.recovery ? 'Reset owner access' : 'Welcome, ' + d.name;
                 document.getElementById('invite-text').textContent = d.recovery
-                    ? 'This link from your recovery email makes this device Super Admin.'
+                    ? 'This link from your recovery email makes this device Super Admin, then lets you choose a new password.'
                     : 'You have been invited to Siraugga as: ' + d.role_label + '.';
                 document.getElementById('invite-box').classList.remove('hidden');
                 document.getElementById('invite-btn').focus();
@@ -146,6 +159,23 @@ a { color:var(--accent); }
         pw.value = ''; busy(btn, false);
         if (!window.PublicKeyCredential) { done({ user: { role: 'super_admin' } }); return; }
         await addBiometrics();
+    });
+
+    document.getElementById('newpw-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var btn = document.getElementById('newpw-btn');
+        var pw = document.getElementById('newpw');
+        if (pw.value.length < 10) { show('The password needs at least 10 characters.', 'error'); pw.focus(); return; }
+        busy(btn, true);
+        try {
+            var t = ''; try { t = localStorage.getItem('agy_auth_token') || ''; } catch (_) {}
+            var r = await fetch('/api/device-keys/password', { method: 'POST', cache: 'no-store', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t }, body: JSON.stringify({ password: pw.value }) });
+            var d = {}; try { d = await r.json(); } catch (_) {}
+            if (d.success) { pw.value = ''; show('New password saved. Opening Siraugga…', 'ok'); setTimeout(function () { location.href = '/'; }, 1500); }
+            else { show(d.error || 'Could not save the password.', 'error'); pw.focus(); }
+        } catch (_) { show('Could not reach Siraugga. Try again.', 'error'); }
+        finally { busy(btn, false); }
     });
 
     document.getElementById('bio-btn').addEventListener('click', async function () {
@@ -181,7 +211,15 @@ a { color:var(--accent); }
     document.getElementById('invite-btn').addEventListener('click', async function () {
         var btn = this;
         busy(btn, true); show('Confirm on your device…');
-        try { done(await SirauggaKeys.register({ invite: invite })); }
+        try {
+            var res = await SirauggaKeys.register({ invite: invite });
+            if (isRecovery) {
+                document.getElementById('invite-box').classList.add('hidden');
+                document.getElementById('newpw-form').classList.remove('hidden');
+                show('Signed in as Super Admin with fingerprint or face. Now choose a new password.', 'ok');
+                document.getElementById('newpw').focus();
+            } else { done(res); }
+        }
         catch (err) { show(err.message, 'error'); }
         finally { busy(btn, false); }
     });
