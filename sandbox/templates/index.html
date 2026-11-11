@@ -4537,6 +4537,20 @@
             setTimeout(function () { fb.textContent = text || ''; }, 50);
         }
 
+        // Success: close the dialog, say what happened, and put focus in the message box.
+        function loginDone(text) {
+            var modal = document.getElementById('login-modal');
+            if (modal && modal.open) modal.close();
+            var fb = document.getElementById('login-feedback');
+            if (fb) fb.textContent = '';
+            var bio = document.getElementById('login-bio-btn');
+            if (bio) bio.classList.add('hidden');
+            var live = document.getElementById('sr-alerts');
+            if (live) { live.textContent = ''; setTimeout(function () { live.textContent = text; }, 100); }
+            var box = document.getElementById('prompt');
+            if (box) setTimeout(function () { box.focus(); }, 150);
+        }
+
         async function finishSignIn(data) {
             sessionStorage.removeItem('agy_manual_logout');
             authToken = data.token;
@@ -4558,7 +4572,7 @@
             try {
                 await window.SirauggaKeys.register({});
                 if (btn) btn.classList.add('hidden');
-                loginSay('Done. This device will now sign you in with your fingerprint or face. You can close this dialog.');
+                loginDone('Signed in as Super Admin. Fingerprint or face is now set up on this device.');
             } catch (err) {
                 if (btn) { btn.classList.remove('hidden'); btn.focus(); }
                 loginSay('You are signed in as Super Admin. Fingerprint or face was not set up: ' + err.message + ' Press "Turn on fingerprint / face" to try again.');
@@ -4595,7 +4609,7 @@
                     if (d1.token) {
                         await finishSignIn(d1);
                         pwEl.value = '';
-                        loginSay('Signed in as ' + (d1.user.name || d1.user.username) + '. You can close this dialog.');
+                        loginDone('Signed in as ' + (d1.user.name || d1.user.username) + '.');
                         return;
                     }
                 }
@@ -4606,8 +4620,11 @@
                 if (d2.success && d2.token) {
                     pwEl.value = '';
                     await finishSignIn(d2);
-                    loginSay('Signed in as Super Admin.');
-                    if (window.PublicKeyCredential && window.SirauggaKeys) {
+                    var hasKey = false; try { hasKey = localStorage.getItem('siraugga_access_key') === '1'; } catch (_) {}
+                    if (hasKey || !window.PublicKeyCredential || !window.SirauggaKeys) {
+                        loginDone('Signed in as Super Admin.');
+                    } else {
+                        loginSay('Signed in as Super Admin.');
                         var bio = document.getElementById('login-bio-btn');
                         if (bio) bio.classList.remove('hidden');
                         await window.loginTurnOnBiometrics();
