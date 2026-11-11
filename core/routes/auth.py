@@ -1126,12 +1126,21 @@ def _public_url() -> str:
 _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
 
 
+def _public_origins() -> set:
+    """Every public address that serves this same Siraugga (the tunnel routes all of them here).
+    Extra ones via DEVCORE_PUBLIC_ORIGINS (comma-separated)."""
+    base = _public_url()
+    out = {base, "https://mikeytech.dev", "https://www.mikeytech.dev", "https://siraugga.mikeytech.dev"}
+    out |= {o.strip().rstrip("/") for o in os.environ.get("DEVCORE_PUBLIC_ORIGINS", "").split(",") if o.strip()}
+    return out
+
+
 def _handoff_cors_headers() -> dict:
     """The public domain's page may ask this computer's server for a handoff ("Owner sign-in"),
-    so allow exactly that origin (plus the browser's local-network preflight)."""
+    so allow exactly those origins (plus the browser's local-network preflight)."""
     origin = request.headers.get("Origin", "")
     h = {"Cache-Control": "no-store", "Vary": "Origin"}
-    if origin == _public_url():
+    if origin in _public_origins():
         h.update({"Access-Control-Allow-Origin": origin,
                   "Access-Control-Allow-Methods": "POST",
                   "Access-Control-Allow-Headers": "Content-Type",
@@ -1151,7 +1160,7 @@ def _handoff_request_ok() -> bool:
     origin = (request.headers.get("Origin") or "").strip()
     if not origin:
         return True
-    if origin == _public_url():
+    if origin in _public_origins():
         return True
     try:
         o = urllib.parse.urlsplit(origin)
@@ -1172,7 +1181,10 @@ async def owner_device_handoff():
         return jsonify({"success": False, "error": "Owner sign-in only works on the Siraugga host computer."}), 403, cors
     from security import owner_device
     code = owner_device.new_handoff()
-    return jsonify({"success": True, "url": f"{_public_url()}/owner-device/claim?code={code}",
+    # Claim on the address the owner is using, so the trusted-device cookie lands on that site.
+    origin = (request.headers.get("Origin") or "").strip().rstrip("/")
+    claim_base = origin if origin in _public_origins() else _public_url()
+    return jsonify({"success": True, "url": f"{claim_base}/owner-device/claim?code={code}",
                     "expires_in": owner_device.HANDOFF_TTL}), 200, cors
 
 
