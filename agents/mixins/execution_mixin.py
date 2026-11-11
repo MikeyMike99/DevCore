@@ -183,6 +183,40 @@ EXAM_SAVE_INSTRUCTIONS = (
 )
 
 
+# Playing videos: the instructions from .agents/skills/devcore-media-player/SKILL.md, given up
+# front so the agent does not spend a turn opening the skill file before it can answer.
+MEDIA_PLAY_INSTRUCTIONS = (
+    "VIDEOS: Everything you need to play a video, song or playlist is in this note. Do NOT open SKILL.md files "
+    "or any project files first; answer straight away. To show the player, put this raw HTML in your reply "
+    "(replace VIDEO_ID with the 11-character YouTube id and TITLE with the URL-encoded video title): "
+    "<iframe src=\"/plugin/media?v=VIDEO_ID&title=TITLE\" width=\"100%\" height=\"800px\" style=\"border:none;\" "
+    "allow=\"autoplay; encrypted-media; fullscreen; picture-in-picture\"></iframe> "
+    "If the user gives a YouTube link, take the id from it (the v= value, or the part after youtu.be/). "
+    "If they name a video, song or topic and you do not know its id, search the web for it and use the id "
+    "from the YouTube result. If they only say 'play a video' with no subject, ask one short question about what "
+    "they want to watch. To resume, read sandbox/static/playback_state.json (fields video_id and timestamp in "
+    "seconds) and add &start=TIMESTAMP to the iframe address. The playlist is the JSON list in "
+    "sandbox/static/playlist.json ([{\"id\": ..., \"title\": ...}]); add or remove items there only when the "
+    "user asks, and the player shows it by itself. YouTube usually blocks official music videos from playing in "
+    "our player: if the user asks for one, say so in plain words (no technical terms) and tell them a 'Watch on "
+    "YouTube' button will appear if it is blocked.\n"
+)
+
+import re as _re_media
+_MEDIA_REQUEST_RES = (
+    _re_media.compile(r"\b(play|watch|put on|show me|stream)\b.{0,60}\b(video|videos|song|songs|music|clip|trailer|playlist|movie)\b", _re_media.I | _re_media.S),
+    _re_media.compile(r"\b(video|song|music|playlist)\b.{0,40}\b(play|watch)\b", _re_media.I | _re_media.S),
+    _re_media.compile(r"\bresume\b.{0,30}\b(video|watching|playback|playing)\b", _re_media.I | _re_media.S),
+    _re_media.compile(r"`/media`|^\s*/media\b", _re_media.I | _re_media.M),
+)
+
+
+def is_media_request(prompt: str) -> bool:
+    """True when the user asks to play/watch a video, song or playlist (or typed /media)."""
+    text = str(prompt or "")[:4000]
+    return any(r.search(text) for r in _MEDIA_REQUEST_RES)
+
+
 class ExecutionMixin:
     _validated_path_cache = {}
     _validated_path_cache_state = None
@@ -339,7 +373,7 @@ class ExecutionMixin:
                 prompt = "SYSTEM TRIGGER [Help Menu]: The user wants a simple, non-technical guide on how to use the Siraugga Media Player. Explain how they can type `/media` to spawn it, or `/media play [song]` to search for a specific video. Mention that the player syncs state so they can say 'resume my video', and that they can ask you to add or remove items from their playlist. Finally, explicitly warn them that some items in their playlist may require opening external sites due to strict copyright laws (e.g., blocking embedded iframe playback)."
             elif lower_p.startswith('/media'):
                 context = prompt[6:].strip()
-                prompt = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Please use the `devcore-media-player` skill to spawn the DevCore Video Player iframe for them. " + ("User context: " + context if context else "")
+                prompt = "SYSTEM TRIGGER [Slash Command]: The user typed `/media`. Show the Siraugga video player iframe for them, following the VIDEOS note (do not open any skill file). " + ("User context: " + context if context else "")
             elif lower_p in ['help background', '/help background']:
                 prompt = "SYSTEM TRIGGER [Help Menu]: The user is asking for help on how to use the `background-task-offloading` skill. Please explain to them that they do not need to execute slash commands. They just need to tell you to run a script (like 'run the TTS generator'), and you will automatically use the background skill to run it detached and wait for the webhook callback. Tell them to give you a workload to test!"
             elif lower_p.startswith('/background'):
@@ -684,6 +718,7 @@ class ExecutionMixin:
             is_exam = is_exam_request(prompt)
         except Exception:
             is_exam = False
+        is_media = (not is_exam) and is_media_request(prompt)
 
         has_own_sub = bool(browser_relay or (byos_data and byos_data.get("credential")))
         if not is_effective_admin and not has_own_sub and not is_exam and not _model_retry:  # a hand-off is the same prompt: count once
@@ -760,7 +795,7 @@ class ExecutionMixin:
                 from agents import model_router
                 run_model = model_router.cli_model_name(model) if is_claude else model  # exact id from the Claude CLI catalog
                 res = await execute_local_agent_task(self, prompt, run_model, task_time, conversation_id, user=user, is_admin=admin_override,
-                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else ""),
+                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else "")),
                                                      allow_fallback=is_claude)
                 if isinstance(res, dict) and res.get("quota"):
                     # Claude ran out: remember it, then the next best model finishes the task with what was done so far
@@ -1290,6 +1325,8 @@ class ExecutionMixin:
                         )
                 if is_exam:
                     sys_msg += EXAM_SAVE_INSTRUCTIONS  # admins too: the format is given up front, no file hunting
+                elif is_media:
+                    sys_msg += MEDIA_PLAY_INSTRUCTIONS  # the video player steps are given up front, no skill-file reading
                 sys_msg += "</SYSTEM_MESSAGE>\n\n"
                 prompt = sys_msg + prompt
 
