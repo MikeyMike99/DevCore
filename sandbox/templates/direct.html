@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Siraugga Direct mode</title>
+<style>
+  :root { --bg: #0f172a; --panel: #111c33; --text: #e5e7eb; --muted: #a3acbd; --you: #93c5fd; --claude: #86efac;
+          --line: #334155; --focus: #fbbf24; --btn: #1e3a8a; --stop: #7f1d1d; }
+  @media (prefers-color-scheme: light) {
+    :root { --bg: #ffffff; --panel: #f3f4f6; --text: #111827; --muted: #4b5563; --you: #1d4ed8; --claude: #166534;
+            --line: #d1d5db; --focus: #b45309; --btn: #1e40af; --stop: #991b1b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  h2 { font-size: 1.15rem; margin: 24px 0 8px; }
+  h3 { font-size: 1rem; margin: 18px 0 4px; }
+  h3.you { color: var(--you); } h3.claude { color: var(--claude); }
+  .text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; }
+  .activity, .notice { color: var(--muted); margin: 4px 0; font-size: .95rem; }
+  .notice { font-style: italic; }
+  #status { font-weight: 600; padding: 8px 12px; border: 1px solid var(--line); background: var(--panel); border-radius: 6px; }
+  label { display: block; font-weight: 600; margin-bottom: 6px; }
+  textarea { width: 100%; min-height: 110px; font: inherit; color: var(--text); background: var(--panel);
+             border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  button { font: inherit; font-weight: 600; color: #fff; background: var(--btn); border: 0; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+  button.stop { background: var(--stop); } button.plain { background: #374151; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  .help { color: var(--muted); font-size: .95rem; }
+  a { color: var(--you); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Siraugga Direct mode</h1>
+  <p id="intro" class="help">Checking your access…</p>
+  <p id="status" role="status" aria-live="polite">Connecting…</p>
+  <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="app" hidden>
+    <form id="composer" aria-labelledby="composer-heading">
+      <h2 id="composer-heading">Send a message</h2>
+      <label for="message">Your message</label>
+      <textarea id="message" aria-describedby="keys"></textarea>
+      <div class="buttons">
+        <button type="submit" id="send">Send</button>
+        <button type="button" id="stop" class="stop" disabled>Stop</button>
+        <button type="button" id="new" class="plain">New session</button>
+      </div>
+      <p id="keys" class="help">Enter sends. Shift and Enter adds a new line. Escape stops the current task.
+        Alt and 1 jumps to the latest reply. Alt and 2 comes back to this message box.</p>
+    </form>
+
+    <section aria-labelledby="log-heading">
+      <h2 id="log-heading">Conversation</h2>
+      <div id="log"></div>
+    </section>
+    <p><a href="/">Back to Siraugga</a></p>
+  </div>
+</main>
+<script>
+(function () {
+  var TOKEN = '';
+  try { TOKEN = localStorage.getItem('agy_auth_token') || ''; } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  var log = $('log'), statusEl = $('status'), announcer = $('announcer'), box = $('message');
+  var ws = null, working = false, retry = 0, denied = false, lastReplyHeading = null, lastRole = '';
+
+  function setStatus(text) { statusEl.textContent = text; }
+  function announce(text) {
+    announcer.textContent = '';
+    setTimeout(function () { announcer.textContent = text; }, 60);
+  }
+  function setWorking(on, quiet) {
+    working = on;
+    $('stop').disabled = !on;
+    setStatus(on ? 'Claude is working.' : 'Claude has finished. Ready for your message.');
+  }
+
+  function add(ev, live) {
+    var t = ev.type;
+    if (t === 'you' || t === 'reply') {
+      var role = t === 'you' ? 'you' : 'claude';
+      // One heading per turn: several reply blocks in a row go under the same "Claude replied".
+      if (role !== lastRole || role === 'you') {
+        var h = document.createElement('h3');
+        h.className = role;
+        h.tabIndex = -1;
+        h.textContent = (role === 'you' ? 'You said' : 'Claude replied') + (ev.time ? ', ' + ev.time.slice(11, 16) + ' SAST' : '');
+        log.appendChild(h);
+        if (role === 'claude') lastReplyHeading = h;
+      }
+      lastRole = role;
+      var p = document.createElement('p');
+      p.className = 'text';
+      p.textContent = ev.text;
+      log.appendChild(p);
+      if (live && role === 'claude') announce('Claude replied: ' + ev.text);
+    } else if (t === 'tool') {
+      var a = document.createElement('p');
+      a.className = 'activity';
+      a.textContent = 'Activity: ' + ev.text;
+      log.appendChild(a);
+      lastRole = 'tool';
+      if (lastReplyHeading === null) lastReplyHeading = a;
+    } else if (t === 'notice') {
+      var n = document.createElement('p');
+      n.className = 'notice';
+      n.textContent = 'Note: ' + ev.text;
+      log.appendChild(n);
+      lastRole = 'notice';
+      if (live) announce(ev.text);
+    }
+  }
+
+  function connect() {
+    if (denied) return;
+    setStatus('Connecting…');
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/direct');
+    ws.onopen = function () { retry = 0; ws.send(JSON.stringify({ type: 'auth', token: TOKEN })); };
+    ws.onmessage = function (m) {
+      var ev; try { ev = JSON.parse(m.data); } catch (e) { return; }
+      if (ev.type === 'denied') { deny(ev.text); return; }
+      if (ev.type === 'history') {
+        log.textContent = ''; lastRole = ''; lastReplyHeading = null;
+        (ev.events || []).forEach(function (x) { add(x, false); });
+        setWorking(!!ev.working);
+        if (ev.working) announce('Connected. Claude is still working.');
+        else announce('Connected.' + ((ev.events || []).length ? ' The earlier conversation is below the message box.' : ''));
+        return;
+      }
+      if (ev.type === 'status') {
+        setWorking(ev.state === 'working');
+        if (ev.state === 'finished') announce('Claude has finished.');
+        else announce('Claude is working.');
+        return;
+      }
+      if (ev.type === 'ping') return;
+      add(ev, true);
+    };
+    ws.onclose = function () {
+      if (denied) return;
+      $('stop').disabled = true;
+      var wait = Math.min(15000, 1000 * Math.pow(2, retry++));
+      setStatus('Connection lost. Trying again in ' + Math.round(wait / 1000) + ' seconds.');
+      setTimeout(connect, wait);
+    };
+  }
+
+  function deny(text) {
+    denied = true;
+    $('app').hidden = true;
+    $('intro').textContent = text || 'Direct mode is only for the Super Admin.';
+    setStatus('Access refused.');
+    try { ws && ws.close(); } catch (e) {}
+  }
+
+  function send() {
+    var text = box.value.trim();
+    if (!text || !ws || ws.readyState !== 1) {
+      if (text) announce('Not connected yet. Please wait a moment and try again.');
+      return;
+    }
+    ws.send(JSON.stringify({ type: 'send', text: text }));
+    box.value = '';
+    announce('Sent.');
+  }
+  function stop() {
+    if (working && ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: 'stop' })); announce('Stopping.'); }
+  }
+
+  $('composer').addEventListener('submit', function (e) { e.preventDefault(); send(); });
+  $('stop').addEventListener('click', stop);
+  $('new').addEventListener('click', function () {
+    if (ws && ws.readyState === 1 && confirm('Start a new, empty session? The current conversation will be closed.')) {
+      ws.send(JSON.stringify({ type: 'new' }));
+    }
+  });
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.isComposing) { e.preventDefault(); send(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && working) { e.preventDefault(); stop(); }
+    if (e.altKey && e.key === '1') {
+      e.preventDefault();
+      var hs = log.querySelectorAll('h3.claude');
+      if (hs.length) hs[hs.length - 1].focus(); else announce('No reply yet.');
+    }
+    if (e.altKey && e.key === '2') { e.preventDefault(); box.focus(); }
+  });
+
+  fetch('/api/direct/status', { headers: TOKEN ? { 'Authorization': 'Bearer ' + TOKEN } : {} })
+    .then(function (r) {
+      if (!r.ok) { deny(); return; }
+      $('intro').textContent = 'One live Claude Code session with full access. It keeps running between messages and resumes after a reload.';
+      $('app').hidden = false;
+      box.focus();
+      connect();
+    })
+    .catch(function () { setStatus('Could not reach the server. Reload the page to try again.'); });
+})();
+</script>
+</body>
+</html>

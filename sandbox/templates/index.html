@@ -566,6 +566,13 @@
                 <ul id="tickets-list" class="flex flex-col gap-1.5 text-[11px] text-slate-300" aria-labelledby="tickets-heading"></ul>
             </div>
 
+            <!-- Direct mode link (tier 5 only; shown when the server confirms admin access) -->
+            <div id="direct-mode-card" class="hidden flex flex-col gap-1 bg-slate-900/80 border border-emerald-500/40 rounded-lg p-3 shadow-md">
+                <h3 id="direct-mode-heading" class="text-xs font-bold text-emerald-300 m-0">Direct mode (Tier 5)</h3>
+                <p class="text-[11px] text-slate-400 m-0">One live Claude Code session with full access, in a screen-reader friendly chat page.</p>
+                <a href="/direct" class="text-xs text-white font-bold bg-emerald-700 hover:bg-emerald-600 px-2 py-1.5 rounded border border-emerald-500/50 text-center focus:ring-2 focus:ring-emerald-500 focus:outline-none">Open Direct mode</a>
+            </div>
+
             <!-- Ticket queue (tier 5 only; shown when the server confirms admin access) -->
             <div id="ticket-queue-card" class="hidden flex flex-col gap-2 bg-slate-900/80 border border-amber-500/40 rounded-lg p-3 shadow-md">
                 <div class="flex items-center justify-between">
@@ -5348,9 +5355,10 @@
         try {
             var r = await fetch('/api/tickets/admin', { headers: examContentHeaders() });
             var card = document.getElementById('ticket-queue-card');
-            if (r.status === 403 || r.status === 401) { card.classList.add('hidden'); return; }
+            var directCard = document.getElementById('direct-mode-card');
+            if (r.status === 403 || r.status === 401) { card.classList.add('hidden'); if (directCard) directCard.classList.add('hidden'); return; }
             var d = await r.json();
-            if (d && d.success) { card.classList.remove('hidden'); renderTicketQueue(d.tickets); renderRefused(d.refused || []); }
+            if (d && d.success) { card.classList.remove('hidden'); if (directCard) directCard.classList.remove('hidden'); renderTicketQueue(d.tickets); renderRefused(d.refused || []); }
         } catch (e) {}
     }
     async function decideTicket(id, action, note) {

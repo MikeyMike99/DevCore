@@ -1156,6 +1156,147 @@ async def tickets_intake_exam(intake_id):
     return jsonify(exam), 200, {"Cache-Control": "no-store", "X-Robots-Tag": "noindex"}
 
 
+# ---- Direct mode (Tier 5 Super Admin only): one live Claude Code session in a chat page -----
+def _direct_client_ip(headers, addr):
+    from security import guest_session
+    return guest_session.connection_address(headers, addr)
+
+
+def _direct_same_origin(headers) -> bool:
+    """The websocket must be opened by our own page: blocks other websites from using the
+    owner's trusted-device cookie to reach Direct mode (cross-site websocket hijacking)."""
+    from urllib.parse import urlparse
+    origin = (headers.get("Origin") or "").strip()
+    if not origin:
+        return False
+    o_host = (urlparse(origin).netloc or "").lower()
+    hosts = {(headers.get("Host") or "").lower(), (headers.get("X-Forwarded-Host") or "").lower()}
+    return bool(o_host) and o_host in hosts
+
+
+@app.route('/direct')
+async def direct_mode_page():
+    """The Direct mode chat page. The page itself holds no data; it only works after
+    /api/direct/status and the /ws/direct websocket confirm the caller is the Super Admin."""
+    template_bytes = read_asset("sandbox/templates/direct.html")
+    if not template_bytes:
+        return "Not found", 404
+    return template_bytes.decode("utf-8"), 200, {"Content-Type": "text/html; charset=utf-8",
+                                                 "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow"}
+
+
+@app.route('/api/direct/status', methods=['GET'])
+async def direct_mode_status():
+    """Tier 5 only: may this caller use Direct mode?"""
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not _artifact_admin_user(token):
+        from agents import direct_session
+        direct_session.audit("page_refused", ip=_direct_client_ip(request.headers, request.remote_addr))
+        return jsonify({"allowed": False, "error": "Direct mode is only for the Super Admin."}), 403
+    return jsonify({"allowed": True}), 200, {"Cache-Control": "no-store"}
+
+
+@app.websocket("/ws/direct")
+async def ws_direct():
+    """Tier 5 only. First frame: {"type": "auth", "token": ...}. Then {"type": "send", "text"},
+    {"type": "stop"} or {"type": "new"}. The Super Admin check is repeated on every frame and
+    every minute while connected; failing it closes the socket."""
+    import logging
+    from agents import direct_session
+    ws = websocket._get_current_object()
+    addr = getattr(websocket, "remote_addr", None)
+    hdrs = websocket.headers
+    ip = _direct_client_ip(hdrs, addr)
+
+    async def deny(reason):
+        direct_session.audit("refused", ip=ip, detail=reason)
+        try:
+            await ws.send(json.dumps({"type": "denied", "text": "Direct mode is only for the Super Admin."}))
+            await ws.close(1008)
+        except Exception:
+            pass
+
+    if not _direct_same_origin(hdrs):
+        return await deny("origin")
+    try:
+        first = json.loads(await asyncio.wait_for(ws.receive(), 20))
+    except Exception:
+        return await deny("no auth frame")
+    token = str((first or {}).get("token") or "").strip() if isinstance(first, dict) else ""
+
+    def owner():
+        try:
+            u = security_mgr.get_user_from_token(token or None, remote_addr=addr, headers=hdrs)
+        except Exception:
+            u = None
+        return u if security_mgr.is_super_admin(u) else None
+
+    user = owner()
+    if not user or (first or {}).get("type") != "auth":
+        return await deny("not super admin")
+    who = str(user.get("username") or user.get("name") or "owner")
+    sess = direct_session.get("owner")
+    q = sess.subscribe()
+    direct_session.audit("connected", who, ip)
+    await ws.send(json.dumps(sess.snapshot()))
+    revoked = asyncio.Event()
+
+    async def sender():
+        while True:
+            try:
+                ev = await asyncio.wait_for(q.get(), 60)
+            except asyncio.TimeoutError:
+                if not owner():
+                    revoked.set()
+                    return
+                ev = {"type": "ping"}
+            await ws.send(json.dumps(ev))
+
+    sender_task = asyncio.create_task(sender())
+    try:
+        while not revoked.is_set():
+            recv = asyncio.create_task(ws.receive())
+            done, _ = await asyncio.wait({recv, sender_task}, return_when=asyncio.FIRST_COMPLETED)
+            if recv not in done:
+                recv.cancel()
+                break
+            raw = recv.result()
+            if not owner():
+                revoked.set()
+                break
+            try:
+                data = json.loads(raw)
+            except Exception:
+                continue
+            kind = data.get("type")
+            if kind == "send":
+                text = str(data.get("text") or "").strip()
+                if not text:
+                    continue
+                direct_session.audit("message", who, ip, text[:4000])
+                try:
+                    await sess.send(text)
+                except Exception as e:
+                    logging.error(f"[DirectMode] send failed: {e}")
+                    await ws.send(json.dumps({"type": "notice", "text": "Could not start Claude Code: " + str(e)[:300]}))
+            elif kind == "stop":
+                direct_session.audit("stop", who, ip)
+                asyncio.create_task(sess.stop())
+            elif kind == "new":
+                direct_session.audit("new_session", who, ip)
+                await sess.new_session()
+    except asyncio.CancelledError:
+        raise
+    except Exception as e:
+        logging.info(f"[DirectMode] socket closed: {e}")
+    finally:
+        sess.unsubscribe(q)
+        sender_task.cancel()
+        direct_session.audit("disconnected", who, ip)
+    if revoked.is_set():
+        await deny("access lost during session")
+
+
 @app.route('/api/tickets/admin', methods=['GET'])
 async def tickets_admin_list():
     """Tier 5 only: every ticket, with the review agent's assessment."""
