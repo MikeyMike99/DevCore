@@ -372,7 +372,9 @@ button{font:inherit;font-weight:600;background:var(--accent);color:var(--afg);bo
 button.alt{background:var(--card);color:var(--fg);border:1px solid var(--line)}
 :focus-visible{outline:3px solid var(--fg);outline-offset:2px}
 .note{color:var(--muted)}.err{color:#c0392b;font-weight:600}
-#log{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;height:55vh;overflow:auto}
+#log{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;height:55vh;height:max(12rem,calc(100dvh - 19rem));overflow:auto;-webkit-overflow-scrolling:touch}
+html{-webkit-text-size-adjust:100%}img,table{max-width:100%}
+@media (max-width:600px){main{padding:12px 12px 24px}h1{font-size:1.3rem}button{width:100%;margin:10px 0 0;padding:12px 16px}.m{max-width:92%}}
 .m{margin:8px 0;padding:8px 12px;border-radius:12px;max-width:85%;white-space:pre-wrap;word-break:break-word}
 .m.me{background:var(--mine);margin-left:auto}.m.them{background:var(--theirs)}
 .who{font-size:.8rem;color:var(--muted);display:block}
