@@ -14,13 +14,14 @@ _HEADER_B = HEADER.encode("latin-1")
 SECRET = secrets.token_urlsafe(32)  # new on every server start; never stored or logged
 
 ADMIN_PREFIX = "/admin/notify"
+ADMIN_PREFIXES = (ADMIN_PREFIX, "/chat/admin")
 
 
 def strip_and_mark(scope, security_mgr) -> dict:
     """Return a copy of an ASGI http scope without any client-sent admin header,
     plus our own header when DevCore confirms the caller is an admin."""
     raw = [(k, v) for k, v in scope.get("headers", []) if k.lower() != _HEADER_B]
-    if scope.get("path", "").startswith(ADMIN_PREFIX) and _devcore_admin(scope, raw, security_mgr):
+    if scope.get("path", "").startswith(ADMIN_PREFIXES) and _devcore_admin(scope, raw, security_mgr):
         raw.append((_HEADER_B, SECRET.encode("latin-1")))
     return dict(scope, headers=raw)
 

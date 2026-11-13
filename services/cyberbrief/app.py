@@ -23,8 +23,9 @@ NEWSLETTER_PREFIXES = (
     "/api/hub/",
     "/hub",
     "/admin/notify",
+    "/chat/",            # visitor chat (sign-up, confirm, messages) and owner inbox /chat/admin
 )
-NEWSLETTER_EXACT = ("/newsletter",)
+NEWSLETTER_EXACT = ("/newsletter", "/chat")
 
 
 def owns(path: str) -> bool:
@@ -33,6 +34,7 @@ def owns(path: str) -> bool:
 
 def create_app() -> Flask:
     from .newsletter_mod import newsletter_bp
+    from .chat_mod import chat_bp
     from .notify_mod import notify_bp
 
     app = Flask(
@@ -51,6 +53,7 @@ def create_app() -> Flask:
     )
     app.register_blueprint(newsletter_bp)
     app.register_blueprint(notify_bp)
+    app.register_blueprint(chat_bp)
 
     # base.html (copied from e-profile) expects the same filter and globals that
     # e-profile's server.py provides.
