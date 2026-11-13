@@ -527,6 +527,11 @@ def _raugus_mcp_config_path(agent_credential: str = None):
         "args": [server],
         "env": {"DEVCORE_AGENT_CREDENTIAL": agent_credential},
     }}}
+    # Media player: play/find/resume videos and manage the playlist (no credential needed: it only
+    # touches the playlist and playback files and talks to youtube.com).
+    media = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "media_player", "server.py")
+    if os.path.isfile(media):
+        cfg["mcpServers"]["media-player"] = {"command": sys.executable, "args": [media], "env": {}}
     try:
         rt_dir = tempfile.mkdtemp(prefix="devcore-mcp-")
         os.chmod(rt_dir, 0o700)
@@ -562,6 +567,14 @@ _RESOLVER_TOOLS = [
     "mcp__raugus-resolver__read_chunk",
     # Research for every tier: public-internet-only GET (security/safe_fetch.py).
     "mcp__raugus-resolver__web_fetch",
+]
+_MEDIA_TOOLS = [
+    "mcp__media-player__play_video",
+    "mcp__media-player__find_video",
+    "mcp__media-player__resume_video",
+    "mcp__media-player__playlist_list",
+    "mcp__media-player__playlist_add",
+    "mcp__media-player__playlist_remove",
 ]
 # Web search runs on Anthropic's side (it never touches this machine's network), so
 # it is safe for every tier. Raw curl / WebFetch stay Tier 5 only, because a fetch
@@ -815,7 +828,7 @@ def run_claude_cli_model(
     elif identity:
         allowed += _RESEARCH_TOOLS_ALL_TIERS
     if _raugus_mcp:
-        allowed += _RESOLVER_TOOLS
+        allowed += _RESOLVER_TOOLS + _MEDIA_TOOLS
     if allowed:
         cmd += ["--allowedTools", *allowed]
     cmd += ["--disallowedTools", *_BRAIN_SECRET_READ_DENY]

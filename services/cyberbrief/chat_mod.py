@@ -138,7 +138,7 @@ def _notify_owner(subject: str, line: str, uid: int | None = None, force: bool =
 def _invite_email(email: str, link: str) -> None:
     from .email_engine import build_email_template, send_email
     body = (
-        "<p>You have been invited to a <strong>private communication channel</strong>. "
+        "<p>Here is your link to a <strong>private communication channel</strong>. "
         "It is a one-to-one chat between you and the person who invited you.</p>"
         "<p><strong>Your private link is below. Please keep it safe.</strong></p>"
         "<ul>"
@@ -196,6 +196,29 @@ def private_link():
                 _notify_owner("Chat: connected", f"{row['email']} connected to the chat.", row["id"])
             return redirect("/chat", code=302)
     return _page("<h1>This link is not valid.</h1><p>It may have been replaced by a newer one. Ask the person who invited you for a new link.</p>", 403)
+
+
+@chat_bp.post("/chat/api/request")
+def request_link():
+    """Person types their email on /chat; their private link is emailed to them."""
+    if not _json_only():
+        abort(400)
+    email = str((request.get_json(silent=True) or {}).get("email", "")).strip().lower()
+    if not EMAIL_RE.match(email) or len(email) > 254:
+        return jsonify(ok=False, error="Enter a valid email address."), 400
+    if _limited("rq:" + _ip(), 5, 900) or _limited("rqe:" + email, 3, 900):
+        return jsonify(ok=False, error="Too many tries. Try again later."), 429
+    with _db_lock, _db() as con:
+        row = con.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        uid = row["id"] if row else con.execute(
+            "INSERT INTO users(email,pw,verified,created) VALUES(?,'!',0,?)", (email, time.time())).lastrowid
+        key = secrets.token_urlsafe(32)
+        con.execute("UPDATE users SET autokey=? WHERE id=?", (_sha(key), uid))
+    try:
+        _invite_email(email, f"{PUBLIC_URL}/chat/go?k={key}")
+    except Exception:
+        return jsonify(ok=False, error="The email could not be sent. Try again later."), 502
+    return jsonify(ok=True)
 
 
 @chat_bp.post("/chat/api/logout")
@@ -362,8 +385,10 @@ VISITOR_PAGE = """<!doctype html><html lang="en"><head><meta charset="utf-8">
 <title>Private chat</title>""" + _STYLE + """</head><body><main>
 <h1>Private chat</h1>
 <section id="locked" hidden>
-  <p>This is a private communication channel. Access is only through the personal link that was emailed to you.</p>
-  <p class="note" id="lockmsg">Open the link from your invitation email to enter. If you do not have one, ask the person who invited you.</p>
+  <p>This is a private communication channel. Enter your email and we will send you your private link.</p>
+  <label for="em">Your email</label><input id="em" type="email" autocomplete="email">
+  <button id="req">Email me my private link</button>
+  <p class="note" id="lockmsg" role="status" aria-live="polite"></p>
 </section>
 <section id="room" hidden>
   <p class="note" id="who"></p>
@@ -386,6 +411,8 @@ function show(inRoom,email,wasIn){$('locked').hidden=inRoom;$('room').hidden=!in
 $('send').onclick=async()=>{const t=$('body').value.trim();if(!t)return;$('body').value='';
  const r=await post('/chat/api/send',{body:t});if(!r.j.ok){if(r.s===401)show(false,null,true);else $('msg').textContent=r.j.error||'Not sent.'}poll()};
 $('body').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();$('send').click()}});
+$('req').onclick=async()=>{const r=await post('/chat/api/request',{email:$('em').value});
+ $('lockmsg').textContent=r.j.ok?'Done. Check your email and open the private link. Keep it safe.':(r.j.error||'Something went wrong.')};
 $('out').onclick=async()=>{await post('/chat/api/logout');show(false)};
 ['keydown','click','touchstart'].forEach(ev=>document.addEventListener(ev,()=>{const n=Date.now();if(!$('room').hidden&&n-lastPing>60000){lastPing=n;post('/chat/api/ping')}},{passive:true}));
 fetch('/chat/api/me').then(r=>r.json()).then(j=>show(!!j.ok,j.email,false)).catch(()=>show(false));

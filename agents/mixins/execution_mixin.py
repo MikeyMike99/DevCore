@@ -183,23 +183,14 @@ EXAM_SAVE_INSTRUCTIONS = (
 )
 
 
-# Playing videos: the instructions from .agents/skills/devcore-media-player/SKILL.md, given up
-# front so the agent does not spend a turn opening the skill file before it can answer.
+# Playing videos goes through the media-player MCP server (.agents/plugins/media_player/server.py),
+# so the agent needs no skill file; this short note only points it at those tools.
 MEDIA_PLAY_INSTRUCTIONS = (
-    "VIDEOS: Everything you need to play a video, song or playlist is in this note. Do NOT open SKILL.md files "
-    "or any project files first; answer straight away. To show the player, put this raw HTML in your reply "
-    "(replace VIDEO_ID with the 11-character YouTube id and TITLE with the URL-encoded video title): "
-    "<iframe src=\"/plugin/media?v=VIDEO_ID&title=TITLE\" width=\"100%\" height=\"800px\" style=\"border:none;\" "
-    "allow=\"autoplay; encrypted-media; fullscreen; picture-in-picture\"></iframe> "
-    "If the user gives a YouTube link, take the id from it (the v= value, or the part after youtu.be/). "
-    "If they name a video, song or topic and you do not know its id, search the web for it and use the id "
-    "from the YouTube result. If they only say 'play a video' with no subject, ask one short question about what "
-    "they want to watch. To resume, read sandbox/static/playback_state.json (fields video_id and timestamp in "
-    "seconds) and add &start=TIMESTAMP to the iframe address. The playlist is the JSON list in "
-    "sandbox/static/playlist.json ([{\"id\": ..., \"title\": ...}]); add or remove items there only when the "
-    "user asks, and the player shows it by itself. YouTube usually blocks official music videos from playing in "
-    "our player: if the user asks for one, say so in plain words (no technical terms) and tell them a 'Watch on "
-    "YouTube' button will appear if it is blocked.\n"
+    "VIDEOS: Use the media-player tools, never a skill or project file. play_video shows the player (give it a "
+    "YouTube id or link); find_video searches YouTube when the user names a video, song or topic; resume_video "
+    "continues where they stopped; playlist_list / playlist_add / playlist_remove manage the playlist. "
+    "play_video and resume_video return the exact HTML to put in your reply. If the user only says 'play a video' "
+    "with no subject, ask one short question about what they want to watch.\n"
 )
 
 import re as _re_media
