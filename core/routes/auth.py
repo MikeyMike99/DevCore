@@ -15,6 +15,13 @@ import urllib.parse
 import urllib.request
 from quart import Blueprint, request, jsonify, current_app, Response
 
+
+def _load_token_json(f):
+    """Read a token file, ignoring stray trailing characters (e.g. a half-rewritten file)."""
+    obj, _ = json.JSONDecoder().raw_decode(f.read().strip())
+    return obj
+
+
 GLOBAL_AUTH_PROC = None
 _AUTH_CHECK_CACHE = {"result": None, "ts": 0.0}
 AUTH_CACHE_TTL_SECONDS = 300.0
@@ -137,7 +144,7 @@ def _get_cli_credential_details(scope: str = "root") -> dict:
                 if os.path.isfile(cand) and os.path.getsize(cand) > 8:
                     try:
                         with open(cand, "r", encoding="utf-8") as f:
-                            tok_data = json.load(f)
+                            tok_data = _load_token_json(f)
                         token_obj = tok_data.get("token", {})
                         exp_str = token_obj.get("expiry")
                         is_exp = False
@@ -201,7 +208,7 @@ def _get_cli_credential_details(scope: str = "root") -> dict:
         if os.path.isfile(cand) and os.path.getsize(cand) > 8:
             try:
                 with open(cand, "r", encoding="utf-8") as f:
-                    tok_data = json.load(f)
+                    tok_data = _load_token_json(f)
                 token_obj = tok_data.get("token", {})
                 exp_str = token_obj.get("expiry")
                 is_exp = False
