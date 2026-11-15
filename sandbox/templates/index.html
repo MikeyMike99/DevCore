@@ -3516,6 +3516,7 @@
                     return true;
                 }
             } catch (e) {}
+            if (typeof announce === 'function') announce("Couldn't load that card. Check your connection and try again.");
             return false;
         }
 
@@ -3831,7 +3832,7 @@
             await ensureCardTriggers();
             if (backendCardTriggers[normalizeCardPrompt(prompt)]) {
                 inputEl.value = '';
-                await openBackendCard({ prompt: prompt });
+                if (!(await openBackendCard({ prompt: prompt }))) inputEl.value = prompt;
                 return;
             }
 
