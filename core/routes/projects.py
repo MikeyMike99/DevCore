@@ -1,9 +1,11 @@
 import asyncio
+import contextvars
 import hashlib
 import io
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 import zipfile
@@ -11,6 +13,63 @@ from quart import Blueprint, request, jsonify, current_app, Response, render_tem
 from core.routes.auth import get_current_user
 
 projects_bp = Blueprint('projects_bp', __name__)
+
+_DEVCORE_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ADMIN_COURSE_SANDBOX = '/home/michael/alp-env/temp_phase2_sandbox'
+COURSE_SANDBOXES_ROOT = os.path.join(_DEVCORE_ROOT, 'playground', '.course_sandboxes')
+COURSE_JAIL = os.path.join(_DEVCORE_ROOT, 'scripts', 'course_jail.sh')
+_COURSE_BOX = contextvars.ContextVar('devcore_course_box', default=None)
+
+
+def _course_learner_key():
+    """None for the Tier 5 super admin; otherwise a stable, non-reversible key for this learner."""
+    from core.routes.system import _is_tier5_request, _request_user
+    if _is_tier5_request():
+        return None
+    user = _request_user()
+    ident = str(user.get('username') or user.get('name') or '') if isinstance(user, dict) else ''
+    if not ident:
+        from security import guest_session
+        ident = guest_session.session_from_headers(request.headers) or ('ip:' + (request.remote_addr or ''))
+    return hashlib.sha256(('course-learner:' + ident).encode('utf-8')).hexdigest()[:24]
+
+
+def _ensure_learner_box(key: str) -> str:
+    box = os.path.join(COURSE_SANDBOXES_ROOT, key)
+    if not os.path.isdir(box):
+        tmp = box + '.tmp'
+        shutil.rmtree(tmp, ignore_errors=True)
+        shutil.copytree(ADMIN_COURSE_SANDBOX, tmp, ignore=shutil.ignore_patterns(
+            'evidence', 'course_progress_*', 'EVIDENCE_MANIFEST.md'))
+        os.makedirs(os.path.join(tmp, 'evidence', 'michael'), exist_ok=True)
+        os.replace(tmp, box)
+    return box
+
+
+@projects_bp.before_request
+async def _bind_course_sandbox():
+    """Security invariant: only the Tier 5 super admin works in the real alp-env course sandbox.
+    Every other visitor of the course API is bound to a private copy under
+    playground/.course_sandboxes, and their commands run inside scripts/course_jail.sh."""
+    if not request.path.startswith('/api/course/'):
+        return
+    key = _course_learner_key()
+    box = ADMIN_COURSE_SANDBOX if key is None else await asyncio.to_thread(_ensure_learner_box, key)
+    _COURSE_BOX.set(box)
+
+
+def _course_sandbox_dir() -> str:
+    box = _COURSE_BOX.get()
+    if box:
+        return box
+    key = _course_learner_key()
+    box = ADMIN_COURSE_SANDBOX if key is None else _ensure_learner_box(key)
+    _COURSE_BOX.set(box)
+    return box
+
+
+def _is_learner_box(box: str) -> bool:
+    return os.path.realpath(box) != os.path.realpath(ADMIN_COURSE_SANDBOX)
 
 
 @projects_bp.route('/api/projects', methods=['GET'])
@@ -154,6 +213,9 @@ def _safe_course_id(raw_id: str) -> str:
 
 
 def _progress_paths(course_id: str) -> list:
+    box = _course_sandbox_dir()
+    if _is_learner_box(box):
+        return [os.path.join(box, f'course_progress_{course_id}.json')]
     repo_root = _course_repo_root()
     courses_dir = os.path.join(repo_root, 'sandbox', 'static', 'courses')
     os.makedirs(courses_dir, exist_ok=True)
@@ -189,7 +251,7 @@ def _load_course_and_progress(course_id: str) -> tuple:
         "step_requirements": {},
         "env_lock_sha256": "",
         "activity_log": [],
-        "learner_name": "michael"
+        "learner_name": "learner" if _is_learner_box(_course_sandbox_dir()) else "michael"
     }
     for pp in _progress_paths(cid):
         if os.path.isfile(pp):
@@ -226,7 +288,7 @@ def _save_progress_sync(course_id: str, progress: dict) -> None:
 
 
 def _generate_evidence_manifest(course_id: str, learner_override: str = None) -> tuple:
-    sandbox_dir = '/home/michael/alp-env/temp_phase2_sandbox'
+    sandbox_dir = _course_sandbox_dir()
     os.makedirs(sandbox_dir, exist_ok=True)
     course_obj, progress = _load_course_and_progress(course_id)
     learner = (learner_override or progress.get('learner_name') or 'michael').strip() or 'michael'
@@ -477,7 +539,8 @@ def _append_asciinema_event(cast_path: str, txt_path: str, rec_name: str, comman
 
 
 def _execute_sandbox_sync(recording_name: str, command: str, bicep_file: str = None, bicep_code: str = None, prediction: str = None, learner_name: str = None) -> dict:
-    sandbox_dir = '/home/michael/alp-env/temp_phase2_sandbox'
+    sandbox_dir = _course_sandbox_dir()
+    jailed = _is_learner_box(sandbox_dir)
     evidence_dir = os.path.join(sandbox_dir, 'evidence', 'michael')
     os.makedirs(evidence_dir, exist_ok=True)
     rec_name = re.sub(r'[^A-Za-z0-9_.-]', '', (recording_name or 'mod1_task1_variables').strip())
@@ -487,8 +550,9 @@ def _execute_sandbox_sync(recording_name: str, command: str, bicep_file: str = N
     txt_path = os.path.join(evidence_dir, f'{rec_name}.txt')
 
     if bicep_file and bicep_code is not None:
+        real_box = os.path.realpath(sandbox_dir)
         target_path = os.path.realpath(os.path.join(sandbox_dir, bicep_file))
-        if not target_path.startswith(os.path.realpath(sandbox_dir)):
+        if os.path.commonpath([target_path, real_box]) != real_box:
             return {"ok": False, "returncode": 1, "output": "Denied path outside sandbox.", "transcript": ""}
         os.makedirs(os.path.dirname(target_path), exist_ok=True)
         with open(target_path, 'w', encoding='utf-8') as bf:
@@ -540,17 +604,22 @@ def _execute_sandbox_sync(recording_name: str, command: str, bicep_file: str = N
             transcript = f"No recording found yet for {rec_name}. Run a step first to create {rec_name}.cast."
         return {"ok": True, "returncode": 0, "output": transcript, "transcript": transcript}
 
-    env = os.environ.copy()
-    env['VIRTUAL_ENV'] = '/home/michael/alp-env'
-    env['PATH'] = f"/home/michael/alp-env/bin:/home/michael/.local/bin:/home/michael/.azure/bin:{env.get('PATH', '')}"
-    wrapped_cmd = f"source /home/michael/alp-env/temp_phase2_sandbox/sandbox_env.sh >/dev/null 2>&1 || true; {cmd}"
+    wrapped_cmd = f"source {ADMIN_COURSE_SANDBOX}/sandbox_env.sh >/dev/null 2>&1 || true; {cmd}"
+    if jailed:
+        env = {'PATH': '/usr/bin:/bin', 'DEVCORE_COURSE_SANDBOX': os.path.realpath(sandbox_dir)}
+        argv = [COURSE_JAIL, '/bin/bash', '-c', wrapped_cmd]
+    else:
+        env = os.environ.copy()
+        env['VIRTUAL_ENV'] = '/home/michael/alp-env'
+        env['PATH'] = f"/home/michael/alp-env/bin:/home/michael/.local/bin:/home/michael/.azure/bin:{env.get('PATH', '')}"
+        argv = ['/bin/bash', '-c', wrapped_cmd]
     proc = subprocess.run(
-        ['/bin/bash', '-c', wrapped_cmd],
+        argv,
         cwd=sandbox_dir,
         env=env,
         capture_output=True,
         text=True,
-        timeout=60
+        timeout=75
     )
     combined_out = (proc.stdout or '') + (('\n' + proc.stderr) if proc.stderr else '')
     combined_out = combined_out.strip() or '(Command completed with exit code 0 and no console output)'
@@ -618,7 +687,7 @@ def _record_reflection_sync(body: dict) -> dict:
     explain_txt = (body.get('explain') or '').strip()
     error_txt = (body.get('common_error_note') or '').strip()
 
-    sandbox_dir = '/home/michael/alp-env/temp_phase2_sandbox'
+    sandbox_dir = _course_sandbox_dir()
     evidence_dir = os.path.join(sandbox_dir, 'evidence', 'michael')
     os.makedirs(evidence_dir, exist_ok=True)
     cast_path = os.path.join(evidence_dir, f'{rec_name}.cast')
@@ -674,7 +743,7 @@ async def api_course_reflect():
 
 
 def _build_export_bundle_sync(course_id: str, learner_name: str = None) -> tuple:
-    sandbox_dir = '/home/michael/alp-env/temp_phase2_sandbox'
+    sandbox_dir = _course_sandbox_dir()
     manifest_body, manifest_sha, _ = _generate_evidence_manifest(course_id, learner_name)
     mem_zip = io.BytesIO()
     cid = _safe_course_id(course_id)

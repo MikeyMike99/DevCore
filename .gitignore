@@ -72,6 +72,9 @@ playground/e_profile/
 # In-game/app developer sandbox copies (security/dev_workspaces.py)
 playground/.dev_sandboxes/
 
+# Per-learner course sandbox copies for Tier 1-4 (core/routes/projects.py, scripts/course_jail.sh)
+playground/.course_sandboxes/
+
 .env.cloudflare
 services/cyberbrief/.env
 services/cyberbrief/cache/
