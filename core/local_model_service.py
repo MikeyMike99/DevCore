@@ -719,6 +719,29 @@ def _audit_brain_access(identity, model_id, cwd, allowed, full_access):
     _audit_authority_integrity()
 
 
+def _describe_tool_step(name: str, inp: dict) -> str:
+    """A short human sentence for a Claude tool call, e.g. 'Reading core/server.py'."""
+    inp = inp if isinstance(inp, dict) else {}
+    def _short(v, n=90):
+        v = str(v or "").strip().replace(chr(10), " ")
+        return v if len(v) <= n else v[: n - 1] + "…"
+    n = (name or "tool")
+    low = n.lower()
+    if inp.get("description"):
+        return _short(inp["description"])
+    path = inp.get("file_path") or inp.get("path") or inp.get("notebook_path")
+    if low == "read" and path: return f"Reading {_short(path)}"
+    if low in ("edit", "multiedit") and path: return f"Editing {_short(path)}"
+    if low == "write" and path: return f"Writing {_short(path)}"
+    if low == "grep": return f"Searching for “{_short(inp.get('pattern'), 60)}”"
+    if low == "glob": return f"Finding files matching {_short(inp.get('pattern'), 60)}"
+    if low == "bash": return f"Running {_short(inp.get('command'), 80)}"
+    if low in ("webfetch",): return f"Reading {_short(inp.get('url'))}"
+    if low in ("websearch",): return f"Searching the web for “{_short(inp.get('query'), 70)}”"
+    if "__" in n: n = n.split("__")[-1].replace("_", " ")
+    return f"Using {n}"
+
+
 def run_claude_cli_model(
     system_prompt: str,
     user_prompt: str,
@@ -925,8 +948,33 @@ def run_claude_cli_model(
         user_prompt = _with_history(user_prompt, history)
     prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
 
-    state = {"last": time.monotonic(), "result": None, "is_error": False, "text": []}
+    state = {"last": time.monotonic(), "result": None, "is_error": False, "text": [],
+             "pending": None, "thoughts": []}
     stderr_lines = []
+
+    def _emit(evt):
+        if on_event:
+            try:
+                on_event(evt)
+            except Exception:
+                pass
+
+    def _think(piece):
+        """Add to the running reasoning trail the chat shows as 'Agent Reasoning'."""
+        piece = (piece or "").strip()
+        if not piece:
+            return
+        state["thoughts"].append(piece)
+        trail = (chr(10) * 2).join(state["thoughts"])[-6000:]
+        _emit({"type": "agent_thought", "thought": trail, "announcement": "Thinking: " + piece[:200]})
+
+    def _flush_answer():
+        """Text that was held back turned out to be part of the answer (no tool call followed it)."""
+        txt = state["pending"]
+        state["pending"] = None
+        if txt:
+            state["text"].append(txt)
+            _emit({"type": "agent_chunk", "chunk": txt})
 
     def _read_stdout(pipe):
         for line in pipe:
@@ -941,38 +989,40 @@ def run_claude_cli_model(
                 continue
             evt_type = evt.get("type")
             if evt_type == "result":
+                _flush_answer()
                 state["result"] = evt.get("result") or ""
                 state["is_error"] = bool(evt.get("is_error"))
             elif evt_type == "assistant":
                 for block in (evt.get("message") or {}).get("content") or []:
                     if isinstance(block, dict):
                         b_type = block.get("type")
-                        if b_type == "text":
+                        if b_type == "thinking":
+                            _think(block.get("thinking", ""))
+                        elif b_type == "text":
                             txt = block.get("text", "")
-                            if txt:
-                                state["text"].append(txt)
-                                if on_event:
-                                    try:
-                                        on_event({"type": "agent_chunk", "chunk": txt})
-                                    except Exception:
-                                        pass
+                            if txt.strip():
+                                # Claude narrates ("Let me look at...") right before a tool call. Hold this text back:
+                                # if a tool call follows it is narration, otherwise it is part of the answer.
+                                _flush_answer()
+                                state["pending"] = txt
                         elif b_type == "tool_use":
+                            if state["pending"]:
+                                _think(state["pending"])
+                                state["pending"] = None
                             tid = block.get("id") or str(uuid.uuid4())[:8]
                             tname = block.get("name") or "tool"
                             tinp = block.get("input") or {}
-                            if on_event:
-                                try:
-                                    on_event({
-                                        "type": "action_start",
-                                        "action": {
-                                            "id": tid, "tool": tname, "params": tinp,
-                                            "status": "running", "friendly_name": tname,
-                                            "thought": f"Executing {tname}",
-                                            "announcement": f"Executing {tname}..."
-                                        }
-                                    })
-                                except Exception:
-                                    pass
+                            step = _describe_tool_step(tname, tinp)
+                            _think(step)
+                            _emit({
+                                "type": "action_start",
+                                "action": {
+                                    "id": tid, "tool": tname, "params": tinp,
+                                    "status": "running", "friendly_name": step,
+                                    "thought": step,
+                                    "announcement": step + "..."
+                                }
+                            })
             elif evt_type == "user":
                 for block in (evt.get("message") or {}).get("content") or []:
                     if isinstance(block, dict) and block.get("type") == "tool_result":
@@ -995,6 +1045,10 @@ def run_claude_cli_model(
                                 })
                             except Exception:
                                 pass
+
+    def _read_stdout_all(pipe):
+        _read_stdout(pipe)
+        _flush_answer()          # stream ended without a result event: the held-back text is the answer
 
     def _read_stderr(pipe):
         for line in pipe:
@@ -1021,6 +1075,9 @@ def run_claude_cli_model(
     timed_out = None
     proc = None
     try:
+        _env = dict(os.environ)
+        # Ask Claude to think before acting so its reasoning can be shown in the chat (0 turns it off).
+        _env.setdefault("MAX_THINKING_TOKENS", os.environ.get("DEVCORE_CLAUDE_THINKING", "6000"))
         proc = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
@@ -1028,9 +1085,10 @@ def run_claude_cli_model(
             stderr=subprocess.PIPE,
             text=True,
             cwd=_cwd,
+            env=_env,
         )
         threads = [
-            threading.Thread(target=_read_stdout, args=(proc.stdout,), daemon=True),
+            threading.Thread(target=_read_stdout_all, args=(proc.stdout,), daemon=True),
             threading.Thread(target=_read_stderr, args=(proc.stderr,), daemon=True),
             threading.Thread(target=_feed_stdin, args=(proc.stdin,), daemon=True),
         ]
