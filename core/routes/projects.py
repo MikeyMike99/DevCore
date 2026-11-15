@@ -565,14 +565,33 @@ def _execute_sandbox_sync(recording_name: str, command: str, bicep_file: str = N
 
 @projects_bp.route('/api/course/execute', methods=['POST'])
 async def api_course_execute():
-    """Executes a course step command inside WSL alp-env and records it to asciinema."""
+    """Runs one course step command inside WSL alp-env and records it to asciinema.
+
+    Security invariant: this endpoint is publicly reachable, so it only runs commands defined in
+    the course JSON (plus rec-sandbox / read-sandbox with a safe recording name), and Bicep code may
+    only be written to a step's own bicep_file. Anything else is rejected before reaching a shell."""
     body = await request.get_json() or {}
+    course_id = _safe_course_id(body.get('course_id', 'alp_phase2_bicep_course'))
     rec_name = body.get('recording_name') or 'mod1_task1_variables'
-    command = body.get('command') or ''
+    command = ' '.join(str(body.get('command') or '').split())
     bicep_file = body.get('bicep_file')
     bicep_code = body.get('bicep_code')
     prediction = body.get('prediction')
     learner_name = body.get('learner_name')
+
+    course_obj, _ = await asyncio.to_thread(_load_course_and_progress, course_id)
+    sections = [s for m in (course_obj or {}).get('modules', []) for s in m.get('sections', [])]
+    allowed_cmds = {' '.join(str(s['expected_command']).split()) for s in sections if s.get('expected_command')}
+    allowed_files = {s['bicep_file'] for s in sections if s.get('bicep_file')}
+    is_builtin = re.fullmatch(r'(?:rec|read)-sandbox [A-Za-z0-9_.-]{1,64}', command) is not None
+    if not (command in allowed_cmds or is_builtin) or (bicep_file and bicep_file not in allowed_files):
+        return jsonify({
+            "ok": False,
+            "returncode": 1,
+            "output": "That command isn't part of this course step. Use the command shown for the step and press Run again.",
+            "transcript": ""
+        }), 403
+
     try:
         res = await asyncio.to_thread(
             _execute_sandbox_sync,
