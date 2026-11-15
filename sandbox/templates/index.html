@@ -1876,6 +1876,24 @@
             window._examStripHook = true;
         }
         var modelSelector = document.getElementById('model-selector');
+        // Keep the model picker current without a page reload (the server refreshes its list on a heartbeat)
+        function refreshModelList() {
+            if (!modelSelector || document.hidden) return;
+            fetch('/api/ui-config', { credentials: 'same-origin' }).then(function(r) { return r.ok ? r.json() : null; }).then(function(cfg) {
+                var list = cfg && cfg.header && cfg.header.models;
+                if (!Array.isArray(list) || !list.length) return;
+                var cur = modelSelector.value;
+                var sig = list.map(function(m) { return m.value; }).join('|');
+                var old = Array.prototype.map.call(modelSelector.options, function(o) { return o.value; }).join('|');
+                if (sig === old) return;
+                modelSelector.innerHTML = '';
+                list.forEach(function(m) { var o = document.createElement('option'); o.value = m.value; o.textContent = m.text; modelSelector.appendChild(o); });
+                modelSelector.value = cur;
+                if (modelSelector.value !== cur && modelSelector.options.length) modelSelector.selectedIndex = 0;
+            }).catch(function() {});
+        }
+        setInterval(refreshModelList, 300000);
+        document.addEventListener('visibilitychange', function() { if (!document.hidden) refreshModelList(); });
         var srAnnouncer = document.getElementById('sr-announcer');
         var srAlerts = document.getElementById('sr-alerts');
 

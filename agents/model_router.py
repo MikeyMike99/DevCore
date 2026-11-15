@@ -465,6 +465,53 @@ def handoff_prompt(original_prompt: str, partial_output: str, from_model: str) -
     )
 
 
+def merge_into_picker(models: list) -> list:
+    """Bring a picker list (static config) in line with what the CLIs offer right now: drop Gemini models the CLI
+    no longer lists, add new ones, and add any Claude model the Claude CLI catalog has that the list lacks."""
+    models = list(models or [])
+    try:
+        found = discovered_models()
+        gem = [l for l, i in found.items() if i.get("backend") == "antigravity" and l.lower().startswith("gemini")]
+        if gem:
+            live = set(gem)
+            models = [m for m in models if not str(m.get("value", "")).startswith("Gemini ") or m.get("value") in live]
+            have = {m.get("value") for m in models}
+            at = next((i for i, m in enumerate(models) if str(m.get("value", "")).startswith("Gemini ")), len(models))
+            for lbl in gem:
+                if lbl not in have:
+                    models.insert(at, {"value": lbl, "text": lbl})
+                    at += 1
+        for lbl, i in found.items():
+            if i.get("backend") != "claude_cli":
+                continue
+            if not any(str(m.get("value", "")).lower().startswith(lbl.lower()) for m in models):
+                models.append({"value": lbl, "text": lbl + " (Cloud)"})
+    except Exception:
+        pass
+    return models
+
+
+MODELS_HEARTBEAT = 300            # seconds between model-list refreshes (no restart needed to see new models)
+
+
+def _models_heartbeat() -> None:
+    """Keep the model list fresh: the CLIs gain/lose models while the server runs."""
+    time.sleep(60)
+    while True:
+        try:
+            try:
+                from core.local_model_service import get_claude_models
+                get_claude_models(force=True)       # re-read the Claude CLI's model catalog
+            except Exception:
+                pass
+            _refresh_models()                        # re-run `agy models` + merge Claude catalog
+        except Exception:
+            pass
+        time.sleep(MODELS_HEARTBEAT)
+
+
+threading.Thread(target=_models_heartbeat, name="models-heartbeat", daemon=True).start()
+
 # Warm the caches in the background when the server imports this module
 _in_background("models_warm", lambda: discovered_models())
 _in_background("usage_warm", lambda: usage_snapshot(wait=True))

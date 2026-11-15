@@ -160,6 +160,11 @@ def _get_ui_config() -> dict:
             if v and v not in seen_vals:
                 seen_vals.add(v)
                 combined_models.append(m)
+        try:
+            from agents import model_router as _mr
+            combined_models = _mr.merge_into_picker(combined_models)
+        except Exception:
+            pass
         ui_cfg["header"]["models"] = combined_models
     return ui_cfg
 

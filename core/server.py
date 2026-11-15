@@ -312,6 +312,20 @@ async def fetch_dynamic_models(force_cli: bool = False):
         pass
     return None
 
+def _live_models(models):
+    """The model list is cached for the life of the process; re-apply what the CLIs offer right now (heartbeat-refreshed)."""
+    try:
+        from agents import model_router
+        return model_router.merge_into_picker(models)
+    except Exception:
+        return models
+
+@app.route('/api/ui-config')
+async def api_ui_config():
+    """Current model picker, so open pages can refresh it without a reload."""
+    models = await fetch_dynamic_models()
+    return {"header": {"models": _live_models(models or [])}}
+
 @app.route('/')
 async def index():
     """Dynamically serves and renders the template using Jinja2 variables."""
@@ -328,7 +342,7 @@ async def index():
     if dyn_models:
         if "header" not in ui_strings:
             ui_strings["header"] = {}
-        ui_strings["header"]["models"] = dyn_models
+        ui_strings["header"]["models"] = _live_models(dyn_models)
     
     rendered_content = await render_template_string(content, ui=ui_strings)
     return rendered_content, 200, {'Content-Type': 'text/html; charset=utf-8'}
