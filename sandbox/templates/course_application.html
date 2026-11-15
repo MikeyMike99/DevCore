@@ -265,7 +265,7 @@
         }
         flatSteps = buildFlatSteps(courseData);
         if (progressState.current_step_index >= 0 && progressState.current_step_index < flatSteps.length) {
-            currentStepIndex = progressState.current_step_index;
+            currentStepIndex = Math.min(progressState.current_step_index, lastUnlockedIndex());
         }
         renderStepperOptions();
         renderCurrentStep(false);
@@ -314,12 +314,15 @@
     function renderStepperOptions() {
         const select = document.getElementById('step-jumper');
         select.innerHTML = '';
+        const unlockedUpTo = lastUnlockedIndex();
         flatSteps.forEach((item, idx) => {
             const isDone = (progressState.completed_steps || []).includes(item.section.id);
             const isRef = ((progressState.reflections || {})[item.section.id] || {}).reflection_done;
-            const mark = (isDone && isRef) ? '✓✓ ' : (isDone ? '✓ ' : '');
+            const locked = idx > unlockedUpTo;
+            const mark = locked ? '🔒 ' : ((isDone && isRef) ? '✓✓ ' : (isDone ? '✓ ' : ''));
             const opt = document.createElement('option');
             opt.value = String(idx);
+            if (locked) opt.disabled = true;
             opt.textContent = `${mark}[Module ${item.moduleNumber} - ${item.section.section_code}] ${item.section.title}`;
             if (idx === currentStepIndex) opt.selected = true;
             select.appendChild(opt);
@@ -761,7 +764,25 @@
         }
     }
 
+    function isStepFinished(stepId) {
+        const done = (progressState.completed_steps || []).includes(stepId);
+        const reflected = Boolean(((progressState.reflections || {})[stepId] || {}).reflection_done);
+        return done && reflected;
+    }
+
+    function lastUnlockedIndex() {
+        const idx = flatSteps.findIndex(f => !isStepFinished(f.section.id));
+        return idx === -1 ? flatSteps.length - 1 : idx;
+    }
+
     function goNextStep() {
+        const sec = flatSteps[currentStepIndex] && flatSteps[currentStepIndex].section;
+        if (sec && !(progressState.completed_steps || []).includes(sec.id)) {
+            announce('Finish this section first: complete the task above, then press Next again.');
+            const task = document.getElementById('task-prompt');
+            if (task) task.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
         if (currentStepIndex < flatSteps.length - 1) {
             currentStepIndex++;
             saveProgress();
@@ -1090,6 +1111,11 @@
 
     document.getElementById('step-jumper').addEventListener('change', (e) => {
         const idx = parseInt(e.target.value, 10);
+        if (!isNaN(idx) && idx > lastUnlockedIndex()) {
+            e.target.value = String(currentStepIndex);
+            announce('That section is locked. Finish the sections before it, including each reflection, to unlock it.');
+            return;
+        }
         if (!isNaN(idx) && idx >= 0 && idx < flatSteps.length) {
             currentStepIndex = idx;
             saveProgress();
