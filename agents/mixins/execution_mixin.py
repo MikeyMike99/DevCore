@@ -509,7 +509,9 @@ class ExecutionMixin:
     @staticmethod
     def _smart_is_heavy(prompt: str) -> bool:
         p = (prompt or "").lower()
-        if len(p) > 600 or "<attached_document" in p or "[the user's exam content folder]" in p:
+        if len(p) > 140 or "<attached_document" in p or "[the user's exam content folder]" in p:
+            return True
+        if len(p.split()) > 20 or any(w in p for w in ("why ", "how do", "how can", "explain", "compare", "plan", "should i", "best way")):
             return True
         heavy_words = (
             "exam", "quiz", "test me", "build", "create", "implement", "refactor", "fix", "debug",
@@ -544,75 +546,93 @@ class ExecutionMixin:
             return light, prompt
 
         actor = mr.pick(mr.HEAVY_CHAIN) or mr.FLASH
-        analyst = mr.pick(mr.ANALYST_CHAIN, exclude=(actor,))
-        if analyst and "claude" in mr.cli_model_name(actor).lower() and "claude" in mr.cli_model_name(analyst).lower():
-            analyst = None  # Claude planning for Claude adds little; save the tokens
-        if not analyst:
-            # Only one model left: skip the planning stage so tokens aren't spent twice
+        # Workforce: several specialists work on the request AT THE SAME TIME, each with a different job
+        # and (when possible) a different model. Their notes are merged into one brief for the worker.
+        roles = [
+            ("Planner", "Work out what the user actually wants and write a short numbered step plan (max 8 steps), "
+                        "splitting the work into parts that could be done independently."),
+            ("Researcher", "List the key facts, background, definitions, existing conventions and context the worker "
+                           "needs to do this well. Be concrete and specific, not generic."),
+            ("Critic", "List the pitfalls, edge cases, ways this could go wrong, and a short acceptance checklist the "
+                       "finished result must pass. Think about what a careful reviewer would reject."),
+        ]
+        extra = ""
+        try:
+            from agents.exam_content import is_exam_request
+            if is_exam_request(prompt):
+                extra = (" This is an exam/quiz request. The acting model already has the exact exam JSON format and "
+                         "the save mechanism, so never tell it to inspect files, skills, schemas, plugins or code. "
+                         "Focus on content: topic, number and types of questions, timer, difficulty, the key facts each "
+                         "question should test, and good distractors.")
+        except Exception:
+            pass
+
+        used = [actor]
+        team = []  # (role, instruction, model)
+        for role, job in roles:
+            m = mr.pick(mr.ANALYST_CHAIN, exclude=tuple(used)) or mr.pick(mr.ANALYST_CHAIN)
+            if not m:
+                break
+            used.append(m)
+            team.append((role, job, m))
+        if not team:
             await self.broadcast({"type": "smart_route", "message": f"Smart mode: {actor} is handling this.",
                                   "fallback_model": actor})
             return actor, prompt
 
+        names = ", ".join(f"{r} ({m})" for r, _j, m in team)
         await self.broadcast({"type": "smart_route", "fallback_model": actor,
-                              "message": f"Smart mode: {analyst} is analysing the request and building context, then {actor} will act on it."})
-        brief = ""
-        try:
-            import contextvars, functools
-            from core.local_model_service import run_claude_model
-            system = (
-                "You are the analysis stage of a two-stage assistant. Do NOT carry out the task and do NOT use tools. "
-                "Read the request and produce a compact brief for the model that will act on it: "
-                "1) what the user actually wants, 2) the key facts, constraints and context needed, "
-                "3) a short numbered step plan, 4) pitfalls to avoid. Keep it under 300 words."
-            )
-            try:
-                from agents.exam_content import is_exam_request
-                if is_exam_request(prompt):
-                    system += (
-                        " This is an exam/quiz request. The acting model already has the exact exam JSON format and "
-                        "the save mechanism, so never tell it to inspect files, skills, schemas, plugins or code. "
-                        "Focus the brief on the content: topic, number and types of questions, timer, difficulty, "
-                        "the key facts each question should test, and good distractors."
-                    )
-            except Exception:
-                pass
-            loop = asyncio.get_running_loop()
+                              "message": f"Smart mode: team at work in parallel: {names}. Then {actor} carries it out."})
 
-            def _analyse_with(m):
-                # No user identity and no tools: the analysis stage only thinks.
-                if mr.is_google_claude(m):
-                    import subprocess as _sp
-                    agy = os.path.expanduser("~/.local/bin/agy_real")
-                    r = _sp.run([agy, "-p", system + "\n\nREQUEST:\n" + prompt, "--model", mr.cli_model_name(m),
-                                 "--sandbox", "--disable-slash-commands", "--print-timeout", "100s"],
-                                capture_output=True, text=True, timeout=115, cwd="/tmp")
-                    out = (r.stdout or "").strip()
-                    if r.returncode != 0 or not out:
-                        err = (r.stderr or out or "no output")
-                        return ("[LOCAL_BRAIN_QUOTA] " if mr.is_quota_error(err) else "[LOCAL_BRAIN_ERROR] ") + err[:300]
-                    return out
-                return run_claude_model(system, prompt, m, 900, "smart_analysis", is_admin=False, user=None, conversation_id=None)
+        import contextvars, functools
+        from core.local_model_service import run_claude_model
+        loop = asyncio.get_running_loop()
 
+        def _ask(m, role, job):
+            system = (f"You are the {role} on a small team of specialists. Do NOT carry out the task and do NOT use tools. "
+                      f"Your single job: {job} Keep it under 200 words, plain text, no preamble." + extra)
+            if mr.is_google_claude(m):
+                import subprocess as _sp
+                agy = os.path.expanduser("~/.local/bin/agy_real")
+                r = _sp.run([agy, "-p", system + "\n\nREQUEST:\n" + prompt, "--model", mr.cli_model_name(m),
+                             "--sandbox", "--disable-slash-commands", "--print-timeout", "100s"],
+                            capture_output=True, text=True, timeout=115, cwd="/tmp")
+                out = (r.stdout or "").strip()
+                if r.returncode != 0 or not out:
+                    err = (r.stderr or out or "no output")
+                    return ("[LOCAL_BRAIN_QUOTA] " if mr.is_quota_error(err) else "[LOCAL_BRAIN_ERROR] ") + err[:300]
+                return out
+            return run_claude_model(system, prompt, m, 700, "smart_team", is_admin=False, user=None, conversation_id=None)
+
+        async def _member(role, job, m):
+            tried = [actor, m]
             for _attempt in range(2):
-                brief = await asyncio.wait_for(loop.run_in_executor(
-                    None, contextvars.copy_context().run, functools.partial(_analyse_with, analyst)), timeout=130)
-                if str(brief).startswith("[LOCAL_BRAIN_QUOTA]"):
-                    mr.mark_exhausted(analyst, str(brief))
-                    analyst = mr.pick(mr.ANALYST_CHAIN, exclude=(actor, analyst))
-                    brief = ""
-                    if analyst:
-                        continue
-                break
-        except Exception as e:
-            logging.warning(f"[SmartMode] Analysis stage skipped: {e}")
-            brief = ""
-        brief = str(brief or "")
-        if brief.startswith("[LOCAL_BRAIN_QUOTA]"):
-            mr.mark_exhausted(analyst, brief)
-            brief = ""
-        if brief and not brief.startswith("[LOCAL_BRAIN_"):
-            prompt = (f"{prompt}\n\n<CONTEXT_BRIEF source=\"analysis stage\">\n{brief.strip()[:4000]}\n</CONTEXT_BRIEF>\n"
-                      "Use the brief above as your starting context and plan, then carry out the user's request.")
+                try:
+                    out = await asyncio.wait_for(loop.run_in_executor(
+                        None, contextvars.copy_context().run, functools.partial(_ask, m, role, job)), timeout=130)
+                except Exception as e:
+                    logging.warning(f"[SmartMode] {role} skipped: {e}")
+                    return role, ""
+                out = str(out or "")
+                if out.startswith("[LOCAL_BRAIN_QUOTA]"):
+                    mr.mark_exhausted(m, out)
+                    m = mr.pick(mr.ANALYST_CHAIN, exclude=tuple(tried))
+                    if not m:
+                        return role, ""
+                    tried.append(m)
+                    continue
+                if out.startswith("[LOCAL_BRAIN_"):
+                    return role, ""
+                return role, out.strip()
+            return role, ""
+
+        results = await asyncio.gather(*[_member(r, j, m) for r, j, m in team], return_exceptions=True)
+        notes = [f"[{r}]\n{o[:1500]}" for res in results if isinstance(res, tuple) for r, o in [res] if o]
+        if notes:
+            prompt = (f"{prompt}\n\n<TEAM_BRIEF source=\"parallel specialists\">\n" + "\n\n".join(notes)[:5000] +
+                      "\n</TEAM_BRIEF>\nA team of specialists prepared the notes above. Use them as your plan and context, "
+                      "follow the Critic's checklist, then carry out the user's request fully and check your own result "
+                      "against that checklist before you finish.")
         return actor, prompt
 
     async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False, _from_steer_or_queue: bool = False, _model_retry: bool = False, _recovery_retry: int = 0, _skip_timeout_flag: bool = False, _tried_models: tuple = ()):
