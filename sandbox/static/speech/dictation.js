@@ -2,19 +2,27 @@
 // turned into text on this device by speech-worker.js and typed into the chat box.
 // Audio is never uploaded; only the text the user sends leaves the device.
 //
-// Dictated text is only ever placed in the message box. It is never sent
-// automatically: the user always reviews it and presses Send themselves.
+// Auto-send: asked once before the first dictation (#dictation-choice-modal) and
+// changeable in Settings (#dictation-autosend). It only ever fires when the user
+// pressed Stop. A recording that hit the time limit, an empty or failed
+// transcription, or a task that is still running (Send would "Steer" it) is
+// never sent automatically; the text is left in the box instead.
 (function () {
     'use strict';
 
     var MAX_SECONDS = 120;
+    var PREF_KEY = 'siraugga.dictation.autoSend';    // '1' | '0' | absent = not asked yet
     var btn = document.getElementById('mic-btn');
     var label = document.getElementById('mic-btn-label');
     var status = document.getElementById('mic-status');
     var notice = document.getElementById('mic-notice');
     var prompt = document.getElementById('prompt');
+    var form = document.getElementById('chat-form');
+    var sendBtn = document.getElementById('send-btn');
+    var sendSpinner = document.getElementById('send-btn-spinner');
+    var choiceModal = document.getElementById('dictation-choice-modal');
+    var settingsToggle = document.getElementById('dictation-autosend');
     if (!btn || !prompt) return;
-    try { localStorage.removeItem('siraugga.dictation.autoSend'); } catch (_) {}
 
     var supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia &&
         window.MediaRecorder && window.Worker && window.WebAssembly);
@@ -34,8 +42,50 @@
     var nextId = 1;
     var progress = {};
     var noticeTimer = null;
+    var memoryPref = null;       // used when browser storage is unavailable
     var caretTouched = false;    // until the user places the cursor, dictation appends at the end
     prompt.addEventListener('focus', function () { caretTouched = true; });
+
+    // ---- auto-send preference ------------------------------------------------
+    function getPref() {          // true | false | null (never asked)
+        var v = memoryPref;
+        try { v = localStorage.getItem(PREF_KEY); } catch (_) {}
+        return v === '1' ? true : v === '0' ? false : null;
+    }
+    function setPref(on) {
+        memoryPref = on ? '1' : '0';
+        try { localStorage.setItem(PREF_KEY, memoryPref); } catch (_) {}
+        if (settingsToggle) settingsToggle.checked = on;
+    }
+    if (settingsToggle) {
+        settingsToggle.checked = getPref() === true;
+        settingsToggle.addEventListener('change', function () { setPref(settingsToggle.checked); });
+    }
+
+    // Resolves true/false once the user picks, or null if they dismiss the dialog.
+    function askPref() {
+        return new Promise(function (resolve) {
+            if (!choiceModal || typeof choiceModal.showModal !== 'function') { resolve(false); return; }
+            var auto = document.getElementById('dictation-choice-auto');
+            var review = document.getElementById('dictation-choice-review');
+            function done(value) {
+                auto.removeEventListener('click', onAuto);
+                review.removeEventListener('click', onReview);
+                choiceModal.removeEventListener('cancel', onCancel);
+                if (choiceModal.open) choiceModal.close();
+                btn.focus();
+                resolve(value);
+            }
+            function onAuto() { done(true); }
+            function onReview() { done(false); }
+            function onCancel(e) { e.preventDefault(); done(null); }
+            auto.addEventListener('click', onAuto);
+            review.addEventListener('click', onReview);
+            choiceModal.addEventListener('cancel', onCancel);
+            choiceModal.showModal();
+            review.focus();       // the safer choice gets focus
+        });
+    }
 
     // ---- UI helpers ----------------------------------------------------------
     function say(text, isError) {
@@ -111,6 +161,12 @@
         return (text || '').replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
+    // True when this recording will be sent without the user touching Send (same rules as afterInsert).
+    function willAutoSend() {
+        return getPref() === true && stoppedBy === 'user' && !taskRunning() &&
+            !!form && !!sendBtn && !sendBtn.disabled;
+    }
+
     function insertText(text) {
         if (!text) { say('No speech was detected.', true); return false; }
         var start = caretTouched && prompt.selectionStart != null ? prompt.selectionStart : prompt.value.length;
@@ -121,17 +177,36 @@
         if (after && !/^\s/.test(after)) text = text + ' ';
         prompt.value = before + text + after;
         var caret = before.length + text.length;
-        prompt.focus();
-        prompt.setSelectionRange(caret, caret);
+        if (!willAutoSend()) {                    // auto-send: leave focus (and the keyboard) alone
+            prompt.focus();
+            prompt.setSelectionRange(caret, caret);
+        }
         prompt.dispatchEvent(new Event('input', { bubbles: true }));
         say('Inserted: ' + text.trim());
         return true;
     }
 
+    function taskRunning() {
+        // While a task runs, Send becomes "Steer" and shows its spinner.
+        return !!(sendSpinner && !sendSpinner.classList.contains('hidden'));
+    }
+
     function afterInsert() {
         if (stoppedBy === 'timeout') {
-            showNotice('Recording stopped at the ' + (MAX_SECONDS / 60) + '-minute limit. Check the text and press Send.');
+            showNotice('Recording stopped at the ' + (MAX_SECONDS / 60) + '-minute limit, so it was not sent. Check the text and press Send.');
+            return;
         }
+        if (!getPref() || stoppedBy !== 'user') return;
+        if (taskRunning()) {
+            showNotice('Not sent automatically because a task is still running. Press Send (Steer) when you are ready.');
+            return;
+        }
+        if (!form || !sendBtn || sendBtn.disabled) {
+            showNotice('Not sent automatically because sending is unavailable right now. Press Send when it is.');
+            return;
+        }
+        if (typeof form.requestSubmit === 'function') form.requestSubmit(sendBtn);
+        else sendBtn.click();
     }
 
     // ---- recording -----------------------------------------------------------
@@ -280,9 +355,14 @@
         }
     }
 
-    btn.addEventListener('click', function () {
+    btn.addEventListener('click', async function () {
         if (state === 'recording') { stopRecording('user'); return; }
         if (state !== 'idle') return;
+        if (getPref() === null) {
+            var choice = await askPref();
+            if (choice === null) return;              // dismissed: ask again next time
+            setPref(choice);
+        }
         startRecording();
     });
 
