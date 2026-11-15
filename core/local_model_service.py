@@ -947,6 +947,14 @@ def run_claude_cli_model(
     if not _resuming:
         user_prompt = _with_history(user_prompt, history)
     prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
+    if allowed:
+        # The CLI hides Claude's thinking text, so ask it to narrate instead. The reader below shows the sentence
+        # written before each tool call in the chat's "Agent Reasoning" box (the final answer stays separate).
+        prompt = (
+            "WORKING STYLE: narrate as you work. Before every tool call, write one short plain sentence saying what "
+            "you are about to do and why. If a result changes your plan, say so in one sentence. Do not narrate "
+            "inside the final answer; keep that clear and concise." + chr(10) * 2 + prompt
+        )
 
     state = {"last": time.monotonic(), "result": None, "is_error": False, "text": [],
              "pending": None, "thoughts": []}
