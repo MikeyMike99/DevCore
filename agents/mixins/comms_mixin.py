@@ -47,6 +47,21 @@ def _owners_match(client_owner: str, target_owner: str) -> bool:
     return _normalize_base_owner(client_owner) == _normalize_base_owner(target_owner)
 
 
+import re
+
+_REFUSAL_OPENING = re.compile(
+    r"^(?:(?:i'?m |i am )?sorry[,.!]?\s*(?:but\s+)?|unfortunately,?\s*)?"
+    r"i\s*(?:can(?:no|')t|cannot|won'?t|(?:am|'m) (?:unable|not able) to)\b",
+    re.I,
+)
+_ALTERNATIVE_OFFERED = re.compile(r"\b(?:instead|you (?:can|could|might)|i can help|i could|try|here'?s)\b|\?", re.I)
+
+
+def _is_bare_refusal(text: str) -> bool:
+    t = (text or "").strip().replace("’", "'")
+    return len(t) < 600 and bool(_REFUSAL_OPENING.match(t)) and not _ALTERNATIVE_OFFERED.search(t)
+
+
 class CommsMixin:
     """Provides per-session isolated frame broadcasting to WebSockets and shared sequence queue."""
 
@@ -62,6 +77,8 @@ class CommsMixin:
         _DEV_TASK_CTX.set(bool(on))
 
     async def broadcast(self, message: dict):
+        if message.get("type") == "agent_done" and not message.get("cancelled") and not message.get("steered"):
+            message = await self._ensure_helpful_reply(message)
         target_owner = message.get("owner") or _TASK_OWNER_CTX.get() or getattr(self, "active_task_owner", None)
         self.current_seq = getattr(self, "current_seq", 0) + 1
         seq_val = self.current_seq
@@ -95,6 +112,33 @@ class CommsMixin:
                     client_queue.put_nowait(payload)
                 except Exception:
                     pass
+
+    async def _ensure_helpful_reply(self, message: dict) -> dict:
+        """Guarantees a finished reply is never empty and never a bare refusal: an empty reply gets a
+        next step, and a short refusal with no alternative gets an offer of what can be done instead."""
+        buf = getattr(self, "output_buffer", None)
+        text = str(message.get("output") or ("".join(buf) if isinstance(buf, list) else "")).strip()
+        if not text:
+            addition = (
+                "I didn't get an answer back that time. Please send your message again, "
+                "or pick a different model from the model menu and try once more."
+            )
+        elif _is_bare_refusal(text):
+            addition = (
+                "\n\nHere's what I can do instead: tell me a little more about what you're trying to achieve "
+                "and I'll suggest the closest thing I can help with, or type `/help` to see everything Siraugga can do."
+            )
+        else:
+            return message
+        if isinstance(buf, list):
+            buf.append(addition)
+        chunk = {"type": "agent_chunk", "chunk": addition}
+        if message.get("owner"):
+            chunk["owner"] = message["owner"]
+        await self.broadcast(chunk)
+        fixed = dict(message)
+        fixed["output"] = (text + addition) if text else addition
+        return fixed
 
     def handle_ack(self, ack_seq: int = None):
         pass
