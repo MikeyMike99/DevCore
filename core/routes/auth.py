@@ -25,6 +25,7 @@ def _load_token_json(f):
 GLOBAL_AUTH_PROC = None
 _AUTH_CHECK_CACHE = {"result": None, "ts": 0.0}
 AUTH_CACHE_TTL_SECONDS = 300.0
+SESSION_COOKIE = "devcore_session"
 
 _PKCE_SESSIONS = {}
 _USER_CLAUDE_LOGINS = {}
@@ -41,6 +42,17 @@ GOOGLE_SCOPES = (
     "https://www.googleapis.com/auth/aicode "
     "openid"
 )
+
+
+def _is_https_request() -> bool:
+    try:
+        if request.scheme == "https":
+            return True
+        if (request.headers.get("X-Forwarded-Proto") or "").split(",")[0].strip().lower() == "https":
+            return True
+        return '"scheme":"https"' in (request.headers.get("CF-Visitor") or "").replace(" ", "")
+    except Exception:
+        return True
 
 
 def _resolve_oauth_constants():
@@ -458,6 +470,8 @@ async def auth_check():
     scope = "demo" if str(scope_param).lower() == "demo" else "root"
 
     auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not auth_header:
+        auth_header = (request.cookies.get(SESSION_COOKIE) or "").strip()
     bearer_user = current_app.security_mgr.get_user_from_token(auth_header) if auth_header else None
     is_master = is_host_owner_request()
     is_admin = bool(
@@ -761,9 +775,8 @@ async def auth_login():
     if access_key == "SUPER_ADMIN_AUTO":
         if not is_host_owner_request():
             return jsonify({"error": "Owner auto-login is only available on the host machine."}), 403
-        return jsonify(current_app.security_mgr.create_owner_session())
-
-    if access_key:
+        res = current_app.security_mgr.create_owner_session()
+    elif access_key:
         res = current_app.security_mgr.authenticate(access_key)
     else:
         username = data.get('username')
@@ -771,21 +784,29 @@ async def auth_login():
         res = current_app.security_mgr.authenticate(f"{username}:{password}")
 
     if res:
-        return jsonify(res)
+        resp = await current_app.make_response(jsonify(res))
+        if res.get("token"):
+            resp.set_cookie(SESSION_COOKIE, res["token"], max_age=7 * 86400, path="/",
+                            httponly=True, secure=_is_https_request(), samesite="Lax")
+        return resp
     return jsonify({"error": "Invalid username or password"}), 401
 
 
 @auth_bp.route('/api/auth/logout', methods=['POST'])
 async def auth_logout():
     token = request.headers.get('Authorization', '').replace('Bearer ', '').strip()
-    current_app.security_mgr.logout(token)
-    return jsonify({"success": True})
+    if not token:
+        token = (request.cookies.get(SESSION_COOKIE) or '').strip()
+    if token:
+        current_app.security_mgr.logout(token)
+    resp = await current_app.make_response(jsonify({"success": True}))
+    resp.delete_cookie(SESSION_COOKIE, path="/")
+    return resp
 
 
 @auth_bp.route('/api/auth/me', methods=['GET'])
 async def auth_me():
-    token = request.headers.get('Authorization', '').replace('Bearer ', '').strip()
-    user = current_app.security_mgr.get_user_from_token(token)
+    user = get_current_user()
     if user:
         return jsonify({"user": user})
     return jsonify({"error": "Unauthorized"}), 401
@@ -796,6 +817,8 @@ def get_current_user():
     token = auth_hdr.replace('Bearer ', '').strip()
     if not token:
         token = request.args.get('token', '').strip()
+    if not token:
+        token = (request.cookies.get(SESSION_COOKIE) or '').strip()
     return current_app.security_mgr.get_user_from_token(
         token or None, remote_addr=request.remote_addr, headers=request.headers
     )
@@ -807,6 +830,8 @@ def is_host_owner_request() -> bool:
 
 def get_bearer_session_user():
     token = request.headers.get('Authorization', '').replace('Bearer ', '').strip()
+    if not token:
+        token = (request.cookies.get(SESSION_COOKIE) or '').strip()
     return current_app.security_mgr.get_user_from_token(token) if token else None
 
 
@@ -1130,6 +1155,10 @@ def _public_url() -> str:
     return (os.environ.get("DEVCORE_PUBLIC_URL") or "https://mikeytech.dev").rstrip("/")
 
 
+def _backend_url() -> str:
+    return (os.environ.get("DEVCORE_BACKEND_URL") or "https://siraugga.mikeytech.dev").rstrip("/")
+
+
 _LOOPBACK_HOSTS = {"localhost", "127.0.0.1", "[::1]", "::1"}
 
 
@@ -1188,10 +1217,8 @@ async def owner_device_handoff():
         return jsonify({"success": False, "error": "Owner sign-in only works on the Siraugga host computer."}), 403, cors
     from security import owner_device
     code = owner_device.new_handoff()
-    # Claim on the address the owner is using, so the trusted-device cookie lands on that site.
-    origin = (request.headers.get("Origin") or "").strip().rstrip("/")
-    claim_base = origin if origin in _public_origins() else _public_url()
-    return jsonify({"success": True, "url": f"{claim_base}/owner-device/claim?code={code}",
+    # Claim on the backend API host so the trusted-device cookie lands on siraugga.mikeytech.dev.
+    return jsonify({"success": True, "url": f"{_backend_url()}/owner-device/claim?code={code}",
                     "expires_in": owner_device.HANDOFF_TTL}), 200, cors
 
 
@@ -1210,10 +1237,8 @@ async def owner_device_start():
                 "<p>Open this from a browser on the computer that runs Siraugga.</p></body>")
         return page, 403, {**headers, "Content-Type": "text/html; charset=utf-8"}
     from security import owner_device
-    back = (request.args.get("return") or "").strip().rstrip("/")
-    claim_base = back if back in _public_origins() else _public_url()
     code = owner_device.new_handoff()
-    return "", 302, {**headers, "Location": f"{claim_base}/owner-device/claim?code={code}"}
+    return "", 302, {**headers, "Location": f"{_backend_url()}/owner-device/claim?code={code}"}
 
 
 @auth_bp.route('/owner-device/claim', methods=['GET'])
@@ -1232,11 +1257,12 @@ async def owner_device_claim():
         return page, 400, {**headers, "Content-Type": "text/html; charset=utf-8"}
     # Not a 302: a SameSite=Strict cookie isn't sent on a redirect that began on another site
     # (localhost), so continue with a same-site navigation from this page instead.
+    pub = _public_url()
     page = ("<!doctype html><meta charset='utf-8'><title>Browser trusted</title>"
-            "<meta http-equiv='refresh' content='1;url=/?owner_device=1'>"
+            f"<meta http-equiv='refresh' content='1;url={pub}/?owner_device=1'>"
             "<body style='font-family:sans-serif;background:#0a0a0b;color:#e2e8f0;padding:32px'>"
             "<h1>This browser is now trusted</h1><p>Opening Siraugga as Super Admin…</p>"
-            "<p><a style='color:#2dd4bf' href='/?owner_device=1'>Continue</a></p></body>")
+            f"<p><a style='color:#2dd4bf' href='{pub}/?owner_device=1'>Continue</a></p></body>")
     resp = await current_app.make_response((page, 200, {**headers, "Content-Type": "text/html; charset=utf-8"}))
     resp.set_cookie(owner_device.COOKIE_NAME, secret, max_age=owner_device.DEVICE_TTL, path="/",
                     httponly=True, secure=True, samesite="Strict")

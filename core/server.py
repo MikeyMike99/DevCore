@@ -69,21 +69,38 @@ def _cookie_samesite() -> str:
 # Front ends on other sites that call this server's API directly (E-Profile is only a front end
 # for the agent). Exact origins only; extra ones via DEVCORE_PORTAL_ORIGINS (comma-separated).
 PORTAL_ORIGINS = {o.strip().rstrip("/") for o in (
-    ["https://mikeymike.pythonanywhere.com", "https://eprofile-eou.pages.dev"]
+    [
+        "https://mikeymike.pythonanywhere.com",
+        "https://eprofile-eou.pages.dev",
+        "https://mikeytech.dev",
+        "https://www.mikeytech.dev",
+    ]
     + os.environ.get("DEVCORE_PORTAL_ORIGINS", "").split(","))
     if o.strip()}
 
 
+def _is_cors_path(path: str) -> bool:
+    return path.startswith("/api/") or path.startswith("/owner-device/") or path.startswith("/static/speech/")
+
+
+@app.before_request
+async def _portal_cors_preflight():
+    if request.method == "OPTIONS":
+        origin = (request.headers.get("Origin") or "").rstrip("/")
+        if origin in PORTAL_ORIGINS and _is_cors_path(request.path):
+            return "", 204
+
+
 @app.after_request
 async def _portal_cors(response):
-    """Let the E-Profile front end call /api/* with the visitor's mikeytech.dev cookies."""
+    """Let trusted front ends (mikeytech.dev, E-Profile) call /api/* with credentials."""
     try:
         origin = (request.headers.get("Origin") or "").rstrip("/")
-        if origin in PORTAL_ORIGINS and request.path.startswith("/api/"):
+        if origin in PORTAL_ORIGINS and _is_cors_path(request.path):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type, X-Client-ID"
-            response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, PATCH, OPTIONS"
             response.headers["Access-Control-Max-Age"] = "600"
             response.headers.add("Vary", "Origin")
     except Exception:
@@ -1455,7 +1472,9 @@ _UNLOCK_REASONS = {"full": "This link has reached its limit of browsers.", "expi
 async def unlock_link(code):
     """Opens the normal site; the page shows a one-time popup for the link (see /api/unlock)."""
     from urllib.parse import quote
-    return "", 302, {"Location": "/?unlock=" + quote(code[:64], safe=""), "Cache-Control": "no-store", "X-Robots-Tag": "noindex"}
+    host = (request.headers.get("Host") or "").split(":")[0].lower()
+    base = (os.environ.get("DEVCORE_PUBLIC_URL") or "https://mikeytech.dev").rstrip("/") if host == "siraugga.mikeytech.dev" else ""
+    return "", 302, {"Location": f"{base}/?unlock=" + quote(code[:64], safe=""), "Cache-Control": "no-store", "X-Robots-Tag": "noindex"}
 
 
 @app.route('/api/unlock', methods=['GET', 'POST'])
@@ -1475,7 +1494,8 @@ async def unlock_api():
         return jsonify({"state": st, "message": _UNLOCK_REASONS.get(st, "This link can't be used.")}), 410
     print("[Unlock] A no-limit link was used.")
     resp = jsonify({"state": "unlocked"})
-    resp.headers["Set-Cookie"] = f"{unlock_links.COOKIE_NAME}={token}; Max-Age={unlock_links.COOKIE_MAX_AGE}; Path=/; HttpOnly; Secure; SameSite=Lax"
+    resp.set_cookie(unlock_links.COOKIE_NAME, token, max_age=unlock_links.COOKIE_MAX_AGE, path="/",
+                    httponly=True, secure=_cookie_secure(), samesite=_cookie_samesite())
     return resp
 
 

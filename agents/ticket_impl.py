@@ -14,6 +14,7 @@ and the originals are backed up first so Undo can restore them.
 """
 import difflib
 import hashlib
+import importlib
 import json
 import os
 import re
@@ -68,6 +69,18 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _trigger_pages_sync(commit_message: str | None = None) -> None:
+    def _run():
+        try:
+            from scripts import deploy_siraugga_pages
+            importlib.reload(deploy_siraugga_pages)
+            deploy_siraugga_pages.sync_siraugga_pages(commit_message=commit_message)
+        except Exception:
+            pass
+
+    threading.Thread(target=_run, daemon=True, name="siraugga-pages-ticket-sync").start()
+
+
 def _snapshot(base: str) -> dict:
     """{relative path: bytes} for every file in the site folders under base."""
     out = {}
@@ -108,7 +121,6 @@ def _validate(changes: dict, before: dict) -> str:
         except UnicodeDecodeError:
             return f"{rel} is not valid UTF-8 text"
         new_hosts = _hosts(data) - _hosts(before.get(rel, b""))
-        # Hosts already used anywhere on the site are fine (e.g. the existing CDNs)
         if new_hosts:
             known = set()
             for v in before.values():
@@ -129,12 +141,12 @@ def _run_agent(workdir: str, t: dict) -> tuple:
     prompt = IMPLEMENT_PROMPT.format(id=t["id"], category=tickets.CATEGORIES.get(t["category"], "Other"),
                                      title=t["title"], description=t["description"], plan=plan)
     cmd = [claude_bin, "-p", "--model", MODEL,
-           "--tools", "Read,Edit,Write,Glob,Grep",       # no Bash, no web, no sub-agents
+           "--tools", "Read,Edit,Write,Glob,Grep",
            "--disallowedTools", "Bash", "WebFetch", "WebSearch",
-           "--permission-prompts", "none",                # anything outside the copy is denied
-           "--permission-mode", "acceptEdits",            # edits inside the copy need no prompt
-           "--strict-mcp-config",                         # no MCP servers
-           "--setting-sources", "project",                # ignore user settings, plugins and hooks
+           "--permission-prompts", "none",
+           "--permission-mode", "acceptEdits",
+           "--strict-mcp-config",
+           "--setting-sources", "project",
            "--output-format", "json"]
     try:
         r = subprocess.run(cmd, input=prompt, capture_output=True, text=True, cwd=workdir, timeout=AGENT_TIMEOUT)
@@ -203,7 +215,6 @@ def implement(ticket_id: str) -> dict:
                     return _finish_failed(ticket_id, f"{rel} changed on the live site while the agent was working, "
                                                      "so nothing was applied. You can make the change by hand and mark it implemented.")
 
-            # Back up the originals, then go live
             bdir = os.path.join(BACKUP_ROOT, ticket_id)
             os.makedirs(os.path.join(bdir, "files"), exist_ok=True)
             manifest = []
@@ -218,6 +229,7 @@ def implement(ticket_id: str) -> dict:
             for rel, data in changes.items():
                 _write_atomic(os.path.join(DEVCORE_ROOT, rel), data)
 
+            _trigger_pages_sync(commit_message=f"feat(ticket): implement approved ticket #{ticket_id} ({t.get('title', '')[:50]})")
             diff = _diff(changes, before)
             files = sorted(changes)
             tickets.record_implementation(ticket_id, {"by": "DevCore agent", "ts": time.time(), "summary": summary,
@@ -264,6 +276,8 @@ def undo(ticket_id: str) -> dict:
             else:
                 os.remove(live_path)
             restored.append(e["path"])
+        if restored:
+            _trigger_pages_sync(commit_message=f"revert(ticket): undo ticket #{ticket_id}")
         note = f"Rolled back {len(restored)} file(s)" + (f"; left {', '.join(skipped)} alone because it changed again since" if skipped else "")
         tickets.record_undo(ticket_id, restored, skipped, note)
         return {"restored": restored, "skipped": skipped}

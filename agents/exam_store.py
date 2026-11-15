@@ -1,10 +1,5 @@
 """
-Server-side exam saving for every tier.
-
-The agent never writes files to create an exam: it emits the exam JSON inside a
-[SAVE_EXAM] ... [/SAVE_EXAM] block. This module validates it and saves it under an
-unguessable name in sandbox/static/exams/, so users never overwrite each other's exams
-and no tool access to the server is needed.
+Server-side exam and interactive course saving for every tier.
 """
 import json
 import os
@@ -17,12 +12,13 @@ from urllib.parse import quote
 
 DEVCORE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXAMS_DIR = os.path.join(DEVCORE_ROOT, "sandbox", "static", "exams")
+COURSES_DIR = os.path.join(DEVCORE_ROOT, "sandbox", "static", "courses")
 FORMAT_SCRIPT = os.path.join(DEVCORE_ROOT, ".agents", "skills", "exam-generator", "scripts", "format_exam.py")
 MAX_EXAM_BYTES = 512 * 1024
 MAX_QUESTIONS = 300
 KEEP_DAYS = 7
 
-_BLOCK_RE = re.compile(r"\[SAVE_EXAM\]([\s\S]*?)\[/SAVE_EXAM\]", re.IGNORECASE)
+_BLOCK_RE = re.compile(r"\[SAVE_(?:EXAM|COURSE)\]([\s\S]*?)\[/SAVE_(?:EXAM|COURSE)\]", re.IGNORECASE)
 
 
 def _strip_fences(body: str) -> str:
@@ -58,23 +54,39 @@ def _cleanup_old() -> None:
 
 
 def save_exam_blocks(text: str) -> list:
-    """Save every [SAVE_EXAM] block in `text`. Returns [{ok, url, title, message}] per block."""
+    """Save every [SAVE_EXAM] or [SAVE_COURSE] block in `text`. Returns [{ok, url, title, message, kind}] per block."""
     results = []
     blocks = _BLOCK_RE.findall(text or "")
     if not blocks:
         return results
     os.makedirs(EXAMS_DIR, exist_ok=True)
+    os.makedirs(COURSES_DIR, exist_ok=True)
     _cleanup_old()
     for raw in blocks[:5]:
         body = _strip_fences(raw)
         if len(body.encode("utf-8")) > MAX_EXAM_BYTES:
-            results.append({"ok": False, "message": "The exam is too large to save (limit 512 KB)."})
+            results.append({"ok": False, "message": "The payload is too large to save (limit 512 KB)."})
             continue
         try:
             exam = json.loads(body)
         except Exception as e:
-            results.append({"ok": False, "message": f"The exam was not valid JSON ({e.__class__.__name__})."})
+            results.append({"ok": False, "message": f"The payload was not valid JSON ({e.__class__.__name__})."})
             continue
+
+        if isinstance(exam, dict) and (exam.get("mode") == "course" or isinstance(exam.get("modules"), list)):
+            title = str(exam.get("title") or "Interactive Course").strip()[:120] or "Interactive Course"
+            course_id = str(exam.get("course_id") or "").strip()
+            course_id = re.sub(r"[^A-Za-z0-9_.-]", "", course_id) or secrets.token_urlsafe(10)
+            for out_dir in (COURSES_DIR, os.path.join(DEVCORE_ROOT, "sandbox", "static")):
+                try:
+                    with open(os.path.join(out_dir, f"{course_id}.json"), "w", encoding="utf-8") as f:
+                        json.dump(exam, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+            url = f"/plugin/course?course={quote(course_id)}&title={quote(title)}"
+            results.append({"ok": True, "url": url, "title": title, "message": "", "kind": "course"})
+            continue
+
         if isinstance(exam, list):
             exam = {"questions": exam}
         questions = exam.get("questions") if isinstance(exam, dict) else None
@@ -102,20 +114,27 @@ def save_exam_blocks(text: str) -> list:
             except Exception:
                 note = "Saved; the format check was skipped."
         url = f"/plugin/exam?quiz=exams/{exam_id}.json&title={quote(title)}"
-        results.append({"ok": True, "url": url, "title": title, "message": note})
+        results.append({"ok": True, "url": url, "title": title, "message": note, "kind": "exam"})
     return results
 
 
 def render_results(results: list) -> str:
-    """Markdown the chat shows after the agent's answer: a link and an embedded exam per saved block."""
+    """Markdown the chat shows after the agent's answer: a link and an embedded exam or course per saved block."""
     parts = []
     for r in results:
         if r.get("ok"):
-            parts.append(
-                f"📝 **Exam ready:** [{r['title']}]({r['url']})"
-                + (f" ({r['message']})" if r.get("message") else "")
-                + f'\n\n<iframe src="{r["url"]}" class="w-full aspect-video border-0 rounded-lg" allowfullscreen></iframe>'
-            )
+            if r.get("kind") == "course":
+                parts.append(
+                    f"🎓 **Interactive Course ready:** [{r['title']}]({r['url']})"
+                    + (f" ({r['message']})" if r.get("message") else "")
+                    + f'\n\n<iframe src="{r["url"]}" class="w-full min-h-[780px] border-0 rounded-lg shadow-xl" allowfullscreen title="{r["title"]}"></iframe>'
+                )
+            else:
+                parts.append(
+                    f"📝 **Exam ready:** [{r['title']}]({r['url']})"
+                    + (f" ({r['message']})" if r.get("message") else "")
+                    + f'\n\n<iframe src="{r["url"]}" class="w-full aspect-video border-0 rounded-lg" allowfullscreen></iframe>'
+                )
         else:
-            parts.append(f"⚠️ **Exam not saved:** {r.get('message')}")
+            parts.append(f"⚠️ **Not saved:** {r.get('message')}")
     return "\n\n".join(parts)

@@ -1,6 +1,7 @@
 import asyncio
 import importlib
 import importlib.util
+import inspect
 import sys
 from core.routes.auth import get_current_user
 from quart import Blueprint, request, jsonify, current_app, Response
@@ -32,6 +33,194 @@ PROTECTED_FIREWALL_BASENAMES = {
     "raugus_access.json",
 }
 
+def _request_user():
+    user = get_current_user()
+    if user:
+        return user
+    try:
+        from core.routes.auth import get_bearer_session_user
+        return get_bearer_session_user()
+    except Exception:
+        return None
+
+def _is_tier5_request() -> bool:
+    sec = getattr(current_app, "security_mgr", None)
+    if sec is None:
+        return False
+    user = _request_user()
+    if user is not None:
+        try:
+            tier_val = int(user.get("tier", 5))
+        except Exception:
+            tier_val = 0
+        return bool(sec.is_admin_user(user) and user.get("token_scope") != "demo" and tier_val >= 5)
+    return bool(sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+
+def _is_super_admin_request() -> bool:
+    sec = getattr(current_app, "security_mgr", None)
+    if sec is None:
+        return False
+    user = _request_user()
+    if user is not None:
+        return bool(sec.is_super_admin(user))
+    return bool(sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+
+def _unwrap_view(fn):
+    while fn is not None and hasattr(fn, "_raugus_unwrapped"):
+        fn = getattr(fn, "_raugus_unwrapped")
+    return fn
+
+def install_server_tier_gates(live_app, main_mod=None):
+    if live_app is None or not hasattr(live_app, "view_functions"):
+        return
+
+    async def _call_view(fn, *args, **kwargs):
+        res = fn(*args, **kwargs)
+        if inspect.isawaitable(res):
+            return await res
+        return res
+
+    def _wrap_static(orig_fn):
+        async def _gated_custom_static(filename):
+            norm = str(filename or "").lstrip("/").replace("\\", "/")
+            if norm == "security_audit.json" and not _is_tier5_request():
+                return "Forbidden: Tier 5 Administrator clearance required.", 403
+            if norm.startswith("courses/progress_") and not (_is_tier5_request() or _request_user() is not None):
+                return "Forbidden: Authentication required.", 403
+            return await _call_view(orig_fn, filename)
+
+        _gated_custom_static._raugus_unwrapped = orig_fn
+        _gated_custom_static.__name__ = getattr(orig_fn, "__name__", "custom_static")
+        return _gated_custom_static
+
+    def _wrap_tier5(orig_fn):
+        async def _gated_tier5(*args, **kwargs):
+            if not _is_tier5_request():
+                return "Forbidden: Tier 5 Administrator clearance required.", 403
+            return await _call_view(orig_fn, *args, **kwargs)
+
+        _gated_tier5._raugus_unwrapped = orig_fn
+        _gated_tier5.__name__ = getattr(orig_fn, "__name__", "tier5_view")
+        return _gated_tier5
+
+    def _wrap_super_admin_page(orig_fn):
+        async def _gated_super_admin_page(*args, **kwargs):
+            if not _is_super_admin_request():
+                return "Forbidden: Super Admin clearance required.", 403
+            return await _call_view(orig_fn, *args, **kwargs)
+
+        _gated_super_admin_page._raugus_unwrapped = orig_fn
+        _gated_super_admin_page.__name__ = getattr(orig_fn, "__name__", "super_admin_page")
+        return _gated_super_admin_page
+
+    def _wrap_super_admin_api(orig_fn):
+        async def _gated_super_admin_api(*args, **kwargs):
+            if not _is_super_admin_request():
+                return jsonify({"success": False, "error": "Forbidden: Super Admin clearance required."}), 403
+            return await _call_view(orig_fn, *args, **kwargs)
+
+        _gated_super_admin_api._raugus_unwrapped = orig_fn
+        _gated_super_admin_api.__name__ = getattr(orig_fn, "__name__", "super_admin_api")
+        return _gated_super_admin_api
+
+    wrappers = {
+        "custom_static": _wrap_static,
+        "plugin_security": _wrap_tier5,
+        "plugin_audits": _wrap_tier5,
+        "direct_mode_page": _wrap_super_admin_page,
+        "direct_mode_status": _wrap_super_admin_api,
+    }
+    for ep_k in list(live_app.view_functions.keys()):
+        short = ep_k.rsplit(".", 1)[-1]
+        builder = wrappers.get(short)
+        if builder is None:
+            continue
+        orig = _unwrap_view(live_app.view_functions[ep_k])
+        if callable(orig):
+            live_app.view_functions[ep_k] = builder(orig)
+
+async def _run_pages_sync(force: bool = False):
+    try:
+        from scripts import deploy_siraugga_pages
+        importlib.reload(deploy_siraugga_pages)
+        return await asyncio.to_thread(deploy_siraugga_pages.sync_siraugga_pages, force)
+    except Exception as e:
+        print(f"[PagesSync] Sync warning: {e}")
+        return {"ok": False, "deployed": False, "error": str(e)}
+
+def _trigger_pages_sync_bg(force: bool = False):
+    import threading
+    def _runner():
+        try:
+            from scripts import deploy_siraugga_pages
+            importlib.reload(deploy_siraugga_pages)
+            res = deploy_siraugga_pages.sync_siraugga_pages(force=force)
+            if res.get("deployed"):
+                print(f"[PagesSync] Deployed updated Siraugga Pages bundle ({str(res.get('hash', ''))[:12]} @ {str(res.get('git_sha', ''))[:8]}).")
+        except Exception as e:
+            print(f"[PagesSync] Background sync warning: {e}")
+    threading.Thread(target=_runner, name="DevCore-PagesSync-Once", daemon=True).start()
+
+async def _pages_sync_daemon(target_app):
+    from scripts import deploy_siraugga_pages
+    importlib.reload(deploy_siraugga_pages)
+    last_sig = None
+    try:
+        res = await _run_pages_sync(force=False)
+        last_sig = await asyncio.to_thread(deploy_siraugga_pages.watched_inputs_signature)
+        if res.get("deployed"):
+            print(f"[PagesSync] Initial deploy complete ({str(res.get('hash', ''))[:12]}).")
+    except Exception as e:
+        print(f"[PagesSync] Startup sync warning: {e}")
+
+    while True:
+        try:
+            await asyncio.sleep(10)
+            sig = await asyncio.to_thread(deploy_siraugga_pages.watched_inputs_signature)
+            if sig == last_sig:
+                continue
+            await asyncio.sleep(3)
+            sig2 = await asyncio.to_thread(deploy_siraugga_pages.watched_inputs_signature)
+            if sig2 != sig:
+                await asyncio.sleep(2)
+                sig2 = await asyncio.to_thread(deploy_siraugga_pages.watched_inputs_signature)
+            res = await _run_pages_sync(force=False)
+            last_sig = sig2
+            if res.get("deployed"):
+                print(f"[PagesSync] Auto-deployed updated Siraugga Pages bundle ({str(res.get('hash', ''))[:12]} @ {str(res.get('git_sha', ''))[:8]}).")
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            print(f"[PagesSync] Watcher warning: {e}")
+
+def ensure_pages_sync_started(target_app=None):
+    if target_app is None or getattr(target_app, "_pages_sync_started", False):
+        return
+    try:
+        loop = asyncio.get_running_loop()
+        target_app._pages_sync_started = True
+        loop.create_task(_pages_sync_daemon(target_app))
+    except RuntimeError:
+        try:
+            target_app.add_background_task(_pages_sync_daemon, target_app)
+            target_app._pages_sync_started = True
+        except Exception:
+            target_app._pages_sync_started = False
+
+@system_bp.before_app_serving
+async def _on_system_app_serving():
+    try:
+        if hasattr(sm, "_sync_live_blueprint_routes"):
+            sm._sync_live_blueprint_routes()
+    except Exception:
+        pass
+    try:
+        app_obj = current_app._get_current_object()
+        install_server_tier_gates(app_obj)
+        ensure_pages_sync_started(app_obj)
+    except Exception:
+        pass
+
 def _is_jit_active() -> bool:
     try:
         from security.jit_elevation import verify_jit_elevation
@@ -44,7 +233,6 @@ def _get_devcore_vault_service():
     mod_name = "eprofile_vault_mod"
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     documents_dir = os.path.dirname(repo_root)
-    # e_profile lives in DevCore's playground; the sibling folder is the old layout (and PythonAnywhere's).
     vault_mod_path = next((p for p in (os.path.join(repo_root, "playground", "e_profile", "vault_mod.py"),
                                        os.path.join(documents_dir, "e_profile", "vault_mod.py")) if os.path.exists(p)),
                           os.path.join(repo_root, "playground", "e_profile", "vault_mod.py"))
@@ -321,6 +509,21 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
         except Exception:
             pass
 
+        if sys_mod and hasattr(sys_mod, "install_server_tier_gates"):
+            sys_mod.install_server_tier_gates(target_app, main_mod)
+        else:
+            install_server_tier_gates(target_app, main_mod)
+
+        if sys_mod and hasattr(sys_mod, "ensure_pages_sync_started"):
+            sys_mod.ensure_pages_sync_started(target_app)
+        else:
+            ensure_pages_sync_started(target_app)
+
+        if sys_mod and hasattr(sys_mod, "_trigger_pages_sync_bg"):
+            sys_mod._trigger_pages_sync_bg(force=False)
+        else:
+            _trigger_pages_sync_bg(force=False)
+
         for patch, _, _ in applied_targets:
             staged_path = os.path.join(patch_dir, patch)
             if os.path.exists(staged_path):
@@ -375,11 +578,7 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
 @system_bp.route('/api/reload', methods=['POST'])
 @system_bp.route("/api/reload", methods=["POST"])
 async def reload_system():
-    user = get_current_user()
-    sec = current_app.security_mgr
-    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
-    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
-    if not (is_admin or is_host):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         app_obj = current_app._get_current_object()
@@ -530,9 +729,7 @@ async def api_jit_revoke():
 @system_bp.route('/plugin/telemetry', methods=['GET'])
 @system_bp.route("/telemetry", methods=["GET"])
 async def telemetry_page():
-    user = get_current_user()
-    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
-    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+    if not _is_tier5_request():
         return "Forbidden: Tier 5 Administrator clearance required.", 403
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     candidates = [
@@ -549,9 +746,7 @@ async def telemetry_page():
 @system_bp.route('/api/telemetry/tokens', methods=['GET'])
 @system_bp.route("/api/telemetry/tokens", methods=["GET"])
 async def api_token_telemetry():
-    user = get_current_user()
-    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
-    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         import core.token_telemetry as tt
@@ -568,9 +763,7 @@ async def api_token_telemetry():
 @system_bp.route("/api/telemetry/models", methods=["GET"])
 async def api_model_telemetry():
     """Per-brain usage (Claude, Gemini/agy, Ollama, local, ...) from the SwarmFlow log."""
-    user = get_current_user()
-    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
-    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         from security.swarm_telemetry import SwarmFlowLogger
@@ -584,9 +777,7 @@ async def api_model_telemetry():
 @system_bp.route('/audits', methods=['GET'])
 @system_bp.route("/audits", methods=["GET"])
 async def audits_page():
-    user = get_current_user()
-    is_host_owner = current_app.security_mgr.is_host_owner_request(request.remote_addr, request.headers)
-    if not is_host_owner and not (user and current_app.security_mgr.is_admin_user(user)):
+    if not _is_tier5_request():
         return "Forbidden: Tier 5 Administrator clearance required.", 403
     repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     candidates = [
@@ -604,11 +795,7 @@ async def audits_page():
 @system_bp.route('/api/audits', methods=['GET'])
 @system_bp.route("/api/audits", methods=["GET"])
 async def api_get_audits():
-    user = get_current_user()
-    sec = current_app.security_mgr
-    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
-    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
-    if not (is_admin or is_host):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         registry = get_audit_registry()
@@ -621,11 +808,7 @@ async def api_get_audits():
 @system_bp.route('/api/audits/results/<audit_id>', methods=['GET'])
 @system_bp.route("/api/audits/result/<audit_id>", methods=["GET"])
 async def api_audit_result(audit_id):
-    user = get_current_user()
-    sec = current_app.security_mgr
-    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
-    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
-    if not (is_admin or is_host):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         registry = get_audit_registry()
@@ -640,11 +823,7 @@ async def api_audit_result(audit_id):
 @system_bp.route('/api/audits/run', methods=['POST'])
 @system_bp.route("/api/audits/run", methods=["POST"])
 async def api_run_audit():
-    user = get_current_user()
-    sec = current_app.security_mgr
-    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
-    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
-    if not (is_admin or is_host):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         data = await request.get_json(silent=True) or {}
@@ -664,11 +843,7 @@ async def api_run_audit():
 @system_bp.route('/api/audits/refresh', methods=['POST'])
 @system_bp.route("/api/audits/refresh", methods=["POST"])
 async def api_refresh_audits():
-    user = get_current_user()
-    sec = current_app.security_mgr
-    is_admin = bool(user and sec.is_admin_user(user) and user.get("token_scope") != "demo" and int(user.get("tier", 5)) >= 5)
-    is_host = bool(user is None and sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
-    if not (is_admin or is_host):
+    if not _is_tier5_request():
         return jsonify({"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."}), 403
     try:
         registry = get_audit_registry()

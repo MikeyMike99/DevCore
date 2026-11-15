@@ -67,6 +67,7 @@ def _build_headers() -> str:
         "https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com "
         "https://www.youtube.com https://s.ytimg.com https://static.cloudflareinsights.com; "
         "worker-src 'self'; "
+        "media-src 'self' blob: data: https://siraugga.mikeytech.dev; "
         "frame-src 'self' https://siraugga.mikeytech.dev "
         "http://localhost:5055 http://127.0.0.1:5055 http://localhost:5050 http://127.0.0.1:5050 "
         "https://www.youtube.com https://www.youtube-nocookie.com; "

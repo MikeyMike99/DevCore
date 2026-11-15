@@ -2,7 +2,14 @@ from quart import request
 
 async def apply_security_headers(response):
     """Applies strict HTTP security headers to all outbound Quart responses."""
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    is_plugin_route = False
+    try:
+        p = request.path or ""
+        is_plugin_route = p.startswith("/plugin/") or p.startswith("/ai_agent/plugin/")
+    except Exception:
+        pass
+    if not is_plugin_route:
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-Content-Type-Options'] = 'nosniff'
 
     host_only = ""
@@ -39,11 +46,12 @@ async def apply_security_headers(response):
         f"frame-src {frame_src_str}; "
         # 127.0.0.1:5000 = the Siraugga server on the owner's own computer, asked by the "Owner sign-in"
         # on the public domain (core/routes/auth.py owner_device_handoff; it only answers locally).
-        f"connect-src 'self' ws: wss: https://generativelanguage.googleapis.com http://127.0.0.1:5000; "
+        f"connect-src 'self' https://mikeytech.dev https://www.mikeytech.dev https://siraugga.mikeytech.dev wss://siraugga.mikeytech.dev ws: wss: https://generativelanguage.googleapis.com http://127.0.0.1:5000; "
         f"style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://fonts.googleapis.com; "
         f"font-src 'self' data: https://fonts.gstatic.com; "
         f"img-src 'self' data: https: https://i.ytimg.com; "
-        f"report-uri /api/security/csp-report;"
+        + ("frame-ancestors 'self' https://mikeytech.dev https://www.mikeytech.dev; " if is_plugin_route else "")
+        + f"report-uri /api/security/csp-report;"
     )
 
     perm_origins = [

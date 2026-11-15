@@ -784,21 +784,46 @@ def _sync_live_blueprint_routes():
                 with open(srv_path, "r", encoding="utf-8") as sf:
                     srv_src = sf.read()
                 srv_tree = ast.parse(srv_src, filename=srv_path)
+                hot_fns = {"ws_endpoint", "_is_cors_path", "_portal_cors_preflight", "_portal_cors", "unlock_link", "unlock_api"}
                 for node in srv_tree.body:
-                    if isinstance(node, ast.AsyncFunctionDef) and node.name == "ws_endpoint":
+                    if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "PORTAL_ORIGINS" for t in node.targets):
+                        assign_mod = ast.Module(body=[node], type_ignores=[])
+                        ast.fix_missing_locations(assign_mod)
+                        exec(compile(assign_mod, filename=srv_path, mode="exec"), main_mod.__dict__)
+                    elif isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)) and node.name in hot_fns:
                         node.decorator_list = []
                         fn_mod = ast.Module(body=[node], type_ignores=[])
                         ast.fix_missing_locations(fn_mod)
-                        code_obj = compile(fn_mod, filename=srv_path, mode="exec")
-                        exec(code_obj, main_mod.__dict__)
-                        new_ws_fn = main_mod.__dict__.get("ws_endpoint")
-                        if callable(new_ws_fn):
-                            for ep_k in list(live_app.view_functions.keys()):
-                                if ep_k == "ws_endpoint" or ep_k.endswith(".ws_endpoint"):
-                                    live_app.view_functions[ep_k] = new_ws_fn
-                        break
+                        exec(compile(fn_mod, filename=srv_path, mode="exec"), main_mod.__dict__)
+                new_ws_fn = main_mod.__dict__.get("ws_endpoint")
+                if callable(new_ws_fn):
+                    for ep_k in list(live_app.view_functions.keys()):
+                        if ep_k == "ws_endpoint" or ep_k.endswith(".ws_endpoint"):
+                            live_app.view_functions[ep_k] = new_ws_fn
+                for view_name in ("unlock_link", "unlock_api"):
+                    fn_ref = main_mod.__dict__.get(view_name)
+                    if callable(fn_ref):
+                        for ep_k in list(live_app.view_functions.keys()):
+                            if ep_k == view_name or ep_k.endswith("." + view_name):
+                                live_app.view_functions[ep_k] = fn_ref
+                pre_fn = main_mod.__dict__.get("_portal_cors_preflight")
+                if callable(pre_fn):
+                    before_funcs = live_app.before_request_funcs.setdefault(None, [])
+                    replaced = False
+                    for idx, fn in enumerate(before_funcs):
+                        if getattr(fn, "__name__", "") == "_portal_cors_preflight":
+                            before_funcs[idx] = pre_fn
+                            replaced = True
+                    if not replaced:
+                        before_funcs.insert(0, pre_fn)
+                cors_fn = main_mod.__dict__.get("_portal_cors")
+                if callable(cors_fn):
+                    after_funcs = live_app.after_request_funcs.setdefault(None, [])
+                    for idx, fn in enumerate(after_funcs):
+                        if getattr(fn, "__name__", "") == "_portal_cors":
+                            after_funcs[idx] = cors_fn
         except Exception as e:
-            print(f"[SessionManager] ws_endpoint hot-bind warning: {e}")
+            print(f"[SessionManager] server.py hot-bind warning: {e}")
 
         if "core.token_telemetry" in sys.modules:
             try:
@@ -874,6 +899,22 @@ def _sync_live_blueprint_routes():
                                 pass
             if hasattr(sys_mod, "execute_hot_patch_sequence") and main_mod:
                 main_mod.execute_hot_patch_sequence = sys_mod.execute_hot_patch_sequence
+            if hasattr(sys_mod, "install_server_tier_gates"):
+                sys_mod.install_server_tier_gates(live_app, main_mod)
+            if hasattr(sys_mod, "ensure_pages_sync_started"):
+                sys_mod.ensure_pages_sync_started(live_app)
+
+        if "core.course_vault" in sys.modules:
+            try:
+                importlib.reload(sys.modules["core.course_vault"])
+            except Exception:
+                pass
+
+        if "core.response_cards" in sys.modules:
+            try:
+                importlib.reload(sys.modules["core.response_cards"])
+            except Exception:
+                pass
 
         if "core.routes.projects" in sys.modules:
             proj_mod = importlib.reload(sys.modules["core.routes.projects"])
@@ -886,19 +927,52 @@ def _sync_live_blueprint_routes():
                 "delete_conversation",
                 "clear_project_sessions",
                 "rename_conversation",
+                "course_page",
+                "api_course_data",
+                "api_course_progress",
+                "api_course_execute",
+                "api_course_reflect",
+                "api_course_export",
+                "api_course_requirements",
+                "api_course_workspace",
+                "api_cards_triggers",
+                "api_cards_resolve",
+                "api_cards_featured",
             ):
                 if hasattr(proj_mod, fn_name):
                     live_app.view_functions[f"projects_bp.{fn_name}"] = getattr(proj_mod, fn_name)
-            if "projects_bp.rename_conversation" not in [r.endpoint for r in live_app.url_map.iter_rules()]:
-                try:
-                    live_app.add_url_rule(
-                        '/api/conversations/<conv_id>/rename',
-                        endpoint='projects_bp.rename_conversation',
-                        view_func=proj_mod.rename_conversation,
-                        methods=['POST']
-                    )
-                except Exception:
-                    pass
+            existing_proj_rules = {r.rule: r.endpoint for r in live_app.url_map.iter_rules()}
+            existing_proj_eps = {r.endpoint for r in live_app.url_map.iter_rules()}
+            dynamic_proj_routes = [
+                ('/api/conversations/<conv_id>/rename', 'projects_bp.rename_conversation', 'rename_conversation', ['POST']),
+                ('/plugin/course', 'projects_bp.course_page_plugin', 'course_page', ['GET']),
+                ('/course', 'projects_bp.course_page', 'course_page', ['GET']),
+                ('/api/course/data', 'projects_bp.api_course_data', 'api_course_data', ['GET']),
+                ('/api/course/progress', 'projects_bp.api_course_progress', 'api_course_progress', ['GET', 'POST']),
+                ('/api/course/execute', 'projects_bp.api_course_execute', 'api_course_execute', ['POST']),
+                ('/api/course/reflect', 'projects_bp.api_course_reflect', 'api_course_reflect', ['POST']),
+                ('/api/course/export', 'projects_bp.api_course_export', 'api_course_export', ['GET', 'POST']),
+                ('/api/course/requirements', 'projects_bp.api_course_requirements', 'api_course_requirements', ['POST']),
+                ('/api/course/workspace/<op>', 'projects_bp.api_course_workspace', 'api_course_workspace', ['POST']),
+                ('/api/cards/triggers', 'projects_bp.api_cards_triggers', 'api_cards_triggers', ['GET']),
+                ('/api/cards/resolve', 'projects_bp.api_cards_resolve', 'api_cards_resolve', ['POST']),
+                ('/api/cards/featured', 'projects_bp.api_cards_featured', 'api_cards_featured', ['GET']),
+            ]
+            from werkzeug.routing import Rule
+            for rule_path, ep_name, attr_name, methods in dynamic_proj_routes:
+                if hasattr(proj_mod, attr_name):
+                    fn_ref = getattr(proj_mod, attr_name)
+                    live_app.view_functions[ep_name] = fn_ref
+                    if rule_path in existing_proj_rules:
+                        live_app.view_functions[existing_proj_rules[rule_path]] = fn_ref
+                    elif ep_name not in existing_proj_eps:
+                        try:
+                            live_app.url_map.add(Rule(rule_path, endpoint=ep_name, methods=methods))
+                        except Exception:
+                            try:
+                                live_app.add_url_rule(rule_path, endpoint=ep_name, view_func=fn_ref, methods=methods)
+                            except Exception:
+                                pass
 
         if "core.routes.auth" in sys.modules:
             auth_mod = importlib.reload(sys.modules["core.routes.auth"])
@@ -917,6 +991,14 @@ def _sync_live_blueprint_routes():
                     )
                 except Exception:
                     pass
+
+        if "core.routes.device_keys" in sys.modules:
+            dk_mod = importlib.reload(sys.modules["core.routes.device_keys"])
+            for ep in list(live_app.view_functions.keys()):
+                if ep.startswith("device_keys_bp."):
+                    fn_name = ep.split(".", 1)[1]
+                    if hasattr(dk_mod, fn_name):
+                        live_app.view_functions[ep] = getattr(dk_mod, fn_name)
 
         if "core.routes.files" in sys.modules:
             files_mod = importlib.reload(sys.modules["core.routes.files"])

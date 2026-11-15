@@ -9,6 +9,7 @@ from security import device_keys as dk
 device_keys_bp = Blueprint("device_keys_bp", __name__)
 
 _NO_STORE = {"Cache-Control": "no-store"}
+SESSION_COOKIE = "devcore_session"
 
 
 def _public_url() -> str:
@@ -31,12 +32,21 @@ def _public_hosts() -> set:
 
 def _site():
     """(rp_id, origin) for this request, or None when keys can't be used on this address.
-    Only Siraugga's own public addresses (from configuration, never what the browser claims).
-    The key is tied to the main domain, so one made on www. or siraugga. works on all of them."""
+    Checks a trusted Origin header first so cross-origin calls from mikeytech.dev to
+    siraugga.mikeytech.dev verify against the browser's page origin."""
+    base = (urllib.parse.urlparse(_public_url()).hostname or "mikeytech.dev").lower()
+    origin = (request.headers.get("Origin") or "").strip().rstrip("/")
+    if origin:
+        parsed = urllib.parse.urlparse(origin)
+        ohost = (parsed.hostname or "").lower()
+        if parsed.scheme == "https" and ohost in _public_hosts():
+            rp_id = base if (ohost == base or ohost.endswith("." + base)) else ohost
+            return rp_id, f"https://{ohost}"
+        if parsed.scheme == "http" and ohost == "localhost":
+            return "localhost", origin
     raw_host = (request.headers.get("Host") or "").strip()
     host = raw_host.split(":")[0].lower()
     if host in _public_hosts():
-        base = (urllib.parse.urlparse(_public_url()).hostname or "mikeytech.dev").lower()
         rp_id = base if (host == base or host.endswith("." + base)) else host
         return rp_id, f"https://{host}"
     if host == "localhost":
@@ -45,7 +55,10 @@ def _site():
 
 
 def _bearer() -> str:
-    return request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    tok = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not tok:
+        tok = (request.cookies.get(SESSION_COOKIE) or "").strip()
+    return tok
 
 
 def _is_owner() -> bool:
@@ -431,7 +444,12 @@ async def _signed_in(rec: dict):
                              dev_parts=list(rec.get("parts") or []))
         res = sec.create_session(sess_user, kind="admin" if is_admin else "user")
     resp = await current_app.make_response((jsonify({"success": True, **res}), 200, _NO_STORE))
-    if rec["role"] == dk.OWNER_ROLE and _site() and _site()[0] != "localhost":
+    site = _site()
+    is_https = bool(site and site[1].startswith("https://"))
+    if res.get("token"):
+        resp.set_cookie(SESSION_COOKIE, res["token"], max_age=7 * 86400, path="/",
+                        httponly=True, secure=is_https, samesite="Lax")
+    if rec["role"] == dk.OWNER_ROLE and site and site[0] != "localhost":
         from security import owner_device
         secret = owner_device.claim(owner_device.new_handoff(), label=(request.headers.get("User-Agent") or "")[:120])
         if secret:

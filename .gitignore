@@ -27,6 +27,7 @@ crash_log*.txt
 # Dynamic Exam & Content Payloads
 sandbox/static/*.json
 sandbox/static/exams/
+sandbox/static/courses/
 desktop_app.dist/sandbox/static/*.json
 plugins/exam_application/content/
 core/plugins/exam_application/content/
@@ -36,6 +37,7 @@ core/patches/*.py
 core/backups/*.py
 *.bak
 scratch/
+/dist/
 
 # BYOS & Credential Isolation
 subscriptions.json
@@ -75,3 +77,9 @@ services/cyberbrief/.env
 services/cyberbrief/cache/
 services/cyberbrief/traffic_metrics.json
 services/eprofile_bridge/.env
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+!.env.example
