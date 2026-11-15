@@ -34,7 +34,6 @@
     var nextId = 1;
     var progress = {};
     var noticeTimer = null;
-    var memoryPref = null;       // used when browser storage is unavailable
     var caretTouched = false;    // until the user places the cursor, dictation appends at the end
     prompt.addEventListener('focus', function () { caretTouched = true; });
 
@@ -281,7 +280,7 @@
         }
     }
 
-    btn.addEventListener('click', async function () {
+    btn.addEventListener('click', function () {
         if (state === 'recording') { stopRecording('user'); return; }
         if (state !== 'idle') return;
         startRecording();
