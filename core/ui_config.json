@@ -35,8 +35,8 @@
         "model_aria": "Select AI Model",
         "models": [
             {
-                "value": "Smart (Argon + Claude)",
-                "text": "Smart (Argon + Claude)"
+                "value": "Smart (best available)",
+                "text": "Smart (best available)"
             },
             {
                 "value": "Gemini 4 Argon (Medium)",

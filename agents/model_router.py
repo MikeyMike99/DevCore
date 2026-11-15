@@ -42,7 +42,7 @@ GOOGLE_SUFFIX = " · via Google"   # display marker for Claude/GPT models served
 MODELS_TTL = 3600                 # rediscover models hourly
 USAGE_TTL = 300                   # re-read /usage every 5 minutes
 DEFAULT_COOLDOWN = 3600           # quota error without a reset time: retry after 1 hour
-LAST_RESORT = "Gemini 3.8 Flash (High)"
+LAST_RESORT = "Gemini 3.8 Flash (High)"   # only used when the CLIs list no models at all
 
 _QUOTA_PATTERNS = (
     "quota reached", "quota exceeded", "resource_exhausted", "resource exhausted",
@@ -209,11 +209,73 @@ def load_config() -> dict:
     return c["data"] or {"chains": {}}
 
 
+# ---------------- automatic ranking (no model names in code) ----------------
+
+_DEFAULT_STRENGTH = {"opus": 90, "fable": 90, "hydrogen": 85, "argon": 80, "sonnet": 60,
+                     "pro": 70, "flash": 40, "haiku": 35, "gpt-oss": 45}
+_EFFORT_WORDS = ("xhigh", "high", "medium", "low")
+
+
+def _score_parts(label: str, info: dict):
+    """(strength, version, effort) read from the model's own name. A brand-new model needs no code change:
+    unknown families get a middle strength and win by version number."""
+    name = (info.get("cli_model") or label).lower()
+    cfg = load_config()
+    table = {**_DEFAULT_STRENGTH, **{k.lower(): v for k, v in (cfg.get("family_strength") or {}).items()}}
+    hits = [v for k, v in table.items() if k in name]
+    strength = max(hits) if hits else 50
+    plain = re.sub(r"\([^)]*\)", " ", name)
+    plain = re.sub(r"\d{6,}", " ", plain)
+    plain = re.sub(r"\d+\s*[bk]", " ", plain)          # parameter counts like "120b" are not versions
+    nums = [float(x) for x in re.findall(r"\d+(?:\.\d+)?", plain) if float(x) < 20]
+    version = nums[0] if nums else 0.0
+    em = re.search(r"\(([a-z]+)\)", name)
+    effort = em.group(1) if em and em.group(1) in _EFFORT_WORDS else None
+    return strength, version, effort
+
+
+_EFFORT_BONUS = {
+    "heavy": {"high": 6, "xhigh": 5, "medium": 3, None: 4, "low": -20},
+    "light": {"medium": 6, "high": 5, "None": 4, None: 4, "xhigh": 2, "low": -20},
+}
+
+
+def auto_chain(kind: str) -> list:
+    """Every discovered model, best first for this kind of work."""
+    cfg = load_config()
+    skip = [str(w).lower() for w in (cfg.get("exclude_words") or ["orchestrator"])]
+    bonus = _EFFORT_BONUS["heavy" if kind == "heavy" else "light"]
+    scored = []
+    for label, info in discovered_models().items():
+        if any(w in label.lower() for w in skip):
+            continue
+        strength, version, effort = _score_parts(label, info)
+        scored.append((strength + 3 * version + bonus.get(effort, 0), label))
+    scored.sort(key=lambda t: -t[0])
+    return [l for _s, l in scored]
+
+
+def cheapest_model() -> str:
+    """The weakest decent model (economy tier / last resort): lowest strength, at a sensible effort."""
+    best = None
+    for label, info in discovered_models().items():
+        strength, version, effort = _score_parts(label, info)
+        if effort == "low" or "orchestrator" in label.lower():
+            continue
+        key = (strength, -version, 0 if effort in ("high", None) else 1)
+        if best is None or key < best[0]:
+            best = (key, label)
+    return best[1] if best else None
+
+
 def chain(kind: str) -> list:
     """The preference rules for `kind`, resolved against the models the CLIs currently offer."""
     models = discovered_models()
+    rules = load_config().get("chains", {}).get(kind, "auto")
+    if rules == "auto" or not rules:
+        return auto_chain(kind)
     resolved = []
-    for rule in load_config().get("chains", {}).get(kind, []):
+    for rule in rules:
         if isinstance(rule, str):
             rule = {"match": rule}
         want_backend = rule.get("backend")
@@ -287,9 +349,8 @@ def __getattr__(name):
         return chain("light")
     if name == "ANALYST_CHAIN":
         return chain("analyst")
-    if name == "FLASH":  # last resort
-        heavy = chain("heavy")
-        return heavy[-1] if heavy else LAST_RESORT
+    if name == "FLASH":  # last resort: the weakest model the CLIs currently offer
+        return cheapest_model() or LAST_RESORT
     raise AttributeError(name)
 
 
@@ -379,8 +440,8 @@ def pool_left_pct() -> dict:
 
 def _resolve_rule(rule) -> str:
     """The discovered model a single chain-style rule points to, or None."""
-    if not rule:
-        return None
+    if not rule or rule == "auto-cheap":
+        return cheapest_model()
     if isinstance(rule, str):
         rule = {"match": rule}
     raw = rule.get("match", "")
@@ -411,8 +472,7 @@ def economy_model(tier: int, tried: tuple = ()):
 
 
 def FLASH_FALLBACK() -> str:
-    heavy = chain("heavy")
-    return heavy[-1] if heavy else LAST_RESORT
+    return cheapest_model() or LAST_RESORT
 
 
 def is_available(model: str) -> bool:

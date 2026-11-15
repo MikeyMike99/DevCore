@@ -502,9 +502,7 @@ class ExecutionMixin:
             pass
 
     # ---- Smart mode: share the work between Claude and Argon ----
-    SMART_LIGHT_MODEL = "Claude Sonnet 5.5 (Medium)"
-    SMART_HEAVY_MODEL = "Gemini 4 Argon (Medium)"
-    QUOTA_FALLBACK_MODEL = "Claude Sonnet 5.5 (Medium)"
+    # No model names here: mr.HEAVY_CHAIN / LIGHT_CHAIN / ANALYST_CHAIN rank whatever the CLIs offer right now.
 
     @staticmethod
     def _smart_is_heavy(prompt: str) -> bool:
@@ -538,6 +536,14 @@ class ExecutionMixin:
                     return eco, prompt
             except Exception:
                 pass
+        # Nothing available at all: say so clearly (with the earliest return time) instead of looking stuck.
+        if not (mr.pick(mr.HEAVY_CHAIN) or mr.pick(mr.LIGHT_CHAIN)):
+            back = [v.get("available_in_s", 0) for v in mr.status().values()]
+            wait = min(back) if back else 0
+            await self.broadcast({"type": "smart_route",
+                                  "message": "Every model is out of quota right now" +
+                                             (f"; the first one is back in about {max(1, wait // 60)} min." if wait else ".") +
+                                             " Smart will try anyway, but it may fail until then."})
         heavy = self._smart_is_heavy(prompt) and not (prompt or "").startswith("SYSTEM TRIGGER")
         if not heavy:
             light = mr.pick(mr.LIGHT_CHAIN) or mr.FLASH
@@ -696,7 +702,9 @@ class ExecutionMixin:
                 cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
                 avail_list = cached_data.get("models") or []
                 if avail_list and model not in avail_list and not model.lower().startswith(("local ", "ollama:")) and "claude" not in model.lower():
-                    fallback_m = "Gemini 3.8 Flash (High)" if "Gemini 3.8 Flash (High)" in avail_list else avail_list[0]
+                    from agents import model_router as _mrf
+                    _cheap = _mrf.FLASH_FALLBACK()
+                    fallback_m = _cheap if _cheap in avail_list else avail_list[0]
                     model = fallback_m
                     self.current_model = fallback_m
             except Exception:
@@ -1829,9 +1837,11 @@ class ExecutionMixin:
                             if discovered_models:
                                 _save_available_models_cache(base_dir, discovered_models)
                             if not _model_retry:
+                                from agents import model_router as _mrf2
+                                _cheap2 = _mrf2.FLASH_FALLBACK()
                                 fallback_model = (
-                                    "Gemini 3.8 Flash (High)"
-                                    if (not discovered_models or "Gemini 3.8 Flash (High)" in discovered_models)
+                                    _cheap2
+                                    if (not discovered_models or _cheap2 in discovered_models)
                                     else discovered_models[0]
                                 )
                                 if fallback_model != model:

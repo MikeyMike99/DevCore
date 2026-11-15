@@ -4390,7 +4390,7 @@
                 var _savedModel = null;
                 try { _savedModel = localStorage.getItem('agy_selected_model'); } catch (e) {}
                 var _ms = document.getElementById('model-selector');
-                if (_ms && !_savedModel) _ms.value = 'Smart (Argon + Claude)';
+                if (_ms && !_savedModel) _ms.value = 'Smart (best available)';
             }
             if (typeof loadCliStatus === 'function') loadCliStatus();
             if (isAdmin) {
