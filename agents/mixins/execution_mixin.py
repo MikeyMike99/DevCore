@@ -506,18 +506,26 @@ class ExecutionMixin:
     # No model names here: mr.HEAVY_CHAIN / LIGHT_CHAIN / ANALYST_CHAIN rank whatever the CLIs offer right now.
 
     @staticmethod
-    def _smart_is_heavy(prompt: str) -> bool:
+    def _smart_is_heavy(prompt: str) -> int:
+        """Rate how hard a request is: 1 = easy, 2 = medium, 3 = hard. Free (no model call)."""
         p = (prompt or "").lower()
-        if len(p) > 140 or "<attached_document" in p or "[the user's exam content folder]" in p:
-            return True
-        if len(p.split()) > 20 or any(w in p for w in ("why ", "how do", "how can", "explain", "compare", "plan", "should i", "best way")):
-            return True
-        heavy_words = (
-            "exam", "quiz", "test me", "build", "create", "implement", "refactor", "fix", "debug",
-            "write code", "generate", "analyse", "analyze", "project", "file", "app", "script",
-            "deploy", "install", "migrate", "design", "document",
-        )
-        return any(w in p for w in heavy_words)
+        n = len(p)
+        if "<attached_document" in p or "[the user's exam content folder]" in p or n > 700:
+            return 3
+        hard = ("refactor", "architecture", "migrate", "implement", "build me", "design a", "debug", "root cause",
+                "security", "audit", "exam", "from scratch", "whole", "entire", "across")
+        mid = ("fix", "write", "create", "generate", "analy", "explain", "compare", "plan", "script",
+               "deploy", "install", "file", "why ", "how do", "how can")
+        score = sum(w in p for w in hard) * 2 + sum(w in p for w in mid)
+        if n > 300:
+            score += 2
+        elif n > 120:
+            score += 1
+        if score >= 4:
+            return 3
+        if score >= 1 or len(p.split()) > 20:
+            return 2
+        return 1
 
     async def _smart_route(self, prompt, model, user, admin_override, conversation_id):
         """Hybrid routing. Light messages -> the best available everyday model. Heavy work -> the best
@@ -545,109 +553,22 @@ class ExecutionMixin:
                                   "message": "Every model is out of quota right now" +
                                              (f"; the first one is back in about {max(1, wait // 60)} min." if wait else ".") +
                                              " Smart will try anyway, but it may fail until then."})
-        heavy = self._smart_is_heavy(prompt) and not (prompt or "").startswith("SYSTEM TRIGGER")
-        if not heavy:
-            light = mr.pick(mr.LIGHT_CHAIN) or mr.FLASH
-            await self.broadcast({"type": "smart_route", "message": f"Smart mode: answering with {light}.",
-                                  "fallback_model": light})
-            return light, prompt
-
-        actor = mr.pick(mr.HEAVY_CHAIN) or mr.FLASH
-        # Quota guard: the parallel team costs extra model calls, so only a big request gets one.
-        _big = len(prompt or "") > 400 or "<attached_document" in (prompt or "").lower()
-        if not _big:
-            await self.broadcast({"type": "smart_route", "message": f"Smart mode: {actor} is handling this.",
-                                  "fallback_model": actor})
-            return actor, prompt
-        # Workforce: several specialists work on the request AT THE SAME TIME, each with a different job
-        # and (when possible) a different model. Their notes are merged into one brief for the worker.
-        roles = [
-            ("Planner", "Do two things in one short answer. (1) A numbered step plan (max 6 steps). "
-                        "(2) A short list of pitfalls and a 3-point acceptance checklist."),
-        ]
-        extra = ""
-        try:
-            from agents.exam_content import is_exam_request
-            if is_exam_request(prompt):
-                extra = (" This is an exam/quiz request. The acting model already has the exact exam JSON format and "
-                         "the save mechanism, so never tell it to inspect files, skills, schemas, plugins or code. "
-                         "Focus on content: topic, number and types of questions, timer, difficulty, the key facts each "
-                         "question should test, and good distractors.")
-        except Exception:
-            pass
-
-        used = [actor]
-        team = []  # (role, instruction, model)
-        for role, job in roles:
-            m = mr.pick(mr.cheap_chain(), exclude=(actor,)) or mr.pick(mr.cheap_chain())
-            if not m:
-                break
-            used.append(m)
-            team.append((role, job, m))
-        if not team:
-            await self.broadcast({"type": "smart_route", "message": f"Smart mode: {actor} is handling this.",
-                                  "fallback_model": actor})
-            return actor, prompt
-
-        names = ", ".join(f"{r} ({m})" for r, _j, m in team)
-        await self.broadcast({"type": "smart_route", "fallback_model": actor,
-                              "message": f"Smart mode: team at work in parallel: {names}. Then {actor} carries it out."})
-
-        import contextvars, functools
-        from core.local_model_service import run_claude_model
-        loop = asyncio.get_running_loop()
-
-        def _ask(m, role, job):
-            system = (f"You are the {role} on a small team of specialists. Do NOT carry out the task and do NOT use tools. "
-                      f"Your single job: {job} Keep it under 120 words, plain text, no preamble." + extra)
-            if mr.is_google_claude(m):
-                import subprocess as _sp
-                agy = os.path.expanduser("~/.local/bin/agy_real")
-                r = _sp.run([agy, "-p", system + "\n\nREQUEST:\n" + prompt, "--model", mr.cli_model_name(m),
-                             "--sandbox", "--disable-slash-commands", "--print-timeout", "100s"],
-                            capture_output=True, text=True, timeout=115, cwd="/tmp")
-                out = (r.stdout or "").strip()
-                if r.returncode != 0 or not out:
-                    err = (r.stderr or out or "no output")
-                    return ("[LOCAL_BRAIN_QUOTA] " if mr.is_quota_error(err) else "[LOCAL_BRAIN_ERROR] ") + err[:300]
-                return out
-            return run_claude_model(system, prompt, m, 700, "smart_team", is_admin=False, user=None, conversation_id=None)
-
-        async def _member(role, job, m):
-            tried = [actor, m]
-            for _attempt in range(2):
-                try:
-                    out = await asyncio.wait_for(loop.run_in_executor(
-                        None, contextvars.copy_context().run, functools.partial(_ask, m, role, job)), timeout=40)
-                except Exception as e:
-                    logging.warning(f"[SmartMode] {role} skipped: {e}")
-                    return role, ""
-                out = str(out or "")
-                if out.startswith("[LOCAL_BRAIN_QUOTA]"):
-                    mr.mark_exhausted(m, out)
-                    m = mr.pick(mr.cheap_chain(), exclude=tuple(tried))
-                    if not m:
-                        return role, ""
-                    tried.append(m)
-                    continue
-                if out.startswith("[LOCAL_BRAIN_"):
-                    return role, ""
-                return role, out.strip()
-            return role, ""
-
-        # Hard cap: the worker never waits more than ~40s for the team; whoever is done by then contributes.
-        tasks = [asyncio.ensure_future(_member(r, j, m)) for r, j, m in team]
-        done, pending = await asyncio.wait(tasks, timeout=40)
-        for t in pending:
-            t.cancel()
-        results = [t.result() for t in done if not t.cancelled() and t.exception() is None]
-        notes = [f"[{r}]\n{o[:1500]}" for r, o in results if o]
-        if notes:
-            prompt = (f"{prompt}\n\n<TEAM_BRIEF source=\"parallel specialists\">\n" + "\n\n".join(notes)[:5000] +
-                      "\n</TEAM_BRIEF>\nA team of specialists prepared the notes above. Use them as your plan and context, "
-                      "follow the Critic's checklist, then carry out the user's request fully and check your own result "
-                      "against that checklist before you finish.")
-        return actor, prompt
+        rating = 1 if (prompt or "").startswith("SYSTEM TRIGGER") else self._smart_is_heavy(prompt)
+        # Each rating gets a model of the matching strength. Every new message is rated again, so once the
+        # hard part is done the next (easier) message is handed to a cheaper model automatically.
+        cheap = [m for m in mr.cheap_chain() if mr.is_available(m)]
+        best = [m for m in mr.HEAVY_CHAIN if mr.is_available(m)]
+        if rating == 1:
+            chosen = cheap[0] if cheap else None
+        elif rating == 2:
+            chosen = cheap[len(cheap) // 2] if cheap else None
+        else:
+            chosen = best[0] if best else None
+        chosen = chosen or mr.pick(mr.HEAVY_CHAIN) or mr.pick(mr.LIGHT_CHAIN) or mr.FLASH
+        label = {1: "easy", 2: "medium", 3: "hard"}[rating]
+        await self.broadcast({"type": "smart_route", "fallback_model": chosen,
+                              "message": f"Smart mode: rated {label}, so {chosen} takes it. The next message is rated again."})
+        return chosen, prompt
 
     async def _execute_agent(self, prompt: str, model: str, task_time: float, conversation_id: str, user: dict = None, admin_override: bool = False, _from_steer_or_queue: bool = False, _model_retry: bool = False, _recovery_retry: int = 0, _skip_timeout_flag: bool = False, _tried_models: tuple = ()):
         slot_key = (user.get("_slot_key") if isinstance(user, dict) else None) or (self.get_task_context() if hasattr(self, "get_task_context") else None) or (user.get("username") if isinstance(user, dict) else None) or "Michael (Admin)"
