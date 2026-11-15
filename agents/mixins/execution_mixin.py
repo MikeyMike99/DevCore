@@ -609,7 +609,7 @@ class ExecutionMixin:
             for _attempt in range(2):
                 try:
                     out = await asyncio.wait_for(loop.run_in_executor(
-                        None, contextvars.copy_context().run, functools.partial(_ask, m, role, job)), timeout=130)
+                        None, contextvars.copy_context().run, functools.partial(_ask, m, role, job)), timeout=40)
                 except Exception as e:
                     logging.warning(f"[SmartMode] {role} skipped: {e}")
                     return role, ""
@@ -626,8 +626,13 @@ class ExecutionMixin:
                 return role, out.strip()
             return role, ""
 
-        results = await asyncio.gather(*[_member(r, j, m) for r, j, m in team], return_exceptions=True)
-        notes = [f"[{r}]\n{o[:1500]}" for res in results if isinstance(res, tuple) for r, o in [res] if o]
+        # Hard cap: the worker never waits more than ~40s for the team; whoever is done by then contributes.
+        tasks = [asyncio.ensure_future(_member(r, j, m)) for r, j, m in team]
+        done, pending = await asyncio.wait(tasks, timeout=40)
+        for t in pending:
+            t.cancel()
+        results = [t.result() for t in done if not t.cancelled() and t.exception() is None]
+        notes = [f"[{r}]\n{o[:1500]}" for r, o in results if o]
         if notes:
             prompt = (f"{prompt}\n\n<TEAM_BRIEF source=\"parallel specialists\">\n" + "\n\n".join(notes)[:5000] +
                       "\n</TEAM_BRIEF>\nA team of specialists prepared the notes above. Use them as your plan and context, "
