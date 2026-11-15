@@ -1085,7 +1085,7 @@ def run_claude_cli_model(
     try:
         _env = dict(os.environ)
         # Ask Claude to think before acting so its reasoning can be shown in the chat (0 turns it off).
-        _env.setdefault("MAX_THINKING_TOKENS", os.environ.get("DEVCORE_CLAUDE_THINKING", "6000"))
+        _env.setdefault("MAX_THINKING_TOKENS", os.environ.get("DEVCORE_CLAUDE_THINKING", "0"))
         proc = subprocess.Popen(
             cmd,
             stdin=subprocess.PIPE,
@@ -3490,7 +3490,7 @@ async def execute_local_agent_task(
         if isinstance(response, str) and "[save_exam]" in response.lower():
             try:
                 from agents import exam_store
-                _ex = await asyncio.to_thread(exam_store.save_exam_blocks, response)
+                _ex = await asyncio.to_thread(exam_store.save_exam_blocks, response, user, is_admin)
                 if _ex:
                     exam_note = "\n\n" + exam_store.render_results(_ex)
                     await agent_mgr.broadcast({"type": "agent_chunk", "chunk": exam_note})
@@ -3638,7 +3638,7 @@ async def execute_local_agent_task(
             })
             try:
                 from agents import exam_store
-                ex_results = await asyncio.to_thread(exam_store.save_exam_blocks, f"[SAVE_EXAM]{content}[/SAVE_EXAM]")
+                ex_results = await asyncio.to_thread(exam_store.save_exam_blocks, f"[SAVE_EXAM]{content}[/SAVE_EXAM]", user, is_admin)
             except Exception as _ee:
                 ex_results = [{"ok": False, "message": f"Failed to save exam: {_ee}"}]
             ex_ok = any(r.get("ok") for r in ex_results)

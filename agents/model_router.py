@@ -255,6 +255,21 @@ def auto_chain(kind: str) -> list:
     return [l for _s, l in scored]
 
 
+def cheap_chain() -> list:
+    """Every usable model, cheapest first: used for helper work so the strong models' quota is saved."""
+    skip = [str(w).lower() for w in (load_config().get("exclude_words") or ["orchestrator"])]
+    scored = []
+    for label, info in discovered_models().items():
+        if any(w in label.lower() for w in skip):
+            continue
+        strength, version, effort = _score_parts(label, info)
+        if effort == "low":
+            continue
+        scored.append((strength, -version, label))
+    scored.sort()
+    return [l for _s, _v, l in scored]
+
+
 def cheapest_model() -> str:
     """The weakest decent model (economy tier / last resort): lowest strength, at a sensible effort."""
     best = None

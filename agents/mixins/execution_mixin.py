@@ -562,10 +562,8 @@ class ExecutionMixin:
         # Workforce: several specialists work on the request AT THE SAME TIME, each with a different job
         # and (when possible) a different model. Their notes are merged into one brief for the worker.
         roles = [
-            ("Planner", "Work out what the user actually wants and write a short numbered step plan (max 8 steps), "
-                        "splitting the work into parts that could be done independently."),
-            ("Critic", "List the pitfalls, edge cases, ways this could go wrong, and a short acceptance checklist the "
-                       "finished result must pass. Think about what a careful reviewer would reject."),
+            ("Planner", "Do two things in one short answer. (1) A numbered step plan (max 6 steps). "
+                        "(2) A short list of pitfalls and a 3-point acceptance checklist."),
         ]
         extra = ""
         try:
@@ -581,7 +579,7 @@ class ExecutionMixin:
         used = [actor]
         team = []  # (role, instruction, model)
         for role, job in roles:
-            m = mr.pick(mr.ANALYST_CHAIN, exclude=tuple(used)) or mr.pick(mr.ANALYST_CHAIN)
+            m = mr.pick(mr.cheap_chain(), exclude=(actor,)) or mr.pick(mr.cheap_chain())
             if not m:
                 break
             used.append(m)
@@ -601,7 +599,7 @@ class ExecutionMixin:
 
         def _ask(m, role, job):
             system = (f"You are the {role} on a small team of specialists. Do NOT carry out the task and do NOT use tools. "
-                      f"Your single job: {job} Keep it under 200 words, plain text, no preamble." + extra)
+                      f"Your single job: {job} Keep it under 120 words, plain text, no preamble." + extra)
             if mr.is_google_claude(m):
                 import subprocess as _sp
                 agy = os.path.expanduser("~/.local/bin/agy_real")
@@ -627,7 +625,7 @@ class ExecutionMixin:
                 out = str(out or "")
                 if out.startswith("[LOCAL_BRAIN_QUOTA]"):
                     mr.mark_exhausted(m, out)
-                    m = mr.pick(mr.ANALYST_CHAIN, exclude=tuple(tried))
+                    m = mr.pick(mr.cheap_chain(), exclude=tuple(tried))
                     if not m:
                         return role, ""
                     tried.append(m)
