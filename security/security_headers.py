@@ -43,6 +43,7 @@ async def apply_security_headers(response):
         # WebAssembly (sandbox/static/speech/); it does not allow JS eval().
         f"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com https://www.youtube.com https://s.ytimg.com https://static.cloudflareinsights.com; "
         f"worker-src 'self'; "
+        f"media-src 'self' blob: data: https://siraugga.mikeytech.dev; "
         f"frame-src {frame_src_str}; "
         # 127.0.0.1:5000 = the Siraugga server on the owner's own computer, asked by the "Owner sign-in"
         # on the public domain (core/routes/auth.py owner_device_handoff; it only answers locally).
