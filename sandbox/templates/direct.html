@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Siraugga Direct mode</title>
+<script src="/static/siraugga-origin.js?v=1"></script>
 <style>
   :root { --bg: #0f172a; --panel: #111c33; --text: #e5e7eb; --muted: #a3acbd; --you: #93c5fd; --claude: #86efac;
           --line: #334155; --focus: #fbbf24; --btn: #1e3a8a; --stop: #7f1d1d; }
@@ -123,7 +124,7 @@
   function connect() {
     if (denied) return;
     setStatus('Connecting…');
-    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws/direct');
+    ws = new WebSocket((window.WS_BASE || ((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host)) + '/ws/direct');
     ws.onopen = function () { retry = 0; ws.send(JSON.stringify({ type: 'auth', token: TOKEN })); };
     ws.onmessage = function (m) {
       var ev; try { ev = JSON.parse(m.data); } catch (e) { return; }

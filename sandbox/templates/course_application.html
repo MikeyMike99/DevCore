@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ course_title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans p-3 md:p-5 m-0 min-h-screen">
+
+<div class="max-w-5xl mx-auto space-y-4">
+    <!-- Top Course Header Card -->
+    <header class="bg-slate-900 border border-slate-700 rounded-xl p-4 md:p-5 shadow-lg">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+                <span class="inline-block text-xs font-mono uppercase tracking-wider px-2.5 py-1 rounded bg-teal-950 text-teal-300 border border-teal-700 mb-2">Interactive Practical Course • WSL alp-env + Asciinema + Verifiable Evidence</span>
+                <h1 id="main-heading" tabindex="-1" class="text-xl md:text-2xl font-bold text-cyan-400 focus:outline-none">{{ course_title }}</h1>
+                <p id="course-subtitle" class="text-sm text-slate-300 mt-1"></p>
+            </div>
+            <div class="flex flex-col items-start md:items-end gap-1.5 min-w-[260px]">
+                <div class="flex flex-wrap items-center justify-between w-full gap-2 text-xs font-mono text-slate-300">
+                    <span id="progress-label">Progress: 0 / 0 Steps (0%)</span>
+                    <button id="reset-progress-btn" type="button" class="text-xs text-slate-400 hover:text-red-300 underline focus:outline-none focus:ring-2 focus:ring-red-400 rounded px-1">Reset Progress</button>
+                </div>
+                <div class="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden border border-slate-700" role="progressbar" id="progress-bar-aria" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Course Completion Progress">
+                    <div id="progress-bar-fill" class="bg-teal-500 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div id="reflection-progress-label" class="text-xs font-mono text-amber-300">Reflections Verified: 0 / 0</div>
+            </div>
+        </div>
+
+        <!-- Learner Identity, Environment & Evidence Export Bar -->
+        <div class="mt-4 pt-3 border-t border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 text-xs font-mono">
+            <div class="flex flex-wrap items-center gap-2.5">
+                <label for="learner-name-input" class="text-slate-300 font-semibold">Learner ID:</label>
+                <input id="learner-name-input" type="text" value="michael" aria-label="Learner full name or ID for verifiable evidence watermarks" class="bg-slate-950 text-cyan-300 border border-slate-700 rounded px-2.5 py-1 text-xs font-mono w-36 focus:outline-none focus:border-teal-400" />
+                <span class="px-2.5 py-1 rounded bg-slate-800 text-emerald-300 border border-slate-700">WSL Sandbox: <strong id="sandbox-dir-label">/home/michael/alp-env/temp_phase2_sandbox</strong></span>
+                <span class="px-2.5 py-1 rounded bg-slate-800 text-amber-300 border border-slate-700">Asciinema: <strong id="active-cast-label">mod1_task1_variables.cast</strong></span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button id="read-cast-btn" type="button" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-700/60 px-3 py-1.5 rounded font-sans font-semibold focus:outline-none focus:ring-2 focus:ring-cyan-400" title="Shortcut: Alt+L">
+                    Read Asciinema .txt Log (Alt+L)
+                </button>
+                <button id="export-evidence-btn" type="button" class="bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-700/70 px-3 py-1.5 rounded font-sans font-semibold focus:outline-none focus:ring-2 focus:ring-amber-400">
+                    Download Evidence Manifest (.md)
+                </button>
+                <button id="download-zip-btn" type="button" class="bg-emerald-700 hover:bg-emerald-600 text-white px-3.5 py-1.5 rounded font-sans font-bold focus:outline-none focus:ring-2 focus:ring-emerald-300" title="Shortcut: Alt+D">
+                    Download Full Sandbox &amp; Evidence (.zip) (Alt+D)
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation & Module/Section Switcher Bar -->
+    <nav aria-label="Course Module and Section Navigation" class="bg-slate-900 border border-slate-700 rounded-xl p-3 md:p-4 shadow flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
+            <label for="step-jumper" class="text-xs font-bold uppercase tracking-wider text-slate-400 shrink-0">Jump to Section:</label>
+            <select id="step-jumper" aria-label="Jump to Module and Section" class="w-full bg-slate-800 border border-slate-600 text-slate-100 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-400"></select>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button id="prev-step-btn" type="button" class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 font-semibold text-sm px-4 py-2 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-400" title="Shortcut: Alt+P">
+                Previous (Alt+P)
+            </button>
+            <button id="next-step-btn" type="button" class="bg-teal-600 hover:bg-teal-500 disabled:opacity-40 text-white font-bold text-sm px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300" title="Shortcut: Alt+N">
+                Next Section (Alt+N)
+            </button>
+        </div>
+    </nav>
+
+    <!-- CARD 1: Section Heading & Plain-English Concept -->
+    <section aria-labelledby="section-heading" class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <span id="module-badge" class="text-xs font-mono font-bold uppercase px-2.5 py-1 rounded bg-cyan-950 text-cyan-300 border border-cyan-800"></span>
+            <span id="step-status-badge" class="text-xs font-mono font-semibold px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700"></span>
+        </div>
+        <h2 id="section-heading" tabindex="-1" class="text-xl md:text-2xl font-bold text-white mb-4 focus:outline-none">Loading Course Section...</h2>
+
+        <div class="bg-slate-800/60 border border-slate-700/80 rounded-lg p-4">
+            <h3 class="text-base font-bold text-teal-300 mb-2">1. Plain-English Concept (What We Are Doing &amp; Why)</h3>
+            <p id="concept-summary" class="text-slate-200 text-base leading-relaxed mb-3"></p>
+            <ul id="concept-bullets" class="list-disc list-inside space-y-1.5 text-slate-300 text-sm md:text-base"></ul>
+        </div>
+    </section>
+
+    <!-- CARD 2: Code, Word-by-Word Breakdown & Anticipated Common Errors -->
+    <section aria-labelledby="breakdown-heading" class="bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg space-y-4">
+        <div class="flex items-center justify-between gap-2">
+            <h3 id="breakdown-heading" class="text-base font-bold text-teal-300">2. Code &amp; Command Breakdown (Word by Word)</h3>
+            <button id="copy-code-btn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 px-3 py-1 rounded focus:outline-none focus:ring-2 focus:ring-teal-400">
+                Copy Code / Command
+            </button>
+        </div>
+        <div>
+            <div id="code-title-bar" class="text-xs font-mono text-slate-400 bg-slate-950 px-3 py-1.5 rounded-t-lg border border-b-0 border-slate-700"></div>
+            <pre class="bg-black text-emerald-300 font-mono text-sm p-4 rounded-b-lg border border-slate-700 overflow-x-auto"><code id="code-snippet-box"></code></pre>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse border border-slate-700 rounded-lg overflow-hidden text-sm">
+                <thead>
+                    <tr class="bg-slate-800 text-slate-200">
+                        <th scope="col" class="p-3 border border-slate-700 font-bold w-1/3">Code / Command Part</th>
+                        <th scope="col" class="p-3 border border-slate-700 font-bold">Plain-English Meaning</th>
+                    </tr>
+                </thead>
+                <tbody id="word-breakdown-body" class="divide-y divide-slate-800"></tbody>
+            </table>
+        </div>
+
+        <!-- Anticipated Common Errors & Built-In Troubleshooting -->
+        <div id="common-errors-panel" class="bg-rose-950/20 border border-rose-800/70 rounded-lg p-4 space-y-3">
+            <h3 id="common-errors-heading" class="text-sm md:text-base font-bold text-rose-300">2B. Anticipated Common Errors &amp; Built-In Fixes (No External Debugging Needed)</h3>
+            <p class="text-xs text-slate-300">Study these common mistakes for this exact step before running your command so you can spot and fix compiler or CLI errors immediately:</p>
+            <div id="common-errors-list" class="space-y-2.5"></div>
+        </div>
+    </section>
+
+    <!-- CARD 3: Hands-On Practice Workspace -->
+    <section aria-labelledby="practice-heading" class="bg-slate-900 border-2 border-teal-600/70 rounded-xl p-5 shadow-lg">
+        <h3 id="practice-heading" class="text-base font-bold text-teal-300 mb-2">3. Your Hands-On Practice (Predict First, Then Execute in WSL alp-env)</h3>
+        <p id="task-prompt" class="text-slate-100 text-base font-medium mb-4 leading-relaxed"></p>
+
+        <!-- Dynamic Interactive Area -->
+        <div id="interactive-workspace" class="space-y-4"></div>
+    </section>
+
+    <!-- CARD 4: Live Output, Takeaway & Asciinema Transcript -->
+    <section id="output-section" aria-labelledby="output-heading" class="hidden bg-slate-900 border border-slate-700 rounded-xl p-5 shadow-lg space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 id="output-heading" tabindex="-1" class="text-base font-bold text-cyan-300 focus:outline-none">4. Live WSL alp-env Result &amp; Asciinema Evidence</h3>
+            <span id="output-status-pill" class="text-xs font-mono px-2.5 py-1 rounded font-bold"></span>
+        </div>
+
+        <div id="takeaway-box" class="p-3.5 rounded-lg bg-teal-950/60 border border-teal-700 text-teal-100 text-sm md:text-base leading-relaxed"></div>
+
+        <div id="terminal-output-wrapper" class="hidden">
+            <div class="text-xs font-mono text-slate-400 bg-slate-950 px-3 py-1.5 rounded-t-lg border border-b-0 border-slate-700">Live WSL alp-env Terminal Output (stdout / stderr)</div>
+            <pre id="terminal-output-pre" tabindex="0" role="region" aria-label="Live WSL Terminal Output" class="bg-black text-slate-100 font-mono text-xs md:text-sm p-4 rounded-b-lg border border-slate-700 overflow-x-auto max-h-80 whitespace-pre-wrap"></pre>
+        </div>
+
+        <div id="transcript-output-wrapper" class="hidden">
+            <div class="text-xs font-mono text-amber-300 bg-slate-950 px-3 py-1.5 rounded-t-lg border border-b-0 border-slate-700">Asciinema Screen-Reader Transcript (.txt from .cast)</div>
+            <pre id="transcript-output-pre" tabindex="0" role="region" aria-label="Asciinema Plain Text Transcript" class="bg-slate-950 text-amber-100 font-mono text-xs p-4 rounded-b-lg border border-slate-700 overflow-x-auto max-h-72 whitespace-pre-wrap"></pre>
+        </div>
+
+        <div class="pt-2 flex items-center justify-between">
+            <button id="bottom-prev-btn" type="button" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm px-4 py-2 rounded-lg border border-slate-600 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                Previous Section (Alt+P)
+            </button>
+            <button id="bottom-next-btn" type="button" class="bg-teal-600 hover:bg-teal-500 text-white font-bold text-sm px-5 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300">
+                Continue to Next Section (Alt+N)
+            </button>
+        </div>
+    </section>
+</div>
+
+<div id="announcer" class="sr-only" aria-live="assertive"></div>
+
+<script>
+    const courseId = {{ (course_id or 'alp_phase2_bicep_course') | tojson }};
+    let courseData = null;
+    let flatSteps = [];
+    let currentStepIndex = 0;
+    let progressState = {
+        current_step_index: 0,
+        completed_steps: [],
+        step_outputs: {},
+        reflections: {},
+        activity_log: [],
+        learner_name: 'michael'
+    };
+    let matchSelection = null;
+    let resetConfirmTimer = null;
+    let resetArmed = false;
+
+    const announcer = document.getElementById('announcer');
+    function announce(msg) {
+        announcer.innerText = '';
+        setTimeout(() => { announcer.innerText = msg; }, 30);
+    }
+
+    function escapeHtml(str) {
+        if (str == null) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function buildFlatSteps(course) {
+        const list = [];
+        (course.modules || []).forEach((mod, mIdx) => {
+            (mod.sections || []).forEach((sec, sIdx) => {
+                list.push({
+                    moduleIndex: mIdx,
+                    sectionIndex: sIdx,
+                    moduleNumber: mod.module_number || (mIdx + 1),
+                    moduleTitle: mod.title,
+                    recordingName: sec.recording_name || mod.recording_name || `mod${mIdx + 1}_session`,
+                    wordGuide: mod.word_guide || '',
+                    section: sec
+                });
+            });
+        });
+        return list;
+    }
+
+    function getStepReflection(stepId) {
+        if (!progressState.reflections || typeof progressState.reflections !== 'object') {
+            progressState.reflections = {};
+        }
+        if (!Array.isArray(progressState.activity_log)) {
+            progressState.activity_log = [];
+        }
+        if (!progressState.reflections[stepId]) {
+            progressState.reflections[stepId] = {
+                paste_attempts: 0,
+                run_count: 0,
+                failed_runs: 0
+            };
+        }
+        return progressState.reflections[stepId];
+    }
+
+    function logCourseActivity(type, detail) {
+        if (!Array.isArray(progressState.activity_log)) {
+            progressState.activity_log = [];
+        }
+        const item = flatSteps[currentStepIndex];
+        progressState.activity_log.push({
+            ts: new Date().toISOString(),
+            step_id: item ? item.section.id : null,
+            type,
+            detail: detail || {}
+        });
+    }
+
+    async function loadCourse() {
+        try {
+            const res = await fetch(`/api/course/data?course=${encodeURIComponent(courseId)}&t=${Date.now()}`);
+            if (!res.ok) throw new Error('Failed to load course data');
+            const payload = await res.json();
+            courseData = payload.course;
+            if (payload.progress && typeof payload.progress === 'object') {
+                progressState = Object.assign(progressState, payload.progress);
+            }
+        } catch (err) {
+            const fallback = await fetch(`/static/${encodeURIComponent(courseId)}.json?t=${Date.now()}`);
+            courseData = await fallback.json();
+            try {
+                const localSaved = localStorage.getItem(`devcore_course_${courseId}`);
+                if (localSaved) progressState = Object.assign(progressState, JSON.parse(localSaved));
+            } catch (e) {}
+        }
+
+        const learnerInp = document.getElementById('learner-name-input');
+        if (learnerInp) {
+            learnerInp.value = (progressState.learner_name || 'michael').trim() || 'michael';
+        }
+        document.getElementById('course-subtitle').innerText = courseData.subtitle || '';
+        if (courseData.sandbox_dir) {
+            document.getElementById('sandbox-dir-label').innerText = courseData.sandbox_dir;
+        }
+        flatSteps = buildFlatSteps(courseData);
+        if (progressState.current_step_index >= 0 && progressState.current_step_index < flatSteps.length) {
+            currentStepIndex = progressState.current_step_index;
+        }
+        renderStepperOptions();
+        renderCurrentStep(false);
+    }
+
+    async function saveProgress() {
+        progressState.current_step_index = currentStepIndex;
+        const learnerInp = document.getElementById('learner-name-input');
+        if (learnerInp && learnerInp.value.trim()) {
+            progressState.learner_name = learnerInp.value.trim();
+        }
+        try {
+            localStorage.setItem(`devcore_course_${courseId}`, JSON.stringify(progressState));
+        } catch (e) {}
+        try {
+            await fetch('/api/course/progress', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_id: courseId,
+                    progress: progressState
+                })
+            });
+        } catch (e) {}
+        updateProgressUI();
+        renderStepperOptions();
+    }
+
+    function updateProgressUI() {
+        const total = flatSteps.length || 1;
+        const done = (progressState.completed_steps || []).length;
+        const reflected = flatSteps.filter(f => {
+            const r = (progressState.reflections || {})[f.section.id];
+            return r && r.reflection_done;
+        }).length;
+        const pct = Math.round((done / total) * 100);
+        document.getElementById('progress-label').innerText = `Progress: ${done} / ${total} Sections (${pct}%)`;
+        document.getElementById('progress-bar-fill').style.width = `${pct}%`;
+        document.getElementById('progress-bar-aria').setAttribute('aria-valuenow', String(pct));
+        const refLabel = document.getElementById('reflection-progress-label');
+        if (refLabel) {
+            refLabel.innerText = `Reflections Verified: ${reflected} / ${total}`;
+        }
+    }
+
+    function renderStepperOptions() {
+        const select = document.getElementById('step-jumper');
+        select.innerHTML = '';
+        flatSteps.forEach((item, idx) => {
+            const isDone = (progressState.completed_steps || []).includes(item.section.id);
+            const isRef = ((progressState.reflections || {})[item.section.id] || {}).reflection_done;
+            const mark = (isDone && isRef) ? '✓✓ ' : (isDone ? '✓ ' : '');
+            const opt = document.createElement('option');
+            opt.value = String(idx);
+            opt.textContent = `${mark}[Module ${item.moduleNumber} - ${item.section.section_code}] ${item.section.title}`;
+            if (idx === currentStepIndex) opt.selected = true;
+            select.appendChild(opt);
+        });
+        updateProgressUI();
+    }
+
+    function renderCommonErrors(sec) {
+        const panel = document.getElementById('common-errors-panel');
+        const listEl = document.getElementById('common-errors-list');
+        if (!panel || !listEl) return;
+        listEl.innerHTML = '';
+        const errs = Array.isArray(sec.common_errors) ? sec.common_errors : [];
+        if (!errs.length) {
+            panel.classList.add('hidden');
+            return;
+        }
+        panel.classList.remove('hidden');
+        errs.forEach((ce, idx) => {
+            const card = document.createElement('div');
+            card.className = 'bg-slate-950/90 border border-rose-900/80 rounded-lg p-3.5 space-y-1.5';
+            card.innerHTML = `
+                <div class="text-xs font-mono font-bold text-rose-300">Common Error ${idx + 1}: ${escapeHtml(ce.error || '')}</div>
+                <div class="text-xs md:text-sm text-slate-300"><strong class="text-amber-300">Why it happens:</strong> ${escapeHtml(ce.cause || '')}</div>
+                <div class="text-xs md:text-sm text-emerald-200"><strong class="text-emerald-400">Built-In Fix:</strong> ${escapeHtml(ce.fix || '')}</div>
+            `;
+            listEl.appendChild(card);
+        });
+    }
+
+    function renderCurrentStep(focusHeading = true) {
+        if (!flatSteps.length) return;
+        const item = flatSteps[currentStepIndex];
+        const sec = item.section;
+        matchSelection = null;
+
+        const isDone = (progressState.completed_steps || []).includes(sec.id);
+        const isRef = Boolean(((progressState.reflections || {})[sec.id] || {}).reflection_done);
+        document.getElementById('module-badge').innerText = `Module ${item.moduleNumber} of ${courseData.modules.length} • ${sec.section_code} (Step ${currentStepIndex + 1} of ${flatSteps.length})`;
+        const statusBadge = document.getElementById('step-status-badge');
+        if (isDone && isRef) {
+            statusBadge.innerText = 'Completed & Reflected ✓✓';
+            statusBadge.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+        } else if (isDone) {
+            statusBadge.innerText = 'Executed • Reflection Required';
+            statusBadge.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded bg-amber-950 text-amber-300 border border-amber-700';
+        } else {
+            statusBadge.innerText = 'In Progress';
+            statusBadge.className = 'text-xs font-mono font-semibold px-2.5 py-1 rounded bg-slate-800 text-amber-300 border border-slate-700';
+        }
+
+        document.getElementById('active-cast-label').innerText = `${item.recordingName}.cast`;
+        document.getElementById('section-heading').innerText = `${sec.section_code}: ${sec.title}`;
+        document.getElementById('concept-summary').innerText = sec.concept_summary || '';
+
+        const bulletsEl = document.getElementById('concept-bullets');
+        bulletsEl.innerHTML = '';
+        (sec.concept_bullets || []).forEach(b => {
+            const li = document.createElement('li');
+            li.innerText = b;
+            bulletsEl.appendChild(li);
+        });
+
+        document.getElementById('code-title-bar').innerText = sec.code_title || 'Code / Command Reference';
+        document.getElementById('code-snippet-box').innerText = sec.code_snippet || '';
+
+        const tbody = document.getElementById('word-breakdown-body');
+        tbody.innerHTML = '';
+        (sec.word_breakdown || []).forEach(row => {
+            const tr = document.createElement('tr');
+            tr.className = 'bg-slate-900/60 hover:bg-slate-800/60';
+            tr.innerHTML = `<td class="p-3 border border-slate-800 font-mono text-cyan-300 font-semibold">${escapeHtml(row.term)}</td><td class="p-3 border border-slate-800 text-slate-200">${escapeHtml(row.meaning)}</td>`;
+            tbody.appendChild(tr);
+        });
+
+        renderCommonErrors(sec);
+
+        document.getElementById('task-prompt').innerText = sec.task_prompt || '';
+        renderInteractiveWorkspace(item, sec);
+
+        const savedOut = (progressState.step_outputs || {})[sec.id];
+        if (savedOut) {
+            showStepOutput(savedOut.ok, savedOut.statusText, sec.takeaway, savedOut.stdout, savedOut.transcript, false);
+        } else {
+            document.getElementById('output-section').classList.add('hidden');
+        }
+
+        document.getElementById('prev-step-btn').disabled = (currentStepIndex === 0);
+        document.getElementById('bottom-prev-btn').disabled = (currentStepIndex === 0);
+        document.getElementById('step-jumper').value = String(currentStepIndex);
+
+        if (focusHeading) {
+            document.getElementById('section-heading').focus();
+            announce(`${sec.section_code}: ${sec.title}`);
+        }
+    }
+
+    function renderInteractiveWorkspace(item, sec) {
+        const ws = document.getElementById('interactive-workspace');
+        ws.innerHTML = '';
+        const tType = sec.task_type || 'terminal_command';
+
+        if (tType === 'terminal_command') {
+            ws.innerHTML = `
+                <div class="bg-slate-950 border border-slate-700 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
+                    <div class="text-xs font-mono text-slate-300">
+                        <span class="text-slate-400">Expected Command:</span>
+                        <code class="text-teal-300 font-bold ml-1">${escapeHtml(sec.expected_command)}</code>
+                    </div>
+                    <button id="fill-cmd-btn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-teal-300 border border-teal-700 px-3 py-1 rounded font-semibold focus:outline-none focus:ring-2 focus:ring-teal-400" title="Shortcut: Alt+I">
+                        Insert Command (Alt+I)
+                    </button>
+                </div>
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-black border-2 border-slate-700 focus-within:border-teal-400 rounded-lg p-3 font-mono">
+                    <span class="text-emerald-400 text-sm shrink-0" aria-hidden="true">michael@alp-env:~/temp_phase2_sandbox$</span>
+                    <input id="terminal-input" type="text" value="${escapeHtml(sec.expected_command || '')}" aria-label="WSL alp-env command to execute and record with asciinema" autocomplete="off" spellcheck="false" class="w-full bg-transparent text-slate-100 text-sm md:text-base focus:outline-none" />
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button id="run-step-btn" type="button" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-400" title="Shortcut: Alt+R">
+                        Run in WSL alp-env &amp; Record with Asciinema (Alt+R)
+                    </button>
+                </div>
+            `;
+            document.getElementById('fill-cmd-btn').addEventListener('click', () => {
+                const inp = document.getElementById('terminal-input');
+                inp.value = sec.expected_command || '';
+                inp.focus();
+                announce('Expected command inserted into terminal input.');
+            });
+            document.getElementById('terminal-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    executePracticalStep();
+                }
+            });
+            document.getElementById('run-step-btn').addEventListener('click', () => executePracticalStep());
+        }
+        else if (tType === 'bicep_editor') {
+            ws.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <label for="bicep-editor-input" class="text-xs font-mono text-cyan-300">Sandbox File: <strong>${escapeHtml(sec.bicep_file)}</strong></label>
+                    <button id="restore-code-btn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 px-3 py-1 rounded focus:outline-none focus:ring-2 focus:ring-teal-400">
+                        Restore Reference Bicep Code
+                    </button>
+                </div>
+                <textarea id="bicep-editor-input" rows="10" aria-label="Azure Bicep Code Editor for ${escapeHtml(sec.bicep_file)}" spellcheck="false" class="w-full bg-black text-emerald-300 font-mono text-sm p-4 rounded-lg border-2 border-slate-700 focus:outline-none focus:border-teal-400"></textarea>
+                <div class="text-xs font-mono text-slate-400">
+                    Compile &amp; Record Command: <code class="text-teal-300">${escapeHtml(sec.expected_command)}</code>
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button id="run-step-btn" type="button" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-400" title="Shortcut: Alt+R">
+                        Save .bicep, Compile in WSL alp-env &amp; Record with Asciinema (Alt+R)
+                    </button>
+                </div>
+            `;
+            const editor = document.getElementById('bicep-editor-input');
+            editor.value = sec.starter_code || sec.code_snippet || '';
+            document.getElementById('restore-code-btn').addEventListener('click', () => {
+                editor.value = sec.solution_code || sec.starter_code || sec.code_snippet || '';
+                editor.focus();
+                announce('Reference Bicep code restored.');
+            });
+            document.getElementById('run-step-btn').addEventListener('click', () => executePracticalStep());
+        }
+        else if (tType === 'dropdown_blank') {
+            const optsHtml = (sec.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+            const promptHtml = escapeHtml(sec.task_prompt).replace(
+                '[BLANK]',
+                `<select id="dropdown-check" aria-label="Select the missing Bicep keyword" class="mx-2 px-3 py-1.5 bg-slate-800 border-2 border-teal-500 rounded text-teal-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-teal-300"><option value="">-- Select Keyword --</option>${optsHtml}</select>`
+            );
+            ws.innerHTML = `
+                <div class="p-4 bg-slate-950 border border-slate-700 rounded-lg text-base text-slate-100 leading-relaxed">${promptHtml}</div>
+                <button id="run-step-btn" type="button" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-400" title="Shortcut: Alt+R">
+                    Verify Answer &amp; Complete Section (Alt+R)
+                </button>
+            `;
+            document.getElementById('run-step-btn').addEventListener('click', () => executePracticalStep());
+        }
+        else if (tType === 'multiple_choice') {
+            const group = document.createElement('div');
+            group.setAttribute('role', 'radiogroup');
+            group.setAttribute('aria-label', 'Concept Check Options');
+            group.className = 'space-y-2.5';
+            (sec.options || []).forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.setAttribute('role', 'radio');
+                btn.setAttribute('aria-checked', 'false');
+                btn.setAttribute('data-idx', String(idx));
+                btn.className = 'mc-option w-full text-left p-3.5 rounded-lg bg-slate-800/70 hover:bg-slate-800 border border-slate-700 text-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-teal-400';
+                btn.innerText = opt;
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.mc-option').forEach(el => {
+                        el.setAttribute('aria-checked', 'false');
+                        el.classList.remove('border-teal-400', 'bg-teal-950/60');
+                    });
+                    btn.setAttribute('aria-checked', 'true');
+                    btn.classList.add('border-teal-400', 'bg-teal-950/60');
+                    announce(`Selected: ${opt}`);
+                });
+                group.appendChild(btn);
+            });
+            ws.appendChild(group);
+            const verifyBtn = document.createElement('button');
+            verifyBtn.id = 'run-step-btn';
+            verifyBtn.type = 'button';
+            verifyBtn.className = 'bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-400';
+            verifyBtn.innerText = 'Verify Answer & Complete Section (Alt+R)';
+            verifyBtn.addEventListener('click', () => executePracticalStep());
+            ws.appendChild(verifyBtn);
+        }
+        else if (tType === 'match_columns') {
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+            const leftCol = document.createElement('div');
+            leftCol.className = 'space-y-2.5';
+            const rightCol = document.createElement('div');
+            rightCol.className = 'space-y-2.5';
+
+            (sec.pairs || []).forEach((pair, idx) => {
+                const lBtn = document.createElement('button');
+                lBtn.type = 'button';
+                lBtn.setAttribute('data-left-id', `L${idx}`);
+                lBtn.className = 'match-left w-full text-left p-3.5 rounded-lg bg-slate-800 border border-slate-600 text-cyan-300 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-teal-400';
+                lBtn.innerText = pair.left;
+                lBtn.addEventListener('click', () => {
+                    matchSelection = `L${idx}`;
+                    document.querySelectorAll('.match-left').forEach(b => b.classList.remove('ring-2', 'ring-teal-400'));
+                    lBtn.classList.add('ring-2', 'ring-teal-400');
+                    announce(`Selected ${pair.left}. Now select its matching role in the right column.`);
+                });
+                leftCol.appendChild(lBtn);
+            });
+
+            const shuffled = [...(sec.pairs || [])].map((p, idx) => ({ ...p, origIdx: idx })).sort(() => 0.5 - Math.random());
+            shuffled.forEach(pair => {
+                const rBtn = document.createElement('button');
+                rBtn.type = 'button';
+                rBtn.setAttribute('data-target-id', `L${pair.origIdx}`);
+                rBtn.className = 'match-right w-full text-left p-3.5 rounded-lg bg-slate-800 border border-slate-600 text-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400';
+                rBtn.innerText = pair.right;
+                rBtn.addEventListener('click', () => {
+                    if (!matchSelection) {
+                        announce('Select a subnet from the left column first.');
+                        return;
+                    }
+                    const leftEl = document.querySelector(`.match-left[data-left-id="${matchSelection}"]`);
+                    rBtn.setAttribute('data-matched-to', matchSelection);
+                    leftEl.classList.add('border-emerald-500', 'bg-emerald-950/40');
+                    rBtn.classList.add('border-emerald-500', 'bg-emerald-950/40');
+                    rBtn.innerText = `${pair.right} [Matched to: ${leftEl.innerText}]`;
+                    announce(`Matched ${leftEl.innerText} with ${pair.right}`);
+                    matchSelection = null;
+                });
+                rightCol.appendChild(rBtn);
+            });
+
+            grid.appendChild(leftCol);
+            grid.appendChild(rightCol);
+            ws.appendChild(grid);
+
+            const verifyBtn = document.createElement('button');
+            verifyBtn.id = 'run-step-btn';
+            verifyBtn.type = 'button';
+            verifyBtn.className = 'bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-400';
+            verifyBtn.innerText = 'Verify Matches & Complete Section (Alt+R)';
+            verifyBtn.addEventListener('click', () => executePracticalStep());
+            ws.appendChild(verifyBtn);
+        }
+    }
+
+    async function executePracticalStep() {
+        const item = flatSteps[currentStepIndex];
+        const sec = item.section;
+        const tType = sec.task_type || 'terminal_command';
+        const runBtn = document.getElementById('run-step-btn');
+        const stepRef = getStepReflection(sec.id);
+
+        if (tType === 'dropdown_blank') {
+            const val = document.getElementById('dropdown-check').value;
+            if (!val) { announce('Please choose a keyword from the dropdown first.'); return; }
+            const ok = (val === sec.correct_text);
+            if (!ok) {
+                showStepOutput(false, 'Try Again — Check the Word-by-Word Breakdown Above', `You selected "${val}", but the keyword that defines an internal variable box is "${sec.correct_text}".`, '', '', true);
+                return;
+            }
+            markStepCompleted(sec.id, { ok: true, statusText: 'Concept Verified ✓', stdout: '', transcript: '' });
+            showStepOutput(true, 'Concept Verified & Section Completed ✓', sec.takeaway, '', '', true);
+            return;
+        }
+
+        if (tType === 'multiple_choice') {
+            const sel = document.querySelector('.mc-option[aria-checked="true"]');
+            if (!sel) { announce('Please select an answer option first.'); return; }
+            const idx = parseInt(sel.getAttribute('data-idx'), 10);
+            const ok = (idx === sec.correct_index);
+            if (!ok) {
+                showStepOutput(false, 'Not Quite — Try Again', `Hint: Look for the property that explicitly sets public blob access to false.`, '', '', true);
+                return;
+            }
+            markStepCompleted(sec.id, { ok: true, statusText: 'Concept Verified ✓', stdout: '', transcript: '' });
+            showStepOutput(true, 'Concept Verified & Section Completed ✓', sec.takeaway, '', '', true);
+            return;
+        }
+
+        if (tType === 'match_columns') {
+            const rights = document.querySelectorAll('.match-right');
+            let matched = 0;
+            let correct = 0;
+            rights.forEach(r => {
+                const m = r.getAttribute('data-matched-to');
+                if (m) {
+                    matched++;
+                    if (m === r.getAttribute('data-target-id')) correct++;
+                }
+            });
+            if (matched < rights.length) {
+                announce('Please match all three subnets before verifying.');
+                return;
+            }
+            if (correct < rights.length) {
+                showStepOutput(false, 'Some Matches Were Swapped — Try Again', 'Click each subnet on the left and match it to its Tier 1 (10.10.1.0/24), Tier 2 (10.10.2.0/24), or Tier 3 (10.10.3.0/24) role on the right.', '', '', true);
+                return;
+            }
+            markStepCompleted(sec.id, { ok: true, statusText: 'All Subnets Matched ✓', stdout: '', transcript: '' });
+            showStepOutput(true, 'All 3 Subnets Matched & Section Completed ✓', sec.takeaway, '', '', true);
+            return;
+        }
+
+        let cmd = sec.expected_command || '';
+        let bicepCode = null;
+        if (tType === 'terminal_command') {
+            cmd = document.getElementById('terminal-input').value.trim();
+            if (!cmd) { announce('Please enter a command to run in WSL alp-env.'); return; }
+        } else if (tType === 'bicep_editor') {
+            bicepCode = document.getElementById('bicep-editor-input').value;
+            if (!bicepCode.trim()) { announce('The Bicep editor cannot be empty.'); return; }
+        }
+
+        if (runBtn) {
+            runBtn.disabled = true;
+            runBtn.innerText = 'Running in WSL alp-env & Recording to Asciinema...';
+        }
+        announce('Executing in WSL alp-env sandbox and recording prediction and output to asciinema...');
+
+        try {
+            const learnerName = (document.getElementById('learner-name-input')?.value || progressState.learner_name || 'michael').trim() || 'michael';
+            progressState.learner_name = learnerName;
+            const res = await fetch('/api/course/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_id: courseId,
+                    step_id: sec.id,
+                    recording_name: item.recordingName,
+                    command: cmd,
+                    bicep_file: sec.bicep_file || null,
+                    bicep_code: bicepCode,
+                    prediction: stepRef.predict || '',
+                    learner_name: learnerName
+                })
+            });
+            const data = await res.json();
+            const ok = Boolean(data.ok);
+            const statusText = ok
+                ? `Executed in alp-env & Recorded to ${item.recordingName}.cast ✓`
+                : `Command Exited with Error (Code ${data.returncode ?? 1})`;
+            if (ok) {
+                markStepCompleted(sec.id, {
+                    ok: true,
+                    statusText,
+                    stdout: data.output || '',
+                    transcript: data.transcript || ''
+                });
+            }
+            showStepOutput(ok, statusText, sec.takeaway, data.output || '', data.transcript || '', true);
+        } catch (err) {
+            showStepOutput(false, 'Execution Error', String(err), '', '', true);
+        } finally {
+            if (runBtn) {
+                runBtn.disabled = false;
+                runBtn.innerText = tType === 'bicep_editor'
+                    ? 'Save .bicep, Compile in WSL alp-env & Record with Asciinema (Alt+R)'
+                    : 'Run in WSL alp-env & Record with Asciinema (Alt+R)';
+            }
+        }
+    }
+
+    function markStepCompleted(stepId, outputRecord) {
+        if (!progressState.completed_steps.includes(stepId)) {
+            progressState.completed_steps.push(stepId);
+        }
+        progressState.step_outputs[stepId] = outputRecord;
+        saveProgress();
+        const isRef = Boolean(((progressState.reflections || {})[stepId] || {}).reflection_done);
+        const statusBadge = document.getElementById('step-status-badge');
+        if (isRef) {
+            statusBadge.innerText = 'Completed & Reflected ✓✓';
+            statusBadge.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+        } else {
+            statusBadge.innerText = 'Executed • Reflection Required';
+            statusBadge.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded bg-amber-950 text-amber-300 border border-amber-700';
+        }
+    }
+
+    function showStepOutput(ok, statusText, takeawayText, stdoutText, transcriptText, moveFocus, isTranscriptOnly = false) {
+        const outSec = document.getElementById('output-section');
+        outSec.classList.remove('hidden');
+
+        const pill = document.getElementById('output-status-pill');
+        pill.innerText = statusText;
+        pill.className = ok
+            ? 'text-xs font-mono px-2.5 py-1 rounded font-bold bg-emerald-950 text-emerald-300 border border-emerald-700'
+            : 'text-xs font-mono px-2.5 py-1 rounded font-bold bg-red-950 text-red-300 border border-red-700';
+
+        document.getElementById('takeaway-box').innerText = takeawayText || '';
+
+        const termWrap = document.getElementById('terminal-output-wrapper');
+        const termPre = document.getElementById('terminal-output-pre');
+        if (stdoutText) {
+            termWrap.classList.remove('hidden');
+            termPre.innerText = stdoutText;
+        } else {
+            termWrap.classList.add('hidden');
+        }
+
+        const transWrap = document.getElementById('transcript-output-wrapper');
+        const transPre = document.getElementById('transcript-output-pre');
+        if (transcriptText) {
+            transWrap.classList.remove('hidden');
+            transPre.innerText = transcriptText;
+        } else {
+            transWrap.classList.add('hidden');
+        }
+
+        if (moveFocus) {
+            document.getElementById('output-heading').focus();
+            announce(`${statusText}. ${takeawayText || ''}`);
+        }
+    }
+
+    function goNextStep() {
+        if (currentStepIndex < flatSteps.length - 1) {
+            currentStepIndex++;
+            saveProgress();
+            renderCurrentStep(true);
+        } else {
+            announce('Congratulations! You are on the final section of the course.');
+        }
+    }
+
+    function goPrevStep() {
+        if (currentStepIndex > 0) {
+            currentStepIndex--;
+            saveProgress();
+            renderCurrentStep(true);
+        }
+    }
+
+    (function installReflectionLayer() {
+        const MIN_PREDICT = 20;
+        const MIN_EXPLAIN = 30;
+        const MIN_ERRORNOTE = 20;
+        const RUN_TYPES = ['terminal_command', 'bicep_editor'];
+        const cur = () => flatSteps[currentStepIndex];
+        let saveTimer = null;
+        const saveSoon = () => { clearTimeout(saveTimer); saveTimer = setTimeout(() => saveProgress(), 700); };
+
+        function makeField(id, labelText, helpText, value, minChars, onChange) {
+            const wrap = document.createElement('div');
+            wrap.className = 'space-y-1';
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.className = 'block text-sm font-semibold text-amber-200';
+            label.textContent = labelText;
+            const help = document.createElement('p');
+            help.id = id + '-help';
+            help.className = 'text-xs text-slate-400';
+            help.textContent = helpText;
+            const ta = document.createElement('textarea');
+            ta.id = id;
+            ta.rows = 3;
+            ta.value = value || '';
+            ta.spellcheck = true;
+            ta.setAttribute('aria-describedby', id + '-help ' + id + '-count');
+            ta.className = 'w-full bg-black text-slate-100 text-sm p-3 rounded-lg border-2 border-slate-700 focus:outline-none focus:border-amber-400';
+            const count = document.createElement('p');
+            count.id = id + '-count';
+            count.className = 'text-xs font-mono text-slate-400';
+            const refresh = () => {
+                const n = ta.value.trim().length;
+                count.textContent = n + ' of ' + minChars + ' characters minimum (own words required)';
+                return n >= minChars;
+            };
+            ta.addEventListener('paste', (e) => {
+                e.preventDefault();
+                const s = getStepReflection(cur().section.id);
+                s.paste_attempts = (s.paste_attempts || 0) + 1;
+                logCourseActivity('paste_blocked', { field: id });
+                saveSoon();
+                announce('Pasting is disabled in reflection fields. Please type this in your own words.');
+            });
+            ta.addEventListener('drop', (e) => e.preventDefault());
+            ta.addEventListener('input', () => { refresh(); onChange(ta.value); saveSoon(); });
+            refresh();
+            wrap.append(label, help, ta, count);
+            return { wrap, ta, isValid: refresh };
+        }
+
+        function addReflectionUI() {
+            ['predict-block', 'reflection-section'].forEach((id) => { const old = document.getElementById(id); if (old) old.remove(); });
+            const item = cur();
+            if (!item) return;
+            const sec = item.section;
+            const s = getStepReflection(sec.id);
+            const type = sec.task_type || 'terminal_command';
+            const ws = document.getElementById('interactive-workspace');
+
+            if (RUN_TYPES.includes(type)) {
+                const box = document.createElement('div');
+                box.id = 'predict-block';
+                box.className = 'bg-amber-950/30 border border-amber-700 rounded-lg p-4 space-y-2';
+                const h = document.createElement('h4');
+                h.className = 'text-sm font-bold text-amber-300';
+                h.textContent = 'Step 3A: Predict Before You Run (Required to Unlock Execution)';
+                const predictPromptText = sec.predict_prompt || 'In your own words, what do you expect this command or Bicep file to do, and why?';
+                const f = makeField('predict-field',
+                    predictPromptText,
+                    'Required before the Run button works. Type your prediction in your own words; pasting is disabled and logged.',
+                    s.predict, MIN_PREDICT,
+                    (v) => { s.predict = v; if (!s.predicted_at) s.predicted_at = new Date().toISOString(); });
+                box.append(h, f.wrap);
+                ws.prepend(box);
+            }
+
+            const panel = document.createElement('section');
+            panel.id = 'reflection-section';
+            panel.setAttribute('aria-labelledby', 'reflection-heading');
+            panel.className = 'bg-slate-900 border-2 border-amber-600/80 rounded-xl p-5 shadow-lg space-y-4 hidden';
+            const h2 = document.createElement('h3');
+            h2.id = 'reflection-heading';
+            h2.tabIndex = -1;
+            h2.className = 'text-lg font-bold text-amber-300';
+            h2.textContent = '5. Continuous Reflection & Troubleshooting Check (Required to Advance)';
+            const intro = document.createElement('p');
+            intro.className = 'text-sm text-slate-300';
+            intro.textContent = 'Prove your understanding of what just executed. When you click Save Reflection, your answers are appended to the backend asciinema transcript and EVIDENCE_MANIFEST.md.';
+            const reflectPromptText = sec.reflection_prompt || 'What happened when you ran this step, and why did it produce that result?';
+            const errorPromptText = sec.error_reflection_prompt || 'Name one common error that could happen at this step (see Card 2B above) and explain how you would fix it.';
+            const fExplain = makeField('reflect-explain',
+                reflectPromptText,
+                'Explain what the command or Bicep code did and what the output confirms.',
+                s.explain, MIN_EXPLAIN, (v) => { s.explain = v; });
+            const fErr = makeField('reflect-error',
+                errorPromptText,
+                'Reference the anticipated errors in Section 2B or compiler messages and explain the fix in your own words.',
+                s.common_error_note, MIN_ERRORNOTE, (v) => { s.common_error_note = v; });
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.id = 'save-reflection-btn';
+            saveBtn.className = 'bg-amber-500 hover:bg-amber-400 text-black font-bold py-2.5 px-5 rounded-lg focus:outline-none focus:ring-4 focus:ring-amber-300';
+            saveBtn.textContent = 'Save Reflection & Sync to Evidence Log';
+            const status = document.createElement('p');
+            status.id = 'reflection-status';
+            status.setAttribute('role', 'status');
+            status.className = 'text-sm font-mono text-emerald-300';
+            status.textContent = s.reflection_done ? 'Reflection verified & synced to backend evidence manifest \u2713' : '';
+
+            saveBtn.addEventListener('click', async () => {
+                if (!fExplain.isValid()) {
+                    status.className = 'text-sm font-mono text-rose-300';
+                    status.textContent = 'Please write at least ' + MIN_EXPLAIN + ' characters in the first reflection answer.';
+                    fExplain.ta.focus();
+                    announce(status.textContent);
+                    return;
+                }
+                if (!fErr.isValid()) {
+                    status.className = 'text-sm font-mono text-rose-300';
+                    status.textContent = 'Please write at least ' + MIN_ERRORNOTE + ' characters explaining the common error and fix.';
+                    fErr.ta.focus();
+                    announce(status.textContent);
+                    return;
+                }
+                s.explain = fExplain.ta.value.trim();
+                s.common_error_note = fErr.ta.value.trim();
+                s.reflection_done = true;
+                s.reflected_at = new Date().toISOString();
+                logCourseActivity('reflection_saved', { step_id: sec.id });
+
+                const learnerName = (document.getElementById('learner-name-input')?.value || progressState.learner_name || 'michael').trim() || 'michael';
+                progressState.learner_name = learnerName;
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Syncing Reflection to Backend Evidence Log...';
+                try {
+                    const res = await fetch('/api/course/reflect', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            course_id: courseId,
+                            step_id: sec.id,
+                            recording_name: item.recordingName,
+                            learner_name: learnerName,
+                            predict: s.predict || '',
+                            explain: s.explain,
+                            common_error_note: s.common_error_note,
+                            progress: progressState
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.transcript) {
+                        const transWrap = document.getElementById('transcript-output-wrapper');
+                        const transPre = document.getElementById('transcript-output-pre');
+                        if (transWrap && transPre) {
+                            transWrap.classList.remove('hidden');
+                            transPre.innerText = data.transcript;
+                        }
+                        if (progressState.step_outputs && progressState.step_outputs[sec.id]) {
+                            progressState.step_outputs[sec.id].transcript = data.transcript;
+                        }
+                    }
+                    const shaShort = data.manifest_sha256 ? data.manifest_sha256.slice(0, 12) : 'synced';
+                    status.className = 'text-sm font-mono text-emerald-300';
+                    status.textContent = `Reflection verified & recorded to ${item.recordingName}.txt + EVIDENCE_MANIFEST.md (SHA-256: ${shaShort}) \u2713`;
+                } catch (e) {
+                    await saveProgress();
+                    status.className = 'text-sm font-mono text-amber-300';
+                    status.textContent = 'Reflection saved locally \u2713 You can continue to the next section.';
+                } finally {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Save Reflection & Sync to Evidence Log';
+                }
+
+                const statusBadge = document.getElementById('step-status-badge');
+                if (statusBadge && (progressState.completed_steps || []).includes(sec.id)) {
+                    statusBadge.innerText = 'Completed & Reflected ✓✓';
+                    statusBadge.className = 'text-xs font-mono font-bold px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+                }
+                updateProgressUI();
+                renderStepperOptions();
+                announce(status.textContent);
+            });
+
+            panel.append(h2, intro, fExplain.wrap, fErr.wrap, saveBtn, status);
+            const out = document.getElementById('output-section');
+            out.insertAdjacentElement('afterend', panel);
+            if ((progressState.completed_steps || []).includes(sec.id)) {
+                panel.classList.remove('hidden');
+            }
+        }
+
+        const _render = renderCurrentStep;
+        renderCurrentStep = function () {
+            const r = _render.apply(this, arguments);
+            addReflectionUI();
+            return r;
+        };
+
+        const _exec = executePracticalStep;
+        executePracticalStep = function () {
+            const sec = cur().section;
+            const type = sec.task_type || 'terminal_command';
+            const s = getStepReflection(sec.id);
+            if (RUN_TYPES.includes(type)) {
+                if ((s.predict || '').trim().length < MIN_PREDICT) {
+                    const ta = document.getElementById('predict-field');
+                    announce('Before running, write your prediction in your own words (at least ' + MIN_PREDICT + ' characters).');
+                    if (ta) ta.focus();
+                    return;
+                }
+                const cmd = type === 'terminal_command' ? document.getElementById('terminal-input').value.trim() : (sec.expected_command || '');
+                s.command_run = cmd;
+                s.run_count = (s.run_count || 0) + 1;
+                logCourseActivity('run_attempt', { command: cmd });
+            } else {
+                s.check_attempts = (s.check_attempts || 0) + 1;
+                logCourseActivity('check_attempt', {});
+            }
+            saveSoon();
+            return _exec.apply(this, arguments);
+        };
+
+        const _show = showStepOutput;
+        showStepOutput = function (ok, statusText, takeawayText, stdoutText, transcriptText, moveFocus, isTranscriptOnly) {
+            const r = _show.apply(this, arguments);
+            if (moveFocus === true && !isTranscriptOnly) {
+                const s = getStepReflection(cur().section.id);
+                logCourseActivity('result', { ok: Boolean(ok), status: statusText });
+                if (ok) {
+                    const panel = document.getElementById('reflection-section');
+                    if (panel) panel.classList.remove('hidden');
+                    announce('Result recorded. Complete and save your reflection in Section 5 below before continuing.');
+                } else {
+                    s.failed_runs = (s.failed_runs || 0) + 1;
+                }
+                saveSoon();
+            }
+            return r;
+        };
+
+        const _next = goNextStep;
+        goNextStep = function () {
+            const sec = cur().section;
+            if ((progressState.completed_steps || []).includes(sec.id) && !getStepReflection(sec.id).reflection_done) {
+                const panel = document.getElementById('reflection-section');
+                if (panel) {
+                    panel.classList.remove('hidden');
+                    const hd = document.getElementById('reflection-heading');
+                    if (hd) hd.focus();
+                }
+                announce('Please save your post-run reflection for this section before continuing to the next section.');
+                return;
+            }
+            return _next.apply(this, arguments);
+        };
+    })();
+
+    async function downloadCourseExport(format) {
+        const learnerName = (document.getElementById('learner-name-input')?.value || progressState.learner_name || 'michael').trim() || 'michael';
+        progressState.learner_name = learnerName;
+        const isZip = (format === 'zip');
+        announce(isZip ? 'Packaging full WSL sandbox boilerplate and asciinema evidence into a .zip archive...' : 'Generating verifiable evidence manifest...');
+        try {
+            const res = await fetch('/api/course/export', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_id: courseId,
+                    learner_name: learnerName,
+                    format: format,
+                    progress: progressState
+                })
+            });
+            if (!res.ok) throw new Error('Export request failed');
+            const blob = await res.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = isZip
+                ? `${courseId}_boilerplate_and_evidence.zip`
+                : `EVIDENCE_MANIFEST_${courseId}.md`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+            const sha = res.headers.get('X-Evidence-SHA256') || '';
+            announce(isZip
+                ? `Downloaded ${courseId}_boilerplate_and_evidence.zip ${sha ? '(SHA-256: ' + sha.slice(0, 12) + ')' : ''}`
+                : `Downloaded EVIDENCE_MANIFEST_${courseId}.md`);
+        } catch (err) {
+            announce('Could not download export bundle from backend.');
+        }
+    }
+
+    document.getElementById('learner-name-input').addEventListener('change', () => {
+        const val = document.getElementById('learner-name-input').value.trim() || 'michael';
+        progressState.learner_name = val;
+        saveProgress();
+        announce(`Learner ID updated to ${val}`);
+    });
+
+    document.getElementById('export-evidence-btn').addEventListener('click', () => downloadCourseExport('md'));
+    document.getElementById('download-zip-btn').addEventListener('click', () => downloadCourseExport('zip'));
+
+    document.getElementById('prev-step-btn').addEventListener('click', () => goPrevStep());
+    document.getElementById('bottom-prev-btn').addEventListener('click', () => goPrevStep());
+    document.getElementById('next-step-btn').addEventListener('click', () => goNextStep());
+    document.getElementById('bottom-next-btn').addEventListener('click', () => goNextStep());
+
+    document.getElementById('step-jumper').addEventListener('change', (e) => {
+        const idx = parseInt(e.target.value, 10);
+        if (!isNaN(idx) && idx >= 0 && idx < flatSteps.length) {
+            currentStepIndex = idx;
+            saveProgress();
+            renderCurrentStep(true);
+        }
+    });
+
+    document.getElementById('copy-code-btn').addEventListener('click', () => {
+        const item = flatSteps[currentStepIndex];
+        if (!item) return;
+        navigator.clipboard.writeText(item.section.code_snippet || '').then(() => {
+            announce('Code copied to clipboard.');
+        });
+    });
+
+    document.getElementById('read-cast-btn').addEventListener('click', async () => {
+        const item = flatSteps[currentStepIndex];
+        if (!item) return;
+        announce(`Loading asciinema plain-text transcript for ${item.recordingName}...`);
+        try {
+            const res = await fetch('/api/course/execute', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    course_id: courseId,
+                    step_id: item.section.id,
+                    recording_name: item.recordingName,
+                    command: `read-sandbox ${item.recordingName}`
+                })
+            });
+            const data = await res.json();
+            showStepOutput(true, `Asciinema Transcript: ${item.recordingName}.txt`, `Plain-text screen-reader log for ${item.recordingName}.cast:`, '', data.transcript || data.output || '', true, true);
+        } catch (e) {
+            announce('Could not read transcript.');
+        }
+    });
+
+    document.getElementById('reset-progress-btn').addEventListener('click', async () => {
+        const btn = document.getElementById('reset-progress-btn');
+        if (!resetArmed) {
+            resetArmed = true;
+            btn.textContent = 'Confirm Reset? (Click again)';
+            btn.className = 'text-xs font-bold text-red-300 bg-red-950/70 border border-red-600 rounded px-2 py-0.5 focus:outline-none focus:ring-2 focus:ring-red-400';
+            announce('Click Reset Progress again within 5 seconds to confirm wiping course progress and reflections.');
+            clearTimeout(resetConfirmTimer);
+            resetConfirmTimer = setTimeout(() => {
+                resetArmed = false;
+                btn.textContent = 'Reset Progress';
+                btn.className = 'text-xs text-slate-400 hover:text-red-300 underline focus:outline-none focus:ring-2 focus:ring-red-400 rounded px-1';
+            }, 5000);
+            return;
+        }
+        resetArmed = false;
+        clearTimeout(resetConfirmTimer);
+        btn.textContent = 'Reset Progress';
+        btn.className = 'text-xs text-slate-400 hover:text-red-300 underline focus:outline-none focus:ring-2 focus:ring-red-400 rounded px-1';
+        const keepLearner = (document.getElementById('learner-name-input')?.value || progressState.learner_name || 'michael').trim() || 'michael';
+        progressState = {
+            current_step_index: 0,
+            completed_steps: [],
+            step_outputs: {},
+            reflections: {},
+            activity_log: [],
+            learner_name: keepLearner
+        };
+        currentStepIndex = 0;
+        await saveProgress();
+        renderCurrentStep(true);
+        announce('Course progress and reflections reset to Module 1, Section 1.1.');
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.altKey && (e.key === 'n' || e.key === 'N')) {
+            e.preventDefault();
+            goNextStep();
+        } else if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+            e.preventDefault();
+            goPrevStep();
+        } else if (e.altKey && (e.key === 'r' || e.key === 'R')) {
+            e.preventDefault();
+            executePracticalStep();
+        } else if (e.altKey && (e.key === 'i' || e.key === 'I')) {
+            const fillBtn = document.getElementById('fill-cmd-btn');
+            if (fillBtn) { e.preventDefault(); fillBtn.click(); }
+        } else if (e.altKey && (e.key === 'l' || e.key === 'L')) {
+            e.preventDefault();
+            document.getElementById('read-cast-btn').click();
+        } else if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+            e.preventDefault();
+            downloadCourseExport('zip');
+        }
+    });
+</script>
+<script src="/static/course-tailor-crypto.js"></script>
+<script>
+    loadCourse();
+</script>
+</body>
+</html>

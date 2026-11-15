@@ -14,9 +14,17 @@
     function hasKeyHere() { try { return localStorage.getItem('siraugga_access_key') === '1'; } catch (_) { return false; } }
     function onLocalhost() { return /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname); }
 
+    var host = (window.location.hostname || '').toLowerCase();
+    var isStatic = (host === 'mikeytech.dev' || host === 'www.mikeytech.dev');
+    var apiBase = (typeof window.API_BASE === 'string' && window.API_BASE) ? window.API_BASE : (isStatic ? 'https://siraugga.mikeytech.dev' : '');
+    var crossOrigin = apiBase.indexOf('http') === 0;
+    function apiUrl(url) {
+        return (typeof url === 'string' && url.indexOf('/') === 0 && apiBase) ? (apiBase + url) : url;
+    }
+
     async function api(method, url, body) {
-        var r = await fetch(url, {
-            method: method, cache: 'no-store', credentials: 'same-origin',
+        var r = await fetch(apiUrl(url), {
+            method: method, cache: 'no-store', credentials: crossOrigin ? 'include' : 'same-origin',
             headers: Object.assign({ 'Authorization': 'Bearer ' + token() }, body ? { 'Content-Type': 'application/json' } : {}),
             body: body ? JSON.stringify(body) : undefined,
         });
@@ -32,7 +40,7 @@
             if (me.ok && me.data.user) return true;
         }
         try {
-            var s = await (await fetch('/api/owner-device/status', { cache: 'no-store' })).json();
+            var s = await (await fetch(apiUrl('/api/owner-device/status'), { cache: 'no-store', credentials: crossOrigin ? 'include' : 'same-origin' })).json();
             if (s.this_browser_trusted || s.is_host) return true;
         } catch (_) {}
         return false;

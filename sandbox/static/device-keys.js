@@ -16,11 +16,20 @@
         return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
     }
 
+    var host = (window.location.hostname || '').toLowerCase();
+    var isStatic = (host === 'mikeytech.dev' || host === 'www.mikeytech.dev');
+    var apiBase = (typeof window.API_BASE === 'string' && window.API_BASE) ? window.API_BASE : (isStatic ? 'https://siraugga.mikeytech.dev' : '');
+    var crossOrigin = apiBase.indexOf('http') === 0;
+
+    function apiUrl(url) {
+        return (typeof url === 'string' && url.indexOf('/') === 0 && apiBase) ? (apiBase + url) : url;
+    }
+
     async function post(url, body) {
         var headers = { 'Content-Type': 'application/json' };
         try { var t = localStorage.getItem('agy_auth_token'); if (t) headers.Authorization = 'Bearer ' + t; } catch (_) {}
-        var r = await fetch(url, {
-            method: 'POST', credentials: 'same-origin', cache: 'no-store',
+        var r = await fetch(apiUrl(url), {
+            method: 'POST', credentials: crossOrigin ? 'include' : 'same-origin', cache: 'no-store',
             headers: headers, body: JSON.stringify(body || {}),
         });
         var data = {};

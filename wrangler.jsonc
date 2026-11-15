@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "siraugga",
+  "compatibility_date": "2026-11-13",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "directory": "dist"
+  },
+  "routes": [
+    { "pattern": "mikeytech.dev", "custom_domain": true },
+    { "pattern": "www.mikeytech.dev", "custom_domain": true }
+  ]
+}

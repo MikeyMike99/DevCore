@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siraugga Agent • Google OAuth Authentication</title>
+    <script src="/static/siraugga-origin.js?v=1"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -262,7 +263,7 @@
         }
 
         function getAuthCheckUrl(force = false) {
-            const base = basePath ? basePath + '/api/auth_check' : 'api/auth_check';
+            const base = basePath ? basePath + '/api/auth_check' : '/api/auth_check';
             const params = new URLSearchParams();
             params.set('scope', activeScope);
             if (activeScope === 'demo') params.set('demo', '1');
@@ -270,8 +271,8 @@
             return `${base}?${params.toString()}`;
         }
 
-        const authSubmitUrl = basePath ? basePath + '/api/auth_submit' : 'api/auth_submit';
-        const setApiKeyUrl = basePath ? basePath + '/api/set_api_key' : 'api/set_api_key';
+        const authSubmitUrl = basePath ? basePath + '/api/auth_submit' : '/api/auth_submit';
+        const setApiKeyUrl = basePath ? basePath + '/api/set_api_key' : '/api/set_api_key';
 
         function updateReturnUrls() {
             const returnUrl = (basePath || '.') + '/' + (activeScope === 'demo' ? '?demo=1' : '?mode=root');
@@ -652,7 +653,7 @@
         }
 
         // --- Claude Agent Brain auth (no key / subscription, or API key) ---
-        function claudeBase() { return window.location.pathname.replace(/\/login\/?$/, ''); }
+        function claudeBase() { return window.API_BASE || window.location.pathname.replace(/\/login\/?$/, ''); }
         function setClaudeBadge(connected, text) {
             const b = document.getElementById('claudeStatusBadge');
             if (!b) return;

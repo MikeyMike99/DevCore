@@ -9,9 +9,10 @@ import { env, pipeline } from '/static/speech/vendor/transformers.min.js';
 
 const MODEL_ID = 'Xenova/whisper-tiny.en';
 
+var _isStaticPages = (self.location && (self.location.hostname === 'mikeytech.dev' || self.location.hostname === 'www.mikeytech.dev'));
 env.allowRemoteModels = false;               // never fall back to huggingface.co
 env.allowLocalModels = true;
-env.localModelPath = '/static/speech/models/';
+env.localModelPath = _isStaticPages ? 'https://siraugga.mikeytech.dev/static/speech/models/' : '/static/speech/models/';
 env.useBrowserCache = true;                  // cache model after the first download
 env.backends.onnx.wasm.wasmPaths = '/static/speech/vendor/'; // never fall back to jsDelivr
 env.backends.onnx.wasm.numThreads = 1;       // multi-threading needs cross-origin isolation
