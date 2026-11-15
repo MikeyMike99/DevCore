@@ -553,13 +553,17 @@ class ExecutionMixin:
             return light, prompt
 
         actor = mr.pick(mr.HEAVY_CHAIN) or mr.FLASH
+        # Quota guard: the parallel team costs extra model calls, so only a big request gets one.
+        _big = len(prompt or "") > 400 or "<attached_document" in (prompt or "").lower()
+        if not _big:
+            await self.broadcast({"type": "smart_route", "message": f"Smart mode: {actor} is handling this.",
+                                  "fallback_model": actor})
+            return actor, prompt
         # Workforce: several specialists work on the request AT THE SAME TIME, each with a different job
         # and (when possible) a different model. Their notes are merged into one brief for the worker.
         roles = [
             ("Planner", "Work out what the user actually wants and write a short numbered step plan (max 8 steps), "
                         "splitting the work into parts that could be done independently."),
-            ("Researcher", "List the key facts, background, definitions, existing conventions and context the worker "
-                           "needs to do this well. Be concrete and specific, not generic."),
             ("Critic", "List the pitfalls, edge cases, ways this could go wrong, and a short acceptance checklist the "
                        "finished result must pass. Think about what a careful reviewer would reject."),
         ]
@@ -1904,7 +1908,7 @@ class ExecutionMixin:
                     full_text = "".join(self.output_buffer)
                     if "[save_exam]" in full_text.lower():
                         from agents import exam_store
-                        exam_results = await asyncio.to_thread(exam_store.save_exam_blocks, full_text)
+                        exam_results = await asyncio.to_thread(exam_store.save_exam_blocks, full_text, user, is_admin)
                         if exam_results:
                             exam_note = "\n\n" + exam_store.render_results(exam_results)
                             self.output_buffer.append(exam_note)
