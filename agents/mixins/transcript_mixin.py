@@ -168,9 +168,10 @@ class TranscriptMixin:
                             try:
                                 d = json.loads(line)
                                 if d.get("type") == "PLANNER_RESPONSE":
+                                    _note = d.get("thinking") or (d.get("content") if d.get("tool_calls") else "")
                                     if not norm_expected:
-                                        if d.get("thinking"):
-                                            deep_insight = d.get("thinking")
+                                        if _note:
+                                            deep_insight = _note
                                             break
                                     else:
                                         tool_calls = d.get("tool_calls", [])
@@ -181,12 +182,12 @@ class TranscriptMixin:
                                                     continue
                                                 if not tool_args:
                                                     tool_args = t.get("args", {}) or {}
-                                                if not deep_insight and d.get("thinking"):
-                                                    deep_insight = d.get("thinking")
+                                                if not deep_insight and _note:
+                                                    deep_insight = _note
                                                 break
 
-                                        if not deep_insight and d.get("thinking"):
-                                            deep_insight = d.get("thinking")
+                                        if not deep_insight and _note:
+                                            deep_insight = _note
 
                                         if tool_args and deep_insight:
                                             break

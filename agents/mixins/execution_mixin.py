@@ -419,6 +419,7 @@ class ExecutionMixin:
         self.output_buffer = []
         self.actions = []
         self._last_deep_insight = ""
+        self._thought_trail = []
         self._last_thought_step = None
 
         if conversation_id and str(conversation_id).startswith("conv-"):
@@ -1718,6 +1719,15 @@ class ExecutionMixin:
                                 }
                                 self.actions.append(act)
                                 await self.broadcast({"type": "action_start", "action": act})
+                                # Fill the "Agent Reasoning" box: the model's own words (when it gave any) plus this step
+                                try:
+                                    _line = (spoken_thought + chr(10) + "→ " + clean_action) if spoken_thought else ("→ " + clean_action)
+                                    self._thought_trail = (getattr(self, "_thought_trail", []) + [_line])[-40:]
+                                    await self.broadcast({"type": "agent_thought",
+                                                          "thought": (chr(10) * 2).join(self._thought_trail)[-6000:],
+                                                          "announcement": " "})
+                                except Exception:
+                                    pass
                             elif state == "DONE":
                                 raw_output = tool_info.get("output", "")
                                 if isinstance(raw_output, str) and len(raw_output) > 2000:
@@ -1802,9 +1812,10 @@ class ExecutionMixin:
                                 deep_insight, _ = await self._get_narrative_context(conversation_id, expected_tool_name=None)
                                 if deep_insight and deep_insight != getattr(self, "_last_deep_insight", ""):
                                     self._last_deep_insight = deep_insight
+                                    self._thought_trail = (getattr(self, "_thought_trail", []) + [deep_insight])[-40:]
                                     await self.broadcast({
                                         "type": "agent_thought",
-                                        "thought": deep_insight,
+                                        "thought": (chr(10) * 2).join(self._thought_trail)[-6000:],
                                         "announcement": f"Thinking: {deep_insight}",
                                         "step_index": curr_step_index
                                     })
