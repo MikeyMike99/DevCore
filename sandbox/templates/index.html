@@ -378,6 +378,16 @@
                     <span id="mic-btn-label">Speak</span>
                 </button>
                 <span id="mic-status" class="sr-only" role="status" aria-live="polite"></span>
+                <!-- Asked once, before the first dictation; changeable in Settings (#dictation-autosend). -->
+                <dialog id="dictation-choice-modal" aria-labelledby="dictation-choice-title" aria-describedby="dictation-choice-desc" class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 max-w-sm w-[calc(100%-32px)] backdrop:bg-slate-950/70 text-slate-200">
+                    <h3 id="dictation-choice-title" class="text-lg font-bold text-white mb-2">Send automatically?</h3>
+                    <p id="dictation-choice-desc" class="text-sm text-slate-300 mb-2">When you press <strong>Stop</strong>, should your words be sent straight away, or put in the message box so you can check them first?</p>
+                    <p class="text-xs text-slate-400 mb-5">If a recording reaches the 2-minute limit it is never sent automatically. You can change this any time in Settings.</p>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:justify-end">
+                        <button type="button" id="dictation-choice-review" class="px-4 py-2 min-h-[44px] text-sm font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">Let me check first</button>
+                        <button type="button" id="dictation-choice-auto" class="px-4 py-2 min-h-[44px] text-sm font-medium text-white bg-teal-600 hover:bg-teal-500 rounded-lg focus:ring-2 focus:ring-teal-500 focus:outline-none">Send automatically</button>
+                    </div>
+                </dialog>
                 <input type="file" id="attach-input" class="hidden" accept=".pdf,.docx,.txt,.md,.csv" onchange="handleAttachChosen(this)">
                 <button
                     type="button"
@@ -438,9 +448,14 @@
                 <p id="access-key-feedback" class="text-xs text-amber-200 m-0" role="status" aria-live="polite" aria-atomic="true"></p>
             </div>
 
+            <!-- Voice dictation preference (read/written by sandbox/static/speech/dictation.js) -->
             <section aria-labelledby="dictation-settings-heading" class="flex flex-col gap-2 bg-slate-900/80 border border-slate-700/80 rounded-lg p-3">
                 <h3 id="dictation-settings-heading" class="text-xs font-bold text-teal-300 m-0">🎤 Voice dictation</h3>
-                <p class="text-[11px] text-slate-400 m-0">Dictated text goes into the message box for you to check. It is never sent until you press Send. Your voice is processed on this device and never uploaded.</p>
+                <label for="dictation-autosend" class="flex items-center justify-between gap-3 text-sm text-slate-200 cursor-pointer min-h-[44px]">
+                    <span>Send automatically when I press Stop</span>
+                    <input type="checkbox" role="switch" id="dictation-autosend" class="w-5 h-5 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
+                </label>
+                <p class="text-[11px] text-slate-400 m-0">Recordings that hit the 2-minute limit are never sent automatically. Your voice is processed on this device and never uploaded.</p>
             </section>
 
             <!-- Access keys: Super Admin only (shown when /api/device-keys answers); sandbox/static/device-keys-ui.js -->
