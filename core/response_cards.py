@@ -372,26 +372,32 @@ def _build_course_card() -> dict:
         except Exception:
             md = ""
     if not md:
-        md = "# Practical Course Guide\n\nOpen the interactive practical course to follow the step-by-step WSL lab."
+        md = "# Practical Course Guide\n\nWork through the step-by-step WSL lab below."
     return {
         "topic": "course",
         "sender_label": "Siraugga Help",
         "model_badge": "Built-in",
         "status_label": "Ready",
         "title": "Practical Course Guide",
-        "announce": "Practical Course Guide",
+        "announce": "Practical Course opened in this card",
         "replace_existing": True,
         "markdown": md,
         "button_groups": [
             {
                 "title": "Navigate",
                 "buttons": [
-                    _link_btn("🎓 Open the course (new tab)", "/course"),
                     _card_btn("⬅️ Back to Help Menu", "menu"),
                 ],
             }
         ],
-        "iframes": [],
+        "iframes": [
+            {
+                "src": "/plugin/course?course=alp_phase2_bicep_course&title=ALP%20Phase%202%20Interactive%20Practical%20Course",
+                "title": "ALP Phase 2 Interactive Practical Course",
+                "heading": "🎓 ALP Phase 2 Interactive Practical Course",
+                "class_name": "w-full min-h-[780px] border-0 rounded-lg shadow-xl",
+            }
+        ],
     }
 
 
