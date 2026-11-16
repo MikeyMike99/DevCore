@@ -1,6 +1,11 @@
 """
-Server-side exam and interactive course saving for every tier.
+Server-side exam and interactive course saving.
+
+Exams can be saved by every tier. Creating a course needs Tier 2 or higher (the Tier 5 super admin
+always qualifies); Tier 1 and unknown users are refused. Each course records a hashed owner, and only
+that owner or the super admin may overwrite it: a clashing course_id from anyone else gets a new id.
 """
+import hashlib
 import json
 import os
 import re
@@ -17,6 +22,38 @@ FORMAT_SCRIPT = os.path.join(DEVCORE_ROOT, ".agents", "skills", "exam-generator"
 MAX_EXAM_BYTES = 512 * 1024
 MAX_QUESTIONS = 300
 KEEP_DAYS = 7
+COURSE_CREATOR_MIN_TIER = 2
+COURSE_TIER_MESSAGE = (
+    "Creating your own course needs a Tier 2 account or higher. You can still take the courses on "
+    "Siraugga, and I can make you an exam on this topic instead - just ask."
+)
+
+
+def creator_tier(creator: dict = None, is_admin: bool = False) -> int:
+    if is_admin:
+        return 5
+    from agents.tier_limits import get_tier_for_user
+    return get_tier_for_user(creator or {})
+
+
+def _owner_ref(creator: dict, tier: int) -> str:
+    if tier >= 5:
+        return "super-admin"
+    ident = str((creator or {}).get("username") or (creator or {}).get("name") or "")
+    return hashlib.sha256(("course-owner:" + ident).encode("utf-8")).hexdigest()[:16] if ident else ""
+
+
+def _existing_owner(course_id: str):
+    """Owner of an existing course with this id, '' for a legacy course with no owner, None if new."""
+    for out_dir in (COURSES_DIR, os.path.join(DEVCORE_ROOT, "sandbox", "static")):
+        path = os.path.join(out_dir, f"{course_id}.json")
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return str(json.load(f).get("_owner") or "")
+            except Exception:
+                return ""
+    return None
 
 _BLOCK_RE = re.compile(r"\[SAVE_(?:EXAM|COURSE)\]([\s\S]*?)\[/SAVE_(?:EXAM|COURSE)\]", re.IGNORECASE)
 
@@ -53,9 +90,11 @@ def _cleanup_old() -> None:
         pass
 
 
-def save_exam_blocks(text: str) -> list:
-    """Save every [SAVE_EXAM] or [SAVE_COURSE] block in `text`. Returns [{ok, url, title, message, kind}] per block."""
+def save_exam_blocks(text: str, creator: dict = None, is_admin: bool = False) -> list:
+    """Save every [SAVE_EXAM] or [SAVE_COURSE] block in `text`. Returns [{ok, url, title, message, kind}] per block.
+    `creator`/`is_admin` identify who asked; without them courses are refused (fail closed)."""
     results = []
+    tier = creator_tier(creator, is_admin)
     blocks = _BLOCK_RE.findall(text or "")
     if not blocks:
         return results
@@ -74,9 +113,18 @@ def save_exam_blocks(text: str) -> list:
             continue
 
         if isinstance(exam, dict) and (exam.get("mode") == "course" or isinstance(exam.get("modules"), list)):
+            if tier < COURSE_CREATOR_MIN_TIER:
+                results.append({"ok": False, "kind": "course", "message": COURSE_TIER_MESSAGE})
+                continue
             title = str(exam.get("title") or "Interactive Course").strip()[:120] or "Interactive Course"
+            owner = _owner_ref(creator, tier)
             course_id = str(exam.get("course_id") or "").strip()
             course_id = re.sub(r"[^A-Za-z0-9_.-]", "", course_id) or secrets.token_urlsafe(10)
+            current_owner = _existing_owner(course_id)
+            if current_owner is not None and tier < 5 and (not owner or current_owner != owner):
+                course_id = secrets.token_urlsafe(10)
+            exam["course_id"] = course_id
+            exam["_owner"] = owner
             for out_dir in (COURSES_DIR, os.path.join(DEVCORE_ROOT, "sandbox", "static")):
                 try:
                     with open(os.path.join(out_dir, f"{course_id}.json"), "w", encoding="utf-8") as f:
