@@ -2287,6 +2287,110 @@ def local_write_file(workspace_dir: str, rel_path: str, content: str, user: dict
         return False, f"Error writing file {clean_path}: {str(e)}"
 
 
+_WS_SKIP_DIRS = {".git", "node_modules", "__pycache__", "venv", ".venv", ".mypy_cache"}
+
+
+def _ws_inside(workspace_dir: str, rel_path: str):
+    """Resolve rel_path strictly inside the workspace. Returns the real path or None (never outside)."""
+    raw = (rel_path or "").strip().strip('\'"`')
+    if not raw or not workspace_dir:
+        return None
+    base = os.path.realpath(workspace_dir)
+    full = os.path.realpath(os.path.join(base, raw.lstrip("/\\")))
+    if full == base or not full.startswith(base + os.sep):
+        return None
+    return full
+
+
+def local_grep_files(workspace_dir: str, query: str, user: dict = None, sec_mgr=None, max_results: int = 50) -> tuple:
+    """Searches INSIDE the text files of the workspace for a word or phrase (case-insensitive)."""
+    q = (query or "").strip().strip('\'"`')
+    if not q:
+        return False, "Search text cannot be empty."
+    if not workspace_dir or not os.path.isdir(workspace_dir):
+        return False, "Workspace directory does not exist."
+    base = os.path.realpath(workspace_dir)
+    ql = q.lower()
+    hits = []
+    for root, dirs, files in os.walk(base):
+        dirs[:] = [d for d in dirs if d not in _WS_SKIP_DIRS]
+        for fn in sorted(files):
+            fp = os.path.join(root, fn)
+            try:
+                if os.path.islink(fp) or os.path.getsize(fp) > 1_000_000:
+                    continue
+                with open(fp, "r", encoding="utf-8") as f:
+                    for i, line in enumerate(f, 1):
+                        if ql in line.lower():
+                            hits.append(f"{os.path.relpath(fp, base)}:{i}: {line.strip()[:160]}")
+                            if len(hits) >= max_results:
+                                return True, "\n".join(hits) + "\n... (more matches not shown)"
+            except (UnicodeDecodeError, OSError):
+                continue
+    if not hits:
+        return True, f"No file contains '{q}'."
+    return True, "\n".join(hits)
+
+
+def local_replace_in_file(workspace_dir: str, rel_path: str, old: str, new: str, user: dict = None, sec_mgr=None, whole_word: bool = False) -> tuple:
+    """Replaces every occurrence of `old` with `new` in one workspace file."""
+    if not old:
+        return False, "The text to replace cannot be empty."
+    full = _ws_inside(workspace_dir, rel_path)
+    if not full:
+        return False, f"Access Denied: path must be a file inside the workspace ({rel_path})"
+    if not os.path.isfile(full):
+        return False, f"File not found: {rel_path}"
+    try:
+        with open(full, "r", encoding="utf-8") as f:
+            text = f.read()
+        if whole_word:
+            pat = re.compile(r"\b" + re.escape(old) + r"\b")
+            n = len(pat.findall(text))
+        else:
+            pat = None
+            n = text.count(old)
+        if n == 0:
+            return False, f"The text '{old[:60]}' was not found in {rel_path}; nothing changed."
+        with open(full, "w", encoding="utf-8") as f:
+            f.write(pat.sub(lambda _m: new, text) if pat else text.replace(old, new))
+        return True, f"Replaced {n} occurrence(s) in {rel_path}."
+    except Exception as e:
+        return False, f"Error editing {rel_path}: {e}"
+
+
+def local_delete_files(workspace_dir: str, target: str, user: dict = None, sec_mgr=None, max_files: int = 50) -> tuple:
+    """Deletes one file, or every file matching a pattern like *.tmp, but only inside the workspace.
+    Never deletes folders, never the workspace itself, and refuses a bare '*' (delete everything)."""
+    import glob as _glob
+    t = (target or "").strip().strip('\'"`')
+    if not t or t.strip("*/\\. ") == "":
+        return False, "Refusing to delete: give a file name or a pattern like *.tmp (not everything)."
+    base = os.path.realpath(workspace_dir) if workspace_dir else ""
+    if not base or not os.path.isdir(base):
+        return False, "Workspace directory does not exist."
+    if t.startswith("..") or "/../" in t or "\\..\\" in t or os.path.isabs(t):
+        return False, f"Access Denied: path must stay inside the workspace ({t})"
+    matches = _glob.glob(os.path.join(base, t), recursive=True) if any(c in t for c in "*?[") else [os.path.join(base, t)]
+    victims = []
+    for m in matches:
+        full = os.path.realpath(m)
+        if full.startswith(base + os.sep) and os.path.isfile(full):
+            victims.append(full)
+    if not victims:
+        return False, f"No file matches '{t}'; nothing deleted."
+    if len(victims) > max_files:
+        return False, f"Refusing to delete {len(victims)} files at once (limit {max_files})."
+    gone = []
+    for v in victims:
+        try:
+            os.remove(v)
+            gone.append(os.path.relpath(v, base))
+        except OSError as e:
+            return False, f"Error deleting {os.path.relpath(v, base)}: {e}"
+    return True, "Deleted: " + ", ".join(gone)
+
+
 def local_search_files(workspace_dir: str, query: str = "", user: dict = None, sec_mgr = None, max_results: int = 50) -> tuple:
     """Safely searches workspace files recursively matching a filename pattern or query substring. Returns (success: bool, results_str: str)."""
     if not workspace_dir or not os.path.isdir(workspace_dir):
@@ -2629,7 +2733,7 @@ DENIAL_HANDLING_ADDENDUM = (
 LOCAL_AGENT_SYSTEM_PROMPT = (
     "You are the DevCore Local AI Assistant running offline on the user's machine with direct filesystem tools.\n"
     "CRITICAL RULES:\n"
-    "1. You HAVE direct access to search files, browse directories, read files, and write files in the active workspace.\n"
+    "1. You HAVE direct access to search files, browse directories, read files, write files, search inside files, replace text and delete files in the active workspace.\n"
     "2. NEVER apologize, refuse, or claim that you lack filesystem access.\n"
     "3. When the user asks to inspect, search, list, read, or write files or directories, immediately emit a tool call.\n"
     "4. For targeted code inspection, prefer read_symbol over read_file to keep context small and fast.\n"
@@ -2640,7 +2744,10 @@ LOCAL_AGENT_SYSTEM_PROMPT = (
     "- Read symbol/block: `<tool_call>{\"action\": \"read_symbol\", \"path\": \"file.py\", \"symbol\": \"func_name\"}</tool_call>` (or `[READ_SYMBOL: file.py::func_name]`)\n"
     "- Search symbols: `<tool_call>{\"action\": \"search_symbols\", \"query\": \"func_name\"}</tool_call>` (or `[SEARCH_SYMBOLS: query]`)\n"
     "- Write file: `<tool_call>{\"action\": \"write_file\", \"path\": \"filename.ext\", \"content\": \"...\"}</tool_call>` "
-    "(or `[WRITE_FILE: path]content[/WRITE_FILE]`)\n\n"
+    "(or `[WRITE_FILE: path]content[/WRITE_FILE]`)\n"
+    "- Search INSIDE files for text: `<tool_call>{\"action\": \"grep_files\", \"query\": \"some text\"}</tool_call>`\n"
+    "- Replace text in a file: `<tool_call>{\"action\": \"replace_in_file\", \"path\": \"file.ext\", \"old\": \"old text\", \"new\": \"new text\"}</tool_call>`\n"
+    "- Delete a file (or a pattern like *.tmp): `<tool_call>{\"action\": \"delete_file\", \"path\": \"file.ext\"}</tool_call>`\n\n"
     "EXAMPLES:\n"
     "User: search for all python files\n"
     "Assistant: <tool_call>{\"action\": \"search_files\", \"query\": \"*.py\"}</tool_call>\n\n"
@@ -2651,7 +2758,13 @@ LOCAL_AGENT_SYSTEM_PROMPT = (
     "User: read the file lab.py\n"
     "Assistant: <tool_call>{\"action\": \"read_file\", \"path\": \"lab.py\"}</tool_call>\n\n"
     "User: create notes.txt with 'Hello from DevCore'\n"
-    "Assistant: <tool_call>{\"action\": \"write_file\", \"path\": \"notes.txt\", \"content\": \"Hello from DevCore\"}</tool_call>\n"
+    "Assistant: <tool_call>{\"action\": \"write_file\", \"path\": \"notes.txt\", \"content\": \"Hello from DevCore\"}</tool_call>\n\n"
+    "User: which file mentions the word invoice?\n"
+    "Assistant: <tool_call>{\"action\": \"grep_files\", \"query\": \"invoice\"}</tool_call>\n\n"
+    "User: in config.txt change port=80 to port=8080\n"
+    "Assistant: <tool_call>{\"action\": \"replace_in_file\", \"path\": \"config.txt\", \"old\": \"port=80\", \"new\": \"port=8080\"}</tool_call>\n\n"
+    "User: delete old.log\n"
+    "Assistant: <tool_call>{\"action\": \"delete_file\", \"path\": \"old.log\"}</tool_call>\n"
 )
 
 LOCAL_AGENT_SYNTHESIS_SYSTEM = (
@@ -2659,6 +2772,47 @@ LOCAL_AGENT_SYNTHESIS_SYSTEM = (
     "Provide a helpful, clear, and friendly conversational response summarizing the tool results to answer the user's request. "
     "Do not emit any tool calls in this response."
 )
+
+
+_Q = r"""['"`]?"""
+
+
+def parse_grep_intent(prompt: str):
+    """'search my files for the word TODO' / 'which file mentions X' -> (True, 'X')."""
+    clean = (prompt or "").strip()
+    m = re.search(r"(?:search|look|find|grep)\b.*?\b(?:for|containing)\s+(?:the\s+)?(?:word|text|phrase|string)\s+['\"`]?([^'\"`?]+?)['\"`]?(?:\s+and\b.*|\s+in\b.*)?[?.!]?$", clean, re.IGNORECASE)
+    if not m:
+        m = re.search(r"which\s+(?:files?|documents?)\s+(?:mentions?|contains?|has|have|includes?|says?)\s+(?:the\s+)?(?:word\s+|text\s+|phrase\s+)?['\"`]?([^'\"`?]+?)['\"`]?\s*[?.!]?$", clean, re.IGNORECASE)
+    if m and m.group(1).strip():
+        return True, m.group(1).strip()
+    return False, None
+
+
+def parse_replace_intent(prompt: str):
+    """Returns (True, path, old, new, whole_word) for 'in f.txt replace A with B' / 'in f.py rename the function a to b'."""
+    clean = (prompt or "").strip()
+    m = re.search(r"(?:in|inside)\s+['\"`]?([\w./\\-]+\.\w+)['\"`]?,?\s+(?:please\s+)?(?:replace|change)\s+['\"`]?(.+?)['\"`]?\s+(?:with|to|into)\s+['\"`]?(.+?)['\"`]?\s*[.!]?$", clean, re.IGNORECASE)
+    if m:
+        return True, m.group(1), m.group(2), m.group(3), False
+    m = re.search(r"(?:replace)\s+['\"`]?(.+?)['\"`]?\s+with\s+['\"`]?(.+?)['\"`]?\s+(?:in|inside)\s+['\"`]?([\w./\\-]+\.\w+)['\"`]?\s*[.!]?$", clean, re.IGNORECASE)
+    if m:
+        return True, m.group(3), m.group(1), m.group(2), False
+    m = re.search(r"(?:in|inside)\s+['\"`]?([\w./\\-]+\.\w+)['\"`]?,?\s+rename\s+(?:the\s+)?(?:function|variable|class|method)?\s*['\"`]?(\w+)['\"`]?\s+to\s+['\"`]?(\w+)['\"`]?\s*[.!]?$", clean, re.IGNORECASE)
+    if m:
+        return True, m.group(1), m.group(2), m.group(3), True
+    return False, None, None, None, False
+
+
+def parse_delete_intent(prompt: str):
+    """'delete old.log' / 'delete all the .tmp files' -> (True, 'old.log' or '*.tmp')."""
+    clean = (prompt or "").strip()
+    m = re.match(r"^(?:please\s+)?(?:delete|remove)\s+all\s+(?:the\s+)?['\"`]?\*?\.([a-zA-Z0-9]+)['\"`]?\s+files?\s*[.!]?$", clean, re.IGNORECASE)
+    if m:
+        return True, "*." + m.group(1)
+    m = re.match(r"^(?:please\s+)?(?:delete|remove)\s+(?:the\s+)?(?:files?\s+)?['\"`]?([\w./\\*?-]+\.[\w*?]+)['\"`]?\s*[.!]?$", clean, re.IGNORECASE)
+    if m:
+        return True, m.group(1)
+    return False, None
 
 
 def parse_search_intent(prompt: str) -> tuple:
@@ -3215,7 +3369,36 @@ async def execute_local_agent_task(
     file_context_blocks = []
     executed_actions_log = []
 
-    has_search_query, search_target = parse_search_intent(clean_prompt)
+    _tool_intent_done = False
+    _gi, _gq = parse_grep_intent(clean_prompt)
+    _ri, _rp, _ro, _rn, _rw = parse_replace_intent(clean_prompt)
+    _di, _dt = parse_delete_intent(clean_prompt)
+    _jobs = []
+    if _gi:
+        _jobs.append(("grep_files", "Search Inside Files", "\U0001F50E", {"query": _gq}, f"Searched inside files for `{_gq}`",
+                      lambda: local_grep_files(workspace_dir, _gq, user=user, sec_mgr=sec_mgr)))
+    elif _ri:
+        _jobs.append(("replace_in_file", "Replace In File", "\u270F\uFE0F", {"path": _rp, "old": _ro[:60]}, f"Replaced `{_ro[:40]}` in `{_rp}`",
+                      lambda: local_replace_in_file(workspace_dir, _rp, _ro, _rn, user=user, sec_mgr=sec_mgr, whole_word=_rw)))
+    elif _di:
+        _jobs.append(("delete_file", "Delete File", "\U0001F5D1\uFE0F", {"path": _dt}, f"Deleted `{_dt}`",
+                      lambda: local_delete_files(workspace_dir, _dt, user=user, sec_mgr=sec_mgr)))
+    for _tool, _fname, _icon, _params, _label, _run in _jobs:
+        _tool_intent_done = True
+        _ok, _out = _run()
+        act_id = str(uuid.uuid4())[:8]
+        await agent_mgr.broadcast({"type": "action_start", "action": {
+            "id": act_id, "tool": _tool, "params": _params, "status": "running",
+            "friendly_name": _fname, "thought": _label, "announcement": _fname + "..."}})
+        await asyncio.sleep(0.05)
+        await agent_mgr.broadcast({"type": "action_done", "action": {
+            "id": act_id, "tool": _tool, "params": _params, "output": _out[:2000],
+            "duration": 0.05, "status": "done" if _ok else "error",
+            "friendly_name": _fname, "announcement": _fname + (" finished." if _ok else " failed.")}})
+        executed_actions_log.append(f"> {_icon} **{_fname}:** {_label}" + ("" if _ok else f" - failed: {_out[:120]}"))
+        file_context_blocks.append(f"--- {_fname} result ---" + chr(10) + _out)
+
+    has_search_query, search_target = (False, None) if _tool_intent_done else parse_search_intent(clean_prompt)
     if has_search_query:
         s_ok, s_text = local_search_files(workspace_dir, search_target or "*", user=user, sec_mgr=sec_mgr)
         act_id = str(uuid.uuid4())[:8]
@@ -3801,6 +3984,34 @@ async def execute_local_agent_task(
             })
             executed_actions_log.append(f"> 🔍 **Symbols Searched:** `{q}` ({len(matches)} matches)")
             newly_discovered_contexts.append(f"--- Symbol Search Results for '{q}' ---\n{res_str}")
+        elif action in ("grep_files", "search_content", "search_text", "find_in_files", "replace_in_file", "replace_text", "delete_file", "delete_files", "remove_file"):
+            if action in ("grep_files", "search_content", "search_text", "find_in_files"):
+                _tool, _fname, _icon = "grep_files", "Search Inside Files", "🔎"
+                _q = tc_data.get("query") or tc_data.get("text") or tc_data.get("pattern") or ""
+                _ok, _out = local_grep_files(workspace_dir, _q, user=user, sec_mgr=sec_mgr)
+                _params, _label = {"query": _q}, f"Searched inside files for `{_q}`"
+            elif action in ("replace_in_file", "replace_text"):
+                _tool, _fname, _icon = "replace_in_file", "Replace In File", "✏️"
+                _old = tc_data.get("old") or tc_data.get("find") or tc_data.get("old_text") or ""
+                _new = tc_data.get("new") if tc_data.get("new") is not None else (tc_data.get("replace") if tc_data.get("replace") is not None else tc_data.get("new_text", ""))
+                _ok, _out = local_replace_in_file(workspace_dir, path or "", _old, str(_new), user=user, sec_mgr=sec_mgr)
+                _params, _label = {"path": path, "old": _old[:60]}, f"Replaced `{_old[:40]}` in `{path}`"
+            else:
+                _tool, _fname, _icon = "delete_file", "Delete File", "🗑️"
+                _tgt = path or tc_data.get("pattern") or tc_data.get("query") or ""
+                _ok, _out = local_delete_files(workspace_dir, _tgt, user=user, sec_mgr=sec_mgr)
+                _params, _label = {"path": _tgt}, f"Deleted `{_tgt}`"
+            act_id = str(uuid.uuid4())[:8]
+            await agent_mgr.broadcast({"type": "action_start", "action": {
+                "id": act_id, "tool": _tool, "params": _params, "status": "running",
+                "friendly_name": _fname, "thought": _label, "announcement": _fname + "..."}})
+            await asyncio.sleep(0.05)
+            await agent_mgr.broadcast({"type": "action_done", "action": {
+                "id": act_id, "tool": _tool, "params": _params, "output": _out[:2000],
+                "duration": 0.05, "status": "done" if _ok else "error",
+                "friendly_name": _fname, "announcement": _fname + (" finished." if _ok else " failed.")}})
+            executed_actions_log.append(f"> {_icon} **{_fname}:** {_label}" + ("" if _ok else f" - failed: {_out[:120]}"))
+            newly_discovered_contexts.append(f"--- {_fname} result ---" + chr(10) + _out)
         elif action in ("search_files", "find_files", "locate_files"):
             q = tc_data.get("query") or tc_data.get("pattern") or tc_data.get("path") or "*"
             s_ok, s_text = local_search_files(workspace_dir, q, user=user, sec_mgr=sec_mgr)
