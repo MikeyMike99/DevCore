@@ -55,6 +55,10 @@ _REFUSAL_OPENING = re.compile(
     re.I,
 )
 _ALTERNATIVE_OFFERED = re.compile(r"\b(?:instead|you (?:can|could|might)|i can help|i could|try|here'?s)\b|\?", re.I)
+_COURSE_LINK = re.compile(
+    r"(?:(?:https?://)?(?:localhost|127\.0\.0\.1)(?::\d+)?|(?<![A-Za-z0-9_.]))/(?:plugin/)?course(?![A-Za-z0-9_-])",
+    re.I,
+)
 
 
 def _is_bare_refusal(text: str) -> bool:
@@ -115,7 +119,9 @@ class CommsMixin:
 
     async def _ensure_helpful_reply(self, message: dict) -> dict:
         """Guarantees a finished reply is never empty and never a bare refusal: an empty reply gets a
-        next step, and a short refusal with no alternative gets an offer of what can be done instead."""
+        next step, and a short refusal with no alternative gets an offer of what can be done instead.
+        A reply that links to the course (including a localhost link) gets the course embedded in the
+        card, exactly like an exam, so no one is ever sent to localhost or a separate tab."""
         buf = getattr(self, "output_buffer", None)
         text = str(message.get("output") or ("".join(buf) if isinstance(buf, list) else "")).strip()
         if not text:
@@ -128,6 +134,15 @@ class CommsMixin:
                 "\n\nHere's what I can do instead: tell me a little more about what you're trying to achieve "
                 "and I'll suggest the closest thing I can help with, or type `/help` to see everything Siraugga can do."
             )
+        elif _COURSE_LINK.search(text) and 'src="/plugin/course' not in text:
+            from agents import exam_store
+            addition = "\n\n" + exam_store.render_results([{
+                "ok": True,
+                "kind": "course",
+                "url": "/plugin/course?course=alp_phase2_bicep_course&title=ALP%20Phase%202%20Interactive%20Practical%20Course",
+                "title": "ALP Phase 2 Interactive Practical Course",
+                "message": "",
+            }])
         else:
             return message
         if isinstance(buf, list):
