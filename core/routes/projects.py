@@ -291,7 +291,14 @@ def _generate_evidence_manifest(course_id: str, learner_override: str = None) ->
     sandbox_dir = _course_sandbox_dir()
     os.makedirs(sandbox_dir, exist_ok=True)
     course_obj, progress = _load_course_and_progress(course_id)
-    learner = (learner_override or progress.get('learner_name') or 'michael').strip() or 'michael'
+    jailed = _is_learner_box(sandbox_dir)
+    default_learner = 'learner' if jailed else 'michael'
+    learner = (learner_override or progress.get('learner_name') or default_learner).strip() or default_learner
+    env_label = "Private Siraugga course sandbox (isolated, runs on the server)" if jailed else f"`{sandbox_dir}` (`/home/michael/alp-env`)"
+    env_intro = ("This course uses an interactive structured learning environment paired with a private, isolated Siraugga sandbox and `asciinema` terminal recorder:"
+                 if jailed else
+                 "This course uses an interactive structured learning environment paired with a real WSL `alp-env` sandbox and `asciinema` terminal recorder:")
+    env_where = "inside their private course sandbox" if jailed else "inside `/home/michael/alp-env/temp_phase2_sandbox`"
     now_str = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
 
     sections = []
@@ -315,14 +322,14 @@ def _generate_evidence_manifest(course_id: str, learner_override: str = None) ->
         f"- **Learner / Assignee**: {learner}",
         f"- **Course ID**: `{_safe_course_id(course_id)}`",
         f"- **Course Title**: {(course_obj or {}).get('title', 'ALP Phase 2 Interactive Practical Course')}",
-        f"- **Sandbox Environment**: `{sandbox_dir}` (`/home/michael/alp-env`)",
+        f"- **Sandbox Environment**: {env_label}",
         f"- **Generated Timestamp (UTC)**: `{now_str}`",
         "",
         "## 1. Transparent AI Tool Usage & Authorship Disclosure",
         "",
-        "This course uses an interactive structured learning environment paired with a real WSL `alp-env` sandbox and `asciinema` terminal recorder:",
+        env_intro,
         "1. **Pre-Execution Prediction**: Before executing any terminal command or compiling any `.bicep` template, the learner was required to type a prediction in their own words explaining what the step would do and why.",
-        "2. **Hands-On Execution & Asciinema Capture**: Every command and `.bicep` compilation was triggered by the learner inside `/home/michael/alp-env/temp_phase2_sandbox` and recorded into `.cast` and `.txt` transcripts under `evidence/`.",
+        f"2. **Hands-On Execution & Asciinema Capture**: Every command and `.bicep` compilation was triggered by the learner {env_where} and recorded into `.cast` and `.txt` transcripts under `evidence/`.",
         "3. **Continuous Post-Run Reflection & Troubleshooting**: After observing the live compiler/CLI output, the learner wrote an explanation of the result and how to diagnose/fix anticipated common errors for that step.",
         "4. **Anti-Copy-Paste Verification**: Clipboard paste events into prediction and reflection fields were blocked at the UI layer and logged below.",
         "",
@@ -476,9 +483,12 @@ def _append_asciinema_event(cast_path: str, txt_path: str, rec_name: str, comman
         }
         banner = (
             "======================================================\r\n"
-            f"Assignee: michael  |  Session: {rec_name}  |  Date: {date_str}\r\n"
-            "Environment: /home/michael/alp-env  |  Folder: /home/michael/alp-env/temp_phase2_sandbox\r\n"
-            "======================================================\r\n"
+            + (f"Assignee: learner  |  Session: {rec_name}  |  Date: {date_str}\r\n"
+               "Environment: private Siraugga course sandbox (isolated, runs on the server)\r\n"
+               if _is_learner_box(os.path.dirname(os.path.dirname(os.path.dirname(cast_path)))) else
+               f"Assignee: michael  |  Session: {rec_name}  |  Date: {date_str}\r\n"
+               "Environment: /home/michael/alp-env  |  Folder: /home/michael/alp-env/temp_phase2_sandbox\r\n")
+            + "======================================================\r\n"
         )
         with open(cast_path, 'w', encoding='utf-8') as cf:
             cf.write(json.dumps(header) + '\n')
@@ -580,9 +590,9 @@ def _execute_sandbox_sync(recording_name: str, command: str, bicep_file: str = N
             os.remove(cast_path)
         msg = (
             f"TEMPORARY SANDBOX RECORDING ACTIVE\n"
-            f"Cast File : {cast_path}\n"
-            f"Text Log  : {txt_path}\n"
-            f"Watermark : Assignee: michael | Session: {rec_name}\n"
+            f"Cast File : {os.path.relpath(cast_path, sandbox_dir) if jailed else cast_path}\n"
+            f"Text Log  : {os.path.relpath(txt_path, sandbox_dir) if jailed else txt_path}\n"
+            f"Watermark : Assignee: {'learner' if jailed else 'michael'} | Session: {rec_name}\n"
         )
         transcript = _append_asciinema_event(cast_path, txt_path, rec_name, cmd, msg)
         return {"ok": True, "returncode": 0, "output": msg, "transcript": transcript}
