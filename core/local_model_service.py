@@ -26,7 +26,7 @@ from security.subscription_guard import encrypt_credential, decrypt_credential
 from core.digest_pipeline import DigestPipeline, DigestError
 
 LLAMA_CLI = os.path.expanduser("~/.local/llama-cpp/llama-cli")
-MODEL_PATH = os.path.expanduser("~/.local/models/qwen2.5-1.5b-instruct-q4_k_m.gguf")
+MODEL_PATH = os.path.expanduser("~/.local/models/qwen2.5-3b-instruct-q4_k_m.gguf")
 
 # Standalone DevCore does not import the e_profile host config, so load a local
 # .env here too (guarded, idempotent). In plugin mode the host's load_dotenv has
@@ -115,13 +115,19 @@ def resolve_gguf_model_path(model_label: str = "") -> str:
                 if "llama" in f.lower():
                     return os.path.join(models_dir, f)
         elif "qwen" in m_low:
-            for f in fnames:
-                if "qwen" in f.lower():
-                    return os.path.join(models_dir, f)
+            # the biggest Qwen file wins: a bigger model gives far better answers
+            qs = sorted((f for f in fnames if "qwen" in f.lower()),
+                        key=lambda f: os.path.getsize(os.path.join(models_dir, f)), reverse=True)
+            if qs:
+                return os.path.join(models_dir, qs[0])
         for f in fnames:
             stem = os.path.splitext(f)[0].lower()
             if stem and stem in m_low:
                 return os.path.join(models_dir, f)
+        qs = sorted((f for f in fnames if "qwen" in f.lower()),
+                    key=lambda f: os.path.getsize(os.path.join(models_dir, f)), reverse=True)
+        if qs:
+            return os.path.join(models_dir, qs[0])
         if os.path.exists(MODEL_PATH):
             return MODEL_PATH
         return os.path.join(models_dir, fnames[0])
