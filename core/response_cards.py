@@ -363,41 +363,22 @@ def _build_tiers_card(usage_data: dict) -> dict:
 
 
 def _build_course_card() -> dict:
-    guide_path = os.path.join(_repo_root(), "sandbox", "static", "help", "course_guide.md")
-    md = ""
-    if os.path.isfile(guide_path):
-        try:
-            with open(guide_path, "r", encoding="utf-8") as f:
-                md = f.read().strip()
-        except Exception:
-            md = ""
-    if not md:
-        md = "# Practical Course Guide\n\nWork through the step-by-step WSL lab below."
+    """Same rendering as an exam: the course application embedded in the response card."""
+    from agents import exam_store
+    title = "ALP Phase 2 Interactive Practical Course"
+    url = "/plugin/course?course=alp_phase2_bicep_course&title=ALP%20Phase%202%20Interactive%20Practical%20Course"
+    md = exam_store.render_results([{"ok": True, "kind": "course", "url": url, "title": title, "message": ""}])
     return {
         "topic": "course",
-        "sender_label": "Siraugga Help",
+        "sender_label": "Siraugga",
         "model_badge": "Built-in",
         "status_label": "Ready",
-        "title": "Practical Course Guide",
-        "announce": "Practical Course opened in this card",
+        "title": title,
+        "announce": "Interactive course ready",
         "replace_existing": True,
         "markdown": md,
-        "button_groups": [
-            {
-                "title": "Navigate",
-                "buttons": [
-                    _card_btn("⬅️ Back to Help Menu", "menu"),
-                ],
-            }
-        ],
-        "iframes": [
-            {
-                "src": "/plugin/course?course=alp_phase2_bicep_course&title=ALP%20Phase%202%20Interactive%20Practical%20Course",
-                "title": "ALP Phase 2 Interactive Practical Course",
-                "heading": "🎓 ALP Phase 2 Interactive Practical Course",
-                "class_name": "w-full min-h-[780px] border-0 rounded-lg shadow-xl",
-            }
-        ],
+        "button_groups": [],
+        "iframes": [],
     }
 
 
