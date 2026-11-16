@@ -1,9 +1,9 @@
 # Practical Course Guide
 
-The course is a step-by-step lab that runs in its own page. Each section gives you a task, a command to run, and a question to answer before you go on.
+The course is a step-by-step lab that runs right here in this card. Each section gives you a task, a command to run, and a question to answer before you go on.
 
 ## How to start
-- Open the course page: [Open the course (new tab)](/course).
+- The course is below this guide; scroll down to it.
 - Work through the sections in order. Some steps stay locked until you answer the prediction question.
 
 ## Activating the sandbox
