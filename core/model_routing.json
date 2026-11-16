@@ -24,7 +24,7 @@
         "hydrogen": 85,
         "argon": 80,
         "sonnet": 60,
-        "flash": 40,
+        "flash": 30,
         "haiku": 35,
         "gpt-oss": 45
     },

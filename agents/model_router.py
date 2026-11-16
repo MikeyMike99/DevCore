@@ -40,13 +40,16 @@ def _owner_only(path: str) -> None:
 
 GOOGLE_SUFFIX = " · via Google"   # display marker for Claude/GPT models served by the Google subscription
 MODELS_TTL = 3600                 # rediscover models hourly
-USAGE_TTL = 300                   # re-read /usage every 5 minutes
+USAGE_TTL = 600                   # re-read /usage every 10 minutes
 DEFAULT_COOLDOWN = 3600           # quota error without a reset time: retry after 1 hour
 LAST_RESORT = "Gemini 3.8 Flash (High)"   # only used when the CLIs list no models at all
 
 _QUOTA_PATTERNS = (
-    "quota reached", "quota exceeded", "resource_exhausted", "resource exhausted",
-    "rate limit", "rate_limit", "usage limit", "limit reached", "hit your limit",
+    "quota reached", "quota exceeded", "individual quota", "out of quota",
+    "resource_exhausted", "resource exhausted",
+    "rate limit", "rate_limit", "usage limit", "limit reached",
+    "hit your limit", "hit your 5-hour", "5-hour limit", "hour limit",
+    "weekly limit", "session limit", "you've hit your",
     "too many requests", "429", "out of credits", "credit balance",
 )
 
@@ -150,8 +153,8 @@ def _refresh_usage() -> None:
     except Exception:
         pass
     prev = _cache["usage"]
-    # A failed read (CLI busy at startup) keeps the last good data and retries within ~30s
-    at = time.time() if google else time.time() - USAGE_TTL + 30
+    # A failed read (CLI busy at startup) keeps the last good data and retries within ~3 min
+    at = time.time() if google else time.time() - USAGE_TTL + 180
     _cache["usage"].update(at=at, google=google or prev.get("google", []), claude=claude or prev.get("claude", {}))
 
 
@@ -212,7 +215,7 @@ def load_config() -> dict:
 # ---------------- automatic ranking (no model names in code) ----------------
 
 _DEFAULT_STRENGTH = {"opus": 90, "fable": 90, "hydrogen": 85, "argon": 80, "sonnet": 60,
-                     "pro": 70, "flash": 40, "haiku": 35, "gpt-oss": 45}
+                     "pro": 70, "flash": 30, "haiku": 35, "gpt-oss": 45}
 _EFFORT_WORDS = ("xhigh", "high", "medium", "low")
 
 
@@ -256,7 +259,7 @@ def auto_chain(kind: str) -> list:
 
 
 def cheap_chain() -> list:
-    """Every usable model, cheapest first: used for helper work so the strong models' quota is saved."""
+    """Every usable model, cheapest first (preferring google:gemini over scarce pools)."""
     skip = [str(w).lower() for w in (load_config().get("exclude_words") or ["orchestrator"])]
     scored = []
     for label, info in discovered_models().items():
@@ -265,19 +268,21 @@ def cheap_chain() -> list:
         strength, version, effort = _score_parts(label, info)
         if effort == "low":
             continue
-        scored.append((strength, -version, label))
+        pool_pref = 0 if info.get("quota_group") == "google:gemini" else 1
+        scored.append((strength, pool_pref, -version, label))
     scored.sort()
-    return [l for _s, _v, l in scored]
+    return [l for _s, _p, _v, l in scored]
 
 
 def cheapest_model() -> str:
-    """The weakest decent model (economy tier / last resort): lowest strength, at a sensible effort."""
+    """The weakest decent model (economy tier / last resort): lowest strength, preferring google:gemini."""
     best = None
     for label, info in discovered_models().items():
         strength, version, effort = _score_parts(label, info)
         if effort == "low" or "orchestrator" in label.lower():
             continue
-        key = (strength, -version, 0 if effort in ("high", None) else 1)
+        pool_pref = 0 if info.get("quota_group") == "google:gemini" else 1
+        key = (strength, pool_pref, -version, 0 if effort in ("high", None) else 1)
         if best is None or key < best[0]:
             best = (key, label)
     return best[1] if best else None
@@ -404,6 +409,31 @@ def _parse_reset_seconds(text: str) -> int:
                     for n, u in re.findall(r"(\d+)\s*([dhms])", m.group(1).lower()))
         if total > 0:
             return total
+    m_clk = re.search(r"resets?\s+(?:([A-Za-z]{3}\s+\d{1,2}),?\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?", t, re.IGNORECASE)
+    if m_clk:
+        try:
+            now = datetime.datetime.now()
+            hr = int(m_clk.group(2))
+            mn = int(m_clk.group(3) or 0)
+            ampm = (m_clk.group(4) or "").lower()
+            if ampm == "pm" and hr < 12:
+                hr += 12
+            elif ampm == "am" and hr == 12:
+                hr = 0
+            target = now.replace(hour=hr, minute=mn, second=0, microsecond=0)
+            if m_clk.group(1):
+                try:
+                    parsed_d = datetime.datetime.strptime(f"{m_clk.group(1)} {now.year}", "%b %d %Y")
+                    target = target.replace(month=parsed_d.month, day=parsed_d.day)
+                except Exception:
+                    pass
+            if target <= now:
+                target += datetime.timedelta(days=1)
+            secs = int((target - now).total_seconds())
+            if 60 <= secs <= 7 * 86400:
+                return secs
+        except Exception:
+            pass
     m = re.search(r"\|(\d{10})\b", t)
     if m:
         return max(60, int(m.group(1)) - int(time.time()))
@@ -434,8 +464,10 @@ def _usage_exhausted() -> dict:
     if "gemini models" in [r["group"].lower() for r in snap.get("google", []) if r["remaining_pct"] <= 0]:
         out.setdefault("google:argon", out.get("google:gemini", 0))   # Argon is a Gemini model too
     c = snap.get("claude", {})
-    if c.get("session_pct", 0) >= 100 or c.get("week_pct", 0) >= 100:
-        out["claude_sub"] = time.time() + DEFAULT_COOLDOWN
+    if c.get("week_pct", 0) >= 100:
+        out["claude_sub"] = time.time() + _parse_reset_seconds("resets " + str(c.get("week_resets", "")))
+    elif c.get("session_pct", 0) >= 100:
+        out["claude_sub"] = time.time() + _parse_reset_seconds("resets " + str(c.get("session_resets", "")))
     return out
 
 
@@ -566,12 +598,12 @@ def merge_into_picker(models: list) -> list:
     return models
 
 
-MODELS_HEARTBEAT = 300            # seconds between model-list refreshes (no restart needed to see new models)
+MODELS_HEARTBEAT = 1800           # seconds between model-list refreshes (no restart needed to see new models)
 
 
 def _models_heartbeat() -> None:
     """Keep the model list fresh: the CLIs gain/lose models while the server runs."""
-    time.sleep(60)
+    time.sleep(300)
     while True:
         try:
             try:
@@ -585,7 +617,8 @@ def _models_heartbeat() -> None:
         time.sleep(MODELS_HEARTBEAT)
 
 
-threading.Thread(target=_models_heartbeat, name="models-heartbeat", daemon=True).start()
+if not any(t.name == "models-heartbeat" and t.is_alive() for t in threading.enumerate()):
+    threading.Thread(target=_models_heartbeat, name="models-heartbeat", daemon=True).start()
 
 # Warm the caches in the background when the server imports this module
 _in_background("models_warm", lambda: discovered_models())

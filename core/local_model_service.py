@@ -9,8 +9,10 @@ import functools
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
+import threading
 import time
 import uuid
 
@@ -27,6 +29,120 @@ from core.digest_pipeline import DigestPipeline, DigestError
 
 LLAMA_CLI = os.path.expanduser("~/.local/llama-cpp/llama-cli")
 MODEL_PATH = os.path.expanduser("~/.local/models/qwen2.5-3b-instruct-q4_k_m.gguf")
+
+_existing_lms = sys.modules.get(__name__)
+_ACTIVE_CLAUDE_LOCK = getattr(_existing_lms, "_ACTIVE_CLAUDE_LOCK", None) or threading.Lock()
+_ACTIVE_CLAUDE_PROCS = getattr(_existing_lms, "_ACTIVE_CLAUDE_PROCS", None)
+if not isinstance(_ACTIVE_CLAUDE_PROCS, dict):
+    _ACTIVE_CLAUDE_PROCS = {}
+
+CLAUDE_ROLLOVER_MAX_BYTES = int(os.environ.get("DEVCORE_CLAUDE_ROLLOVER_BYTES", str(1_500_000)))
+CLAUDE_ROLLOVER_MAX_TOKENS = int(os.environ.get("DEVCORE_CLAUDE_ROLLOVER_TOKENS", "180000"))
+CLAUDE_ROLLOVER_MAX_TURNS = int(os.environ.get("DEVCORE_CLAUDE_ROLLOVER_TURNS", "40"))
+
+
+class _ClaudeProcHandle:
+    """Lightweight Popen adapter so AgentTaskManager cancel/steer/is_running work for Claude CLI."""
+    def __init__(self, proc, cancel_event: threading.Event):
+        self._proc = proc
+        self.pid = proc.pid
+        self.cancel_event = cancel_event
+
+    @property
+    def returncode(self):
+        return self._proc.poll()
+
+    def kill(self):
+        self.cancel_event.set()
+        try:
+            os.killpg(os.getpgid(self._proc.pid), signal.SIGKILL)
+        except Exception:
+            try:
+                self._proc.kill()
+            except Exception:
+                pass
+
+
+def terminate_active_claude_proc(slot_key: str = None, conversation_id: str = None) -> int:
+    killed = 0
+    keys = [k for k in (slot_key, conversation_id) if k]
+    with _ACTIVE_CLAUDE_LOCK:
+        targets = []
+        for k, handles in list(_ACTIVE_CLAUDE_PROCS.items()):
+            if not keys or k in keys:
+                targets.extend(handles)
+        seen = set()
+        for h in targets:
+            if id(h) in seen:
+                continue
+            seen.add(id(h))
+            if h.returncode is None:
+                h.kill()
+                killed += 1
+    return killed
+
+
+def _claude_rollover_state_path(conversation_id: str) -> str:
+    return os.path.join(os.path.expanduser("~/.gemini/antigravity-cli/brain"), str(conversation_id), ".claude_rollover.json")
+
+
+def _load_claude_rollover_gen(conversation_id: str) -> int:
+    try:
+        with open(_claude_rollover_state_path(conversation_id), "r", encoding="utf-8") as f:
+            return int((json.load(f) or {}).get("gen", 0))
+    except Exception:
+        return 0
+
+
+def _save_claude_rollover_gen(conversation_id: str, gen: int, reason: str = "") -> None:
+    try:
+        p = _claude_rollover_state_path(conversation_id)
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump({"gen": gen, "rolled_at": time.time(), "reason": reason}, f)
+    except Exception:
+        pass
+
+
+def _inspect_claude_session(sess_path: str) -> tuple:
+    """Returns (byte_size, user_turns, last_ctx_tokens, compact_summary)."""
+    try:
+        fsize = os.path.getsize(sess_path)
+    except OSError:
+        return 0, 0, 0, ""
+    user_turns = 0
+    last_ctx = 0
+    snippets = []
+    try:
+        with open(sess_path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                s = line.strip()
+                if not s:
+                    continue
+                try:
+                    d = json.loads(s)
+                except Exception:
+                    continue
+                t = d.get("type")
+                m = d.get("message") or {}
+                if t == "user":
+                    c = m.get("content")
+                    if isinstance(c, str) and c.strip():
+                        user_turns += 1
+                        snippets.append(f"User: {c.strip()[-400:]}")
+                elif t == "assistant":
+                    u = m.get("usage") or {}
+                    ctx = int(u.get("input_tokens", 0)) + int(u.get("cache_read_input_tokens", 0)) + int(u.get("cache_creation_input_tokens", 0))
+                    if ctx > 0:
+                        last_ctx = ctx
+                    c = m.get("content")
+                    if isinstance(c, list):
+                        texts = [b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text" and b.get("text")]
+                        if texts:
+                            snippets.append(f"Assistant: {chr(32).join(texts)[:500]}")
+    except Exception:
+        pass
+    return fsize, user_turns, last_ctx, "\n".join(snippets[-8:])[-4500:]
 
 # Standalone DevCore does not import the e_profile host config, so load a local
 # .env here too (guarded, idempotent). In plugin mode the host's load_dotenv has
@@ -410,6 +526,9 @@ def run_claude_model(
     conversation_id: str = None,
     history: str = "",
     on_event: callable = None,
+    extra_system: str = "",
+    slot_key: str = None,
+    on_proc: callable = None,
 ) -> str:
     """Claude brain entry point. Auto-selects the backend so the app is
     deployment-ready with zero per-call configuration:
@@ -437,7 +556,8 @@ def run_claude_model(
                                model_label, max_tokens, target_label, api_key_override=user_cred)
     return run_claude_cli_model(system_prompt, user_prompt, model_label, max_tokens, target_label,
                                 is_admin=is_admin, user=user, conversation_id=conversation_id,
-                                history=history, on_event=on_event)
+                                history=history, on_event=on_event,
+                                extra_system=extra_system, slot_key=slot_key, on_proc=on_proc)
 
 
 def _with_history(user_prompt: str, history: str) -> str:
@@ -759,6 +879,9 @@ def run_claude_cli_model(
     conversation_id: str = None,
     history: str = "",
     on_event: callable = None,
+    extra_system: str = "",
+    slot_key: str = None,
+    on_proc: callable = None,
 ) -> str:
     """Bring-your-own-subscription path: drives the authenticated `claude` CLI
     (Claude Code) via `claude -p`. No API key required; it uses the existing
@@ -933,36 +1056,81 @@ def run_claude_cli_model(
     # only when the working dir is stable (Tier 5 runs from the repo root) --
     # jailed runs get a fresh cwd each turn, which a resume could not match.
     _resuming = False
+    _rolled_briefing = ""
+    _rollover_notice = ""
     if conversation_id and _jail is None:
         try:
             import glob as _glob
-            _sess_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"devcore-brain:{conversation_id}"))
-            _sess_glob = os.path.expanduser(
-                os.path.join("~", ".claude", "projects", "*", _sess_id + ".jsonl"))
-            if _glob.glob(_sess_glob):
-                cmd += ["--resume", _sess_id]
-                _resuming = True
+            _gen = _load_claude_rollover_gen(conversation_id)
+            def _sid_for_gen(g: int) -> str:
+                seed = f"devcore-brain:{conversation_id}" if g == 0 else f"devcore-brain:{conversation_id}:gen:{g}"
+                return str(uuid.uuid5(uuid.NAMESPACE_URL, seed))
+            _sess_id = _sid_for_gen(_gen)
+            _sess_glob = os.path.expanduser(os.path.join("~", ".claude", "projects", "*", _sess_id + ".jsonl"))
+            _found_files = _glob.glob(_sess_glob)
+            if _found_files:
+                _fsize, _uturns, _ctx_tok, _sess_tail = _inspect_claude_session(_found_files[0])
+                _reasons = []
+                if _fsize > CLAUDE_ROLLOVER_MAX_BYTES:
+                    _reasons.append(f"{_fsize // 1024}KB")
+                if _ctx_tok > CLAUDE_ROLLOVER_MAX_TOKENS:
+                    _reasons.append(f"{_ctx_tok:,} context tokens")
+                if _uturns >= CLAUDE_ROLLOVER_MAX_TURNS:
+                    _reasons.append(f"{_uturns} turns")
+                if _reasons:
+                    while True:
+                        _gen += 1
+                        _sess_id = _sid_for_gen(_gen)
+                        _next_glob = os.path.expanduser(os.path.join("~", ".claude", "projects", "*", _sess_id + ".jsonl"))
+                        if not _glob.glob(_next_glob):
+                            break
+                    _save_claude_rollover_gen(conversation_id, _gen, ", ".join(_reasons))
+                    _summary_src = (history or _sess_tail or "").strip()[-4500:]
+                    if _summary_src:
+                        _rolled_briefing = (
+                            "<CONTEXT_SUMMARY>Previous session rolled over for quota efficiency ("
+                            + ", ".join(_reasons) + "). Continue seamlessly from recent turns:\n"
+                            + _summary_src + "\n</CONTEXT_SUMMARY>"
+                        )
+                    _rollover_notice = f"🔄 Claude session automatically rolled over ({", ".join(_reasons)}); recent context preserved."
+                    cmd += ["--session-id", _sess_id]
+                    _resuming = False
+                else:
+                    cmd += ["--resume", _sess_id]
+                    _resuming = True
             else:
                 cmd += ["--session-id", _sess_id]
         except Exception:
             pass
 
-    # A resumed session already holds every prior turn (with its tool calls), so
-    # re-sending the transcript would give the model the history twice. Cold
-    # sessions (first turn, jailed runs) still need it.
+    # Fresh sessions get rules/skills ONCE via --append-system-prompt (never duplicated inside
+    # every user turn on --resume, which previously blew up context to 700k+ tokens).
     if not _resuming:
-        user_prompt = _with_history(user_prompt, history)
-    prompt = f"{system_prompt}\n\n{user_prompt}" if system_prompt else user_prompt
-    if allowed:
-        # The CLI hides Claude's thinking text, so ask it to narrate instead. The reader below shows the sentence
-        # written before each tool call in the chat's "Agent Reasoning" box (the final answer stays separate).
-        prompt = (
-            "WORKING STYLE: narrate as you work. Before every tool call, write one short plain sentence saying what "
-            "you are about to do and why. If a result changes your plan, say so in one sentence. Do not narrate "
-            "inside the final answer; keep that clear and concise." + chr(10) * 2 + prompt
-        )
+        _sys_parts = []
+        if allowed:
+            _sys_parts.append(
+                "WORKING STYLE: narrate as you work. Before every tool call, write one short plain sentence saying what "
+                "you are about to do and why. If a result changes your plan, say so in one sentence. Do not narrate "
+                "inside the final answer; keep that clear and concise."
+            )
+        if system_prompt:
+            _sys_parts.append(system_prompt)
+        if extra_system:
+            _sys_parts.append(extra_system)
+        _full_sys = "\n\n".join(p for p in _sys_parts if p).strip()
+        if _full_sys:
+            if len(_full_sys.encode("utf-8")) <= 96000:
+                cmd += ["--append-system-prompt", _full_sys]
+            else:
+                user_prompt = f"{_full_sys}\n\n{user_prompt}"
+        if _rolled_briefing:
+            prompt = f"{_rolled_briefing}\n\nCURRENT REQUEST:\n{user_prompt}"
+        else:
+            prompt = _with_history(user_prompt, history)
+    else:
+        prompt = f"{extra_system}\n\n{user_prompt}" if extra_system else user_prompt
 
-    state = {"last": time.monotonic(), "result": None, "is_error": False, "text": [],
+    state = {"last": time.monotonic(), "result": None, "is_error": False, "error_code": None, "text": [],
              "pending": None, "thoughts": []}
     stderr_lines = []
 
@@ -1002,6 +1170,8 @@ def run_claude_cli_model(
                 state["text"].append(line)
                 continue
             evt_type = evt.get("type")
+            if evt.get("error"):
+                state["error_code"] = evt.get("error")
             if evt_type == "result":
                 _flush_answer()
                 state["result"] = evt.get("result") or ""
@@ -1086,8 +1256,14 @@ def run_claude_cli_model(
     # of the permissions is caught in the log.
     _audit_brain_access(identity, model_id, _cwd, allowed, _full_access)
 
+    if _rollover_notice:
+        _emit({"type": "system", "level": "info", "message": _rollover_notice})
+
     timed_out = None
     proc = None
+    cancel_event = threading.Event()
+    proc_handle = None
+    reg_keys = [k for k in (slot_key, conversation_id) if k]
     try:
         _env = dict(os.environ)
         # Ask Claude to think before acting so its reasoning can be shown in the chat (0 turns it off).
@@ -1100,7 +1276,18 @@ def run_claude_cli_model(
             text=True,
             cwd=_cwd,
             env=_env,
+            start_new_session=True,
         )
+        proc_handle = _ClaudeProcHandle(proc, cancel_event)
+        if reg_keys:
+            with _ACTIVE_CLAUDE_LOCK:
+                for rk in reg_keys:
+                    _ACTIVE_CLAUDE_PROCS.setdefault(rk, []).append(proc_handle)
+        if on_proc:
+            try:
+                on_proc(proc_handle)
+            except Exception:
+                pass
         threads = [
             threading.Thread(target=_read_stdout_all, args=(proc.stdout,), daemon=True),
             threading.Thread(target=_read_stderr, args=(proc.stderr,), daemon=True),
@@ -1110,27 +1297,48 @@ def run_claude_cli_model(
             t.start()
         started = time.monotonic()
         while proc.poll() is None:
-            time.sleep(1.0)
+            time.sleep(0.5)
+            if cancel_event.is_set():
+                proc_handle.kill()
+                break
             now = time.monotonic()
             if now - started > _timeout:
                 timed_out = f"hit the {_timeout}s absolute ceiling"
             elif now - state["last"] > _idle_limit:
                 timed_out = f"went idle for {_idle_limit}s with no activity"
             if timed_out:
-                proc.kill()
+                proc_handle.kill()
                 break
         proc.wait()
         for t in threads[:2]:
             t.join(timeout=5)
     except Exception as e:
-        if proc is not None and proc.poll() is None:
+        if proc_handle is not None and proc_handle.returncode is None:
+            proc_handle.kill()
+        elif proc is not None and proc.poll() is None:
             proc.kill()
         return f"[LOCAL_BRAIN_ERROR] Claude CLI invocation failed: {e}"
     finally:
+        if proc_handle is not None and reg_keys:
+            with _ACTIVE_CLAUDE_LOCK:
+                for rk in reg_keys:
+                    lst = _ACTIVE_CLAUDE_PROCS.get(rk)
+                    if lst and proc_handle in lst:
+                        lst.remove(proc_handle)
+                    if not lst:
+                        _ACTIVE_CLAUDE_PROCS.pop(rk, None)
+        if on_proc:
+            try:
+                on_proc(None)
+            except Exception:
+                pass
         if _raugus_mcp:
             shutil.rmtree(os.path.dirname(_raugus_mcp), ignore_errors=True)
         if _jail:
             shutil.rmtree(_jail, ignore_errors=True)
+
+    if cancel_event.is_set():
+        return "[LOCAL_BRAIN_CANCELLED] Cancelled."
 
     if timed_out:
         return (
@@ -1148,7 +1356,9 @@ def run_claude_cli_model(
             "[LOCAL_BRAIN_UNAVAILABLE] Claude is not logged in. Run `claude /login` "
             "once in a terminal to connect your subscription, then try again."
         )
-    if proc.returncode != 0 or state["is_error"] or not out:
+    if proc.returncode != 0 or state["is_error"] or not out or state.get("error_code") in ("rate_limit", "quota_exceeded", "usage_limit"):
+        if state.get("error_code") in ("rate_limit", "quota_exceeded", "usage_limit"):
+            return f"[LOCAL_BRAIN_QUOTA] {err or out or state['error_code']}"
         try:
             from agents.model_router import is_quota_error
             if is_quota_error(combined):
@@ -2773,6 +2983,12 @@ LOCAL_AGENT_SYNTHESIS_SYSTEM = (
     "Do not emit any tool calls in this response."
 )
 
+CLAUDE_AGENT_SYSTEM_PROMPT = (
+    "You are Siraugga AI. Use your available native tools and Raugus Resolver MCP tools "
+    "(preferring read_by_key, get_block_by_tag, and write_by_key for code) when inspecting or updating files. "
+    "Keep responses clear, accurate, and concise."
+)
+
 
 _Q = r"""['"`]?"""
 
@@ -3590,7 +3806,7 @@ async def execute_local_agent_task(
         system_prompt = LOCAL_AGENT_SYNTHESIS_SYSTEM
         query_payload = f"WORKSPACE FILE CONTENT:\n{file_context_str}\n\nUSER REQUEST:\n{clean_prompt}{write_hint}"
     else:
-        system_prompt = LOCAL_AGENT_SYSTEM_PROMPT
+        system_prompt = CLAUDE_AGENT_SYSTEM_PROMPT if is_claude else LOCAL_AGENT_SYSTEM_PROMPT
         query_payload = f"{clean_prompt}{write_hint}"
 
     # Load the same project rules (GEMINI.md) and skills (.agents/skills/*/SKILL.md)
@@ -3608,7 +3824,7 @@ async def execute_local_agent_task(
     # How to behave when any action is blocked (find alternatives / escalate to the
     # super-admin) instead of surfacing a raw denial.
     system_prompt = system_prompt + DENIAL_HANDLING_ADDENDUM
-    if extra_system:
+    if extra_system and not is_claude:
         system_prompt = system_prompt + "\n\n" + extra_system
 
     # Tell the brain it has full host access when the operator is a super-admin.
@@ -3654,6 +3870,15 @@ async def execute_local_agent_task(
                 streamed_any_chunks = True
             asyncio.run_coroutine_threadsafe(agent_mgr.broadcast(evt), loop)
 
+        _slot_key = (user.get("_slot_key") if isinstance(user, dict) else None) or (
+            agent_mgr.get_task_context() if hasattr(agent_mgr, "get_task_context") else None
+        )
+        _bound_slot = agent_mgr._get_slot(_slot_key) if hasattr(agent_mgr, "_get_slot") else None
+
+        def _set_claude_proc(p):
+            if isinstance(_bound_slot, dict):
+                _bound_slot["active_proc"] = p
+
         response = await loop.run_in_executor(None, contextvars.copy_context().run,
             functools.partial(
                 run_claude_model,
@@ -3667,8 +3892,14 @@ async def execute_local_agent_task(
                 conversation_id=conversation_id,
                 history=history_str,
                 on_event=_forward_claude_event,
+                extra_system=extra_system,
+                slot_key=_slot_key,
+                on_proc=_set_claude_proc,
             ),
         )
+
+        if isinstance(response, str) and response.startswith("[LOCAL_BRAIN_CANCELLED]"):
+            return
 
         # Out of quota: hand back to the router (no "done" sent) so the next best model takes over
         if allow_fallback and isinstance(response, str) and response.startswith("[LOCAL_BRAIN_QUOTA]"):

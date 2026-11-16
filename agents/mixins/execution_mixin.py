@@ -561,7 +561,10 @@ class ExecutionMixin:
         if rating == 1:
             chosen = cheap[0] if cheap else None
         elif rating == 2:
-            chosen = cheap[len(cheap) // 2] if cheap else None
+            mid_gemini = [m for m in mr.HEAVY_CHAIN if mr.family(m) == "google:gemini" and mr.is_available(m)]
+            chosen = next((m for m in mid_gemini if "medium" in m.lower() or "flash" in m.lower()), None)
+            if not chosen:
+                chosen = cheap[len(cheap) // 2] if cheap else (mid_gemini[0] if mid_gemini else None)
         else:
             chosen = best[0] if best else None
         chosen = chosen or mr.pick(mr.HEAVY_CHAIN) or mr.pick(mr.LIGHT_CHAIN) or mr.FLASH
@@ -610,14 +613,28 @@ class ExecutionMixin:
         else:
             # A model we already know is out of quota: go straight to the next best one instead of failing first
             from agents import model_router
-            if model in model_router.configured_models() and not model_router.is_available(model):
+            _is_local_hint = isinstance(model, str) and (
+                model.startswith("Local ") or model.lower().startswith("ollama:")
+                or "ollama" in model.lower() or "(offline)" in model.lower()
+            )
+            if not _is_local_hint and not model_router.is_available(model):
                 nxt = model_router.next_after(model, tried=_tried_models)
                 if nxt:
                     back = model_router.status().get(model_router.family(model), {}).get("available_in_s", 0)
+                    wait_lbl = f"about {max(1, round(back / 3600))}h" if back >= 3600 else f"about {max(1, back // 60)}m"
                     await self.broadcast({"type": "smart_route", "fallback_model": nxt,
-                                          "message": f"{model} is out of quota (back in about {max(1, back // 3600)}h); using {nxt}."})
+                                          "message": f"{model} is out of quota (back in {wait_lbl}); using {nxt}."})
                     model = nxt
                     self.current_model = model
+                elif not _model_retry:
+                    msg = f"⚠️ {model} is out of quota right now and all fallback cloud models are exhausted. Switch to a local offline model or try again later."
+                    self.output_buffer.append(msg)
+                    await self.broadcast({"type": "agent_chunk", "chunk": msg})
+                    await self.broadcast({"type": "agent_done", "exit_code": 1, "elapsed": 0.1, "status": "HALTED", "output": msg, "cancelled": False})
+                    hb_task.cancel()
+                    self.active_task = None
+                    self.start_time = None
+                    return
 
         base_dir = str(Path(__file__).resolve().parent.parent.parent)
         cache_file = Path(base_dir) / "core" / ".available_models_cache.json"
@@ -826,13 +843,13 @@ class ExecutionMixin:
                                 or os.environ.get("GEMINI_MODEL", "")
                             ).lower()
                             is_large_context = any(m in active_model for m in ("flash", "pro", "gemini", "claude", "gpt-4"))
-                            rollover_token_limit = 500000 if is_large_context else 350000
+                            rollover_token_limit = 240000 if is_large_context else 180000
 
                         env_turn_limit = os.environ.get("SESSION_ROLLOVER_TURN_LIMIT")
-                        rollover_turn_limit = int(env_turn_limit) if env_turn_limit and env_turn_limit.isdigit() else 150
+                        rollover_turn_limit = int(env_turn_limit) if env_turn_limit and env_turn_limit.isdigit() else 60
 
                         env_step_limit = os.environ.get("SESSION_ROLLOVER_STEP_LIMIT")
-                        rollover_step_limit = int(env_step_limit) if env_step_limit and env_step_limit.isdigit() else 400
+                        rollover_step_limit = int(env_step_limit) if env_step_limit and env_step_limit.isdigit() else 200
 
                         followup_tokens = ("yes", "no", "ok", "okay", "continue", "proceed", "test", "verify", "check", "fix", "why", "how", "wait")
                         prompt_lower = (prompt or "").strip().lower()
@@ -1869,6 +1886,30 @@ class ExecutionMixin:
             was_cancelled = False
             has_valid_output = bool("".join(self.output_buffer).strip())
 
+            if proc.returncode != 0 and not was_steered:
+                err_text = "\n".join(non_json_lines).strip()
+                if err_text and not is_claude:
+                    from agents import model_router as _mrq
+                    if _mrq.is_quota_error(err_text):
+                        _mrq.mark_exhausted(model, err_text)
+                        q_tried = tuple(_tried_models) + (model,)
+                        nxt_q = _mrq.next_after(model, tried=q_tried)
+                        if nxt_q:
+                            self.current_model = nxt_q
+                            self.output_buffer = []
+                            await self.broadcast({"type": "model_fallback", "fallback_model": nxt_q,
+                                                  "message": f"{model} has run out of quota; continuing with {nxt_q}."})
+                            hb_task.cancel()
+                            if "watchdog_task" in locals() and not watchdog_task.done():
+                                watchdog_task.cancel()
+                            await self._execute_agent(
+                                _mrq.handoff_prompt(raw_user_prompt, "".join(self.output_buffer), model),
+                                nxt_q, task_time, conversation_id, user=user, admin_override=admin_override,
+                                _from_steer_or_queue=_from_steer_or_queue, _model_retry=True,
+                                _recovery_retry=_recovery_retry, _skip_timeout_flag=_skip_timeout_flag,
+                                _tried_models=q_tried,
+                            )
+                            return
             if proc.returncode != 0 and not was_steered and _recovery_retry < 2:
                 err_text = "\n".join(non_json_lines).strip()
                 is_code_2 = (proc.returncode == 2)
@@ -2420,6 +2461,11 @@ class ExecutionMixin:
             self._steering_interrupt = True
             old_task = self.active_task
             try:
+                try:
+                    from core.local_model_service import terminate_active_claude_proc
+                    terminate_active_claude_proc(slot_key=slot_key, conversation_id=active_conv_id)
+                except Exception:
+                    pass
                 if self.active_proc and self.active_proc.returncode is None:
                     try:
                         if sys.platform == "win32":
@@ -2510,6 +2556,12 @@ class ExecutionMixin:
         if getattr(self, "queued_prompts", None):
             self.queued_prompts = []
             await self._broadcast_queue_state()
+
+        try:
+            from core.local_model_service import terminate_active_claude_proc
+            terminate_active_claude_proc(slot_key=slot_key, conversation_id=getattr(self, "current_conversation_id", None))
+        except Exception:
+            pass
 
         if self.is_running(slot_key) and self.active_proc:
             try:

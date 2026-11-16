@@ -1,7 +1,15 @@
 import importlib
+import sys as _sys_am
 from .mixins import comms_mixin as _cm_mod
 from .mixins import execution_mixin as _em_mod
 from .mixins import transcript_mixin as _tm_mod
+if "_AGENT_MANAGER_LOADED" in globals():
+    for _m in (_cm_mod, _em_mod, _tm_mod):
+        importlib.reload(_m)
+    for _extra_name in ("agents.model_router", "core.local_model_service"):
+        if _extra_name in _sys_am.modules:
+            importlib.reload(_sys_am.modules[_extra_name])
+_AGENT_MANAGER_LOADED = True
 
 from .mixins.comms_mixin import CommsMixin, _TASK_OWNER_CTX, _owners_match, _normalize_base_owner
 from .mixins.execution_mixin import ExecutionMixin

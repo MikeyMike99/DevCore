@@ -33881,7 +33881,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "07ed89ba560b",
+        "content_hash": "cb3b435f7a7f",
         "id": "23456f2e-02b1-49b5-b819-f8deb74d913a"
     },
     "devcore.agents.mixins.comms_mixin.py::_existing_cm": {
@@ -33984,9 +33984,9 @@
         "type": "class",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "CommsMixin",
-        "start_line": 50,
-        "end_line": 148,
-        "content_hash": "e2166c288674",
+        "start_line": 69,
+        "end_line": 207,
+        "content_hash": "200e2cbea851",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -34000,8 +34000,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "set_task_context",
-        "start_line": 53,
-        "end_line": 56,
+        "start_line": 72,
+        "end_line": 75,
         "content_hash": "c12e484c663c",
         "required_tier": 5,
         "sensitive": false,
@@ -34017,8 +34017,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "get_task_context",
-        "start_line": 58,
-        "end_line": 59,
+        "start_line": 77,
+        "end_line": 78,
         "content_hash": "bc8f301f7605",
         "required_tier": 5,
         "sensitive": false,
@@ -34034,8 +34034,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "set_dev_task",
-        "start_line": 61,
-        "end_line": 62,
+        "start_line": 80,
+        "end_line": 81,
         "content_hash": "e810416b234d",
         "required_tier": 5,
         "sensitive": false,
@@ -34051,9 +34051,9 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "broadcast",
-        "start_line": 64,
-        "end_line": 97,
-        "content_hash": "88c08c7acad5",
+        "start_line": 83,
+        "end_line": 118,
+        "content_hash": "46c2f5fb84f7",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -34068,8 +34068,8 @@
         "type": "method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "handle_ack",
-        "start_line": 99,
-        "end_line": 100,
+        "start_line": 158,
+        "end_line": 159,
         "content_hash": "65acd35e2eb0",
         "required_tier": 5,
         "sensitive": false,
@@ -34085,8 +34085,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "sync_client",
-        "start_line": 102,
-        "end_line": 138,
+        "start_line": 161,
+        "end_line": 197,
         "content_hash": "09554234c981",
         "required_tier": 5,
         "sensitive": false,
@@ -34102,8 +34102,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "register_client",
-        "start_line": 140,
-        "end_line": 141,
+        "start_line": 199,
+        "end_line": 200,
         "content_hash": "b2d907f0a775",
         "required_tier": 5,
         "sensitive": false,
@@ -34119,8 +34119,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "authenticate_client",
-        "start_line": 143,
-        "end_line": 145,
+        "start_line": 202,
+        "end_line": 204,
         "content_hash": "83a0a5bf2392",
         "required_tier": 5,
         "sensitive": false,
@@ -34136,8 +34136,8 @@
         "type": "async_method",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
         "symbol_name": "unregister_client",
-        "start_line": 147,
-        "end_line": 148,
+        "start_line": 206,
+        "end_line": 207,
         "content_hash": "e2fb8f7599cb",
         "required_tier": 5,
         "sensitive": false,
@@ -39934,7 +39934,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "b9797dd4fd5f",
+        "content_hash": "b3b48a3627cf",
         "id": "50887ace-8472-4a88-ae5f-6ee6eebe5838"
     },
     "devcore.core.network_auditor.py": {
@@ -59291,15 +59291,15 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "274881b73d3b",
+        "content_hash": "e5d01dc834d1",
         "id": "99f7683a-e032-4a33-b066-e9878dd3918d"
     },
     "devcore.core.routes.projects.py::projects_bp": {
         "type": "variable",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "projects_bp",
-        "start_line": 13,
-        "end_line": 13,
+        "start_line": 15,
+        "end_line": 15,
         "content_hash": "9d1aabd73156",
         "required_tier": 5,
         "sensitive": false,
@@ -59314,8 +59314,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "list_projects",
-        "start_line": 17,
-        "end_line": 23,
+        "start_line": 76,
+        "end_line": 82,
         "content_hash": "6704756a61c9",
         "required_tier": 5,
         "sensitive": false,
@@ -59330,8 +59330,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "create_project",
-        "start_line": 27,
-        "end_line": 38,
+        "start_line": 86,
+        "end_line": 97,
         "content_hash": "cde85db08bd0",
         "required_tier": 5,
         "sensitive": false,
@@ -59346,8 +59346,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "set_active_project",
-        "start_line": 42,
-        "end_line": 55,
+        "start_line": 101,
+        "end_line": 114,
         "content_hash": "e8aa1185e0f1",
         "required_tier": 5,
         "sensitive": false,
@@ -59362,8 +59362,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "list_conversations",
-        "start_line": 59,
-        "end_line": 72,
+        "start_line": 118,
+        "end_line": 131,
         "content_hash": "e8d9873a1030",
         "required_tier": 5,
         "sensitive": false,
@@ -59378,8 +59378,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "get_conversation",
-        "start_line": 76,
-        "end_line": 93,
+        "start_line": 135,
+        "end_line": 152,
         "content_hash": "c7c7a8db6e68",
         "required_tier": 5,
         "sensitive": false,
@@ -59394,8 +59394,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "rename_conversation",
-        "start_line": 97,
-        "end_line": 111,
+        "start_line": 156,
+        "end_line": 170,
         "content_hash": "e121c8fed5b9",
         "required_tier": 5,
         "sensitive": false,
@@ -59410,8 +59410,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "delete_conversation",
-        "start_line": 115,
-        "end_line": 126,
+        "start_line": 174,
+        "end_line": 185,
         "content_hash": "923c79d59ec7",
         "required_tier": 5,
         "sensitive": false,
@@ -59426,8 +59426,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "clear_project_sessions",
-        "start_line": 130,
-        "end_line": 142,
+        "start_line": 189,
+        "end_line": 201,
         "content_hash": "f5b18e6b6e3a",
         "required_tier": 5,
         "sensitive": false,
@@ -59442,8 +59442,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_course_repo_root",
-        "start_line": 145,
-        "end_line": 146,
+        "start_line": 204,
+        "end_line": 205,
         "content_hash": "334a9058da09",
         "required_tier": 5,
         "sensitive": false,
@@ -59458,8 +59458,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_safe_course_id",
-        "start_line": 149,
-        "end_line": 153,
+        "start_line": 208,
+        "end_line": 212,
         "content_hash": "654a9087f22b",
         "required_tier": 5,
         "sensitive": false,
@@ -59474,9 +59474,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_progress_paths",
-        "start_line": 156,
-        "end_line": 164,
-        "content_hash": "1a3145a87a1e",
+        "start_line": 215,
+        "end_line": 226,
+        "content_hash": "dec8f4ed2d27",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59490,9 +59490,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_load_course_and_progress",
-        "start_line": 167,
-        "end_line": 202,
-        "content_hash": "754e069a6e3c",
+        "start_line": 229,
+        "end_line": 264,
+        "content_hash": "690d839b59bd",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59506,8 +59506,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_save_progress_sync",
-        "start_line": 205,
-        "end_line": 225,
+        "start_line": 267,
+        "end_line": 287,
         "content_hash": "c259a4efcd2a",
         "required_tier": 5,
         "sensitive": false,
@@ -59522,9 +59522,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_generate_evidence_manifest",
-        "start_line": 228,
-        "end_line": 355,
-        "content_hash": "7946111ca341",
+        "start_line": 290,
+        "end_line": 417,
+        "content_hash": "44f3e0aedb42",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59538,8 +59538,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "course_page",
-        "start_line": 360,
-        "end_line": 371,
+        "start_line": 422,
+        "end_line": 433,
         "content_hash": "35e086a13494",
         "required_tier": 5,
         "sensitive": false,
@@ -59554,8 +59554,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_data",
-        "start_line": 375,
-        "end_line": 381,
+        "start_line": 437,
+        "end_line": 443,
         "content_hash": "0dd7acd74215",
         "required_tier": 5,
         "sensitive": false,
@@ -59570,8 +59570,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_progress",
-        "start_line": 385,
-        "end_line": 399,
+        "start_line": 447,
+        "end_line": 461,
         "content_hash": "b724a9229e42",
         "required_tier": 5,
         "sensitive": false,
@@ -59586,8 +59586,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_append_asciinema_event",
-        "start_line": 402,
-        "end_line": 476,
+        "start_line": 464,
+        "end_line": 538,
         "content_hash": "449b21dc6e1a",
         "required_tier": 5,
         "sensitive": false,
@@ -59602,9 +59602,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_execute_sandbox_sync",
-        "start_line": 479,
-        "end_line": 563,
-        "content_hash": "8bb1f449af07",
+        "start_line": 541,
+        "end_line": 632,
+        "content_hash": "20b56d54c451",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59618,9 +59618,9 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_execute",
-        "start_line": 567,
-        "end_line": 588,
-        "content_hash": "87a8eeb03ccb",
+        "start_line": 636,
+        "end_line": 676,
+        "content_hash": "65543f511ed3",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59634,9 +59634,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_record_reflection_sync",
-        "start_line": 591,
-        "end_line": 643,
-        "content_hash": "1f671469199e",
+        "start_line": 679,
+        "end_line": 731,
+        "content_hash": "1494a728ce78",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59650,8 +59650,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_reflect",
-        "start_line": 647,
-        "end_line": 654,
+        "start_line": 735,
+        "end_line": 742,
         "content_hash": "0f68b136240b",
         "required_tier": 5,
         "sensitive": false,
@@ -59666,9 +59666,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "_build_export_bundle_sync",
-        "start_line": 657,
-        "end_line": 674,
-        "content_hash": "bed3c52b8a79",
+        "start_line": 745,
+        "end_line": 762,
+        "content_hash": "f37b6cff18a3",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -59682,8 +59682,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_export",
-        "start_line": 678,
-        "end_line": 707,
+        "start_line": 766,
+        "end_line": 795,
         "content_hash": "cb0c26124ec4",
         "required_tier": 5,
         "sensitive": false,
@@ -184223,7 +184223,7 @@
             "write": true,
             "execute": false
         },
-        "content_hash": "ec142dc8619c",
+        "content_hash": "cbdcd1c0de32",
         "id": "218dfd7f-9bf3-47cf-9af0-17c95d48d94a"
     },
     "devcore.playground.e_profile.update_cyber_feed.py": {
@@ -545939,7 +545939,7 @@
             "write": false,
             "execute": false
         },
-        "content_hash": "fdd319b9c922",
+        "content_hash": "63197b94478e",
         "id": "b63d07df-a368-4140-8bda-842537ba5b4d"
     },
     "devcore.services.cyberbrief.story_agent_dispatcher.py::CACHE_DIR": {
@@ -546250,9 +546250,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "generate_story_with_claude",
-        "start_line": 242,
-        "end_line": 291,
-        "content_hash": "8ca23197108c",
+        "start_line": 253,
+        "end_line": 302,
+        "content_hash": "f206a973cb19",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -546266,9 +546266,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "generate_story_with_antigravity",
-        "start_line": 294,
-        "end_line": 333,
-        "content_hash": "d70627f0f47b",
+        "start_line": 305,
+        "end_line": 344,
+        "content_hash": "07d27c282601",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -546282,8 +546282,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "generate_builtin_appetite_story",
-        "start_line": 336,
-        "end_line": 482,
+        "start_line": 347,
+        "end_line": 493,
         "content_hash": "a174959ccca6",
         "required_tier": 5,
         "sensitive": false,
@@ -546298,8 +546298,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "_read_json_file",
-        "start_line": 485,
-        "end_line": 492,
+        "start_line": 496,
+        "end_line": 503,
         "content_hash": "bd3235981260",
         "required_tier": 5,
         "sensitive": false,
@@ -546314,8 +546314,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "_write_json_file",
-        "start_line": 495,
-        "end_line": 500,
+        "start_line": 506,
+        "end_line": 511,
         "content_hash": "265d15218253",
         "required_tier": 5,
         "sensitive": false,
@@ -546330,8 +546330,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "get_story_appetite_status",
-        "start_line": 503,
-        "end_line": 526,
+        "start_line": 514,
+        "end_line": 537,
         "content_hash": "ea9d66f960be",
         "required_tier": 5,
         "sensitive": false,
@@ -546346,8 +546346,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "set_story_appetite_status",
-        "start_line": 529,
-        "end_line": 539,
+        "start_line": 540,
+        "end_line": 550,
         "content_hash": "26ebe6888e7e",
         "required_tier": 5,
         "sensitive": false,
@@ -546362,8 +546362,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "record_pending_appetite_delivery",
-        "start_line": 542,
-        "end_line": 588,
+        "start_line": 553,
+        "end_line": 599,
         "content_hash": "973f8b9d7643",
         "required_tier": 5,
         "sensitive": false,
@@ -546378,8 +546378,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "deliver_pending_appetites_for_story",
-        "start_line": 591,
-        "end_line": 631,
+        "start_line": 602,
+        "end_line": 642,
         "content_hash": "5fda067f8aec",
         "required_tier": 5,
         "sensitive": false,
@@ -546394,9 +546394,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "process_pending_email_backlog",
-        "start_line": 634,
-        "end_line": 668,
-        "content_hash": "57f9486c3160",
+        "start_line": 645,
+        "end_line": 679,
+        "content_hash": "9e280a8999cb",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -546410,9 +546410,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "auto_generate_manifest_stories",
-        "start_line": 671,
-        "end_line": 726,
-        "content_hash": "a1577e2661b6",
+        "start_line": 682,
+        "end_line": 737,
+        "content_hash": "aa67fe7aa324",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -546426,8 +546426,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "get_cached_story",
-        "start_line": 729,
-        "end_line": 739,
+        "start_line": 740,
+        "end_line": 750,
         "content_hash": "053b94fcefb4",
         "required_tier": 5,
         "sensitive": false,
@@ -546442,8 +546442,8 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "save_cached_story",
-        "start_line": 742,
-        "end_line": 752,
+        "start_line": 753,
+        "end_line": 763,
         "content_hash": "53d4fca07d3a",
         "required_tier": 5,
         "sensitive": false,
@@ -546458,9 +546458,9 @@
         "type": "function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
         "symbol_name": "dispatch_story_generation",
-        "start_line": 755,
-        "end_line": 872,
-        "content_hash": "ef6e61612c98",
+        "start_line": 766,
+        "end_line": 875,
+        "content_hash": "913dcfa71a21",
         "required_tier": 5,
         "sensitive": false,
         "permissions": {
@@ -551006,8 +551006,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_requirements",
-        "start_line": 711,
-        "end_line": 716,
+        "start_line": 799,
+        "end_line": 804,
         "content_hash": "a2f6d78b97bc",
         "required_tier": 5,
         "sensitive": false,
@@ -551022,8 +551022,8 @@
         "type": "async_function",
         "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
         "symbol_name": "api_course_workspace",
-        "start_line": 720,
-        "end_line": 725,
+        "start_line": 808,
+        "end_line": 813,
         "content_hash": "a1868b2ebf45",
         "required_tier": 5,
         "sensitive": false,
@@ -555238,5 +555238,1268 @@
             "execute": false
         },
         "id": "e790613c-73b3-4fbc-be2b-bb4c7bf65dcf"
+    },
+    "devcore.agents.mixins.comms_mixin.py::CommsMixin::_ensure_helpful_reply": {
+        "type": "async_method",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
+        "symbol_name": "_ensure_helpful_reply",
+        "start_line": 120,
+        "end_line": 156,
+        "content_hash": "4a6d440ce741",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bd21d10a-2358-4294-b428-e0431a7fd073",
+        "class_name": "CommsMixin"
+    },
+    "devcore.agents.mixins.comms_mixin.py::_REFUSAL_OPENING": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
+        "symbol_name": "_REFUSAL_OPENING",
+        "start_line": 52,
+        "end_line": 56,
+        "content_hash": "d3eaf1c9ad66",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "92671b80-3307-4679-b43d-3e41e79d2a79"
+    },
+    "devcore.agents.mixins.comms_mixin.py::_ALTERNATIVE_OFFERED": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
+        "symbol_name": "_ALTERNATIVE_OFFERED",
+        "start_line": 57,
+        "end_line": 57,
+        "content_hash": "3296f9ee1cdf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d4b6f859-a45c-402a-a19e-3c5cb1625bb7"
+    },
+    "devcore.agents.mixins.comms_mixin.py::_is_bare_refusal": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
+        "symbol_name": "_is_bare_refusal",
+        "start_line": 64,
+        "end_line": 66,
+        "content_hash": "f8747c635c1e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "365263e9-165a-4ac5-96c5-fbe746fe0ccd"
+    },
+    "devcore.core.routes.projects.py::api_cards_triggers": {
+        "type": "async_function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "api_cards_triggers",
+        "start_line": 817,
+        "end_line": 820,
+        "content_hash": "278ce7a29060",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3868f85c-bff8-4881-8c92-98cf086c85c9"
+    },
+    "devcore.core.routes.projects.py::api_cards_resolve": {
+        "type": "async_function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "api_cards_resolve",
+        "start_line": 824,
+        "end_line": 837,
+        "content_hash": "d775a519ec44",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a64db9c3-ee37-4d8d-8acc-c9410294c472"
+    },
+    "devcore.core.routes.projects.py::api_cards_featured": {
+        "type": "async_function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "api_cards_featured",
+        "start_line": 841,
+        "end_line": 845,
+        "content_hash": "eabc83490a5c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "94a11c53-1fb6-4f5d-8104-78fb4c31dc66"
+    },
+    "devcore.core.routes.projects.py::_DEVCORE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_DEVCORE_ROOT",
+        "start_line": 17,
+        "end_line": 17,
+        "content_hash": "c1dfd16ff5cf",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3d6e1bee-b3f5-4834-97ac-e83a42771de6"
+    },
+    "devcore.core.routes.projects.py::ADMIN_COURSE_SANDBOX": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "ADMIN_COURSE_SANDBOX",
+        "start_line": 18,
+        "end_line": 18,
+        "content_hash": "5d1cf47a4cf2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "833d3606-9efa-4d96-9727-a084498cd0fb"
+    },
+    "devcore.core.routes.projects.py::COURSE_SANDBOXES_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "COURSE_SANDBOXES_ROOT",
+        "start_line": 19,
+        "end_line": 19,
+        "content_hash": "551d3bde1e87",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "daf9736d-1f91-4fe3-b565-2f0684fa5f0c"
+    },
+    "devcore.core.routes.projects.py::COURSE_JAIL": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "COURSE_JAIL",
+        "start_line": 20,
+        "end_line": 20,
+        "content_hash": "5f7d58ad0a3d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e230fe5d-41fb-46a5-974b-6460dfc6edfd"
+    },
+    "devcore.core.routes.projects.py::_COURSE_BOX": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_COURSE_BOX",
+        "start_line": 21,
+        "end_line": 21,
+        "content_hash": "5a7b1a288544",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0ab88dbc-fa26-41ed-b4ff-c9430e11a6dc"
+    },
+    "devcore.core.routes.projects.py::_course_learner_key": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_course_learner_key",
+        "start_line": 24,
+        "end_line": 34,
+        "content_hash": "15fdd37fd646",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "815fc4f5-4311-473e-baf5-f5966983f896"
+    },
+    "devcore.core.routes.projects.py::_ensure_learner_box": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_ensure_learner_box",
+        "start_line": 37,
+        "end_line": 46,
+        "content_hash": "fb24fafe57b2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fe292764-ae57-4998-bb7c-f2a0b36c6b8a"
+    },
+    "devcore.core.routes.projects.py::_bind_course_sandbox": {
+        "type": "async_function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_bind_course_sandbox",
+        "start_line": 50,
+        "end_line": 58,
+        "content_hash": "c0b40c918492",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "cb18c3ec-0b02-47fb-8c9e-f35c61d4eee6"
+    },
+    "devcore.core.routes.projects.py::_course_sandbox_dir": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_course_sandbox_dir",
+        "start_line": 61,
+        "end_line": 68,
+        "content_hash": "8ead564fc81a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3e9b4f34-ce61-43fe-a8c6-3d2d5fcb709b"
+    },
+    "devcore.core.routes.projects.py::_is_learner_box": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/routes/projects.py",
+        "symbol_name": "_is_learner_box",
+        "start_line": 71,
+        "end_line": 72,
+        "content_hash": "bdc5c42a8ad2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b8d43779-5284-4cf0-959d-2eedcdec3218"
+    },
+    "devcore.agents.mixins.comms_mixin.py::_COURSE_LINK": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/agents/mixins/comms_mixin.py",
+        "symbol_name": "_COURSE_LINK",
+        "start_line": 58,
+        "end_line": 61,
+        "content_hash": "942145573700",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "959bcc96-6419-4ef4-b4ed-8bf99793efb1"
+    },
+    "devcore.services.cyberbrief.story_agent_dispatcher.py::_QUOTA_ERROR_MARKERS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
+        "symbol_name": "_QUOTA_ERROR_MARKERS",
+        "start_line": 242,
+        "end_line": 246,
+        "content_hash": "92b160c9d8bc",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a295fdaf-91c5-46db-af24-84ac35a33009"
+    },
+    "devcore.services.cyberbrief.story_agent_dispatcher.py::_auto_ai_enabled": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/services/cyberbrief/story_agent_dispatcher.py",
+        "symbol_name": "_auto_ai_enabled",
+        "start_line": 249,
+        "end_line": 250,
+        "content_hash": "571d987e583c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "16f84e20-68e0-4731-8094-b9b698aca890"
+    },
+    "devcore.core.patches.model_router.py": {
+        "type": "file",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "inode": 6755399441696130,
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "content_hash": "a68df91fa443",
+        "id": "24acc61d-39ff-4710-aeb5-0d9c662b4b6e"
+    },
+    "devcore.core.patches.model_router.py::DEVCORE_ROOT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "DEVCORE_ROOT",
+        "start_line": 26,
+        "end_line": 26,
+        "content_hash": "c74eee4f7750",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9504b092-8665-4ca6-b729-a8a70145075c"
+    },
+    "devcore.core.patches.model_router.py::CONFIG_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "CONFIG_FILE",
+        "start_line": 27,
+        "end_line": 27,
+        "content_hash": "d6c99f38f2df",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f3d7a46e-e760-45a3-b152-4abc4455802d"
+    },
+    "devcore.core.patches.model_router.py::STATE_DIR": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "STATE_DIR",
+        "start_line": 28,
+        "end_line": 28,
+        "content_hash": "d672bc8d29fc",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c702c8f2-9bae-40d3-9911-96ff724ac99a"
+    },
+    "devcore.core.patches.model_router.py::QUOTA_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "QUOTA_FILE",
+        "start_line": 29,
+        "end_line": 29,
+        "content_hash": "86dd4f5c07d4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b4cf2b58-a72a-46a7-ba55-471635ad562a"
+    },
+    "devcore.core.patches.model_router.py::MODELS_FILE": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "MODELS_FILE",
+        "start_line": 30,
+        "end_line": 30,
+        "content_hash": "e114c44ba705",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "aa8d59df-51f3-40a1-9b89-7c173a53c445"
+    },
+    "devcore.core.patches.model_router.py::AGY_BIN": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "AGY_BIN",
+        "start_line": 31,
+        "end_line": 31,
+        "content_hash": "63290aa9a160",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "520ba9cf-1be4-4638-97dd-3e6e74c628e5"
+    },
+    "devcore.core.patches.model_router.py::_owner_only": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_owner_only",
+        "start_line": 34,
+        "end_line": 39,
+        "content_hash": "cb662ec0eff6",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "a5a22566-ff23-4a86-801d-eb922d3458d1"
+    },
+    "devcore.core.patches.model_router.py::GOOGLE_SUFFIX": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "GOOGLE_SUFFIX",
+        "start_line": 41,
+        "end_line": 41,
+        "content_hash": "b8208ea69ba0",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7713dc46-b9e8-451d-8830-101da46ccf7b"
+    },
+    "devcore.core.patches.model_router.py::MODELS_TTL": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "MODELS_TTL",
+        "start_line": 42,
+        "end_line": 42,
+        "content_hash": "a07572f284a8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "5f5807ae-3820-4a6e-926b-277c124a8a91"
+    },
+    "devcore.core.patches.model_router.py::USAGE_TTL": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "USAGE_TTL",
+        "start_line": 43,
+        "end_line": 43,
+        "content_hash": "f250ba1c5284",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "156af029-0911-4e60-b3a3-2d9013e9bdf4"
+    },
+    "devcore.core.patches.model_router.py::DEFAULT_COOLDOWN": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "DEFAULT_COOLDOWN",
+        "start_line": 44,
+        "end_line": 44,
+        "content_hash": "de129b0b6b2f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "08e2d310-858b-4880-91ad-ec7ed3973759"
+    },
+    "devcore.core.patches.model_router.py::LAST_RESORT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "LAST_RESORT",
+        "start_line": 45,
+        "end_line": 45,
+        "content_hash": "25ff5f390d59",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e49034bc-0e6b-4d8d-82b2-f860f8d37628"
+    },
+    "devcore.core.patches.model_router.py::_QUOTA_PATTERNS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_QUOTA_PATTERNS",
+        "start_line": 47,
+        "end_line": 54,
+        "content_hash": "6c5cc492950d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f05b3845-6216-4271-a268-8d1e8d180918"
+    },
+    "devcore.core.patches.model_router.py::_lock": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_lock",
+        "start_line": 56,
+        "end_line": 56,
+        "content_hash": "b262c8541c73",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "89f6b761-866b-4864-8fa9-675d633f9490"
+    },
+    "devcore.core.patches.model_router.py::_cache": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_cache",
+        "start_line": 57,
+        "end_line": 62,
+        "content_hash": "3a37bd5505c4",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "bc9ee53f-d307-441e-b24d-a595259eff1d"
+    },
+    "devcore.core.patches.model_router.py::_google_quota_group": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_google_quota_group",
+        "start_line": 67,
+        "end_line": 74,
+        "content_hash": "c0b5d63fbb38",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "8b00e374-2a18-48a4-9de1-13d7bdf758c9"
+    },
+    "devcore.core.patches.model_router.py::_discover_antigravity": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_discover_antigravity",
+        "start_line": 77,
+        "end_line": 91,
+        "content_hash": "198e12dff245",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "46173a05-7a58-4611-af1d-145949c096cd"
+    },
+    "devcore.core.patches.model_router.py::_discover_claude_cli": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_discover_claude_cli",
+        "start_line": 94,
+        "end_line": 106,
+        "content_hash": "8d57827a4932",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6e1fa5ed-450c-4d92-b224-a817fd4d6176"
+    },
+    "devcore.core.patches.model_router.py::_refresh_models": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_refresh_models",
+        "start_line": 109,
+        "end_line": 122,
+        "content_hash": "bbf065dfb72b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c51b86ad-8618-4f5b-ade7-02cc15277865"
+    },
+    "devcore.core.patches.model_router.py::_refresh_usage": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_refresh_usage",
+        "start_line": 125,
+        "end_line": 158,
+        "content_hash": "540163307d20",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "d44e6883-fa66-44b0-a3aa-3bb436fa9092"
+    },
+    "devcore.core.patches.model_router.py::_in_background": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_in_background",
+        "start_line": 161,
+        "end_line": 172,
+        "content_hash": "ca7879bd11fe",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dab84789-63a2-4be9-bd03-6f34eece4c2f"
+    },
+    "devcore.core.patches.model_router.py::discovered_models": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "discovered_models",
+        "start_line": 175,
+        "end_line": 188,
+        "content_hash": "f0648a1e8b9e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "f6dc771f-ca8f-43e6-909a-cbced01afdea"
+    },
+    "devcore.core.patches.model_router.py::usage_snapshot": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "usage_snapshot",
+        "start_line": 191,
+        "end_line": 198,
+        "content_hash": "84e4e0626de9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "51f8e6af-1ed0-4af5-b938-d2d90a1d71fd"
+    },
+    "devcore.core.patches.model_router.py::load_config": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "load_config",
+        "start_line": 203,
+        "end_line": 212,
+        "content_hash": "90bb3e9b3a7c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c6af8f0a-aecc-40e8-996a-fff746b26cd3"
+    },
+    "devcore.core.patches.model_router.py::_DEFAULT_STRENGTH": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_DEFAULT_STRENGTH",
+        "start_line": 217,
+        "end_line": 218,
+        "content_hash": "d2b68d0469c5",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "941ef40a-6a86-4088-94b2-2c293da301b8"
+    },
+    "devcore.core.patches.model_router.py::_EFFORT_WORDS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_EFFORT_WORDS",
+        "start_line": 219,
+        "end_line": 219,
+        "content_hash": "2515139048dd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "ce4dbc0e-13fa-4887-a38d-fb0116cae4f7"
+    },
+    "devcore.core.patches.model_router.py::_score_parts": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_score_parts",
+        "start_line": 222,
+        "end_line": 237,
+        "content_hash": "b39f3494ef5f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "46b256ce-4fdc-4094-bc91-f4b9a5564e3a"
+    },
+    "devcore.core.patches.model_router.py::_EFFORT_BONUS": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_EFFORT_BONUS",
+        "start_line": 240,
+        "end_line": 243,
+        "content_hash": "e3d89387932f",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2f4ef750-c274-4782-ac71-8ba9632df0a1"
+    },
+    "devcore.core.patches.model_router.py::auto_chain": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "auto_chain",
+        "start_line": 246,
+        "end_line": 258,
+        "content_hash": "9b80f2956363",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "22c7e61a-2654-4448-b3be-e44feae25a16"
+    },
+    "devcore.core.patches.model_router.py::cheap_chain": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "cheap_chain",
+        "start_line": 261,
+        "end_line": 273,
+        "content_hash": "2bdc9df46a35",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "657160cc-23d3-42d6-bd1b-fe7ff7e07ad5"
+    },
+    "devcore.core.patches.model_router.py::cheapest_model": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "cheapest_model",
+        "start_line": 276,
+        "end_line": 286,
+        "content_hash": "82ced7d8eb81",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "9c8a7488-c80b-426f-a782-d91f355b0d5f"
+    },
+    "devcore.core.patches.model_router.py::chain": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "chain",
+        "start_line": 289,
+        "end_line": 311,
+        "content_hash": "0b60f080ddf8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "35c9f179-f998-45c2-97fc-d4015273db31"
+    },
+    "devcore.core.patches.model_router.py::configured_models": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "configured_models",
+        "start_line": 314,
+        "end_line": 321,
+        "content_hash": "3466c35afbc2",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "43f9b6fb-aa4f-4702-9557-87474ff3a0ce"
+    },
+    "devcore.core.patches.model_router.py::_entry": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_entry",
+        "start_line": 324,
+        "end_line": 325,
+        "content_hash": "c9f53bb997de",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "7ee98b53-a071-4e9c-8c3b-cbdf83e7cd52"
+    },
+    "devcore.core.patches.model_router.py::backend": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "backend",
+        "start_line": 328,
+        "end_line": 336,
+        "content_hash": "3f8df63c718b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "b83d469b-8ecd-429f-a244-ba13a8cd112f"
+    },
+    "devcore.core.patches.model_router.py::cli_model_name": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "cli_model_name",
+        "start_line": 339,
+        "end_line": 345,
+        "content_hash": "5cc3d64f9741",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "e62d281a-9157-412e-a51e-72abc3950c2e"
+    },
+    "devcore.core.patches.model_router.py::family": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "family",
+        "start_line": 348,
+        "end_line": 355,
+        "content_hash": "079fb7cab839",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "44486e85-7b19-4429-b3a9-620ba57f49d5"
+    },
+    "devcore.core.patches.model_router.py::is_google_claude": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "is_google_claude",
+        "start_line": 358,
+        "end_line": 359,
+        "content_hash": "957c44d3a04c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "77e5a885-f696-4d06-b33e-acc8c3ccca20"
+    },
+    "devcore.core.patches.model_router.py::__getattr__": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "__getattr__",
+        "start_line": 362,
+        "end_line": 372,
+        "content_hash": "9c24164073fb",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "fbb9d187-b1a4-4b52-a30d-2f429cfb7bee"
+    },
+    "devcore.core.patches.model_router.py::_load_quota": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_load_quota",
+        "start_line": 377,
+        "end_line": 383,
+        "content_hash": "8fad37a8536c",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "2a30c804-a5d6-4830-a167-a93b0707e5c1"
+    },
+    "devcore.core.patches.model_router.py::_save_quota": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_save_quota",
+        "start_line": 386,
+        "end_line": 394,
+        "content_hash": "7f00babf17f8",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "04957b5b-13f0-46af-832d-9efbd671458b"
+    },
+    "devcore.core.patches.model_router.py::is_quota_error": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "is_quota_error",
+        "start_line": 397,
+        "end_line": 399,
+        "content_hash": "d90327ae559d",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "01e8dd02-389f-4c9d-942f-e91ccf7a7926"
+    },
+    "devcore.core.patches.model_router.py::_parse_reset_seconds": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_parse_reset_seconds",
+        "start_line": 402,
+        "end_line": 413,
+        "content_hash": "fd983748f17b",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "4febd3f5-6c24-425b-8c5e-5049d0756ba2"
+    },
+    "devcore.core.patches.model_router.py::mark_exhausted": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "mark_exhausted",
+        "start_line": 416,
+        "end_line": 422,
+        "content_hash": "1f9c6d8e39d1",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0abf0855-8286-4f70-a7b3-c00c0f2022d8"
+    },
+    "devcore.core.patches.model_router.py::_USAGE_GROUP_TO_QUOTA": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_USAGE_GROUP_TO_QUOTA",
+        "start_line": 425,
+        "end_line": 426,
+        "content_hash": "51699e022a33",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c3358cb4-ed5c-4e36-b004-43485d90aa15"
+    },
+    "devcore.core.patches.model_router.py::_usage_exhausted": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_usage_exhausted",
+        "start_line": 429,
+        "end_line": 442,
+        "content_hash": "8239b61209a9",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "dbc8e3a9-5b72-461e-89bd-880c728a5830"
+    },
+    "devcore.core.patches.model_router.py::pool_left_pct": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "pool_left_pct",
+        "start_line": 445,
+        "end_line": 456,
+        "content_hash": "072037ef6e6e",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "93d2c421-917d-4214-a104-5f2b25979fd5"
+    },
+    "devcore.core.patches.model_router.py::_resolve_rule": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_resolve_rule",
+        "start_line": 459,
+        "end_line": 472,
+        "content_hash": "7c49fe1731fd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "99a1da6e-a0ad-4367-aad9-e24a5834d928"
+    },
+    "devcore.core.patches.model_router.py::economy_model": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "economy_model",
+        "start_line": 475,
+        "end_line": 489,
+        "content_hash": "6be905992b1a",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "17dfbc44-c9f6-4938-8d3c-bc607af85d24"
+    },
+    "devcore.core.patches.model_router.py::FLASH_FALLBACK": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "FLASH_FALLBACK",
+        "start_line": 492,
+        "end_line": 493,
+        "content_hash": "70ac35974919",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "6fde52ce-1465-4247-bc17-8ff10b04a222"
+    },
+    "devcore.core.patches.model_router.py::is_available": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "is_available",
+        "start_line": 496,
+        "end_line": 509,
+        "content_hash": "489ee5f00621",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "abf88016-5552-40fc-b303-22006c6db0ee"
+    },
+    "devcore.core.patches.model_router.py::pick": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "pick",
+        "start_line": 512,
+        "end_line": 517,
+        "content_hash": "584403791108",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "1ad3deec-f1c6-42e0-b8e7-bb75f5305614"
+    },
+    "devcore.core.patches.model_router.py::next_after": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "next_after",
+        "start_line": 520,
+        "end_line": 521,
+        "content_hash": "aec521a097f7",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "db4e572d-f216-4ca2-b0f7-616ec117bbab"
+    },
+    "devcore.core.patches.model_router.py::status": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "status",
+        "start_line": 524,
+        "end_line": 531,
+        "content_hash": "4ca734903c07",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "3ac8d0c7-6c1f-48c1-be0b-3c852276be35"
+    },
+    "devcore.core.patches.model_router.py::handoff_prompt": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "handoff_prompt",
+        "start_line": 534,
+        "end_line": 543,
+        "content_hash": "4b017209e996",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "04f83aa3-f034-4bf3-b04d-3e510406e53a"
+    },
+    "devcore.core.patches.model_router.py::merge_into_picker": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "merge_into_picker",
+        "start_line": 546,
+        "end_line": 569,
+        "content_hash": "ecfaf01b5074",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "faa74f54-9230-4394-885c-f2fa13930e85"
+    },
+    "devcore.core.patches.model_router.py::MODELS_HEARTBEAT": {
+        "type": "variable",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "MODELS_HEARTBEAT",
+        "start_line": 572,
+        "end_line": 572,
+        "content_hash": "280b4bd96fbd",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "0ee0af1e-87ea-4a72-a336-3e8cb4e3d6ef"
+    },
+    "devcore.core.patches.model_router.py::_models_heartbeat": {
+        "type": "function",
+        "real_path": "/mnt/c/Users/michael/Documents/DevCore/core/patches/model_router.py",
+        "symbol_name": "_models_heartbeat",
+        "start_line": 575,
+        "end_line": 588,
+        "content_hash": "7468d1adbd14",
+        "required_tier": 5,
+        "sensitive": false,
+        "permissions": {
+            "read": true,
+            "write": false,
+            "execute": false
+        },
+        "id": "c3e13548-837c-4502-ba32-329b43ab2115"
     }
 }

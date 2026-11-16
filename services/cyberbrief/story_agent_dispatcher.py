@@ -239,6 +239,17 @@ Tone: Sarcastic, funny, technically razor-sharp, respectful to victims but merci
     return f"{base_instructions}\n\n{feed_payload}\n\n{specific_prompt}"
 
 
+_QUOTA_ERROR_MARKERS = (
+    "rate limit", "429", "quota exceeded", "quota reached", "too many requests",
+    "overloaded", "credit limit", "5-hour limit", "hit your", "weekly limit",
+    "usage limit", "limit reached", "resource_exhausted",
+)
+
+
+def _auto_ai_enabled() -> bool:
+    return os.environ.get("CYBERBRIEF_AUTO_AI", "off").strip().lower() in ("1", "true", "on", "yes")
+
+
 def generate_story_with_claude(prompt: str, timeout_sec: int = 40) -> Optional[str]:
     """Invokes Claude Code non-interactively with security guardrails and free-tier rate limits."""
     if is_production_server():
@@ -278,7 +289,7 @@ def generate_story_with_claude(prompt: str, timeout_sec: int = 40) -> Optional[s
         combined = (out + " " + err).lower()
 
         # Check for free-tier quota limits or rate limiting
-        if any(k in combined for k in ("rate limit", "429", "quota exceeded", "too many requests", "overloaded", "credit limit")):
+        if any(k in combined for k in _QUOTA_ERROR_MARKERS):
             _trip_circuit_breaker("Claude rate limit or quota exceeded")
             return None
 
@@ -320,7 +331,7 @@ def generate_story_with_antigravity(prompt: str, timeout_sec: int = 40) -> Optio
         err = (proc.stderr or "").strip()
         combined = (out + " " + err).lower()
 
-        if any(k in combined for k in ("rate limit", "429", "quota exceeded", "too many requests", "overloaded", "resource_exhausted")):
+        if any(k in combined for k in _QUOTA_ERROR_MARKERS):
             _trip_circuit_breaker("Antigravity rate limit or quota exceeded")
             return None
 
@@ -647,8 +658,8 @@ def process_pending_email_backlog(base_url: str = "") -> int:
         cached = get_cached_story(s_id, app)
         if not cached or not cached.get("markdown"):
             try:
-                # Synthesize on server in background without requiring browser open
-                choice = "builtin" if time.time() < _api_circuit_breaker_until else "claude"
+                # Default to zero-quota builtin synthesis unless CYBERBRIEF_AUTO_AI=on
+                choice = "claude" if (_auto_ai_enabled() and time.time() >= _api_circuit_breaker_until) else "builtin"
                 dispatch_story_generation(
                     story_id=s_id,
                     appetite=app,
@@ -697,7 +708,7 @@ def auto_generate_manifest_stories(manifest: Dict[str, Any], force: bool = False
                         continue
                     try:
                         set_story_appetite_status(story_id, app_key, "generating")
-                        choice = "builtin" if time.time() < _api_circuit_breaker_until else "claude"
+                        choice = "claude" if (_auto_ai_enabled() and time.time() >= _api_circuit_breaker_until) else "builtin"
                         dispatch_story_generation(
                             story_id=story_id,
                             appetite=app_key,
@@ -829,26 +840,18 @@ def dispatch_story_generation(
     story_text = None
     used_engine = "builtin"
 
-    # 3. Attempt selected engine
+    # 3. Attempt selected engine (never silently spill over into another provider's quota)
     if engine_choice == "claude":
         if time.time() >= _api_circuit_breaker_until:
             story_text = generate_story_with_claude(prompt)
             if story_text:
                 used_engine = "claude"
-            else:
-                story_text = generate_story_with_antigravity(prompt)
-                if story_text:
-                    used_engine = "antigravity"
 
     elif engine_choice == "antigravity":
         if time.time() >= _api_circuit_breaker_until:
             story_text = generate_story_with_antigravity(prompt)
             if story_text:
                 used_engine = "antigravity"
-            else:
-                story_text = generate_story_with_claude(prompt)
-                if story_text:
-                    used_engine = "claude"
 
     # 4. Fallback to rich builtin synthesis if CLI models are unavailable or rate-limited
     if not story_text:
