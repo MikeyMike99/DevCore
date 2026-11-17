@@ -166,37 +166,82 @@ async def raugus_map_watcher_daemon():
         os.path.join(devcore_root, 'playground'),
         os.path.join(devcore_root, 'docs'),
     ]
+    # DevCore's own source folders are watched too, so the map follows every edit (by agents, by hand,
+    # or by git) and nobody has to refresh it manually.
+    code_dirs = [os.path.join(devcore_root, d) for d in
+                 ('core', 'agents', 'security', 'scripts', 'services', 'sandbox', '.agents', 'tests')]
+    code_exts = ('.py', '.md', '.html', '.js', '.json')
+    never_sync = {'raugus_map.json'}  # the map itself: syncing it would loop forever
+    map_file = os.path.join(devcore_root, 'security', 'raugus_map.json')
     seen_mtimes = {}
+    first_pass = [True]
     # Folders that are never project source: version control, environments, caches, sandboxes.
     skip_dirs = {'.git', 'node_modules', '__pycache__', 'venv', '.venv', '.virtualenvs', '.local', '.cache',
                  '.dev_sandboxes', 'site-packages', 'backups', '.ipython', '.ssh', '.gemini'}
+    code_skip_dirs = (skip_dirs - {'.agents'}) | {'patches', 'vendor', 'models', '.pytest_cache'}
 
     def _scan_once():
         """One pass over the watched folders. Runs in a worker thread: on /mnt/c every stat is slow,
         and walking the playground on the event loop (it now holds e_profile, with its .git and
-        virtualenvs) froze the whole server for ~20 s every few seconds."""
-        for wdir in watched_dirs:
-            if not os.path.exists(wdir):
-                continue
+        virtualenvs) froze the whole server for ~20 s every few seconds.
+        On the first pass, files edited since the map was last written (while the server was down)
+        are synced too; later passes sync changed, new and deleted files."""
+        try:
+            map_mtime = os.stat(map_file).st_mtime
+        except Exception:
+            map_mtime = 0
+        present = set()
+
+        def _sync(fpath, remove=False):
+            try:
+                from security.raugus_sync import sync_path
+                sync_path(fpath, root_dir=devcore_root, remove=remove)
+            except Exception:
+                pass
+
+        def _walk(wdir, is_code):
             for root, dirs, files in os.walk(wdir):
-                dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith('.')]
+                if is_code:
+                    dirs[:] = [d for d in dirs if d not in code_skip_dirs]
+                else:
+                    dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith('.')]
                 for fname in files:
-                    if fname.startswith('.') or fname.endswith(('.pyc', '.tmp', '.log')):
+                    if fname.startswith('.') and not is_code:
+                        continue
+                    if fname.endswith(('.pyc', '.tmp', '.log')) or fname in never_sync:
+                        continue
+                    if is_code and not fname.endswith(code_exts):
                         continue
                     fpath = os.path.join(root, fname)
                     try:
                         mtime = os.stat(fpath).st_mtime
-                        if fpath not in seen_mtimes:
-                            seen_mtimes[fpath] = mtime
-                        elif seen_mtimes[fpath] != mtime:
-                            seen_mtimes[fpath] = mtime
-                            try:
-                                from security.raugus_sync import sync_path
-                                sync_path(fpath, root_dir=devcore_root)
-                            except Exception:
-                                pass
                     except Exception:
                         continue
+                    present.add(fpath)
+                    if fpath not in seen_mtimes:
+                        seen_mtimes[fpath] = mtime
+                        if first_pass[0]:
+                            if mtime > map_mtime:
+                                _sync(fpath)
+                        else:
+                            _sync(fpath)  # a new file
+                    elif seen_mtimes[fpath] != mtime:
+                        seen_mtimes[fpath] = mtime
+                        _sync(fpath)
+
+        for wdir in watched_dirs:
+            if os.path.exists(wdir):
+                _walk(wdir, False)
+        for cdir in code_dirs:
+            if os.path.exists(cdir):
+                _walk(cdir, True)
+        if not first_pass[0]:
+            for gone in [p for p in seen_mtimes if p not in present]:
+                seen_mtimes.pop(gone, None)
+                if not os.path.exists(gone):
+                    _sync(gone, remove=True)
+        first_pass[0] = False
+
 
     while True:
         try:

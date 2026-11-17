@@ -15,15 +15,13 @@ You have access to the **Raugus Resolver (`raugus-resolver`)** MCP Server, which
    - Retrieve the exact source code or value of a function, class, variable (`module_key::symbol_name`), or module (`module_key`) purely by key after all Raugus rules are verified.
 4. **`write_by_key(key, new_code, user_tier=5)`**:
    - Update a specific function, class, variable (`module_key::symbol_name`), or module (`module_key`) by key. Automatically validates AST syntax, enforces function-level write locks, and routes live backend engine updates through the Zero-Downtime Hot-Patch staging sequence without exposing physical paths.
-5. **`refresh_key_map(user_tier=5)`**:
-   - Re-index workspace AST keys and hardware inodes in the Raugus Map after structural updates.
-6. **`workspace_pipeline(action="status", commit_msg="", no_push=False, commit_devcore=False, user_tier=5)`**:
+5. **`workspace_pipeline(action="status", commit_msg="", no_push=False, commit_devcore=False, user_tier=5)`**:
    - Executes the unified cross-repository workspace pipeline (`Central_Docs`, `e_profile`, `DevCore`, `Audio_pllayback_suite`) in a single tool call. Eliminates token bloat from repetitive status checks, manual quality/structure/security audits, and fragmented multi-repo commits.
-7. **`get_block_by_tag(tag_or_id, user_tier=5)`**:
+6. **`get_block_by_tag(tag_or_id, user_tier=5)`**:
    - Retrieve an immutable AST or documentation block directly by its tag identifier or content hash without loading surrounding code.
-8. **`digest_file(key, focus="", budget_seconds=240)`**:
+7. **`digest_file(key, focus="", budget_seconds=240)`**:
    - Summarize a large file (code, docs, PDF, DOCX) offline into a digest with a chunk index (line ranges per chunk). Cached by content hash. If it returns `IN_PROGRESS`, call it again with the same arguments to resume.
-9. **`read_chunk(key="", chunk=1, digest_id="", focus="")`**:
+8. **`read_chunk(key="", chunk=1, digest_id="", focus="")`**:
    - Read one chunk of a digested source verbatim (PII-scrubbed). Use `key` for files you digested; use `digest_id` for attachments DevCore digested for you (the id is in the attachment header).
 
 ---

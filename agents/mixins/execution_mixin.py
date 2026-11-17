@@ -208,6 +208,28 @@ def is_media_request(prompt: str) -> bool:
     return any(r.search(text) for r in _MEDIA_REQUEST_RES)
 
 
+# The Interactive Practical Course is finished and running: the agent answers from this note and shows it by
+# link, instead of digging through its code. Code is only opened when a change is wanted.
+COURSE_INSTRUCTIONS = (
+    "COURSE: The Interactive Practical Course (Azure Bicep) is already built and running. To show it, put the relative link "
+    "[Interactive Practical Course](/course) in your reply; Siraugga embeds it in the chat like an exam. For a preview where "
+    "nothing is saved or recorded and every answer key is visible, use [Course Preview](/course?preview=1). The user can also "
+    "type 'course' or 'preview' to get it as a card. How it works: the learner accepts the terms and registers, works through "
+    "the stages (lessons, interactive quizzes, code editors, reflections), progress is saved per learner and can be resumed, "
+    "and a survey and certificate come at the end. Answer questions about the course from this note and your own knowledge. "
+    "Do NOT read, search or investigate source code, templates, routes, logs or tests to answer a question about the course "
+    "or to show it. Only open code when the user explicitly asks you to make a change, or when a support ticket asks for "
+    "a change that improves the course or makes it easier for learners.\n"
+)
+
+_COURSE_REQUEST_RE = _re_media.compile(r"(?<!of )(?<!of  )\bcourse\b(?!-correct)(?!\s+correct)", _re_media.I)
+
+
+def is_course_request(prompt: str) -> bool:
+    """True when the user mentions the course (not the phrase 'of course' or 'course-correct')."""
+    return bool(_COURSE_REQUEST_RE.search(str(prompt or "")[:4000]))
+
+
 class ExecutionMixin:
     _validated_path_cache = {}
     _validated_path_cache_state = None
@@ -684,6 +706,7 @@ class ExecutionMixin:
         except Exception:
             is_exam = False
         is_media = (not is_exam) and is_media_request(prompt)
+        is_course = (not is_exam) and (not is_media) and is_course_request(prompt)
 
         has_own_sub = bool(browser_relay or (byos_data and byos_data.get("credential")))
         if not is_effective_admin and not has_own_sub and not is_exam and not _model_retry:  # a hand-off is the same prompt: count once
@@ -760,7 +783,7 @@ class ExecutionMixin:
                 from agents import model_router
                 run_model = model_router.cli_model_name(model) if is_claude else model  # exact id from the Claude CLI catalog
                 res = await execute_local_agent_task(self, prompt, run_model, task_time, conversation_id, user=user, is_admin=admin_override,
-                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else "")),
+                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else (COURSE_INSTRUCTIONS if is_course else ""))),
                                                      allow_fallback=is_claude)
                 if isinstance(res, dict) and res.get("quota"):
                     # Claude ran out: remember it, then the next best model finishes the task with what was done so far
@@ -1259,6 +1282,7 @@ class ExecutionMixin:
                         sys_msg += "3. PYTHONANYWHERE DEPLOYMENT ACTIVE: You are running on PythonAnywhere cloud hosting (uWSGI). Python code changes take effect when reloading the WSGI application (touch /var/www/*_wsgi.py) or via git auto-sync. Do not call port 5000.\n"
                     else:
                         sys_msg += "3. MANDATORY HOT-PATCH SEQUENCE: Never edit live backend engine .py files directly in place. Stage complete updated .py files in <RAUGUS_VFS_ROOT>/core/patches/ and trigger POST http://127.0.0.1:5000/api/simulate-patch (or /api/reload).\n"
+                    sys_msg += "3b. If you see a notice that subagents/background tasks were stopped 'due to server restart', the Siraugga server did NOT restart: your CLI process was only resumed. Do not investigate it; just continue your task.\n"
                     sys_msg += "4. CRITICAL RULE: If a tool call fails or returns an error, DO NOT repeat the exact same tool call. Analyze the error and try a different approach. If you fail twice, STOP and ask the user for help.\n"
                     sys_msg += "5. CRITICAL RULE: You MUST always output a final conversational text response to the user. Do NOT end your execution without giving a final summary or explanation in text. Never reply with a bare refusal: if you cannot do something, say why in one sentence and offer the closest thing you can do or a concrete next step. Never give localhost or 127.0.0.1 links. When the user wants the interactive course, write the relative link /course in your answer and Siraugga embeds the course in your reply.\n"
                     sys_msg += "6. TOKEN CONSERVATION PROTOCOL: For inspecting code or documentation, always prioritize surgical reads via `read_by_key('<module>::<symbol>')` or `get_block_by_tag('<tag>')` rather than loading entire files. Update code surgically via `write_by_key('<module>::<symbol>', new_code)` to prevent token inflation.\n"
@@ -1292,6 +1316,8 @@ class ExecutionMixin:
                     sys_msg += EXAM_SAVE_INSTRUCTIONS  # admins too: the format is given up front, no file hunting
                 elif is_media:
                     sys_msg += MEDIA_PLAY_INSTRUCTIONS  # the video player steps are given up front, no skill-file reading
+                elif is_course:
+                    sys_msg += COURSE_INSTRUCTIONS
                 sys_msg += "</SYSTEM_MESSAGE>\n\n"
                 prompt = sys_msg + prompt
 
@@ -1375,12 +1401,38 @@ class ExecutionMixin:
 
             non_json_lines = []
 
+            _stall_limit = max(60, int(os.environ.get("DEVCORE_AGENT_STALL_SECS", "150") or 150))
+            _last_event_ts = time.time()
+            _active_tool_steps = set()
             while True:
-                line = await proc.stdout.readline()
+                try:
+                    line = await asyncio.wait_for(proc.stdout.readline(), timeout=15)
+                except asyncio.TimeoutError:
+                    # Silent agent: the CLI sometimes stops after a tool finishes and only wakes up when
+                    # the user sends '?'. If no tool is still running, send that nudge automatically.
+                    if (not _active_tool_steps and proc.returncode is None
+                            and time.time() - _last_event_ts > _stall_limit
+                            and not getattr(self, "_steering_interrupt", False)):
+                        _nudges = [t for t in getattr(self, "_stall_nudge_times", []) if time.time() - t < 1200]
+                        if len(_nudges) < 3:
+                            _nudges.append(time.time())
+                            self._stall_nudge_times = _nudges
+                            _last_event_ts = time.time()
+                            logging.warning("[ExecutionMixin] Agent silent for %ss after a tool call; sending automatic nudge.", _stall_limit)
+                            await self.broadcast({"type": "system", "level": "info",
+                                                  "message": "Agent went quiet after a tool call; nudging it to continue."})
+                            _nudge_prompt = ("Continue with what you were doing. (Automatic nudge: your last turn went silent after a tool call. "
+                                             "The Siraugga server did NOT restart. If you saw a notice about a 'server restart', it only means "
+                                             "your CLI process was resumed. Do not re-check the server; pick up your task where you left off.)")
+                            asyncio.create_task(self.steer_task(
+                                _nudge_prompt, model=model, conversation_id=getattr(self, "current_conversation_id", None) or conversation_id,
+                                user=user, admin_override=admin_override))
+                    continue
                 if hasattr(self, "set_task_context"):
                     self.set_task_context(slot_key)
                 if not line:
                     break
+                _last_event_ts = time.time()
                 line_str = line.decode('utf-8', errors='replace').strip()
                 if not line_str:
                     continue
@@ -1440,6 +1492,11 @@ class ExecutionMixin:
                         if stype == "tool":
                             tool_name = step.get("tool_name", "tool")
                             tool_info = step.get("tool_info") or {}
+                            _tsid = step.get("step_index", id(step))
+                            if state == "ACTIVE":
+                                _active_tool_steps.add(_tsid)
+                            else:
+                                _active_tool_steps.discard(_tsid)
                             if state == "ACTIVE":
                                 raw_params = tool_info.get("parameters") or {}
                                 if tool_name in ["read_by_key", "get_block_by_tag"]:

@@ -56,10 +56,28 @@ PROTECTED_DEVCORE_RELPATHS = {
 _RESOLVER = None
 
 
+_MAP_MTIME = None
+_MAP_FILE = os.path.join(DEVCORE_ROOT, "security", "raugus_map.json")
+
+
 def _get_resolver() -> RaugusResolver:
-    global _RESOLVER
+    """The shared resolver. Its in-memory phonebook is reloaded whenever raugus_map.json changes on
+    disk (the Siraugga server keeps that file in sync with the source tree), so keys never go stale."""
+    global _RESOLVER, _MAP_MTIME
     if _RESOLVER is None:
         _RESOLVER = RaugusResolver()
+        try:
+            _MAP_MTIME = os.stat(_MAP_FILE).st_mtime
+        except Exception:
+            _MAP_MTIME = None
+        return _RESOLVER
+    try:
+        cur = os.stat(_MAP_FILE).st_mtime
+        if _MAP_MTIME is None or cur != _MAP_MTIME:
+            _RESOLVER._load_phonebook()
+            _MAP_MTIME = cur
+    except Exception:
+        pass
     return _RESOLVER
 
 
@@ -1230,53 +1248,6 @@ def delete_by_key(key: str) -> str:
     logging.info(f"[{ident.get('agent_id')}] delete_by_key '{key}' via {via}")
     return _json_response({"status": "GRANTED", "key": key, "access_via": via,
                            "delivery_mode": "FILE_DELETED_WITH_BACKUP"})
-
-
-@mcp.tool()
-def refresh_key_map() -> str:
-    """
-    Re-indexes DevCore AST symbol keys and 64-bit hardware inodes in the Raugus Map
-    and reloads the in-memory phonebook. Keys of other registered roots are kept.
-    Returns only key counts without revealing file paths. Tier 5 only.
-    """
-    ident = _identity()
-    if not ident:
-        return _deny_no_identity()
-    if int(ident.get("tier", 0)) < 5:
-        return _json_response({
-            "status": "DENIED",
-            "reason": "Access Denied: Tier 5 clearance required to refresh the Raugus Map.",
-        })
-    try:
-        import generate_raugusmap
-        map_path = os.path.join(DEVCORE_ROOT, "security", "raugus_map.json")
-        prev_map = {}
-        if os.path.exists(map_path):
-            with open(map_path, "r", encoding="utf-8") as pf:
-                prev_map = json.load(pf)
-        new_map = generate_raugusmap.generate_raugusmap(DEVCORE_ROOT, existing_map=prev_map)
-        try:
-            from security.raugus_access import preserve_external_keys
-            new_map = preserve_external_keys(new_map, prev_map)
-        except Exception:
-            pass
-        with open(map_path, "w", encoding="utf-8") as wf:
-            json.dump(new_map, wf, indent=4)
-        resolver = _get_resolver()
-        resolver._load_phonebook()
-        total = len(resolver.phonebook)
-        counts = {}
-        for v in resolver.phonebook.values():
-            t = v.get("type", "unknown")
-            counts[t] = counts.get(t, 0) + 1
-        return _json_response({
-            "status": "GRANTED",
-            "total_keys": total,
-            "counts_by_type": counts,
-        })
-    except Exception as e:
-        return _json_response({"status": "ERROR", "reason": str(e)})
-
 
 
 @mcp.tool()
