@@ -189,7 +189,9 @@ def stage_worker(r: Report, t: Tree):
     r.check("WRK-18", "eval(" not in w and "new Function(" not in w, "no eval in the Worker", "eval/new Function used in the Worker")
     r.check("WRK-19", "INSERT OR IGNORE" in w, "progress writes are idempotent", "progress writes are not idempotent", "WARN")
     r.check("WRK-20", "x-forwarded" not in w.lower(), "no trust in forwarded headers", "Worker trusts forwarded headers", "WARN")
-    r.info("WRK-21", "no per-token rate limit on /lab/check (abuse is bounded by max_instances and the signed-link requirement)")
+    r.check("WRK-21", "LIMITS" in w and "429" in w and w.count("limited(env") >= 4,
+            "per-learner rate limits on session, run and check", "rate limiting missing on a route (session/run/check)")
+    r.check("WRK-23", "raw.length > 256" in w, "request bodies are size-limited on every route", "a route reads an unbounded body")
     if re.search(r'"routes"\s*:', cfg):
         r.info("WRK-22", "wrangler.jsonc defines a public route: this build is configured for deployment")
     else:
@@ -384,6 +386,11 @@ def stage_live(r: Report, t: Tree, require: bool, url: str, secret: str):
     r.check("LIV-17", _http("GET", url + "/lab/run")[0] in (404, 405) and _http("GET", url + "/nope")[0] == 404, "wrong method / unknown route refused", "unexpected route behaviour")
     st, h2, _ = _http("POST", url + "/lab/run", b"{}", {})
     r.check("LIV-18", st == 401, "unsigned /lab/run refused", f"unsigned /lab/run answered {st}")
+    burst = [_http("POST", url + "/lab/check/" + token, b'{"step":"1"}') for _ in range(40)]
+    limited = [x for x in burst if x[0] == 429]
+    r.check("LIV-19", len(limited) >= 1 and any("retry-after" in {k.lower() for k in x[1]} for x in limited),
+            f"rate limit works: {len(limited)} of 40 rapid checks were refused (429 + Retry-After)",
+            "40 rapid /lab/check calls were all accepted (no rate limit)")
 
     def sh(who, cmd):
         s, o = run(who, cmd)
@@ -403,6 +410,16 @@ def stage_live(r: Report, t: Tree, require: bool, url: str, secret: str):
     t0 = time.time()
     rc, out = sh(a, "sleep 2; echo done")
     r.check("LIV-27", out == "done" and time.time() - t0 < 30, "normal commands complete", "normal command failed")
+    rc, out = sh(a, "timeout 3 bash -c 'echo > /dev/tcp/1.1.1.1/53' 2>&1; echo rc=$?")
+    reachable = "rc=0" in out
+    local = "127.0.0.1" in url or "localhost" in url
+    if not reachable:
+        r.ok("LIV-29", "container has no outbound internet")
+    elif local:
+        r.warn("LIV-29", "container CAN reach the internet in local dev (Cloudflare enforces enableInternet=false; "
+                         "re-run against the deployed URL with --require-live to verify)")
+    else:
+        r.fail("LIV-29", "the DEPLOYED lab container can reach the internet: enableInternet=false is not in effect")
     ctr = subprocess.run(["docker", "ps", "--format", "{{.Image}}"], capture_output=True, text=True).stdout
     r.info("LIV-28", f"{ctr.count('labcontainer')} lab containers running for this audit")
     for name, script in (("LIV-30", "labcloud/test_local.py"), ("LIV-31", "labcloud/test_course.py")):

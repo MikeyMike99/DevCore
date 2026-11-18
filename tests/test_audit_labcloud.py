@@ -59,6 +59,8 @@ class MutationTests(unittest.TestCase):
         ("WRK-03", "labcloud/src/worker.js", '"token:v1."', '"v1."'),
         ("WRK-04", "labcloud/src/worker.js", "MAX_SKEW", "MAX_WINDOW"),
         ("WRK-08", "labcloud/src/worker.js", "enableInternet = false", "enableInternet = true"),
+        ("WRK-21", "labcloud/src/worker.js", "LIMITS", "LIM"),
+        ("WRK-23", "labcloud/src/worker.js", "raw.length > 256", "raw.length > 999999"),
         ("WRK-10", "labcloud/wrangler.jsonc", '"max_instances"', '"max_inst"'),
         ("WRK-12", "labcloud/src/worker.js", "Content-Security-Policy", "X-Nothing"),
         ("WRK-13", "labcloud/src/worker.js", "script-src 'nonce-", "script-src 'unsafe-inline' 'nonce-"),

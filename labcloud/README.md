@@ -46,7 +46,7 @@ python3 scripts/audit_labcloud.py --install-hook  # (re)install the pre-commit t
 ```
 - **Where it runs automatically:** on every commit touching `labcloud/`, `core/lab_cloud.py` or the audit itself (pre-commit hook),
   and inside the normal test suite (`tests/test_audit_labcloud.py`).
-- **It is tested too:** that test file breaks a copy of the system in 17 ways (unpinned image, no replay window, internet on,
+- **It is tested too:** that test file breaks a copy of the system in 19 ways (unpinned image, no replay window, internet on,
   weak CSP, secret in the tree, ...) and requires the audit to catch each one, so the audit cannot quietly go blind.
 - **Tripwire:** security-critical files are hashed in `labcloud/audit_baseline.json`. After you review a deliberate change,
   run `--accept-integrity` and commit the new baseline. Line endings do not matter.
@@ -62,6 +62,7 @@ Make `image/labs/<lab-id>/` with `lab.json` (title, steps, hints), `seed/` (file
 - Learner runs as a non-root user, no outbound internet (`enableInternet = false`), file-size/open-file limits.
 - Containers sleep after 10 idle minutes; `max_instances` (5 now) caps live lab computers on Cloudflare.
 - Signed, expiring links; per-learner keys; lab and step names validated; answers are root-only.
+- Replay window (5 min), per-learner rate limits (check 30/min, run 120/min, session 20/min), request size limits.
 
 ## Known limits
 - `max_instances` and `enableInternet = false` are enforced by Cloudflare, **not in local dev** (7 sessions were accepted

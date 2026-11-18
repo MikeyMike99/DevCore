@@ -31,6 +31,16 @@ export class LabContainer extends Container {
   async grader(path, init) {
     return this.containerFetch(new Request("http://grader" + path, init), 8080);
   }
+  // Sliding-window rate limit. Each learner+lab has exactly one of these coordinators, so it counts their requests.
+  rate(kind, limit, windowMs) {
+    const now = Date.now();
+    this.hits ??= {};
+    const recent = (this.hits[kind] || []).filter(t => now - t < windowMs);
+    const allowed = recent.length < limit;
+    if (allowed) recent.push(now);
+    this.hits[kind] = recent;
+    return allowed;
+  }
 }
 
 // ---------- crypto helpers
@@ -64,6 +74,14 @@ async function readToken(env, token) {
     return { learner: t.l, lab: t.b, exp: t.e };
   } catch { return null; }
 }
+// Per learner+lab limits (requests, per milliseconds). Generous for a person typing, tight for a script.
+const LIMITS = { check: [30, 60000], run: [120, 60000], session: [20, 60000] };
+async function limited(env, t, kind) {
+  const [limit, windowMs] = LIMITS[kind];
+  const stub = getContainer(env.LAB, `${t.learner}~${t.lab}`);
+  if (await stub.rate(kind, limit, windowMs)) return null;
+  return Response.json({ error: "too many requests, slow down" }, { status: 429, headers: { ...SEC_HEADERS, "Retry-After": String(Math.ceil(windowMs / 1000)) } });
+}
 async function containerFor(env, t) {
   const stub = getContainer(env.LAB, `${t.learner}~${t.lab}`);
   await stub.startLab(t.lab);
@@ -93,6 +111,8 @@ async function run(request, env) {
   if (v.error) return v.error;
   const cmd = v.p.command;
   if (typeof cmd !== "string" || !cmd.trim() || cmd.length > 2000) return json({ error: "bad command" }, 400);
+  const rl = await limited(env, { learner: v.learner, lab: v.p.lab }, "run");
+  if (rl) return rl;
   let c;
   try { c = await containerFor(env, { learner: v.learner, lab: v.p.lab }); }
   catch (e) { return json({ error: "no capacity or unknown lab" }, 503); }
@@ -104,6 +124,8 @@ async function session(request, env) {
   const v = await verifySigned(request, env, 1024);
   if (v.error) return v.error;
   const { learner, p } = v;
+  const rl = await limited(env, { learner, lab: p.lab }, "session");
+  if (rl) return rl;
   const token = await mintToken(env, learner, p.lab);
   const t = await readToken(env, token);
   try { await containerFor(env, t); }                       // warm it so the terminal opens fast
@@ -112,7 +134,12 @@ async function session(request, env) {
 }
 
 async function check(request, env, t) {
-  const { step } = await request.json().catch(() => ({}));
+  const rl = await limited(env, t, "check");
+  if (rl) return rl;
+  const raw = await request.text();
+  if (raw.length > 256) return json({ error: "too large" }, 400);
+  let step;
+  try { ({ step } = JSON.parse(raw)); } catch { return json({ error: "bad json" }, 400); }
   const c = await containerFor(env, t);
   const r = await c.grader("/check", { method: "POST", body: JSON.stringify({ step: String(step) }) });
   const out = await r.json();

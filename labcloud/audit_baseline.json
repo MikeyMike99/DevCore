@@ -1,5 +1,5 @@
 {
- "approved_at": "2026-11-18T08:42:10Z",
+ "approved_at": "2026-11-18T08:49:26Z",
  "files": {
   "core/lab_cloud.py": "27bbe65296e638d14dcc09feceee9d80e19c8377211c01f989d5caba2c8dde33",
   "labcloud/dev.sh": "3007aefcfd1a3287bc355910afb7fc4a9d2e275f55b17a9c8190952b6c6634e0",
@@ -17,8 +17,8 @@
   "labcloud/image/labs/log-detective-02/lab.json": "e0ac03e5c4323a4309a961a42d6f26b078b105f1c48474e3f8e54d4050dba62f",
   "labcloud/image/learner_shell.sh": "f399876f583da030cf5996b5ba01ab0884cb48a0043a6cddba6bcc4bbef0f7df",
   "labcloud/issue_key.py": "aad6d165e136b12c076905c89d62235200488dad87fe221a2a477e382014cd4e",
-  "labcloud/src/worker.js": "9101c869677ead9fd42bc4e5014a97b2b6789f117a2840fd3302d7cfb55fc797",
+  "labcloud/src/worker.js": "7ce4315352f0a5bafe8650123c9305e849a1b6a353c4b803b183f267b4437bf1",
   "labcloud/wrangler.jsonc": "6ac22728a02189cb055d4e01c72ed2a1edb621c9e00b0989a5a9a1d86e04b43e",
-  "scripts/audit_labcloud.py": "8b139bd9b2d1fbcf45339374e30874cf2fb959c978f5047a2c03cd4a5182bcf4"
+  "scripts/audit_labcloud.py": "40cec1638c61e741a1e6f557f8b5cbf7f229cb870733b115c595152bd9a62e34"
  }
 }
