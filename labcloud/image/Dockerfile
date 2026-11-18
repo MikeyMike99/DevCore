@@ -9,6 +9,7 @@ RUN curl -fsSL -o /ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.7/
 FROM --platform=linux/amd64 debian:bookworm-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
       bash coreutils grep sed gawk findutils less nano file procps python3 ca-certificates \
+      git openssh-client iproute2 systemd util-linux tar gzip diffutils \
     && rm -rf /var/lib/apt/lists/* \
     && useradd -m -s /bin/bash learner
 COPY --from=ttyd /ttyd /usr/local/bin/ttyd

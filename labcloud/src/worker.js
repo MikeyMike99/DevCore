@@ -1,6 +1,7 @@
 // Siraugga Lab Cloud: one real-Linux container per learner+lab, a web terminal, and server-side grading.
 //
 //   POST /lab/session          (signed by the Siraugga backend with the learner's key) -> {app, terminal, expires}
+//   POST /lab/run              (signed likewise) {"lab","command"} -> {returncode, output}; one command as the learner
 //   GET  /app/<token>          the lab page (tasks + terminal + Check buttons)
 //   GET  /lab/info/<token>     lab description (no answers)
 //   POST /lab/check/<token>    {"step":"1"} -> grader inside the container; a pass is recorded in D1
@@ -68,16 +69,37 @@ async function containerFor(env, t) {
 }
 
 // ---------- routes
-async function session(request, env) {
+// A request from the Siraugga backend: body signed with the learner's key. Returns {learner, p} or {error: Response}.
+async function verifySigned(request, env, maxLen) {
   const learner = request.headers.get("X-Lab-Learner") || "";
-  if (!ID_RE.test(learner)) return json({ error: "bad learner" }, 401);
+  if (!ID_RE.test(learner)) return { error: json({ error: "bad learner" }, 401) };
   const raw = await request.text();
-  if (raw.length > 1024) return json({ error: "too large" }, 400);
+  if (raw.length > maxLen) return { error: json({ error: "too large" }, 400) };
   const key = await hmacHex(env.LAB_MASTER_SECRET, learner);
-  if (!safeEqual(request.headers.get("X-Lab-Signature") || "", await hmacHex(key, raw))) return json({ error: "bad signature" }, 401);
+  if (!safeEqual(request.headers.get("X-Lab-Signature") || "", await hmacHex(key, raw))) return { error: json({ error: "bad signature" }, 401) };
   let p;
-  try { p = JSON.parse(raw); } catch { return json({ error: "bad json" }, 400); }
-  if (!LAB_RE.test(p.lab || "")) return json({ error: "bad lab" }, 400);
+  try { p = JSON.parse(raw); } catch { return { error: json({ error: "bad json" }, 400) }; }
+  if (!LAB_RE.test(p.lab || "")) return { error: json({ error: "bad lab" }, 400) };
+  return { learner, p };
+}
+
+// Runs ONE command as the learner inside their container (used by course steps). Returns {returncode, output}.
+async function run(request, env) {
+  const v = await verifySigned(request, env, 4096);
+  if (v.error) return v.error;
+  const cmd = v.p.command;
+  if (typeof cmd !== "string" || !cmd.trim() || cmd.length > 2000) return json({ error: "bad command" }, 400);
+  let c;
+  try { c = await containerFor(env, { learner: v.learner, lab: v.p.lab }); }
+  catch (e) { return json({ error: "no capacity or unknown lab" }, 503); }
+  const r = await c.grader("/exec", { method: "POST", body: JSON.stringify({ command: cmd }) });
+  return json(await r.json(), r.status);
+}
+
+async function session(request, env) {
+  const v = await verifySigned(request, env, 1024);
+  if (v.error) return v.error;
+  const { learner, p } = v;
   const token = await mintToken(env, learner, p.lab);
   const t = await readToken(env, token);
   try { await containerFor(env, t); }                       // warm it so the terminal opens fast
@@ -106,6 +128,7 @@ export default {
     const parts = url.pathname.split("/").filter(Boolean);
 
     if (request.method === "POST" && url.pathname === "/lab/session") return session(request, env);
+    if (request.method === "POST" && url.pathname === "/lab/run") return run(request, env);
 
     const kind = parts[0] === "lab" ? parts[1] : parts[0];   // app | info | check | t
     const token = parts[0] === "lab" ? parts[2] : parts[1];

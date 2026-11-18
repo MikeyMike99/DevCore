@@ -23,6 +23,17 @@ Local only: no Cloudflare account, domain or secret is used. The dev secret `loc
 3. The learner works in the terminal. **Check** runs the step's check script inside the container as root; a pass is saved
    once per learner+lab+step in D1 (`lab_progress`).
 
+## Linux Essentials course integration
+The course's hands-on steps (`linux_essentials_step_by_step`, 71 commands) run in the learner's own container instead of the
+server's sandbox. Course content, predictions, reflections, progress and evidence files are unchanged; only *where the
+command runs* changed (`core/lab_cloud.py`, called from `_execute_sandbox_sync` in `core/routes/projects.py`).
+- **Off by default.** Turn on by setting `SIRAUGGA_LAB_URL` and `SIRAUGGA_LAB_SECRET` in the Siraugga server's environment
+  (locally: `http://127.0.0.1:8788` and `local-dev-only`). If unset or unreachable, the course uses the old sandbox, so it never breaks.
+- One container per learner (id = their private sandbox folder, unique even when two learners share a name).
+  Their home folder persists between steps; `/tmp` is emptied before each command, exactly like the old sandbox.
+- `python labcloud/test_course.py` runs all 71 course commands through the connector (71/71 pass).
+- To route another course: add it to `COURSE_LABS` in `core/lab_cloud.py` and a folder under `image/labs/`.
+
 ## Add a lab
 Make `image/labs/<lab-id>/` with `lab.json` (title, steps, hints), `seed/` (files the learner starts with) and
 `checks/<step>.sh` (exit 0 = pass; runs in the learner's home; read `$LAB/seed` for pristine copies). The folders under
@@ -34,7 +45,8 @@ Make `image/labs/<lab-id>/` with `lab.json` (title, steps, hints), `seed/` (file
 - Signed, expiring links; per-learner keys; lab and step names validated; answers are root-only.
 
 ## Known limits
-- `max_instances` is enforced by Cloudflare, **not in local dev** (7 sessions were accepted locally).
+- `max_instances` and `enableInternet = false` are enforced by Cloudflare, **not in local dev** (7 sessions were accepted
+  and a container could reach the internet). Check both on the first real deploy.
 - Not deployed. Going live needs the Workers Paid plan, a route (e.g. `lab.mikeytech.dev`), `LAB_MASTER_SECRET` as a Worker
   secret, and the `lab_progress` table (`lab_schema.sql`) applied to D1. Then `npx wrangler deploy --config wrangler.jsonc`.
 - Containers are per learner+lab, so a learner's files persist only while the container lives (10 idle minutes).
