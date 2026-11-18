@@ -40,6 +40,29 @@ def configured() -> bool:
                 and _safe_url(os.environ["SIRAUGGA_LAB_URL"]))
 
 
+_REACH = {"at": 0.0, "ok": False}
+
+
+def reachable(max_age: float = 10.0) -> bool:
+    """Is the Lab Cloud answering right now? Cached for a few seconds so page loads stay fast.
+    Any HTTP answer counts (even an error page): it only has to be up."""
+    if not configured():
+        return False
+    now = time.monotonic()
+    if now - _REACH["at"] < max_age:
+        return _REACH["ok"]
+    ok = True
+    try:
+        urllib.request.urlopen(urllib.request.Request(os.environ["SIRAUGGA_LAB_URL"].rstrip("/") + "/",
+                               headers={"User-Agent": "Siraugga/lab-cloud"}), timeout=1.5).close()
+    except urllib.error.HTTPError:
+        ok = True
+    except (urllib.error.URLError, OSError, ValueError, TimeoutError):
+        ok = False
+    _REACH.update(at=now, ok=ok)
+    return ok
+
+
 def lab_for_course(course_id: str):
     """The lab image to use for this course, or None (course not mapped, or Lab Cloud not configured)."""
     return COURSE_LABS.get(course_id) if configured() else None

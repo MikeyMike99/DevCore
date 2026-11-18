@@ -26,6 +26,15 @@ done
 LABENV="$HOME/.config/siraugga/lab_cloud.env"
 if [ -f "$LABENV" ]; then set -a; . "$LABENV"; set +a; fi
 
+# Start the local Lab Cloud too (Docker + wrangler) so the live terminal just works from the browser. It is only started when
+# the settings point at this machine and nothing already answers there. Logs: /tmp/labcloud.out
+if [ -n "$SIRAUGGA_LAB_URL" ] && echo "$SIRAUGGA_LAB_URL" | grep -qE '^http://(127\.0\.0\.1|localhost):'; then
+  if ! curl -s -o /dev/null --max-time 2 "$SIRAUGGA_LAB_URL/"; then
+    nohup setsid bash "$ROOT/labcloud/dev.sh" >> /tmp/labcloud.out 2>&1 < /dev/null &
+    echo "Lab Cloud starting in the background (log: /tmp/labcloud.out)."
+  fi
+fi
+
 cd "$ROOT/core" || exit 1
 nohup setsid "$PY" -u server.py >> "$LOG" 2>&1 < /dev/null &
 for i in $(seq 1 40); do curl -s -o /dev/null http://127.0.0.1:5000/ && { echo "Server is up."; exit 0; }; sleep 2; done
