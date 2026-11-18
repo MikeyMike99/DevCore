@@ -2,7 +2,7 @@
 
 Nothing here touches the learner's real disk: every command works on the lab's
 virtual files, so it behaves the same on Windows, Mac and Linux.
-Supports `cmd > file` and `cmd >> file` redirection.
+Supports pipes (`a | b`) and redirection (`> file`, `>> file`).
 """
 import base64
 import hashlib
@@ -16,8 +16,18 @@ class SimShell:
         self.dirs: set = {"/", "/home", home}
         self.home = home
         self.cwd = home
+        self._stdin = None
         for path, text in (files or {}).items():
             self._write(self._abs(path), text)
+
+    # -- save / restore (for resuming a lab)
+    def export_state(self) -> dict:
+        return {"files": self.files, "dirs": sorted(self.dirs), "cwd": self.cwd}
+
+    def import_state(self, st: dict) -> None:
+        self.files = dict(st.get("files", {}))
+        self.dirs = set(st.get("dirs", self.dirs))
+        self.cwd = st.get("cwd", self.cwd)
 
     # -- path helpers
     def _abs(self, p: str) -> str:
@@ -32,14 +42,46 @@ class SimShell:
             d = posixpath.dirname(d)
         self.files[path] = text
 
+    def _read(self, args):
+        """Text of the named files, or piped input when no file is named."""
+        files = [x for x in args if not x.startswith("-")]
+        if not files and self._stdin is not None:
+            return 0, self._stdin
+        out = []
+        for f in files:
+            p = self._abs(f)
+            if p not in self.files:
+                return 1, f"{f}: No such file or directory"
+            out.append(self.files[p])
+        return 0, "\n".join(out)
+
     # -- public
     def run(self, line: str):
         try:
             parts = shlex.split(line)
         except ValueError as e:
             return 2, f"sh: {e}"
-        if not parts:
-            return 0, ""
+        stages, cur = [], []
+        for t in parts:
+            if t == "|":
+                stages.append(cur)
+                cur = []
+            else:
+                cur.append(t)
+        stages.append(cur)
+        rc, out, self._stdin = 0, "", None
+        for i, st in enumerate(stages):
+            if not st:
+                return 2, "sh: syntax error near '|'"
+            last = i == len(stages) - 1
+            rc, out = self._run_one(st, redirect=last)
+            if rc != 0 and not last:
+                break
+            self._stdin = out
+        self._stdin = None
+        return rc, out
+
+    def _run_one(self, parts, redirect: bool):
         target, append = None, False
         for op in (">>", ">"):
             if op in parts:
@@ -58,7 +100,7 @@ class SimShell:
             rc, out = fn(parts[1:])
         except Exception as e:  # a bad command must never crash the lab
             return 1, f"{parts[0]}: {e}"
-        if target is not None and rc == 0:
+        if target is not None and rc == 0 and redirect:
             p = self._abs(target)
             self._write(p, (self.files.get(p, "") + out) if append else out)
             return 0, ""
@@ -67,6 +109,7 @@ class SimShell:
     # -- commands
     def cmd_pwd(self, a): return 0, self.cwd
     def cmd_whoami(self, a): return 0, "learner"
+    def cmd_hostname(self, a): return 0, "siraugga-lab"
     def cmd_echo(self, a): return 0, " ".join(a)
     def cmd_clear(self, a): return 0, ""
 
@@ -90,13 +133,8 @@ class SimShell:
         return 0, "  ".join(sorted(names))
 
     def cmd_cat(self, a):
-        out = []
-        for f in a:
-            p = self._abs(f)
-            if p not in self.files:
-                return 1, f"cat: {f}: No such file or directory"
-            out.append(self.files[p])
-        return 0, "\n".join(out)
+        rc, text = self._read(a)
+        return (rc, "cat: " + text) if rc else (0, text)
 
     def cmd_mkdir(self, a):
         for d in [x for x in a if not x.startswith("-")]:
@@ -114,34 +152,67 @@ class SimShell:
                 return 1, f"rm: cannot remove '{f}': No such file or directory"
         return 0, ""
 
+    def cmd_cp(self, a):
+        if len(a) != 2 or self._abs(a[0]) not in self.files:
+            return 1, "cp: usage: cp SRC DEST (file must exist)"
+        self._write(self._abs(a[1]), self.files[self._abs(a[0])])
+        return 0, ""
+
+    def cmd_mv(self, a):
+        rc, msg = self.cmd_cp(a)
+        if rc == 0:
+            self.files.pop(self._abs(a[0]), None)
+        return rc, msg.replace("cp:", "mv:")
+
     def cmd_head(self, a):
-        rc, text = self.cmd_cat([x for x in a if not x.startswith("-")])
+        rc, text = self._read(a)
         return (rc, text) if rc else (0, "\n".join(text.splitlines()[:10]))
 
+    def cmd_tail(self, a):
+        rc, text = self._read(a)
+        return (rc, text) if rc else (0, "\n".join(text.splitlines()[-10:]))
+
     def cmd_grep(self, a):
-        if len(a) < 2:
-            return 2, "usage: grep PATTERN FILE"
-        rc, text = self.cmd_cat(a[1:])
+        if not a:
+            return 2, "usage: grep PATTERN [FILE]"
+        rc, text = self._read(a[1:])
         if rc:
             return rc, text
         hits = [ln for ln in text.splitlines() if a[0] in ln]
         return (0 if hits else 1), "\n".join(hits)
 
     def cmd_wc(self, a):
-        rc, text = self.cmd_cat([x for x in a if not x.startswith("-")])
+        rc, text = self._read(a)
         return (rc, text) if rc else (0, str(len(text.splitlines())))
 
-    def cmd_sha256sum(self, a):
-        rc, text = self.cmd_cat(a)
-        return (rc, text) if rc else (0, hashlib.sha256(text.encode()).hexdigest() + "  " + a[0])
+    def cmd_sort(self, a):
+        rc, text = self._read(a)
+        return (rc, text) if rc else (0, "\n".join(sorted(text.splitlines(), reverse="-r" in a)))
 
-    def cmd_md5sum(self, a):
-        rc, text = self.cmd_cat(a)
-        return (rc, text) if rc else (0, hashlib.md5(text.encode()).hexdigest() + "  " + a[0])
+    def cmd_uniq(self, a):
+        rc, text = self._read(a)
+        if rc:
+            return rc, text
+        out, prev = [], None
+        for ln in text.splitlines():
+            if ln != prev:
+                out.append(ln)
+            prev = ln
+        return 0, "\n".join(out)
+
+    def _hash(self, algo, a):
+        rc, text = self._read(a)
+        if rc:
+            return rc, text
+        name = next((x for x in a if not x.startswith("-")), "-")
+        return 0, hashlib.new(algo, text.encode()).hexdigest() + "  " + name
+
+    def cmd_sha256sum(self, a): return self._hash("sha256", a)
+    def cmd_md5sum(self, a): return self._hash("md5", a)
 
     def cmd_base64(self, a):
         dec = "-d" in a or "--decode" in a
-        rc, text = self.cmd_cat([x for x in a if not x.startswith("-")])
+        rc, text = self._read(a)
         if rc:
             return rc, text
         data = text.strip().encode()
