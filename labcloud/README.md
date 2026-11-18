@@ -34,6 +34,25 @@ command runs* changed (`core/lab_cloud.py`, called from `_execute_sandbox_sync` 
 - `python labcloud/test_course.py` runs all 71 course commands through the connector (71/71 pass).
 - To route another course: add it to `COURSE_LABS` in `core/lab_cloud.py` and a folder under `image/labs/`.
 
+## The permanent audit
+`scripts/audit_labcloud.py` audits everything above in 7 stages (image, Worker/config, course connector, secrets/supply chain,
+unit tests, live attack probes, tripwire) and logs every FAIL/WARN to `logs/security_violations.jsonl`.
+```
+python3 scripts/audit_labcloud.py                 # full audit (live stage skips if the stack is not running)
+python3 scripts/audit_labcloud.py --no-live       # static + unit tests; what the pre-commit hook runs
+python3 scripts/audit_labcloud.py --require-live  # FAIL if the stack is not up (use before a deploy)
+python3 scripts/audit_labcloud.py --accept-integrity   # approve a deliberate change to a security-critical file
+python3 scripts/audit_labcloud.py --install-hook  # (re)install the pre-commit trigger (git_bootstrap may overwrite hooks)
+```
+- **Where it runs automatically:** on every commit touching `labcloud/`, `core/lab_cloud.py` or the audit itself (pre-commit hook),
+  and inside the normal test suite (`tests/test_audit_labcloud.py`).
+- **It is tested too:** that test file breaks a copy of the system in 17 ways (unpinned image, no replay window, internet on,
+  weak CSP, secret in the tree, ...) and requires the audit to catch each one, so the audit cannot quietly go blind.
+- **Tripwire:** security-critical files are hashed in `labcloud/audit_baseline.json`. After you review a deliberate change,
+  run `--accept-integrity` and commit the new baseline. Line endings do not matter.
+- **Before going live:** run with the stack up and `--require-live`; then check on Cloudflare the two things local dev cannot
+  show (`enableInternet = false`, `max_instances`).
+
 ## Add a lab
 Make `image/labs/<lab-id>/` with `lab.json` (title, steps, hints), `seed/` (files the learner starts with) and
 `checks/<step>.sh` (exit 0 = pass; runs in the learner's home; read `$LAB/seed` for pristine copies). The folders under

@@ -1,0 +1,24 @@
+{
+ "approved_at": "2026-11-18T08:42:10Z",
+ "files": {
+  "core/lab_cloud.py": "27bbe65296e638d14dcc09feceee9d80e19c8377211c01f989d5caba2c8dde33",
+  "labcloud/dev.sh": "3007aefcfd1a3287bc355910afb7fc4a9d2e275f55b17a9c8190952b6c6634e0",
+  "labcloud/image/Dockerfile": "3f4e32c0b92382bb5f2bff2c2289883d7b8e7a0adc14cad282b2fe1df82339e1",
+  "labcloud/image/entrypoint.sh": "adfaacd7ca1ef01775e5f339d3394a0ba6b6031d177b41a63b74a741f6c83a1e",
+  "labcloud/image/grader.py": "2f1ef91279c5daaa4ddcbe9c1498b3078bac91fd275e5d6220a111671eda2d33",
+  "labcloud/image/labs/linux-basics-01/checks/1.sh": "c327dd321db6536c00f3e139a938121bb02de594d26f2b75f0cc5319ee4cbcd7",
+  "labcloud/image/labs/linux-basics-01/checks/2.sh": "49c12e78c1a4b68bea08c9afc6ca20ede923b25346cdf61053af602b76231819",
+  "labcloud/image/labs/linux-basics-01/checks/3.sh": "4b8bcd5f535dfcf433806d8dee412a1f383c7f99becc29d06f4a3fce8f1260aa",
+  "labcloud/image/labs/linux-basics-01/lab.json": "54d20d75f90e67d7e007e289262aefd9f98653dd026aaebf53507906fa0174ed",
+  "labcloud/image/labs/linux-essentials/lab.json": "12de15873ff38f14a9204d47936d14deb6ad3837d9bd48020971e177b9db7016",
+  "labcloud/image/labs/log-detective-02/checks/1.sh": "003363b7463332430f75662caca838a655b0f984955a0afecada5522e1f4d2dc",
+  "labcloud/image/labs/log-detective-02/checks/2.sh": "275b89daa893b7edd26fb11104f016f04eaf5f9d826a7874fd09ea92065ce940",
+  "labcloud/image/labs/log-detective-02/checks/3.sh": "914ed48e5e29e2c28268245ba81b556613220a6250d91312a29f3cc0e3ea3122",
+  "labcloud/image/labs/log-detective-02/lab.json": "e0ac03e5c4323a4309a961a42d6f26b078b105f1c48474e3f8e54d4050dba62f",
+  "labcloud/image/learner_shell.sh": "f399876f583da030cf5996b5ba01ab0884cb48a0043a6cddba6bcc4bbef0f7df",
+  "labcloud/issue_key.py": "aad6d165e136b12c076905c89d62235200488dad87fe221a2a477e382014cd4e",
+  "labcloud/src/worker.js": "9101c869677ead9fd42bc4e5014a97b2b6789f117a2840fd3302d7cfb55fc797",
+  "labcloud/wrangler.jsonc": "6ac22728a02189cb055d4e01c72ed2a1edb621c9e00b0989a5a9a1d86e04b43e",
+  "scripts/audit_labcloud.py": "8b139bd9b2d1fbcf45339374e30874cf2fb959c978f5047a2c03cd4a5182bcf4"
+ }
+}

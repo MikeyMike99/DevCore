@@ -13,6 +13,7 @@ import { Container, getContainer } from "@cloudflare/containers";
 const ID_RE = /^[A-Za-z0-9_.@-]{1,64}$/;
 const LAB_RE = /^[A-Za-z0-9_-]{1,48}$/;
 const TOKEN_TTL = 4 * 3600;
+const MAX_SKEW = 300;           // signed backend requests older/newer than 5 min are refused (replay window)
 const enc = new TextEncoder();
 
 export class LabContainer extends Container {
@@ -46,16 +47,17 @@ function safeEqual(a, b) {
 }
 const b64u = s => btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const unb64u = s => atob(s.replace(/-/g, "+").replace(/_/g, "/"));
-const json = (o, status = 200) => Response.json(o, { status, headers: { "Cache-Control": "no-store" } });
+const SEC_HEADERS = { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
+const json = (o, status = 200) => Response.json(o, { status, headers: SEC_HEADERS });
 
 async function mintToken(env, learner, lab) {
   const payload = b64u(JSON.stringify({ l: learner, b: lab, e: Math.floor(Date.now() / 1000) + TOKEN_TTL }));
-  return `${payload}.${await hmacHex(env.LAB_MASTER_SECRET, "v1." + payload)}`;
+  return `${payload}.${await hmacHex(env.LAB_MASTER_SECRET, "token:v1." + payload)}`;
 }
 async function readToken(env, token) {
   const [payload, sig] = String(token).split(".");
   if (!payload || !sig) return null;
-  if (!safeEqual(sig, await hmacHex(env.LAB_MASTER_SECRET, "v1." + payload))) return null;
+  if (!safeEqual(sig, await hmacHex(env.LAB_MASTER_SECRET, "token:v1." + payload))) return null;
   try {
     const t = JSON.parse(unb64u(payload));
     if (t.e < Date.now() / 1000 || !ID_RE.test(t.l) || !LAB_RE.test(t.b)) return null;
@@ -75,11 +77,13 @@ async function verifySigned(request, env, maxLen) {
   if (!ID_RE.test(learner)) return { error: json({ error: "bad learner" }, 401) };
   const raw = await request.text();
   if (raw.length > maxLen) return { error: json({ error: "too large" }, 400) };
-  const key = await hmacHex(env.LAB_MASTER_SECRET, learner);
+  const key = await hmacHex(env.LAB_MASTER_SECRET, "learner:" + learner);
   if (!safeEqual(request.headers.get("X-Lab-Signature") || "", await hmacHex(key, raw))) return { error: json({ error: "bad signature" }, 401) };
   let p;
   try { p = JSON.parse(raw); } catch { return { error: json({ error: "bad json" }, 400) }; }
   if (!LAB_RE.test(p.lab || "")) return { error: json({ error: "bad lab" }, 400) };
+  const ts = Number(p.ts);
+  if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > MAX_SKEW) return { error: json({ error: "stale or missing timestamp" }, 401) };
   return { learner, p };
 }
 
@@ -136,7 +140,11 @@ export default {
     const t = await readToken(env, token);
     if (!t) return json({ error: "link expired or invalid" }, 401);
 
-    if (kind === "app") return new Response(APP_HTML(token), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+    if (kind === "app") {
+      const nonce = btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(16))));
+      const csp = `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; connect-src 'self'; frame-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors ${env.EMBED_ORIGINS || "'self'"}`;   // EMBED_ORIGINS = the Siraugga site(s) allowed to embed this page
+      return new Response(APP_HTML(token, nonce), { headers: { ...SEC_HEADERS, "Content-Type": "text/html; charset=utf-8", "Content-Security-Policy": csp } });
+    }
     if (kind === "info") { const c = await containerFor(env, t); return c.grader("/info"); }
     if (kind === "check" && request.method === "POST") return check(request, env, t);
     if (kind === "t") {
@@ -149,8 +157,8 @@ export default {
   },
 };
 
-const APP_HTML = token => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Siraugga Lab</title><style>
+const APP_HTML = (token, nonce) => `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Siraugga Lab</title><style nonce="${nonce}">
 :root{--bg:#0f1115;--fg:#e8eaf0;--mut:#9aa3b2;--card:#171a21;--ok:#3fb950;--bad:#f85149;--acc:#58a6ff}
 @media(prefers-color-scheme:light){:root{--bg:#f6f7f9;--fg:#1b1f27;--mut:#5b6573;--card:#fff;--acc:#0969da}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px system-ui,sans-serif;display:flex;height:100vh}
@@ -161,7 +169,7 @@ h1{font-size:18px;margin:0 0 12px}.step{background:var(--card);border-radius:10p
 @media(max-width:800px){body{flex-direction:column;height:auto}aside{width:auto;border:0}main{height:70vh}}</style></head><body>
 <aside><h1 id="t">Loading…</h1><div id="s"></div><p class="mut">Type commands in the terminal, then press Check.</p></aside>
 <main><iframe src="/t/${token}/" title="Lab terminal"></iframe></main>
-<script>
+<script nonce="${nonce}">
 const T=${JSON.stringify(token)};
 fetch('/lab/info/'+T).then(r=>r.json()).then(lab=>{
  document.getElementById('t').textContent=lab.title;

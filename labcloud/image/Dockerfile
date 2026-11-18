@@ -1,12 +1,12 @@
 # The lab computer: real Debian Linux. One container per learner, started on demand by the Worker.
-FROM debian:bookworm-slim AS ttyd
+FROM debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc AS ttyd
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 # Web terminal (official release, checksum pinned so a tampered download fails the build).
 RUN curl -fsSL -o /ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64 \
  && echo "8a217c968aba172e0dbf3f34447218dc015bc4d5e59bf51db2f2cd12b7be4f55  /ttyd" | sha256sum -c - \
  && chmod 755 /ttyd
 
-FROM --platform=linux/amd64 debian:bookworm-slim
+FROM --platform=linux/amd64 debian:bookworm-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
 RUN apt-get update && apt-get install -y --no-install-recommends \
       bash coreutils grep sed gawk findutils less nano file procps python3 ca-certificates \
       git openssh-client iproute2 systemd util-linux tar gzip diffutils \

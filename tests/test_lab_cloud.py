@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import threading
+import time
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -21,7 +22,7 @@ class _H(BaseHTTPRequestHandler):
     def do_POST(self):
         raw = self.rfile.read(int(self.headers["Content-Length"]))
         learner = self.headers["X-Lab-Learner"]
-        key = hmac.new(SECRET.encode(), learner.encode(), hashlib.sha256).hexdigest()
+        key = hmac.new(SECRET.encode(), b"learner:" + learner.encode(), hashlib.sha256).hexdigest()
         if self.headers["X-Lab-Signature"] != hmac.new(key.encode(), raw, hashlib.sha256).hexdigest():
             return self._r(401, {"error": "bad signature"})
         SEEN.append((self.path, learner, json.loads(raw)))
@@ -70,7 +71,8 @@ class LabCloudTests(unittest.TestCase):
     def test_signed_request_accepted(self):
         self.assertEqual(lab_cloud.run_command("lc-abc", "linux-essentials", "uname -s"), (0, "Linux"))
         self.assertEqual(SEEN[-1][:2], ("/lab/run", "lc-abc"))
-        self.assertEqual(SEEN[-1][2], {"lab": "linux-essentials", "command": "uname -s"})
+        self.assertEqual({k: v for k, v in SEEN[-1][2].items() if k != "ts"}, {"lab": "linux-essentials", "command": "uname -s"})
+        self.assertLess(abs(SEEN[-1][2]["ts"] - time.time()), 10)   # fresh timestamp for the replay window
 
     def test_wrong_secret_means_fallback(self):
         os.environ["SIRAUGGA_LAB_SECRET"] = "not-the-secret"
@@ -85,6 +87,14 @@ class LabCloudTests(unittest.TestCase):
     def test_rejected_command_is_reported_not_fallback(self):
         _H.mode = "bad"
         self.assertEqual(lab_cloud.run_command("lc-abc", "linux-essentials", "x")[0], 2)
+
+    def test_plain_http_to_a_remote_host_is_refused(self):
+        os.environ["SIRAUGGA_LAB_URL"] = "http://lab.example.com"
+        self.assertFalse(lab_cloud.configured())
+        os.environ["SIRAUGGA_LAB_URL"] = "https://lab.example.com"
+        self.assertTrue(lab_cloud.configured())
+        os.environ["SIRAUGGA_LAB_URL"] = "http://localhost:8788"
+        self.assertTrue(lab_cloud.configured())
 
     def test_learner_ids_are_unique_and_safe(self):
         a = lab_cloud.learner_id("/x/playground/.course_sandboxes/aaa111", True)

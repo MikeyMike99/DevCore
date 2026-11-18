@@ -1,4 +1,4 @@
-"""Admin tool: derive one learner's lab key.  key = HMAC-SHA256(LAB_MASTER_SECRET, learner_id).
+"""Admin tool: derive one learner's lab key.  key = HMAC-SHA256(LAB_MASTER_SECRET, "learner:" + learner_id).
 
     set LAB_MASTER_SECRET=...   (same value as the Worker secret; never commit it)
     python issue_key.py alice
@@ -15,4 +15,4 @@ if __name__ == "__main__":
     secret = os.environ.get("LAB_MASTER_SECRET", "")
     if not re.fullmatch(r"[A-Za-z0-9_.@-]{1,64}", learner) or not secret:
         sys.exit("usage: LAB_MASTER_SECRET=... python issue_key.py <learner-id>")
-    print(hmac.new(secret.encode(), learner.encode(), hashlib.sha256).hexdigest())
+    print(hmac.new(secret.encode(), b"learner:" + learner.encode(), hashlib.sha256).hexdigest())

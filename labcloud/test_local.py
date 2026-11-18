@@ -23,9 +23,9 @@ def http(method, path, body=None, headers=None):
         return e.code, e.read()
 
 
-def signed_session(learner, key_for=None):
-    body = json.dumps({"lab": LAB}).encode()
-    key = hmac.new(MASTER.encode(), (key_for or learner).encode(), hashlib.sha256).hexdigest()
+def signed_session(learner, key_for=None, ts=None):
+    body = json.dumps({"lab": LAB, "ts": ts if ts is not None else int(time.time())}).encode()
+    key = hmac.new(MASTER.encode(), b"learner:" + (key_for or learner).encode(), hashlib.sha256).hexdigest()
     sig = hmac.new(key.encode(), body, hashlib.sha256).hexdigest()
     return http("POST", "/lab/session", body, {"X-Lab-Learner": learner, "X-Lab-Signature": sig})
 

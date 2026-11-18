@@ -12,7 +12,9 @@ import json
 import logging
 import os
 import re
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 log = logging.getLogger("siraugga.lab_cloud")
@@ -27,8 +29,15 @@ class LabCloudUnavailable(Exception):
     """The Lab Cloud is off, unreachable or refused the request: use the fallback."""
 
 
+def _safe_url(url: str) -> bool:
+    """Commands are only sent over HTTPS, except to this same machine (local development)."""
+    u = urllib.parse.urlparse(url or "")
+    return u.scheme == "https" or (u.scheme == "http" and u.hostname in ("127.0.0.1", "localhost", "::1"))
+
+
 def configured() -> bool:
-    return bool(os.environ.get("SIRAUGGA_LAB_URL") and os.environ.get("SIRAUGGA_LAB_SECRET"))
+    return bool(os.environ.get("SIRAUGGA_LAB_URL") and os.environ.get("SIRAUGGA_LAB_SECRET")
+                and _safe_url(os.environ["SIRAUGGA_LAB_URL"]))
 
 
 def lab_for_course(course_id: str):
@@ -51,8 +60,9 @@ def run_command(learner: str, lab: str, command: str, timeout: float = 75.0):
     if not _ID_RE.match(learner):
         raise LabCloudUnavailable("bad learner id")
     master = os.environ["SIRAUGGA_LAB_SECRET"]
-    body = json.dumps({"lab": lab, "command": command}, separators=(",", ":"), sort_keys=True).encode()
-    key = hmac.new(master.encode(), learner.encode(), hashlib.sha256).hexdigest()   # the learner's own key
+    # ts: the server refuses requests more than 5 minutes old, so a captured request cannot be replayed later.
+    body = json.dumps({"lab": lab, "command": command, "ts": int(time.time())}, separators=(",", ":"), sort_keys=True).encode()
+    key = hmac.new(master.encode(), b"learner:" + learner.encode(), hashlib.sha256).hexdigest()   # the learner's own key
     sig = hmac.new(key.encode(), body, hashlib.sha256).hexdigest()
     req = urllib.request.Request(
         os.environ["SIRAUGGA_LAB_URL"].rstrip("/") + "/lab/run", data=body, method="POST",
