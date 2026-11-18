@@ -46,7 +46,7 @@ HOOK_MARK = "labcloud-audit"
 TRIPWIRE_FILES = [
     "labcloud/src/worker.js", "labcloud/wrangler.jsonc", "labcloud/image/Dockerfile",
     "labcloud/image/entrypoint.sh", "labcloud/image/learner_shell.sh", "labcloud/image/grader.py",
-    "labcloud/issue_key.py", "labcloud/dev.sh", "core/lab_cloud.py", "scripts/audit_labcloud.py",
+    "labcloud/issue_key.py", "labcloud/dev.sh", "labcloud/setup.sh", "core/lab_cloud.py", "scripts/audit_labcloud.py",
 ]
 TRIPWIRE_GLOBS = ["labcloud/image/labs/*/checks/*.sh", "labcloud/image/labs/*/lab.json"]
 
@@ -291,6 +291,7 @@ def stage_supply(r: Report, t: Tree, offline: bool):
                 f"unpinned dependencies without a lockfile: {loose}")
     else:
         r.ok("SUP-05", "dependencies are exact")
+    stage_setup(r, t)
     if offline:
         r.skip("SUP-06", "npm audit skipped (offline mode)")
         return
@@ -304,6 +305,50 @@ def stage_supply(r: Report, t: Tree, offline: bool):
                 f"npm audit: {high} high/critical vulnerabilities")
     except (OSError, ValueError, subprocess.TimeoutExpired):
         r.skip("SUP-06", "npm audit could not run (npm missing or no network)")
+
+
+def _tracked_labcloud_files(t: Tree):
+    """Files that would be committed: git's tracked list when this is a git checkout, else every file on disk."""
+    try:
+        out = subprocess.run(["git", "-C", t.root, "ls-files", "labcloud"], capture_output=True, text=True, timeout=20)
+        if out.returncode == 0 and out.stdout.strip():
+            return [f for f in out.stdout.splitlines() if os.path.isfile(os.path.join(t.root, f))]
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    found = []
+    for dp, dn, fn in os.walk(os.path.join(t.root, "labcloud")):
+        dn[:] = [d for d in dn if d not in ("node_modules", ".wrangler", "__pycache__")]
+        found += [os.path.relpath(os.path.join(dp, f), t.root).replace(os.sep, "/") for f in fn]
+    return found
+
+
+def stage_setup(r: Report, t: Tree):
+    """The container is built at deploy time by labcloud/setup.sh; nothing built may live in git."""
+    big = []
+    for rel in _tracked_labcloud_files(t):
+        p = os.path.join(t.root, rel)
+        if rel.endswith((".tar", ".tgz", ".img", ".iso", ".oci", ".sif", ".exe", ".bin", ".so")) or os.path.getsize(p) > 1_000_000:
+            big.append(rel)
+    r.check("SET-01", not big, "no built container/image/binary files in git (only source)", f"built or oversized files in git: {big[:3]}")
+    s = t.read("labcloud/setup.sh")
+    r.check("SET-02", s is not None, "labcloud/setup.sh present (builds and deploys the container)", "labcloud/setup.sh missing")
+    if s is None:
+        return
+    r.check("SET-03", "docker build" in s and not re.search(r"\bdocker\s+(pull|push|load|save|import|export)\b", s),
+            "the image is built from source on the deploying machine (no pull/push/save/load of prebuilt images)",
+            "setup.sh uses a prebuilt image (docker pull/push/load/save)")
+    r.check("SET-04", 'read -r -p "Type DEPLOY' in s and '[ "$answer" = "DEPLOY" ]' in s,
+            "deploy asks for a typed confirmation before changing anything online", "deploy has no typed confirmation gate")
+    r.check("SET-05", "npm ci" in s and "npm install" not in s, "dependencies installed from the lockfile (npm ci)", "setup.sh uses npm install instead of npm ci")
+    r.check("SET-06", "umask 077" in s and "chmod 600" in s, "master secret file is created private (600)", "master secret file is not created with mode 600")
+    leaks = [ln.strip() for ln in s.splitlines() if "SECRET_FILE" in ln and re.search(r"\b(echo|printf)\b", ln) and "cat" in ln]
+    r.check("SET-07", not leaks, "setup.sh never prints the secret", f"setup.sh may print the secret: {leaks[:1]}")
+    dep = s[s.find("deploy() {"):] if "deploy() {" in s else ""
+    gate_i, push_i = dep.find("  static_audit"), dep.find("wrangler@4 deploy")
+    r.check("SET-08", "audit_labcloud.py --no-live" in s and 0 <= gate_i < push_i,
+            "the audit gates the deploy (runs before anything is uploaded)", "setup.sh does not run the audit before deploying")
+    r.check("SET-09", ".wrangler-deploy.jsonc" in (t.read("labcloud/.gitignore") or ""), "generated deploy config is gitignored",
+            "the generated deploy config is not gitignored")
 
 
 # ---------------------------------------------------------------- Stage 5: unit tests

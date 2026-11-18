@@ -59,6 +59,11 @@ class MutationTests(unittest.TestCase):
         ("WRK-03", "labcloud/src/worker.js", '"token:v1."', '"v1."'),
         ("WRK-04", "labcloud/src/worker.js", "MAX_SKEW", "MAX_WINDOW"),
         ("WRK-08", "labcloud/src/worker.js", "enableInternet = false", "enableInternet = true"),
+        ("SET-03", "labcloud/setup.sh", "docker build", "docker pull evil/image && docker build"),
+        ("SET-04", "labcloud/setup.sh", '[ "$answer" = "DEPLOY" ]', "true"),
+        ("SET-05", "labcloud/setup.sh", "npm ci", "npm install"),
+        ("SET-06", "labcloud/setup.sh", "chmod 600", "chmod 644"),
+        ("SET-08", "labcloud/setup.sh", "audit_labcloud.py --no-live", "echo skipped"),
         ("WRK-21", "labcloud/src/worker.js", "LIMITS", "LIM"),
         ("WRK-23", "labcloud/src/worker.js", "raw.length > 256", "raw.length > 999999"),
         ("WRK-10", "labcloud/wrangler.jsonc", '"max_instances"', '"max_inst"'),
@@ -91,6 +96,26 @@ class MutationTests(unittest.TestCase):
             open(os.path.join(tmp, "labcloud", "oops.txt"), "w").write('LAB_MASTER_SECRET = "abcdef1234567890abcd"\n')
             fails, _ = _statuses(tmp)
             self.assertIn("SUP-01", fails)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_built_artifacts_in_the_tree_are_caught(self):
+        for name, size in (("lab-image.tar", 10), ("huge.dat", 1_200_000)):
+            with self.subTest(file=name):
+                tmp = _copy_tree()
+                try:
+                    open(os.path.join(tmp, "labcloud", name), "wb").write(b"x" * size)
+                    fails, _ = _statuses(tmp)
+                    self.assertIn("SET-01", fails)
+                finally:
+                    shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_setup_script_printing_the_secret_is_caught(self):
+        tmp = _copy_tree()
+        try:
+            open(os.path.join(tmp, "labcloud/setup.sh"), "a").write('\necho "secret is $(cat "$SECRET_FILE")"\n')
+            fails, _ = _statuses(tmp)
+            self.assertIn("SET-07", fails)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 

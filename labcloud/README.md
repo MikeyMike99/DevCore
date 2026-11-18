@@ -9,6 +9,19 @@ Siraugga chat page ──(iframe)──►  /app/<token>  ──►  Worker ─�
                                      + Check buttons             └─ grader (root-only; answers never reach the learner)
 ```
 
+## Setup: the container is built on the machine that deploys, never stored in git
+Git holds only source (Dockerfile, scripts, lab files). `labcloud/setup.sh` builds the lab container from that source:
+```
+bash labcloud/setup.sh check                       # are Node, Docker, Python ready?
+bash labcloud/setup.sh local                       # install deps (npm ci), build the image, run the audit gate
+LAB_DOMAIN=lab.example.com SIRAUGGA_ORIGIN=https://your-siraugga-site bash labcloud/setup.sh deploy --dry-run   # show every step, change nothing
+LAB_DOMAIN=lab.example.com SIRAUGGA_ORIGIN=https://your-siraugga-site bash labcloud/setup.sh deploy             # the real thing
+```
+`deploy` runs the audit first (it stops if anything fails), makes a private random master secret
+(`~/.config/siraugga/lab_master_secret`, mode 600, never printed), asks you to type `DEPLOY`, adds the `lab_progress` table,
+deploys the Worker + container (wrangler builds the image from `image/`), uploads the secret, then runs the live audit against the
+real site (including the "no internet" check). The audit also fails the commit if a built image/archive/binary gets into git.
+
 ## Run it locally (WSL, Docker running)
 ```
 bash labcloud/dev.sh                 # starts the Worker + real containers on http://localhost:8788

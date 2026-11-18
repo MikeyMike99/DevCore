@@ -1,3 +1,11 @@
 node_modules/
 .wrangler/
 .dev.vars
+# generated at deploy time; the container is built on the deploying machine, never stored in git
+.wrangler-deploy.jsonc
+*.tar
+*.tgz
+*.img
+*.oci
+dist/
+build/
