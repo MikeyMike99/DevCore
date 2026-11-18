@@ -1,0 +1,9 @@
+{
+ "1": "ls",
+ "2": "cat notes.txt",
+ "3": [
+  "echo c2lyYXVnZ2E= > s.txt",
+  "base64 -d s.txt"
+ ],
+ "4": "labctl complete linux-basics-01"
+}

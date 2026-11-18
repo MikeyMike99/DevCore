@@ -142,8 +142,9 @@ class EveryLabIsSolvable(unittest.TestCase):
         for name in list_labs():
             lab = load_lab(name)
             cmds = []
+            sols = json.load(open(os.path.join(os.path.dirname(__file__), "solutions", name + ".json"), encoding="utf-8"))
             for st in lab["steps"]:
-                sol = st["solution"]
+                sol = sols[st["id"]]
                 cmds += sol if isinstance(sol, list) else [sol]
             it, lines = iter(cmds), []
             with tempfile.TemporaryDirectory() as d:

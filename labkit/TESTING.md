@@ -27,7 +27,8 @@ Commands work on a pretend computer - your real files are never touched.
 
 ## Known limits (prototype)
 - Step checking happens on the learner's PC, so a determined learner could skip ahead; the server only records `labctl complete`. For graded labs, the server should verify a proof-of-work token (next step).
-- Lab solutions are inside the exe (needed for our own tests). Strip them before a public release.
+- Lab solutions are NOT in the exe (they live in `tests/solutions/`, used only by our self-test). The step checks (`expect_command`/`expect_output`) are still in the lab file, so they reveal what a correct answer looks like; real grading belongs on the server.
+- The "terminal" is a Python imitation of ~25 Linux commands, not a real Linux system.
 - Windows exe only; the Linux build comes from the Dockerfile.
 - Not code-signed, so Windows SmartScreen may warn.
 - Server (`lab.mikeytech.dev`) is live only after `Documents\siraugga_lab_deploy.ps1` has been run (and `siraugga_lab_issue_key.ps1 <id>` gives each tester a key); until then every server step is simulated.

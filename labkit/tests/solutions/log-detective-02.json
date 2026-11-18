@@ -1,0 +1,9 @@
+{
+ "1": "grep Failed auth.log | wc -l",
+ "2": "grep 203.0.113.9 auth.log | wc -l",
+ "3": [
+  "cp auth.log evidence.log",
+  "sha256sum evidence.log"
+ ],
+ "4": "labctl complete log-detective-02"
+}
