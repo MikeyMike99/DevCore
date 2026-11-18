@@ -1,6 +1,5 @@
 import os
-from presidio_analyzer import AnalyzerEngine
-from presidio_anonymizer import AnonymizerEngine
+
 
 class LocalSecurity:
     """
@@ -9,8 +8,10 @@ class LocalSecurity:
     sensitive data from text streams.
     """
     def __init__(self):
-        self.analyzer = AnalyzerEngine()
-        self.anonymizer = AnonymizerEngine()
+        # Nothing heavy here on purpose. This module used to import Presidio at the top, so a machine without it
+        # could not import LocalSecurity at all and the callers silently ran WITHOUT the firewall and scrubbing.
+        # Presidio is now loaded lazily (and loudly) by security.local_brain_broker.offline_scrub_pii.
+        pass
 
     def scrub_text(self, text: str) -> str:
         if not text or len(text.strip()) < 5:
@@ -52,10 +53,10 @@ class LocalSecurity:
             except Exception as e:
                 pass
 
-        results = self.analyzer.analyze(text=text, language='en')
-        anonymized_result = self.anonymizer.anonymize(text=text, analyzer_results=results)
+        from security.local_brain_broker import offline_scrub_pii
+        scrubbed = offline_scrub_pii(text, use_nlp=True, stage="egress")
         
-        return anonymized_result.text
+        return scrubbed
 
     def analyze_intent(self, text: str) -> str:
         """

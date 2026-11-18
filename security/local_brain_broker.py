@@ -32,6 +32,41 @@ _SKIP_FILENAMES = {
 }
 
 
+_NLP_WARNED = False
+
+
+def nlp_layer_status():
+    """(True, "") when the Presidio NLP layer can run here; otherwise (False, reason). Never raises."""
+    try:
+        from presidio_analyzer import AnalyzerEngine  # noqa: F401
+        from presidio_anonymizer import AnonymizerEngine  # noqa: F401
+        import spacy
+        if not spacy.util.is_package("en_core_web_lg"):
+            return False, "the spaCy model en_core_web_lg is not installed"
+        return True, ""
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
+
+
+def _warn_nlp_off_once(reason) -> None:
+    """The NLP layer is optional, but silently running without it hid a gap for weeks: say so, loudly, once."""
+    global _NLP_WARNED
+    if _NLP_WARNED:
+        return
+    _NLP_WARNED = True
+    try:
+        log_siem_event(
+            level="ERROR",
+            message=("[SECURITY_AUDIT] [LOCAL_BROKER_PII] Presidio NLP layer is OFF (" + str(reason)[:160] + "). Only the pattern layer "
+                     "is scrubbing: names and other free-text entities are NOT redacted. Fix: pip install -r requirements.txt"),
+            module_name="local_brain_broker",
+            logger_name="security.local_brain_broker",
+        )
+    except Exception:
+        pass
+    print("[DLP] WARNING: Presidio NLP layer is OFF - only the pattern layer is scrubbing.", file=sys.stderr)
+
+
 def offline_scrub_pii(text: str, use_nlp: bool = False, stage: str = "stream") -> str:
     """
     Strictly offline PII, South African ID, cellphone/landline, address, medical,
@@ -41,7 +76,22 @@ def offline_scrub_pii(text: str, use_nlp: bool = False, stage: str = "stream") -
     if not text:
         return text
 
-    scrubbed = re.sub(r"AIza[0-9A-Za-z\-_]{35}", "<REDACTED_API_KEY>", text)
+    # Secrets that must never leave: multi-line key blocks first, then well-known token shapes.
+    scrubbed = re.sub(
+        r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)",
+        "<REDACTED_PRIVATE_KEY>",
+        text,
+    )
+    scrubbed = re.sub(r"\b(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,})\b", "<REDACTED_GITHUB_TOKEN>", scrubbed)
+    scrubbed = re.sub(r"\b(?:AKIA|ASIA|AGPA|AIDA|AROA)[0-9A-Z]{16}\b", "<REDACTED_AWS_KEY>", scrubbed)
+    scrubbed = re.sub(r"\beyJ[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}\.[A-Za-z0-9_\-]{8,}", "<REDACTED_JWT>", scrubbed)
+    scrubbed = re.sub(r"(?i)\b(authorization\s*:\s*)(?:bearer\s+|basic\s+|token\s+)?[A-Za-z0-9._~+/=\-]{12,}", r"\1<REDACTED_TOKEN>", scrubbed)
+    scrubbed = re.sub(r"(?i)\bbearer\s+[A-Za-z0-9._~+/=\-]{16,}", "Bearer <REDACTED_TOKEN>", scrubbed)
+    scrubbed = re.sub(r"\bxox[baprs]-[A-Za-z0-9\-]{10,}", "<REDACTED_API_KEY>", scrubbed)
+    scrubbed = re.sub(r"\b(?:sk|rk|pk)_live_[A-Za-z0-9]{16,}", "<REDACTED_API_KEY>", scrubbed)
+    scrubbed = re.sub(r"\bya29\.[A-Za-z0-9_\-]{20,}", "<REDACTED_API_KEY>", scrubbed)
+    scrubbed = re.sub(r"\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,3})?\b", "<REDACTED_IBAN>", scrubbed)
+    scrubbed = re.sub(r"AIza[0-9A-Za-z\-_]{35}", "<REDACTED_API_KEY>", scrubbed)
     scrubbed = re.sub(r"sk-[0-9A-Za-z]{20,}", "<REDACTED_SECRET_KEY>", scrubbed)
     scrubbed = re.sub(
         r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
@@ -133,8 +183,8 @@ def offline_scrub_pii(text: str, use_nlp: bool = False, stage: str = "stream") -
                 ],
             )
             scrubbed = _PRESIDIO_ANONYMIZER.anonymize(text=scrubbed, analyzer_results=results).text
-        except Exception:
-            pass
+        except Exception as nlp_err:
+            _warn_nlp_off_once(f"{type(nlp_err).__name__}: {nlp_err}")
 
     redaction_tags = (
         "<REDACTED_API_KEY>",
@@ -149,6 +199,12 @@ def offline_scrub_pii(text: str, use_nlp: bool = False, stage: str = "stream") -
         "<REDACTED_BANK_ACCOUNT>",
         "<REDACTED_ADDRESS>",
         "<REDACTED_MEDICAL_INFO>",
+        "<REDACTED_PRIVATE_KEY>",
+        "<REDACTED_GITHUB_TOKEN>",
+        "<REDACTED_AWS_KEY>",
+        "<REDACTED_JWT>",
+        "<REDACTED_TOKEN>",
+        "<REDACTED_IBAN>",
         "<PERSON>",
         "<PHONE_NUMBER>",
         "<EMAIL_ADDRESS>",
@@ -618,30 +674,29 @@ def run_local_qwen(system_prompt: str, user_prompt: str, max_tokens: int = 900, 
         return f"[LOCAL_BRAIN_ERROR] {str(e)}"
 
 
+_EXFIL_PHRASES = (
+    "verbatim", "word for word", "exact text", "raw text", "full text", "entire file", "entire document",
+    "dump the", "print all", "copy paste", "repeat the text", "quote the entire", "base64",
+    "whole file", "complete file", "whole document", "whole thing", "every line", "line by line",
+    "exactly as written", "exactly as it is", "exactly as it appears", "exactly as is", "character for character",
+    "complete contents", "full contents", "entire contents", "whole contents", "full source", "complete source",
+    "unabridged", "unmodified copy", "rot13", "hex encode", "in hex", "hexdump", "reverse the text",
+)
+_EXFIL_PATTERN = re.compile(
+    r"\b(show|print|display|output|give|send|paste|reveal|repeat|list|return|read out|tell me)\b.{0,40}"
+    r"\b(whole|entire|complete|full|all of the|all the)\b.{0,30}\b(file|document|source|script|code|contents?|text|lines)\b"
+)
+
+
 def is_exfiltration_query(query: str) -> bool:
     """
     Blocks queries from the Online Model that attempt to trick the Local Brain
-    into dumping or quoting raw source files verbatim.
+    into dumping or quoting raw source files verbatim. Case, hyphens and underscores do not matter.
     """
     if not query:
         return False
-    q_low = query.lower()
-    forbidden_phrases = (
-        "verbatim",
-        "word for word",
-        "exact text",
-        "raw text",
-        "full text",
-        "entire file",
-        "entire document",
-        "dump the",
-        "print all",
-        "copy paste",
-        "repeat the text",
-        "quote the entire",
-        "base64",
-    )
-    return any(p in q_low for p in forbidden_phrases)
+    q_low = re.sub(r"[\s_\-]+", " ", query.lower())
+    return any(p in q_low for p in _EXFIL_PHRASES) or bool(_EXFIL_PATTERN.search(q_low))
 
 
 def strip_verbatim_source_lines(generated_text: str, raw_source: str, target_path: str = "") -> str:
