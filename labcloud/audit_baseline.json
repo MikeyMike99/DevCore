@@ -1,8 +1,8 @@
 {
- "approved_at": "2026-11-18T08:59:21Z",
+ "approved_at": "2026-11-18T10:00:31Z",
  "files": {
-  "core/lab_cloud.py": "27bbe65296e638d14dcc09feceee9d80e19c8377211c01f989d5caba2c8dde33",
-  "labcloud/dev.sh": "3007aefcfd1a3287bc355910afb7fc4a9d2e275f55b17a9c8190952b6c6634e0",
+  "core/lab_cloud.py": "ea55645171753125b63711c56362b394dbb09a0424b857f6fa28d02a71340c17",
+  "labcloud/dev.sh": "a4ead98871cd2db00ad0e55250448316629554f32c7e314b886aa0368158d125",
   "labcloud/image/Dockerfile": "3f4e32c0b92382bb5f2bff2c2289883d7b8e7a0adc14cad282b2fe1df82339e1",
   "labcloud/image/entrypoint.sh": "adfaacd7ca1ef01775e5f339d3394a0ba6b6031d177b41a63b74a741f6c83a1e",
   "labcloud/image/grader.py": "2f1ef91279c5daaa4ddcbe9c1498b3078bac91fd275e5d6220a111671eda2d33",
@@ -17,9 +17,9 @@
   "labcloud/image/labs/log-detective-02/lab.json": "e0ac03e5c4323a4309a961a42d6f26b078b105f1c48474e3f8e54d4050dba62f",
   "labcloud/image/learner_shell.sh": "f399876f583da030cf5996b5ba01ab0884cb48a0043a6cddba6bcc4bbef0f7df",
   "labcloud/issue_key.py": "aad6d165e136b12c076905c89d62235200488dad87fe221a2a477e382014cd4e",
-  "labcloud/setup.sh": "a58ecbde20002272085e587f848457d961bc3546277ea10d8bc18d3c3142eda8",
+  "labcloud/setup.sh": "00d2547788522ceced1396352f8fd67a6d4b1ff05a63fda0ca99a96a8e2cacbe",
   "labcloud/src/worker.js": "7ce4315352f0a5bafe8650123c9305e849a1b6a353c4b803b183f267b4437bf1",
   "labcloud/wrangler.jsonc": "6ac22728a02189cb055d4e01c72ed2a1edb621c9e00b0989a5a9a1d86e04b43e",
-  "scripts/audit_labcloud.py": "a870582cc3a1b65568e81d86989d7014b86f0064700cb7fa8f572f8f2c933a39"
+  "scripts/audit_labcloud.py": "b1b50cb8e03c5556ba903824fadd830c04d88464b94ed0ed124c0014725d528d"
  }
 }

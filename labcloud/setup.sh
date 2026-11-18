@@ -3,7 +3,8 @@
 # No built image, archive or binary is ever stored in git.
 #
 #   bash labcloud/setup.sh check                      prerequisites only
-#   bash labcloud/setup.sh local                      install deps, build the lab image, run the audit (then: bash labcloud/dev.sh)
+#   bash labcloud/setup.sh local                      install deps, build the lab image, run the audit, create the local settings file
+#   bash labcloud/setup.sh env                        only create the private local settings file (~/.config/siraugga/lab_cloud.env)
 #   LAB_DOMAIN=lab.example.com bash labcloud/setup.sh deploy [--dry-run]
 #                                                     build + audit + deploy to Cloudflare, then verify the live site
 #   Optional for deploy: SIRAUGGA_ORIGIN=https://your-siraugga-site   (the site allowed to embed the lab page)
@@ -42,6 +43,22 @@ install_deps() {
 build_image() {
   say "Building the lab image from source (it is not stored in git)"
   run docker build -q -t "$IMAGE_TAG" "$HERE/image"
+}
+
+local_env() {
+  # Private file (outside git) with the local connection settings; the Siraugga server and dev.sh both read it.
+  LOCAL_ENV="$HOME/.config/siraugga/lab_cloud.env"
+  say "Local connection settings"
+  if [ -f "$LOCAL_ENV" ]; then
+    echo "  using the existing $LOCAL_ENV (not shown)"
+    return
+  fi
+  mkdir -p "$(dirname "$LOCAL_ENV")"
+  (umask 077
+   { echo "SIRAUGGA_LAB_URL=http://127.0.0.1:8788"
+     echo "SIRAUGGA_LAB_SECRET=$(python3 -c 'import secrets; print(secrets.token_hex(32))')"; } > "$LOCAL_ENV")
+  chmod 600 "$LOCAL_ENV"
+  echo "  created $LOCAL_ENV (mode 600, not shown). Restart the Siraugga server to pick it up: bash restart_server.sh"
 }
 
 static_audit() {
@@ -128,7 +145,8 @@ deploy() {
 
 case "$MODE" in
   check)  prereqs ;;
-  local)  prereqs; install_deps; build_image; static_audit
+  env)    local_env ;;
+  local)  prereqs; install_deps; build_image; static_audit; local_env
           say "Ready. Start the local stack with:  bash labcloud/dev.sh   (then test:  python3 scripts/audit_labcloud.py)" ;;
   deploy) deploy ;;
   *)      sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;

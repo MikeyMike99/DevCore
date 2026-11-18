@@ -20,6 +20,7 @@ def _copy_tree():
     shutil.copytree(os.path.join(ROOT, "labcloud"), os.path.join(tmp, "labcloud"),
                     ignore=shutil.ignore_patterns("node_modules", ".wrangler", "__pycache__"))
     for rel in ("core/lab_cloud.py", "core/routes/projects.py", "tests/test_lab_cloud.py",
+                "security/security_headers.py", "sandbox/templates/course_application.html",
                 "sandbox/static/courses/linux_essentials_step_by_step.json", "scripts/audit_labcloud.py"):
         if os.path.isfile(os.path.join(ROOT, rel)):
             os.makedirs(os.path.dirname(os.path.join(tmp, rel)), exist_ok=True)
@@ -72,6 +73,9 @@ class MutationTests(unittest.TestCase):
         ("CON-02", "core/lab_cloud.py", "_safe_url", "_whatever"),
         ("CON-04", "core/lab_cloud.py", '"ts": int(time.time())', '"x": 1'),
         ("CON-14", "core/routes/projects.py", "except lab_cloud.LabCloudUnavailable", "except ZeroDivisionError"),
+        ("CON-16", "core/routes/projects.py", "_is_registered(progress):\n        return 403, {\"ok\": False, \"code\": \"REGISTRATION_REQUIRED\", \"error\": \"Complete User Registration first.\"}\n    sandbox_dir", "_is_registered(progress):\n        pass\n    sandbox_dir"),
+        ("CON-17", "security/security_headers.py", "lab_cloud.public_origin()", "'http://evil.example'"),
+        ("CON-18", "sandbox/templates/course_application.html", "setAttribute('sandbox'", "setAttribute('data-x'"),
     ]
 
     def test_each_weakness_is_caught(self):

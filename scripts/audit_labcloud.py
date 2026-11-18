@@ -249,6 +249,24 @@ def stage_connector(r: Report, t: Tree):
     r.check("CON-14", "except lab_cloud.LabCloudUnavailable" in body and "COURSE_JAIL" in body,
             "falls back to the old jailed sandbox when the lab cloud is unavailable", "no safe fallback when the lab cloud is unavailable")
     r.check("CON-15", call_i >= 0 and "course_id" in api_body[call_i:call_i + 500], "course id is passed through to the executor", "course id is not passed to the executor")
+    # live terminal (embedded in the course page)
+    hl = p.find("def _handle_lab_terminal_sync")
+    hbody = p[hl:p.find("@projects_bp.route", hl)] if hl >= 0 else ""
+    i_terms, i_reg, i_sess = hbody.find("_is_terms_accepted"), hbody.find("_is_registered"), hbody.find("open_session")
+    deny_terms, deny_reg = hbody.find("return 403", max(i_terms, 0)), hbody.find("return 403", max(i_reg, 0))
+    r.check("CON-16", hl >= 0 and 0 <= i_terms < deny_terms < i_reg < deny_reg < i_sess,
+            "live terminal checks terms and registration before starting a session",
+            "live terminal may start a session before terms/registration are checked")
+    sh = t.read("security/security_headers.py")
+    if sh is not None:
+        r.check("CON-17", "lab_cloud.public_origin()" in sh and "if lab_origin" in sh,
+                "the page may embed the lab address only when the lab cloud is configured",
+                "security headers do not tie the embedding allow-list to the lab configuration")
+    tpl = t.read("sandbox/templates/course_application.html")
+    if tpl is not None and "live-term-btn" in tpl:
+        r.check("CON-18", "setAttribute('sandbox'" in tpl and ".test(data.terminal_url" in tpl,
+                "course page sandboxes the terminal iframe and validates its address",
+                "course page does not sandbox the terminal iframe or validate its address")
 
 
 # ---------------------------------------------------------------- Stage 4: secrets & supply chain
@@ -567,6 +585,19 @@ fi
     return "hook installed: commits touching labcloud/ now run the audit"
 
 
+def _load_lab_env():
+    """Use the same private settings file as the Siraugga server and dev.sh (values are never printed)."""
+    path = os.path.expanduser("~/.config/siraugga/lab_cloud.env")
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                k, sep, v = line.strip().partition("=")
+                if sep and k in ("SIRAUGGA_LAB_URL", "SIRAUGGA_LAB_SECRET"):
+                    os.environ.setdefault(k, v)
+    except OSError:
+        pass
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Siraugga Lab Cloud auditor")
     ap.add_argument("--json", action="store_true")
@@ -575,6 +606,7 @@ def main(argv=None) -> int:
     ap.add_argument("--accept-integrity", action="store_true", help="approve the current security-critical files")
     ap.add_argument("--install-hook", action="store_true")
     ap.add_argument("--url", default=os.environ.get("SIRAUGGA_LAB_URL", "http://127.0.0.1:8788"))
+    _load_lab_env()
     args = ap.parse_args(argv)
     if args.install_hook:
         print(install_hook())

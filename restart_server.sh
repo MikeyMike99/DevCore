@@ -22,6 +22,10 @@ for P in $(pgrep -f "agy_real|semgrep-mcp|playwright-mcp|media_player/server.py"
   if [ "$PP" = "1" ] || ! kill -0 "$PP" 2>/dev/null; then kill "$P" 2>/dev/null; fi
 done
 
+# Lab Cloud connection (private file outside git; never printed). Without it, courses keep using the old sandbox.
+LABENV="$HOME/.config/siraugga/lab_cloud.env"
+if [ -f "$LABENV" ]; then set -a; . "$LABENV"; set +a; fi
+
 cd "$ROOT/core" || exit 1
 nohup setsid "$PY" -u server.py >> "$LOG" 2>&1 < /dev/null &
 for i in $(seq 1 40); do curl -s -o /dev/null http://127.0.0.1:5000/ && { echo "Server is up."; exit 0; }; sleep 2; done

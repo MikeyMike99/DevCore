@@ -32,7 +32,13 @@ async def apply_security_headers(response):
         wizard_origins.append(f"http://{host_only}:5050")
         wizard_origins.append(f"https://{host_only}:5050")
 
-    frame_src_str = " ".join(["'self'"] + wizard_origins + [
+    # The Lab Cloud's live terminal is embedded in course pages; its address is allowed only when it is configured.
+    try:
+        from core import lab_cloud
+        lab_origin = lab_cloud.public_origin()
+    except Exception:
+        lab_origin = ""
+    frame_src_str = " ".join(["'self'"] + wizard_origins + ([lab_origin] if lab_origin else []) + [
         "https://www.youtube.com",
         "https://www.youtube-nocookie.com",
     ])
