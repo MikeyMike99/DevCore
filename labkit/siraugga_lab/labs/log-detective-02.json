@@ -1,0 +1,23 @@
+{
+  "id": "log-detective-02",
+  "title": "Log detective: find the attacker, keep the evidence",
+  "files": {
+    "auth.log": "Nov 18 10:01 sshd Failed password for root from 203.0.113.9\nNov 18 10:02 sshd Failed password for admin from 203.0.113.9\nNov 18 10:02 sshd Failed password for root from 203.0.113.9\nNov 18 10:03 sshd Accepted password for dev from 198.51.100.4\nNov 18 10:04 sshd Failed password for root from 203.0.113.9\nNov 18 10:05 sshd Failed password for guest from 198.51.100.7\n"
+  },
+  "remote_commands": ["labctl"],
+  "simulated": {"labctl": "labctl: registered lab 'log-detective-02' (simulated; will sync when online)"},
+  "steps": [
+    {"id": "1", "task": "How many failed logins are in auth.log? Combine grep (find lines) with wc -l (count lines) using a pipe |.",
+     "expect_command": "grep", "expect_output": "5", "solution": "grep Failed auth.log | wc -l",
+     "hints": ["Pattern: grep WORD file | wc -l", "grep Failed auth.log | wc -l"]},
+    {"id": "2", "task": "One IP is behind most of them. Count how many failed lines come from 203.0.113.9.",
+     "expect_command": "grep", "expect_output": "4", "solution": "grep 203.0.113.9 auth.log | wc -l",
+     "hints": ["Search for the IP address instead of the word Failed.", "grep 203.0.113.9 auth.log | wc -l"]},
+    {"id": "3", "task": "Preserve evidence: copy auth.log to evidence.log, then fingerprint it with sha256sum evidence.log.",
+     "expect_command": "sha256sum", "expect_output": "evidence.log", "solution": ["cp auth.log evidence.log", "sha256sum evidence.log"],
+     "hints": ["cp auth.log evidence.log", "sha256sum evidence.log"]},
+    {"id": "4", "task": "Report to the server: labctl complete log-detective-02",
+     "expect_command": "labctl complete", "expect_output": "registered", "solution": "labctl complete log-detective-02",
+     "hints": ["Type exactly: labctl complete log-detective-02"]}
+  ]
+}

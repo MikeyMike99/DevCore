@@ -1,0 +1,5 @@
+dist/
+dist_linux/
+.git
+__pycache__/
+tests/

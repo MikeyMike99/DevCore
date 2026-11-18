@@ -6,14 +6,15 @@
   "simulated": {"labctl": "labctl: registered lab 'linux-basics-01' (simulated; will sync when online)"},
   "steps": [
     {"id": "1", "task": "List the files in your home folder.", "expect_command": "ls", "expect_output": "notes.txt",
-     "hints": ["The command to list files is two letters: ls"]},
+     "solution": "ls", "hints": ["The command to list files is two letters: ls"]},
     {"id": "2", "task": "Read notes.txt and find the base64 secret.", "expect_command": "cat", "expect_output": "secret",
-     "hints": ["cat prints a file.", "Try: cat notes.txt"]},
-    {"id": "3", "task": "Decode the secret. Tip: grep secret notes.txt shows the line; save the value with echo c2lyYXVnZ2E= > s.txt, then decode with: base64 -d s.txt",
+     "solution": "cat notes.txt", "hints": ["cat prints a file.", "Try: cat notes.txt"]},
+    {"id": "3", "task": "Decode the secret. Tip: save the value with echo c2lyYXVnZ2E= > s.txt, then decode with: base64 -d s.txt",
      "expect_command": "base64", "expect_output": "siraugga",
+     "solution": ["echo c2lyYXVnZ2E= > s.txt", "base64 -d s.txt"],
      "hints": ["First create the file: echo c2lyYXVnZ2E= > s.txt", "Then: base64 -d s.txt"]},
     {"id": "4", "task": "Tell the server you finished: labctl complete linux-basics-01 (this changes OUR side, so it goes over the domain).",
-     "expect_command": "labctl complete", "expect_output": "registered",
+     "expect_command": "labctl complete", "expect_output": "registered", "solution": "labctl complete linux-basics-01",
      "hints": ["Type exactly: labctl complete linux-basics-01"]}
   ]
 }

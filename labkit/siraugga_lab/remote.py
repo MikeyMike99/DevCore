@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 import uuid
 
-DEFAULT_BASE = "https://api.mikeytech.dev/lab"
+DEFAULT_BASE = "https://lab.mikeytech.dev/lab"
 _NET_ERRORS = (urllib.error.URLError, OSError, ValueError, TimeoutError)
 
 
@@ -73,7 +73,7 @@ class Remote:
             reply = self._post("/exec", payload)
             return True, str(reply.get("output", ""))
         except ServerRefused as e:
-            return True, f"[server] {e}"
+            return True, str(e)
         except _NET_ERRORS:
             with open(self.outbox, "a", encoding="utf-8") as f:
                 f.write(json.dumps(payload) + "\n")

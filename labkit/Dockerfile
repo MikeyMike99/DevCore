@@ -5,8 +5,8 @@
 #   docker run --rm -v "%cd%\dist:/out" siraugga-labkit-build        -> dist/siraugga-lab (Linux binary)
 #
 # The Windows .exe is built natively with build_windows.bat (Nuitka cannot cross-compile).
-FROM python:3.13-slim
-RUN apt-get update && apt-get install -y --no-install-recommends gcc patchelf ccache \
+FROM python:3.13-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends gcc libc6-dev make patchelf ccache \
     && rm -rf /var/lib/apt/lists/* && pip install --no-cache-dir nuitka zstandard
 WORKDIR /src
 COPY siraugga_lab ./siraugga_lab

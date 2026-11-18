@@ -135,5 +135,23 @@ class PlayTests(unittest.TestCase):
             self.assertFalse(os.listdir(pd))           # finished labs clear their progress
 
 
+class EveryLabIsSolvable(unittest.TestCase):
+    def test_solutions_complete_every_bundled_lab(self):
+        from siraugga_lab.engine import list_labs
+        self.assertGreaterEqual(len(list_labs()), 2)
+        for name in list_labs():
+            lab = load_lab(name)
+            cmds = []
+            for st in lab["steps"]:
+                sol = st["solution"]
+                cmds += sol if isinstance(sol, list) else [sol]
+            it, lines = iter(cmds), []
+            with tempfile.TemporaryDirectory() as d:
+                rc = play(lab, Remote(d, "L", KEY, base=DEAD, timeout=1), inp=lambda p: next(it), out=lines.append)
+            self.assertEqual(rc, 0, name)
+            self.assertIn("Lab complete", "\n".join(lines), name)
+            self.assertEqual(next(it, None), None, f"{name}: unused solution commands")
+
+
 if __name__ == "__main__":
     unittest.main(warnings="ignore")
