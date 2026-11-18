@@ -1,0 +1,4 @@
+{"id":"log-detective-02","title":"Log detective","steps":[
+ {"id":"1","task":"How many failed logins are in auth.log? Save just that number in a file called count.txt","hints":["grep Failed auth.log | wc -l > count.txt"]},
+ {"id":"2","task":"Find the IP address with the most failed logins and save just the IP in attacker.txt","hints":["Pull the IP out of each failed line with awk '{print $NF}'","... | sort | uniq -c | sort -rn | head -1"]},
+ {"id":"3","task":"Preserve evidence: copy auth.log to evidence.log and save its sha256 hash (hash only) in evidence.sha256","hints":["cp auth.log evidence.log","sha256sum evidence.log | cut -d' ' -f1 > evidence.sha256"]}]}

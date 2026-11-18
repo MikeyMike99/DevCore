@@ -1,0 +1,24 @@
+{
+  // Siraugga Lab Cloud. LOCAL ONLY for now: no routes/domain are configured, nothing here deploys itself.
+  "name": "siraugga-lab-cloud",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": false,
+
+  "containers": [
+    {
+      "class_name": "LabContainer",
+      "image": "./image/Dockerfile",
+      "instance_type": "basic",     // 1/4 vCPU, 1 GiB
+      "max_instances": 5            // hard cap on live lab computers (raise when you go live)
+    }
+  ],
+  "durable_objects": { "bindings": [{ "name": "LAB", "class_name": "LabContainer" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["LabContainer"] }],
+
+  // Same D1 shape as labkit/lab_schema.sql (lab_progress). Local dev uses a throwaway local copy.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "mikeytech", "database_id": "6b07aa4d-85bc-4bdb-9f2d-0eb565bf9a32" }
+  ]
+  // LAB_MASTER_SECRET is a secret (never in this file).
+}

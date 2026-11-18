@@ -1,0 +1,4 @@
+{"id":"linux-basics-01","title":"Linux basics","steps":[
+ {"id":"1","task":"Create a file called hello.txt in your home folder that contains the word: hello","hints":["echo hello > hello.txt","Check with: cat hello.txt"]},
+ {"id":"2","task":"notes.txt hides a base64 secret. Decode it and save the decoded text in a file called secret.txt","hints":["Find it with: cat notes.txt","The value after 'secret:' can be decoded with: echo VALUE | base64 -d > secret.txt"]},
+ {"id":"3","task":"Make a folder called evidence and move notes.txt into it","hints":["mkdir evidence","mv notes.txt evidence/"]}]}
