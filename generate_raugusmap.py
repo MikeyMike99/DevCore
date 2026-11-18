@@ -172,6 +172,18 @@ def extract_markdown_sections(filepath):
         pass
     return sections
 
+def _py_parses(path):
+    """False only when the file has a syntax error right now (for example while it is being edited)."""
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            ast.parse(f.read())
+        return True
+    except SyntaxError:
+        return False
+    except Exception:
+        return True
+
+
 def parse_ast_for_file(filepath):
     symbols = extract_file_ast_symbols(filepath)
     return [info["symbol_name"] for info in symbols.values() if info.get("class_name") is None]
@@ -357,6 +369,12 @@ def generate_raugusmap(root_dir, existing_map=None):
             except Exception:
                 pass
 
+            # Version: the id never changes for a file; the version goes up by one each time its content hash changes.
+            prev_entry = existing_map.get(alias, {})
+            version = int(prev_entry.get("version") or 1)
+            if prev_entry.get("content_hash") and file_hash and prev_entry["content_hash"] != file_hash:
+                version += 1
+
             raugus_map[alias] = {
                 "type": file_type,
                 "real_path": real_path,
@@ -365,11 +383,21 @@ def generate_raugusmap(root_dir, existing_map=None):
                 "sensitive": is_sensitive,
                 "permissions": perms,
                 "content_hash": file_hash,
+                "version": version,
                 "id": existing_map.get(alias, {}).get("id", str(uuid.uuid4()))
             }
             
             if filename.endswith(".py"):
                 symbols_dict = extract_file_ast_symbols(real_path)
+                if not symbols_dict and not _py_parses(real_path):
+                    # The file cannot be parsed right now (mid-edit). Keep its symbols, and so their ids and versions:
+                    # entries that are dropped here come back later with brand-new ids.
+                    sym_prefix = alias + "::"
+                    for old_alias, old_entry in existing_map.items():
+                        if old_alias.startswith(sym_prefix):
+                            kept = dict(old_entry)
+                            kept["stale"] = True
+                            raugus_map[old_alias] = kept
                 for sym_suffix, sym_info in symbols_dict.items():
                     sym_alias = f"{alias}::{sym_suffix}"
                     sym_perms = dict(existing_map[sym_alias]["permissions"]) if (not is_sensitive and sym_alias in existing_map and "permissions" in existing_map[sym_alias]) else dict(perms)
