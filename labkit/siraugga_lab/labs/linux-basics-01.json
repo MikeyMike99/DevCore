@@ -1,0 +1,13 @@
+{
+  "id": "linux-basics-01",
+  "title": "Linux basics + register your lab result",
+  "files": {"notes.txt": "welcome to siraugga\nsecret: c2lyYXVnZ2E=\n", "readme.md": "Lab files live here."},
+  "remote_commands": ["labctl"],
+  "simulated": {"labctl": "labctl: registered lab 'linux-basics-01' (simulated; will sync when online)"},
+  "steps": [
+    {"id": "1", "task": "List the files in your home folder.", "expect_command": "ls", "expect_output": "notes.txt"},
+    {"id": "2", "task": "Read notes.txt and find the base64 secret.", "expect_command": "cat", "expect_output": "secret"},
+    {"id": "3", "task": "Save the secret to a file (echo c2lyYXVnZ2E= > s.txt), then decode it with: base64 -d s.txt", "expect_command": "base64", "expect_output": "siraugga"},
+    {"id": "4", "task": "Tell the server you finished: labctl complete linux-basics-01 (this changes OUR side, so it goes over the domain).", "expect_command": "labctl complete", "expect_output": "registered"}
+  ]
+}
