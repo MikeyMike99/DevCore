@@ -499,7 +499,11 @@
                 <button type="button" id="voice-forget-btn" class="min-h-[44px] text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 rounded px-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">Forget my voice</button>
                 <label for="voice-threshold" class="text-xs text-slate-300">How strict the voice match is (higher = stricter)</label>
                 <input id="voice-threshold" type="range" min="0.70" max="0.95" step="0.01" class="w-full accent-teal-500">
-                <p class="text-[11px] text-slate-400 m-0">Your voice print stays on this device only, so teach it once on each device you use. This is a convenience filter, not a lock: your sign-in is what protects Siraugga. Spoken replies use a voice installed on this device.</p>
+                <label for="voice-use-tts" class="flex items-center justify-between gap-3 text-sm text-slate-200 cursor-pointer min-h-[44px]">
+                    <span>Read replies with a voice on this device (instead of my screen reader)</span>
+                    <input type="checkbox" role="switch" id="voice-use-tts" class="w-5 h-5 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
+                </label>
+                <p class="text-[11px] text-slate-400 m-0">By default your screen reader announces each reply, and the microphone waits until it has finished. Teaching it your voice is optional: until you do, it answers to any voice. A saved voice print stays on this device only. It is a convenience filter, not a lock: your sign-in is what protects Siraugga.</p>
             </section>
 
             <!-- Access keys: Super Admin only (shown when /api/device-keys answers); sandbox/static/device-keys-ui.js -->
@@ -3991,15 +3995,18 @@
             if (e) e.preventDefault();
             var prompt = inputEl.value.trim();
             if (!prompt) return;
+            // Set by the Talk button (speech/voice.js) just before it submits: a spoken message is a plain
+            // conversation, so it skips the card shortcuts below and tells the server so (VOICE_CHAT marker).
+            var fromVoice = !!window.__sirauggaVoiceTurn;
 
-            await ensureCardTriggers();
-            if (backendCardTriggers[normalizeCardPrompt(prompt)]) {
+            if (!fromVoice) await ensureCardTriggers();
+            if (!fromVoice && backendCardTriggers[normalizeCardPrompt(prompt)]) {
                 inputEl.value = '';
                 if (!(await openBackendCard({ prompt: prompt }))) inputEl.value = prompt;
                 return;
             }
 
-            if (/^\/?cour|cou?rse|co?urs|corse|coruse|cource|\/c[a-z]*urs/i.test(prompt) && prompt.split(/\s+/).length <= 24) {
+            if (!fromVoice && /^\/?cour|cou?rse|co?urs|corse|coruse|cource|\/c[a-z]*urs/i.test(prompt) && prompt.split(/\s+/).length <= 24) {
                 var asked = prompt;
                 var shown = await openBackendCard({ prompt: asked, soft: true });
                 if (shown) { inputEl.value = ''; return; }
@@ -4145,7 +4152,7 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     type: 'prompt',
-                    prompt: actualPromptToSend,
+                    prompt: (fromVoice ? '[VOICE_CHAT]\n' : '') + actualPromptToSend,
                     model: model,
                     conversation_id: currentConversationId,
                     client_id: agyClientId,
@@ -7963,7 +7970,7 @@
 <!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
 <script src="/static/speech/dictation.js?v=12" defer></script>
-<script src="/static/speech/voice.js?v=4" defer></script>
+<script src="/static/speech/voice.js?v=5" defer></script>
 <script src="/static/device-keys.js?v=3" defer></script>
 <script src="/static/device-keys-ui.js?v=2" defer></script>
 <script src="/static/card-recorder.js?v=2" defer></script>

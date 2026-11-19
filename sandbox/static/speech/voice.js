@@ -68,10 +68,28 @@
     // problems stay on screen until the next step (they used to vanish after a few seconds).
     var panel = document.createElement('div');
     panel.id = 'voice-live';
-    panel.setAttribute('role', 'status');
-    panel.setAttribute('aria-live', 'polite');
+    panel.setAttribute('aria-hidden', 'true');        // for people who can see it; screen readers get #mic-status instead (no double reading)
     panel.className = 'hidden text-sm rounded-lg px-3 py-2 mb-2 border';
     form.parentNode.insertBefore(panel, form);
+
+    // Replies are announced through this region so the user's own screen reader reads them (ARIA),
+    // instead of a second computer voice talking over it.
+    var ariaEl = document.createElement('div');
+    ariaEl.id = 'voice-aria';
+    ariaEl.className = 'sr-only';
+    ariaEl.setAttribute('aria-live', 'assertive');
+    ariaEl.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(ariaEl);
+    function announce(text) {
+        ariaEl.textContent = '';                       // clear first so the same words are announced again
+        setTimeout(function () { ariaEl.textContent = text; }, 80);
+    }
+    var TTS_KEY = 'siraugga.voice.deviceVoice';       // '1' = read replies with a device voice instead of ARIA
+    function getUseTts() { return store(TTS_KEY) === '1'; }
+    function liveQuiet(text) {                         // visible only; not announced
+        panel.textContent = text;
+        panel.className = 'text-sm rounded-lg px-3 py-2 mb-2 border text-emerald-200 bg-emerald-950/50 border-emerald-700/60';
+    }
     function say(text) { if (status) status.textContent = text; }
     function live(text, kind) {                       // kind: 'info' (default) | 'error' | 'ok'
         say(text);
@@ -273,7 +291,8 @@
     }
 
     // Markdown to something that sounds right when read out.
-    function spokenVersion(md) {
+    function spokenVersion(md, cap) {
+        cap = cap || MAX_SPOKEN_CHARS;
         var t = String(md || '');
         t = t.replace(/```[\s\S]*?```/g, ' (code on screen) ');
         t = t.replace(/<[^>]+>/g, ' ');
@@ -284,8 +303,8 @@
         t = t.replace(/^[#>\-*+\d.\s]+(?=\S)/gm, function (m) { return /\d/.test(m) ? m.replace(/[^\d.]/g, '') + ' ' : ''; });
         t = t.replace(/[*_~|#]+/g, '');
         t = t.replace(/\s+/g, ' ').trim();
-        if (t.length > MAX_SPOKEN_CHARS) {
-            var cut = t.slice(0, MAX_SPOKEN_CHARS);
+        if (t.length > cap) {
+            var cut = t.slice(0, cap);
             var end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '));
             t = (end > 200 ? cut.slice(0, end + 1) : cut) + ' The rest is on screen.';
         }
@@ -329,11 +348,39 @@
         if (!waitingForReply || state !== 'thinking') return;
         waitingForReply = false;
         if (watchdog) { clearTimeout(watchdog); watchdog = null; }
-        setState('speaking', 'Speaking (tap to stop)');
-        live('Reply received. Reading it out…', 'ok');
-        speak(spokenVersion(lastReply())).then(function () {
+        var useVoice = getUseTts();
+        var reply = spokenVersion(lastReply(), useVoice ? MAX_SPOKEN_CHARS : 1500);
+        rememberReply(reply);
+        if (useVoice) {
+            setState('speaking', 'Speaking (tap to stop)');
+            live('Reply received. Reading it out…', 'ok');
+            speak(reply).then(function () {
+                if (state === 'speaking') listen();
+            });
+            return;
+        }
+        // Default: the screen reader reads the reply (ARIA). It gives no "finished" signal, so wait about as
+        // long as reading takes before the microphone opens again, so the mic does not hear the screen reader.
+        setState('speaking', 'Reading reply… (tap to stop)');
+        liveQuiet('Reply: ' + reply);
+        announce(reply || 'The reply is on screen.');
+        var words = (reply.match(/\S+/g) || []).length;
+        ariaTimer = setTimeout(function () {
+            ariaTimer = null;
             if (state === 'speaking') listen();
-        });
+        }, Math.max(3000, Math.round(words / 3.2 * 1000) + 2000));
+    }
+    var ariaTimer = null;
+    var lastReplyWords = null, lastReplyAt = 0;
+    function wordsOf(t) { return (String(t || '').toLowerCase().match(/[a-z']+/g) || []); }
+    function rememberReply(reply) { lastReplyWords = new Set(wordsOf(reply)); lastReplyAt = Date.now(); }
+    // The microphone can pick up the reply being read out loud; if what it heard is mostly the reply's own words, ignore it.
+    function looksLikeEcho(text) {
+        if (!lastReplyWords || Date.now() - lastReplyAt > 120000) return false;
+        var w = wordsOf(text);
+        if (w.length < 3) return false;
+        var hit = w.filter(function (x) { return lastReplyWords.has(x); }).length;
+        return hit / w.length >= 0.6;
     }
     // The page calls finishTaskUI() when a task ends; wrap it so the reply can be read out.
     function hookFinish() {
@@ -388,6 +435,7 @@
             var text = cleanup((await ask('transcribe', turn.audio)).text);
             if (state === 'off') return;
             if (!text) { live('I did not catch any words. Listening again…'); return listen(); }
+            if (looksLikeEcho(text)) { live('That sounded like the reply being read out, so it was ignored. Listening again…'); return listen(); }
             await handleText(text);
         } catch (err) {
             console.error('[voice]', err);
@@ -417,7 +465,13 @@
         promptEl.dispatchEvent(new Event('input', { bubbles: true }));
         var before = agentCount();
         waitingForReply = true;
-        if (typeof form.requestSubmit === 'function') form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
+        // Tell the page this is a spoken message: no card shortcuts, plain conversation (read by sendPrompt synchronously).
+        window.__sirauggaVoiceTurn = true;
+        try {
+            if (typeof form.requestSubmit === 'function') form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true }));
+        } finally {
+            window.__sirauggaVoiceTurn = false;
+        }
         // If nothing started (a slash command, a closed connection...) go back to listening.
         watchdog = setTimeout(function () {
             watchdog = null;
@@ -458,6 +512,7 @@
     function stopVoice() {
         waitingForReply = false;
         if (watchdog) { clearTimeout(watchdog); watchdog = null; }
+        if (ariaTimer) { clearTimeout(ariaTimer); ariaTimer = null; }
         stopSpeaking();
         if (currentSession) currentSession.cancel();
         useHaiku(false);
@@ -513,6 +568,11 @@
         show('Your saved voice was removed. It will answer to any voice again.');
     });
     if (thresholdEl) thresholdEl.addEventListener('input', function () { store(THRESH_KEY, thresholdEl.value); });
+    var useTtsEl = document.getElementById('voice-use-tts');
+    if (useTtsEl) {
+        useTtsEl.checked = getUseTts();
+        useTtsEl.addEventListener('change', function () { store(TTS_KEY, useTtsEl.checked ? '1' : '0'); });
+    }
 
     // Lets you test the whole loop without a microphone: while voice is listening,
     // window.sirauggaVoice.say('hello') behaves as if you had said it.
