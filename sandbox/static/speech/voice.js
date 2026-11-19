@@ -36,7 +36,9 @@
     var THRESH_KEY = 'siraugga.voice.threshold';
     var DEFAULT_THRESHOLD = 0.85;
     var MAX_CLIP_SECONDS = 60;
-    var END_SILENCE_MS = 1300;                        // pause that ends your turn
+    var END_SILENCE_MS = 2000;                        // pause that ends your turn
+    var END_SILENCE_EARLY_MS = 3000;                  // ...while the sentence has only just begun (first 3 s)
+    var roomNoise = 0.003;                            // remembered between turns (see recordTurn)
     var IDLE_TIMEOUT_MS = 3 * 60 * 1000;              // mic switches itself off after 3 quiet minutes
     var MAX_SPOKEN_CHARS = 700;
 
@@ -298,7 +300,7 @@
 
                 var frameMs = 4096 / ctx.sampleRate * 1000;
                 var preRoll = [], frames = [], speaking = false, loud = 0, silentMs = 0, heardMs = 0;
-                var noise = 0, noiseFrames = 0, finished = false, started = Date.now();
+                var finished = false, started = Date.now();
                 var session = { cancel: function () { finish(null); } };
                 currentSession = session;
 
@@ -324,21 +326,23 @@
                         return;
                     }
 
-                    if (noiseFrames < 6) {                       // first ~0.5 s: learn the room noise
-                        noise += level; noiseFrames++;
-                        return;
-                    }
-                    var threshold = Math.max(0.01, (noise / noiseFrames) * 3);
+                    // No "measuring" delay: the room noise level is remembered from earlier turns and adapts slowly from quiet
+                    // moments. (It used to spend the first half second measuring and throw that audio away, so a sentence that
+                    // began right after the beep lost its start, or was taken for background noise and never heard at all.)
+                    var threshold = Math.min(0.03, Math.max(0.01, roomNoise * 3.5));
                     if (!speaking) {
-                        preRoll.push(data); if (preRoll.length > 4) preRoll.shift();
-                        loud = level > threshold ? loud + 1 : 0;
+                        preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
+                        if (level > threshold) loud++;
+                        else { loud = 0; roomNoise = 0.97 * roomNoise + 0.03 * level; }
                         if (loud >= 2) { speaking = true; frames = preRoll.slice(); silentMs = 0; heardMs = 0; }
                         else if (Date.now() - started > IDLE_TIMEOUT_MS) finish(null);
                     } else {
                         frames.push(data);
                         heardMs += frameMs;
                         silentMs = level > threshold ? 0 : silentMs + frameMs;
-                        if (silentMs >= END_SILENCE_MS || heardMs >= MAX_CLIP_SECONDS * 1000) finish(concat(frames));
+                        // People pause to think, most of all near the start of a sentence, so wait longer then.
+                        var allowedSilence = heardMs < 3000 ? END_SILENCE_EARLY_MS : END_SILENCE_MS;
+                        if (silentMs >= allowedSilence || heardMs >= MAX_CLIP_SECONDS * 1000) finish(concat(frames));
                     }
                 };
             }).catch(reject);
@@ -526,7 +530,7 @@
 
     async function handleText(text) {
         var cmd = normalise(text);
-        if (/^(stop listening|goodbye|good bye|stop talking|that is all|that's all)$/.test(cmd)) {
+        if (/^(stop|stop it|stop listening|stop talking|stop voice|turn off|turn it off|voice off|cancel|goodbye|good bye|bye|that is all|thats all|that s all)$/.test(cmd)) {
             show('Stopped listening.');
             return stopVoice();
         }
