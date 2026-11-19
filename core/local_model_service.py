@@ -3865,21 +3865,29 @@ async def execute_local_agent_task(
             if _evt_owner and isinstance(evt, dict):
                 evt.setdefault("owner", _evt_owner)
             e_type = evt.get("type")
+            # This runs on a helper thread that has lost the task's user context, so `agent_mgr.output_buffer`
+            # would resolve to the DEFAULT admin slot (answers landed there, the real user's slot stayed empty,
+            # and every finished answer got "I didn't get an answer back that time" added). Use the user's own
+            # slot, which is looked up before the first event arrives.
+            _slot = _bound_slot if isinstance(_bound_slot, dict) else None
             if e_type == "action_start":
                 act = evt.get("action", {})
-                if hasattr(agent_mgr, "actions") and isinstance(agent_mgr.actions, list):
-                    agent_mgr.actions.append(act)
+                _acts = _slot.get("actions") if _slot is not None else getattr(agent_mgr, "actions", None)
+                if isinstance(_acts, list):
+                    _acts.append(act)
             elif e_type == "action_done":
                 act = evt.get("action", {})
-                if hasattr(agent_mgr, "actions") and isinstance(agent_mgr.actions, list):
-                    for a in agent_mgr.actions:
+                _acts = _slot.get("actions") if _slot is not None else getattr(agent_mgr, "actions", None)
+                if isinstance(_acts, list):
+                    for a in _acts:
                         if a.get("id") == act.get("id"):
                             a["status"] = act.get("status", "done")
                             a["output"] = act.get("output", "")
             elif e_type == "agent_chunk":
                 chunk = evt.get("chunk", "")
-                if hasattr(agent_mgr, "output_buffer") and isinstance(agent_mgr.output_buffer, list):
-                    agent_mgr.output_buffer.append(chunk)
+                _buf = _slot.get("output_buffer") if _slot is not None else getattr(agent_mgr, "output_buffer", None)
+                if isinstance(_buf, list):
+                    _buf.append(chunk)
                 streamed_any_chunks = True
             asyncio.run_coroutine_threadsafe(agent_mgr.broadcast(evt), loop)
 
