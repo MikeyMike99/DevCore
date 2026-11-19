@@ -35,7 +35,7 @@
     var PRINT_KEY = 'siraugga.voice.print';          // the enrolled voice print (never leaves this device)
     var THRESH_KEY = 'siraugga.voice.threshold';
     var DEFAULT_THRESHOLD = 0.85;
-    var MAX_CLIP_SECONDS = 60;
+    var MAX_CLIP_SECONDS = 40;
     var END_SILENCE_MS = 2000;                        // pause that ends your turn
     var END_SILENCE_EARLY_MS = 3000;                  // ...while the sentence has only just begun (first 3 s)
     var roomNoise = 0.003;                            // remembered between turns (see recordTurn)
@@ -162,7 +162,7 @@
     // ---- worker --------------------------------------------------------------
     async function diagnoseEngine() {
         var files = [
-            ['worker', '/static/speech/speech-worker.js?v=9'],
+            ['worker', '/static/speech/speech-worker.js?v=10'],
             ['engine', '/static/speech/vendor/transformers.min.js?v=2'],
             ['runtime', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.mjs'],
             ['wasm', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.wasm'],
@@ -207,7 +207,7 @@
 
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=9' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=10' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
             if (m.type === 'stage') { lastStage = m.stage || ''; return; }
@@ -414,6 +414,21 @@
     function stopSpeaking() { try { window.speechSynthesis.cancel(); } catch (_) {} }
 
     // ---- the conversation loop ----------------------------------------------
+    // A result that is the same few words over and over (or mostly one repeated phrase) is the speech model making things up
+    // on noise, not something you said.
+    function looksLikeLoop(text) {
+        var w = wordsOf(text);
+        if (w.length < 10) return false;
+        var counts = {}, top = 0;
+        for (var i = 0; i + 2 < w.length; i++) {
+            var g = w[i] + ' ' + w[i + 1] + ' ' + w[i + 2];
+            counts[g] = (counts[g] || 0) + 1;
+            if (counts[g] > top) top = counts[g];
+        }
+        var unique = new Set(w).size;
+        return top >= 4 || (w.length >= 16 && unique / w.length < 0.3);
+    }
+
     function normalise(t) { return String(t || '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim(); }
     function cleanup(text) { return (text || '').replace(/\[[^\]]*\]|\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); }
 
@@ -520,6 +535,7 @@
             var text = cleanup((await ask('transcribe', turn.audio)).text);
             if (state === 'off') return;
             if (!text) return noteThenListen('I did not catch any words.');
+            if (looksLikeLoop(text)) return noteThenListen('That was mostly noise, so it was ignored. Check that nothing else is playing sound near the microphone.');
             if (looksLikeEcho(text)) return noteThenListen('That sounded like the reply being read out, so it was ignored.');
             await handleText(text);
         } catch (err) {

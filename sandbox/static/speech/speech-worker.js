@@ -126,7 +126,14 @@ self.onmessage = async (e) => {
         } else if (msg.type === 'transcribe') {
             const transcriber = await getTranscriber();
             self.postMessage({ type: 'ready' });
-            const opts = msg.audio.length > 30 * 16000 ? { chunk_length_s: 30, stride_length_s: 5 } : {};
+            // Whisper sometimes gets stuck repeating one phrase over and over when the clip is mostly noise or very quiet.
+            // Never allow a 4-word phrase to repeat, and cap how many words a clip of this length can produce.
+            const secs = msg.audio.length / 16000;
+            const opts = {
+                no_repeat_ngram_size: 4,
+                max_new_tokens: Math.max(16, Math.min(200, Math.round(secs * 6) + 8)),
+            };
+            if (msg.audio.length > 30 * 16000) { opts.chunk_length_s = 30; opts.stride_length_s = 5; }
             stage('transcribing');
             const out = await transcriber(msg.audio, opts);
             stage('transcribed');
