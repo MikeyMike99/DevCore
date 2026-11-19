@@ -352,6 +352,15 @@
     }
 
     var lastMicName = '';
+    var heardSomething = false;                       // anything at all picked up during this voice session
+    // Nothing heard for 12 s at the start of a session: say so, because from the outside "nothing happens" looks like "broken".
+    // It is read by the screen reader while the microphone is open, so it is remembered like a reply and ignored if the mic hears it.
+    function quietHint() {
+        if (state !== 'listening') return;
+        var note = 'I cannot hear you yet. Move closer to the microphone, or choose a different microphone in Settings.';
+        rememberReply(note);
+        live(note, 'error');
+    }
     function recordTurn(opts) {
         opts = opts || {};
         return new Promise(function (resolve, reject) {
@@ -367,7 +376,7 @@
 
                 var frameMs = 4096 / ctx.sampleRate * 1000;
                 var preRoll = [], frames = [], speaking = false, loud = 0, silentMs = 0, heardMs = 0, voicedMs = 0;
-                var finished = false, started = Date.now();
+                var finished = false, started = Date.now(), recentLoud = [], hinted = false;
                 var session = {
                     cancel: function () { finish(null); },
                     hasSpeech: function () { return speaking && voicedMs > 250; },     // something real has been said
@@ -403,21 +412,25 @@
                     // began right after the beep lost its start, or was taken for background noise and never heard at all.)
                     // The "you are speaking" level follows the room noise (at least 3.5x louder), with a low floor so quiet or
                     // distant speech still counts. It used to have to be at least 0.01 (about -40 dB), too loud for many voices.
-                    var threshold = Math.min(0.03, Math.max(0.004, roomNoise * 3.5));
+                    var threshold = Math.min(0.03, Math.max(0.0025, roomNoise * 3));
                     showLevel(level);
                     if (!speaking) {
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
-                        if (level > threshold) loud++;
-                        else { loud = 0; roomNoise = 0.97 * roomNoise + 0.03 * level; }
-                        if (loud >= 2) {
+                        recentLoud.push(level > threshold ? 1 : 0); if (recentLoud.length > 4) recentLoud.shift();
+                        if (level <= threshold) roomNoise = 0.97 * roomNoise + 0.03 * level;
+                        // Speech starts when at least 2 of the last 4 moments were above the level (not necessarily in a row:
+                        // quiet or distant speech rises and falls around the level).
+                        if (recentLoud.reduce(function (a, b) { return a + b; }, 0) >= 2) {
                             speaking = true; frames = preRoll.slice(); silentMs = 0; heardMs = 0; voicedMs = 0;
                             if (label) label.textContent = 'Listening… (tap when done)';
                         }
                         else if (Date.now() - started > IDLE_TIMEOUT_MS) finish(null);
+                        else if (!hinted && !heardSomething && Date.now() - started > 12000) { hinted = true; quietHint(); }
                     } else {
                         frames.push(data);
                         heardMs += frameMs;
-                        if (level > threshold) { silentMs = 0; voicedMs += frameMs; } else { silentMs += frameMs; }
+                        heardSomething = true;
+                        if (level > threshold * 0.7) { silentMs = 0; voicedMs += frameMs; } else { silentMs += frameMs; }   // a bit easier to keep going than to start
                         // People pause to think, most of all near the start of a sentence, so wait longer until you have
                         // actually spoken for a few seconds (time spent in silence does not count towards that).
                         var allowedSilence = voicedMs < 2000 ? END_SILENCE_EARLY_MS : END_SILENCE_MS;
@@ -695,6 +708,7 @@
 
     async function startVoice() {
         if (state !== 'off') return;
+        heardSomething = false;
         setState('thinking', 'Starting…');
         if (!(await enginePresent())) {
             setState('off');
