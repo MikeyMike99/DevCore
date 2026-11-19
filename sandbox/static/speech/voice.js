@@ -36,8 +36,8 @@
     var THRESH_KEY = 'siraugga.voice.threshold';
     var DEFAULT_THRESHOLD = 0.85;
     var MAX_CLIP_SECONDS = 40;
-    var END_SILENCE_MS = 2000;                        // pause that ends your turn
-    var END_SILENCE_EARLY_MS = 3000;                  // ...while the sentence has only just begun (first 3 s)
+    var END_SILENCE_MS = 1400;                        // pause that ends your turn (you can also tap the button when you are done)
+    var END_SILENCE_EARLY_MS = 2200;                  // ...while you have spoken for less than 2 s (people pause early to think)
     var roomNoise = 0.003;                            // remembered between turns (see recordTurn)
     var IDLE_TIMEOUT_MS = 3 * 60 * 1000;              // mic switches itself off after 3 quiet minutes
     var MAX_SPOKEN_CHARS = 700;
@@ -301,7 +301,11 @@
                 var frameMs = 4096 / ctx.sampleRate * 1000;
                 var preRoll = [], frames = [], speaking = false, loud = 0, silentMs = 0, heardMs = 0, voicedMs = 0;
                 var finished = false, started = Date.now();
-                var session = { cancel: function () { finish(null); } };
+                var session = {
+                    cancel: function () { finish(null); },
+                    hasSpeech: function () { return speaking && voicedMs > 250; },     // something real has been said
+                    finishNow: function () { if (speaking) finish(concat(frames)); },   // "I am done": send what was said now
+                };
                 currentSession = session;
 
                 function finish(audio) {
@@ -334,7 +338,10 @@
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
                         if (level > threshold) loud++;
                         else { loud = 0; roomNoise = 0.97 * roomNoise + 0.03 * level; }
-                        if (loud >= 2) { speaking = true; frames = preRoll.slice(); silentMs = 0; heardMs = 0; voicedMs = 0; }
+                        if (loud >= 2) {
+                            speaking = true; frames = preRoll.slice(); silentMs = 0; heardMs = 0; voicedMs = 0;
+                            if (label) label.textContent = 'Listening… (tap when done)';
+                        }
                         else if (Date.now() - started > IDLE_TIMEOUT_MS) finish(null);
                     } else {
                         frames.push(data);
@@ -342,7 +349,7 @@
                         if (level > threshold) { silentMs = 0; voicedMs += frameMs; } else { silentMs += frameMs; }
                         // People pause to think, most of all near the start of a sentence, so wait longer until you have
                         // actually spoken for a few seconds (time spent in silence does not count towards that).
-                        var allowedSilence = voicedMs < 3000 ? END_SILENCE_EARLY_MS : END_SILENCE_MS;
+                        var allowedSilence = voicedMs < 2000 ? END_SILENCE_EARLY_MS : END_SILENCE_MS;
                         if (silentMs >= allowedSilence || heardMs >= MAX_CLIP_SECONDS * 1000) finish(concat(frames));
                     }
                 };
@@ -631,7 +638,7 @@
         }
         if (state === 'off') return;                       // you pressed the button again while it was loading
         cue([660, 990, 1320]);                             // three rising notes: ready
-        liveQuiet('Ready.', 'ok');
+        liveQuiet('Ready (' + (/processor/.test(lastStage) ? 'processor mode, a little slower' : 'graphics card, fastest') + ').', 'ok');
         setState('listening', 'Starting…');                // listen() does nothing while the state is 'off'
         listen();
     }
@@ -650,7 +657,8 @@
     btn.addEventListener('click', function () {
         if (state === 'off') startVoice();
         else if (state === 'enrolling') return;
-        else stopVoice();
+        else if (state === 'listening' && currentSession && currentSession.hasSpeech()) currentSession.finishNow();   // tap when done: send now
+        else stopVoice();                                                                                           // otherwise tap = stop
     });
 
     // ---- teach it my voice ---------------------------------------------------
