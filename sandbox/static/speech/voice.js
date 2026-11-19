@@ -173,9 +173,10 @@
             if (m.type === 'error') p.reject(new Error(m.message));
             else p.resolve(m);
         };
-        worker.onerror = function () {
+        worker.onerror = function (e) {
             worker = null;
-            Object.keys(pending).forEach(function (k) { pending[k].reject(new Error('The voice worker stopped.')); delete pending[k]; });
+            var detail = e && e.message ? ' (' + e.message + ')' : '';
+            Object.keys(pending).forEach(function (k) { pending[k].reject(new Error('The voice worker stopped' + detail + '.')); delete pending[k]; });
         };
         return worker;
     }
@@ -516,8 +517,22 @@
         }
     }
 
-    function startVoice() {
+    // The speech engine is a set of files this site has to be able to serve. If they are missing (for example on a
+    // static copy of the site built without them) say so plainly, instead of a worker that dies with no explanation.
+    async function enginePresent() {
+        try {
+            var r = await fetch('/static/speech/vendor/transformers.min.js', { method: 'HEAD', cache: 'no-store' });
+            return r.ok;
+        } catch (_) { return false; }
+    }
+
+    async function startVoice() {
         if (state !== 'off') return;
+        setState('thinking', 'Starting…');
+        if (!(await enginePresent())) {
+            setState('off');
+            return problem('The speech files are not available at ' + location.host + '. Open https://siraugga.mikeytech.dev to use voice.');
+        }
         hookFinish();
         useHaiku(true);
         try { getWorker().postMessage({ type: 'load' }); } catch (_) {}   // warm Whisper while you start talking

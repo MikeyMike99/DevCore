@@ -65,6 +65,7 @@ def _build_headers() -> str:
     csp = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' "
+        "https://siraugga.mikeytech.dev "  # the speech engine (static/speech/vendor) is served by the live server, see _redirects
         "https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com "
         "https://www.youtube.com https://s.ytimg.com https://static.cloudflareinsights.com; "
         "worker-src 'self'; "
@@ -176,7 +177,10 @@ def build_bundle(source_root: Path = ROOT, out_dir: Path = OUT) -> int:
         "/unlock/* https://siraugga.mikeytech.dev/unlock/:splat 302\n"
         "/owner-device/* https://siraugga.mikeytech.dev/owner-device/:splat 302\n"
         "/tickets/decide https://siraugga.mikeytech.dev/tickets/decide 302\n"
-        "/static/speech/models/* https://siraugga.mikeytech.dev/static/speech/models/:splat 302\n",
+        "/static/speech/models/* https://siraugga.mikeytech.dev/static/speech/models/:splat 302\n"
+        # The speech engine and its WebAssembly runtime (~23 MB, git-ignored, fetched by scripts/fetch_speech_assets.py)
+        # are never part of this bundle, so the voice features need them from the live server like the models.
+        "/static/speech/vendor/* https://siraugga.mikeytech.dev/static/speech/vendor/:splat 302\n",
         encoding="utf-8",
     )
     (out_dir / "robots.txt").write_text("User-agent: *\nDisallow: /setup\nDisallow: /login\n", encoding="utf-8")
