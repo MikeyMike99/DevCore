@@ -356,6 +356,7 @@
     function getSens() { var s = parseInt(store(SENS_KEY), 10); return s >= 1 && s <= 5 ? s : 3; }
     function sensitivityScale() { return [1.6, 1.25, 1.0, 0.75, 0.55][getSens() - 1]; }
 
+    var dbg = { level: 0, threshold: 0, roomNoise: 0, speaking: false, frames: 0 };     // read through window.sirauggaVoice.stats()
     var lastMicName = '';
     var heardSomething = false;                       // anything at all picked up during this voice session
     // Nothing heard for 12 s at the start of a session: say so, because from the outside "nothing happens" looks like "broken".
@@ -419,6 +420,7 @@
                     // distant speech still counts. It used to have to be at least 0.01 (about -40 dB), too loud for many voices.
                     var threshold = Math.max(0.0012, Math.min(0.03, Math.max(0.0025, roomNoise * 3)) * sensitivityScale());
                     showLevel(level);
+                    dbg.level = level; dbg.threshold = threshold; dbg.roomNoise = roomNoise; dbg.speaking = speaking; dbg.frames++;
                     if (!speaking) {
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
                         recentLoud.push(level > threshold ? 1 : 0); if (recentLoud.length > 4) recentLoud.shift();
@@ -840,6 +842,7 @@
             return true;
         },
         state: function () { return state; },
+        stats: function () { return JSON.parse(JSON.stringify(dbg)); },
     };
 
     window.addEventListener('pagehide', function () { if (state !== 'off') stopVoice(); });
