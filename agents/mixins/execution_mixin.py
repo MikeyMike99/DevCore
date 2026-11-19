@@ -295,6 +295,16 @@ def is_course_request(prompt: str) -> bool:
     return bool(_COURSE_REQUEST_RE.search(str(prompt or "")[:4000]))
 
 
+VOICE_CHAT_MARKER = "[VOICE_CHAT]\n"
+VOICE_REPLY_INSTRUCTIONS = (
+    "VOICE CONVERSATION: the user spoke this message and your reply will be read out by a screen reader. "
+    "Answer directly in short, plain, conversational sentences (about 120 words at most unless they ask for more). "
+    "Do not show cards, embedded pages, iframes, tables, code blocks, headings or bullet symbols, and do not offer to "
+    "open a course or an exam unless they clearly ask for it. If the words sound like a mis-heard sentence, say what "
+    "you think they meant and answer that."
+)
+
+
 class ExecutionMixin:
     _validated_path_cache = {}
     _validated_path_cache_state = None
@@ -363,6 +373,15 @@ class ExecutionMixin:
         )
         if hasattr(self, "set_task_context"):
             self.set_task_context(slot_key)
+        # Spoken message (Talk button): the page puts VOICE_CHAT_MARKER in front. Take it off here, so the saved
+        # conversation and the model never see it, and remember it for this slot: _execute_agent then skips the
+        # course/exam/media card shortcuts and asks for a short plain reply that a screen reader can read out.
+        voice_slots = self.__dict__.setdefault("_voice_slots", set())
+        if prompt and prompt.startswith(VOICE_CHAT_MARKER):
+            prompt = prompt[len(VOICE_CHAT_MARKER):].strip()
+            voice_slots.add(slot_key)
+        elif not _from_steer_or_queue and not self.is_running(slot_key):
+            voice_slots.discard(slot_key)
         if not isinstance(user, dict):
             user = {
                 "username": "Michael (Admin)" if is_admin else slot_key.split("::")[0],
@@ -670,7 +689,8 @@ class ExecutionMixin:
             self.set_dev_task(is_dev_task)     # scrub code/paths from everything this task broadcasts
         hb_task = asyncio.create_task(self._heartbeat_worker(task_time, slot_key))
         raw_user_prompt = prompt
-        if not _model_retry and not _from_steer_or_queue:
+        voice_turn = slot_key in self.__dict__.get("_voice_slots", ())
+        if not _model_retry and not _from_steer_or_queue and not voice_turn:
             # "Open the Linux course" needs no model at all: answer with the embedded course straight away (like an exam
             # card), so nothing is investigated, nothing waits, and no usage is spent.
             try:
@@ -788,6 +808,8 @@ class ExecutionMixin:
             is_exam = False
         is_media = (not is_exam) and is_media_request(prompt)
         is_course = (not is_exam) and (not is_media) and (is_course_request(prompt) or bool(_course_named_by(prompt)))
+        if voice_turn:      # a spoken message is just a conversation: no exam, media or course shortcuts
+            is_exam = is_media = is_course = False
 
         has_own_sub = bool(browser_relay or (byos_data and byos_data.get("credential")))
         if not is_effective_admin and not has_own_sub and not is_exam and not _model_retry:  # a hand-off is the same prompt: count once
@@ -858,13 +880,13 @@ class ExecutionMixin:
                         await self.broadcast({"type": "agent_done", "exit_code": 1, "elapsed": 0.1, "status": "HALTED", "output": limit_msg, "cancelled": False})
                         return
                 p_low = (prompt or "").lower()
-                claude_exam = bool(is_claude and (is_exam or "exam" in p_low or "quiz" in p_low))
+                claude_exam = bool(is_claude and not voice_turn and (is_exam or "exam" in p_low or "quiz" in p_low))
                 # Exams: Claude gets the full format up front and returns the JSON; the server saves it
                 from core.local_model_service import execute_local_agent_task
                 from agents import model_router
                 run_model = model_router.cli_model_name(model) if is_claude else model  # exact id from the Claude CLI catalog
                 res = await execute_local_agent_task(self, prompt, run_model, task_time, conversation_id, user=user, is_admin=admin_override,
-                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else (course_instructions() if is_course else ""))),
+                                                     extra_system=(VOICE_REPLY_INSTRUCTIONS if voice_turn else (EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else (course_instructions() if is_course else "")))),
                                                      allow_fallback=is_claude)
                 if isinstance(res, dict) and res.get("quota"):
                     # Claude ran out: remember it, then the next best model finishes the task with what was done so far
@@ -1290,7 +1312,9 @@ class ExecutionMixin:
                             "a single line: describe what you found, what you changed and how you tested it in plain, "
                             "non-technical language. When the work is ready, tell them to press 'Submit for approval'.\n"
                         )
-                if is_exam:
+                if voice_turn:
+                    sys_msg += VOICE_REPLY_INSTRUCTIONS
+                elif is_exam:
                     sys_msg += EXAM_SAVE_INSTRUCTIONS  # admins too: the format is given up front, no file hunting
                 elif is_media:
                     sys_msg += MEDIA_PLAY_INSTRUCTIONS  # the video player steps are given up front, no skill-file reading
