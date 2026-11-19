@@ -456,7 +456,7 @@
         var reply = spokenVersion(lastReply(), useVoice ? MAX_SPOKEN_CHARS : 1500);
         rememberReply(reply);
         if (useVoice) {
-            setState('speaking', 'Speaking (tap to stop)');
+            setState('speaking', 'Speaking (tap to talk now)');
             live('Reply received. Reading it out…', 'ok');
             speak(reply).then(function () {
                 if (state === 'speaking') listen();
@@ -465,14 +465,14 @@
         }
         // Default: the screen reader reads the reply (ARIA). It gives no "finished" signal, so wait about as
         // long as reading takes before the microphone opens again, so the mic does not hear the screen reader.
-        setState('speaking', 'Reading reply… (tap to stop)');
+        setState('speaking', 'Reading reply… (tap to talk now)');
         liveQuiet('Reply: ' + reply);
         announce(reply || 'The reply is on screen.');
         var words = (reply.match(/\S+/g) || []).length;
         ariaTimer = setTimeout(function () {
             ariaTimer = null;
             if (state === 'speaking') listen();
-        }, Math.max(3000, Math.round(words / 3.2 * 1000) + 2000));
+        }, Math.max(2500, Math.round(words / 4.5 * 1000) + 1500));      // ~270 words a minute plus a pause; tap the button to skip the wait
     }
     var ariaTimer = null;
     var lastReplyWords = null, lastReplyAt = 0;
@@ -658,7 +658,19 @@
         if (state === 'off') startVoice();
         else if (state === 'enrolling') return;
         else if (state === 'listening' && currentSession && currentSession.hasSpeech()) currentSession.finishNow();   // tap when done: send now
+        else if (state === 'speaking') skipReading();                                                               // tap while the reply is read: talk now
         else stopVoice();                                                                                           // otherwise tap = stop
+    });
+    // Skip the wait for the screen reader (or the device voice) and open the microphone straight away.
+    function skipReading() {
+        if (ariaTimer) { clearTimeout(ariaTimer); ariaTimer = null; }
+        setState('listening', 'Listening…');               // set first so a finishing device voice does not also start listening
+        stopSpeaking();
+        listen();
+    }
+    // Escape switches voice off completely, from anywhere on the page.
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && state !== 'off' && state !== 'enrolling') { e.preventDefault(); stopVoice(); }
     });
 
     // ---- teach it my voice ---------------------------------------------------
