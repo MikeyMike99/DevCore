@@ -160,7 +160,7 @@
     // ---- worker --------------------------------------------------------------
     async function diagnoseEngine() {
         var files = [
-            ['worker', '/static/speech/speech-worker.js?v=8'],
+            ['worker', '/static/speech/speech-worker.js?v=9'],
             ['engine', '/static/speech/vendor/transformers.min.js?v=2'],
             ['runtime', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.mjs'],
             ['wasm', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.wasm'],
@@ -181,6 +181,20 @@
             ', last step: ' + (lastStage || 'none') + '): ' + parts.join(', ') + '.';
     }
 
+    // Model download progress: always shown on screen, and announced only at 25% steps (not on every tick).
+    var loadFiles = {}, loadAnnounced = 0;
+    function onLoadProgress(m) {
+        if (state === 'off' || state === 'listening') return;
+        loadFiles[m.file] = [m.loaded, m.total];
+        var L = 0, T = 0;
+        Object.keys(loadFiles).forEach(function (k) { L += loadFiles[k][0]; T += loadFiles[k][1]; });
+        if (!T) return;
+        var pct = Math.min(99, Math.round(L / T * 100));
+        var text = 'Loading the speech model: ' + pct + '% of ' + Math.round(T / 1e6) + ' MB. First time only; it is saved on this device afterwards.';
+        var step = Math.floor(pct / 25) * 25;
+        if (step > loadAnnounced) { loadAnnounced = step; live(text); } else { liveQuiet(text, 'info'); }
+    }
+
     // If the worker dies while it is running (some graphics drivers do that), run it on the processor from then on.
     var CPU_KEY = 'siraugga.speech.cpu';
     var lastStage = '';
@@ -188,14 +202,11 @@
 
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=8' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=9' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
             if (m.type === 'stage') { lastStage = m.stage || ''; return; }
-            if (m.type === 'progress') {
-                if (state === 'thinking' || state === 'enrolling') say('Loading voice models');
-                return;
-            }
+            if (m.type === 'progress') { onLoadProgress(m); return; }
             var p = pending[m.id];
             if (!p) return;
             delete pending[m.id];
@@ -583,7 +594,20 @@
         }
         hookFinish();
         useHaiku(true);
-        try { getWorker().postMessage({ type: 'load' }); } catch (_) {}   // warm Whisper while you start talking
+        // Load the speech model BEFORE opening the microphone, and say so: the first time it is a download of about
+        // 150 MB, and talking to something that is not ready yet looks exactly like "nothing happens".
+        loadFiles = {}; loadAnnounced = 0;
+        live('Getting ready. Loading the speech model. The first time takes about a minute; after that it is quick.');
+        try {
+            await ask('load');
+        } catch (err) {
+            console.error('[voice]', err);
+            stopVoice();
+            return problem('The speech model could not be loaded: ' + ((err && err.message) || err));
+        }
+        if (state === 'off') return;                       // you pressed the button again while it was loading
+        cue([660, 990, 1320]);                             // three rising notes: ready
+        liveQuiet('Ready.', 'ok');
         setState('listening', 'Starting…');                // listen() does nothing while the state is 'off'
         listen();
     }

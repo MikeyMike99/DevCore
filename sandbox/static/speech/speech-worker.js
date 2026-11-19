@@ -122,7 +122,7 @@ self.onmessage = async (e) => {
             self.postMessage({ type: 'embedding', id: msg.id, embedding });
         } else if (msg.type === 'load') {
             await getTranscriber();
-            self.postMessage({ type: 'ready' });
+            self.postMessage({ type: 'ready', id: msg.id });
         } else if (msg.type === 'transcribe') {
             const transcriber = await getTranscriber();
             self.postMessage({ type: 'ready' });
