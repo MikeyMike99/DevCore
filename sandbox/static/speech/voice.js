@@ -64,15 +64,29 @@
     }
 
     // ---- UI helpers ----------------------------------------------------------
+    // A visible status box above the message box. It shows every step while voice is on, and
+    // problems stay on screen until the next step (they used to vanish after a few seconds).
+    var panel = document.createElement('div');
+    panel.id = 'voice-live';
+    panel.setAttribute('role', 'status');
+    panel.setAttribute('aria-live', 'polite');
+    panel.className = 'hidden text-sm rounded-lg px-3 py-2 mb-2 border';
+    form.parentNode.insertBefore(panel, form);
     function say(text) { if (status) status.textContent = text; }
-    function show(text) {
+    function live(text, kind) {                       // kind: 'info' (default) | 'error' | 'ok'
         say(text);
-        if (!notice) return;
-        notice.textContent = text;
-        notice.classList.remove('hidden');
+        try { console.log('[voice]', text); } catch (_) {}
+        kind = kind || 'info';
+        panel.textContent = text;
+        panel.className = 'text-sm rounded-lg px-3 py-2 mb-2 border ' + (kind === 'error'
+            ? 'text-red-200 bg-red-950/60 border-red-700/60'
+            : kind === 'ok' ? 'text-emerald-200 bg-emerald-950/50 border-emerald-700/60'
+            : 'text-teal-200 bg-slate-900 border-teal-700/60');
         if (noticeTimer) clearTimeout(noticeTimer);
-        noticeTimer = setTimeout(function () { notice.classList.add('hidden'); }, 7000);
+        if (state === 'off') noticeTimer = setTimeout(function () { if (state === 'off' && kind !== 'error') panel.classList.add('hidden'); }, 15000);
     }
+    function show(text) { live(text, 'info'); }
+    function problem(text) { live(text, 'error'); }
     function setState(s, text) {
         state = s;
         var on = s !== 'off';
@@ -316,6 +330,7 @@
         waitingForReply = false;
         if (watchdog) { clearTimeout(watchdog); watchdog = null; }
         setState('speaking', 'Speaking (tap to stop)');
+        live('Reply received. Reading it out…', 'ok');
         speak(spokenVersion(lastReply())).then(function () {
             if (state === 'speaking') listen();
         });
@@ -337,39 +352,47 @@
     async function listen() {
         if (state === 'off') return;
         setState('listening', 'Listening… (tap to stop)');
-        say('Listening');
+        live('Listening… speak now, then pause when you are done.');
         var turn;
         try {
             turn = await recordTurn();
         } catch (err) {
-            show(err && err.name === 'NotAllowedError'
+            var msg = err && err.name === 'NotAllowedError'
                 ? 'Microphone access was blocked. Allow it in your browser to talk.'
-                : 'No microphone could be opened.');
-            return stopVoice();
+                : 'No microphone could be opened (' + ((err && (err.name || err.message)) || 'error') + ').';
+            stopVoice();
+            return problem(msg);
         }
         if (state === 'off') return;
-        if (!turn.audio) { show('Stopped listening after a quiet while.'); return stopVoice(); }
+        var injected = injectedText; injectedText = null;
+        if (!turn.audio && !injected) { stopVoice(); return show('Stopped listening after a quiet while.'); }
 
         setState('thinking', 'Working…');
         try {
+            if (injected) {                               // typed through window.sirauggaVoice.say() (testing without a microphone)
+                live('Using typed text: “' + injected + '”');
+                return await handleText(injected);
+            }
             var print = getPrint();
             if (print) {
+                live('Heard you. Checking that it is your voice… (the first time loads the voice model, about 100 MB)');
                 var emb = (await ask('embed', turn.audio)).embedding;
                 if (state === 'off') return;
                 var score = cosine(print, emb);
                 if (score < getThreshold()) {
-                    show('That did not sound like you, so it was ignored (match ' + score.toFixed(2) + ').');
+                    live('That did not sound like you, so it was ignored (match ' + score.toFixed(2) + ', needs ' + getThreshold().toFixed(2) + '). Lower the strictness in Settings if this is wrong.', 'error');
                     return listen();
                 }
             }
+            live('Turning your speech into text… (the first time loads the speech model)');
             var text = cleanup((await ask('transcribe', turn.audio)).text);
             if (state === 'off') return;
-            if (!text) return listen();
+            if (!text) { live('I did not catch any words. Listening again…'); return listen(); }
             await handleText(text);
         } catch (err) {
             console.error('[voice]', err);
-            show('Voice conversation hit a problem: ' + ((err && err.message) || err));
             stopVoice();
+            problem('Voice conversation hit a problem: ' + ((err && err.message) || err));
         }
     }
 
@@ -389,6 +412,7 @@
             return listen();
         }
         cueHeard();
+        live('You said: “' + text + '”. Sending… waiting for the reply.', 'ok');
         promptEl.value = text;
         promptEl.dispatchEvent(new Event('input', { bubbles: true }));
         var before = agentCount();
@@ -399,6 +423,7 @@
             watchdog = null;
             if (waitingForReply && state === 'thinking' && agentCount() === before && !window.isTaskRunning) {
                 waitingForReply = false;
+                live('The message did not start a reply (is the connection open?). Listening again…', 'error');
                 listen();
             }
         }, 10000);
@@ -426,6 +451,8 @@
         hookFinish();
         useHaiku(true);
         try { getWorker().postMessage({ type: 'load' }); } catch (_) {}   // warm Whisper while you start talking
+        setState('listening', 'Starting…');                // listen() does nothing while the state is 'off'
+        live('Starting voice conversation…');
         listen();
     }
     function stopVoice() {
@@ -436,6 +463,7 @@
         useHaiku(false);
         setState('off');
         say('Voice conversation off');
+        live('Voice conversation off.');
     }
 
     btn.addEventListener('click', function () {
@@ -468,10 +496,10 @@
                 prints.push((await ask('embed', turn.audio)).embedding);
             }
             store(PRINT_KEY, JSON.stringify(average(prints).map(function (v) { return Math.round(v * 1e5) / 1e5; })));
-            show('Done. Your voice is saved on this device.');
+            live('Done. Your voice is saved on this device.', 'ok');
         } catch (err) {
             console.error('[voice]', err);
-            show('Voice setup failed: ' + ((err && err.message) || err));
+            problem('Voice setup failed: ' + ((err && err.message) || err));
         } finally {
             setState('off');
             enrollBtn.disabled = false;
@@ -485,6 +513,19 @@
         show('Your saved voice was removed. It will answer to any voice again.');
     });
     if (thresholdEl) thresholdEl.addEventListener('input', function () { store(THRESH_KEY, thresholdEl.value); });
+
+    // Lets you test the whole loop without a microphone: while voice is listening,
+    // window.sirauggaVoice.say('hello') behaves as if you had said it.
+    var injectedText = null;
+    window.sirauggaVoice = {
+        say: function (text) {
+            if (state !== 'listening' || !currentSession) return false;
+            injectedText = String(text || '');
+            currentSession.cancel();
+            return true;
+        },
+        state: function () { return state; },
+    };
 
     window.addEventListener('pagehide', function () { if (state !== 'off') stopVoice(); });
     setState('off');
