@@ -38,7 +38,16 @@
     var MAX_CLIP_SECONDS = 40;
     var END_SILENCE_MS = 1400;                        // pause that ends your turn (you can also tap the button when you are done)
     var END_SILENCE_EARLY_MS = 2200;                  // ...while you have spoken for less than 2 s (people pause early to think)
-    var roomNoise = 0.002;                            // remembered between turns (see recordTurn)
+    var roomNoise = null;                             // remembered between turns AND sessions (see recordTurn, loadNoise)
+    var NOISE_KEY = 'siraugga.voice.roomNoise';
+    function loadNoise() {                            // start low: a high first guess hides faint speech that begins right away
+        var v = NaN;
+        try { v = parseFloat(localStorage.getItem(NOISE_KEY)); } catch (_) {}
+        return isFinite(v) && v > 0.0003 && v < 0.02 ? v : 0.0008;
+    }
+    function saveNoise() { try { localStorage.setItem(NOISE_KEY, String(roomNoise)); } catch (_) {} }
+    // A turn that produced no words, or only noise, means the level was set too low for this room: raise it.
+    function raiseNoise() { roomNoise = Math.min(0.01, Math.max(roomNoise || 0.0008, 0.001) * 1.8); saveNoise(); }
     var MIC_KEY = 'siraugga.voice.micId';             // chosen microphone ('' = the system default)
     var IDLE_TIMEOUT_MS = 3 * 60 * 1000;              // mic switches itself off after 3 quiet minutes
     var MAX_SPOKEN_CHARS = 700;
@@ -369,6 +378,7 @@
     }
     function recordTurn(opts) {
         opts = opts || {};
+        if (roomNoise === null) roomNoise = loadNoise();
         return new Promise(function (resolve, reject) {
             var Ctx = window.AudioContext || window.webkitAudioContext;
             openMic().then(function (stream) {
@@ -398,6 +408,7 @@
                     stream.getTracks().forEach(function (t) { t.stop(); });
                     var rate = ctx.sampleRate;
                     try { ctx.close(); } catch (_) {}
+                    saveNoise();
                     var boosted = audio ? boost(to16k(audio, rate)) : null;
                     resolve({ audio: boosted ? boosted.audio : null, peak: boosted ? boosted.peak : 0, voicedMs: voicedMs });
                 }
@@ -641,8 +652,8 @@
             live('Turning your speech into text… (the first time loads the speech model)');
             var text = cleanup((await ask('transcribe', turn.audio)).text);
             if (state === 'off') return;
-            if (!text) return noteThenListen('I did not catch any words.');
-            if (looksLikeLoop(text)) return noteThenListen('That was mostly noise, so it was ignored. Check that nothing else is playing sound near the microphone.');
+            if (!text) { raiseNoise(); return noteThenListen('I did not catch any words.'); }
+            if (looksLikeLoop(text)) { raiseNoise(); return noteThenListen('That was mostly noise, so it was ignored. Check that nothing else is playing sound near the microphone.'); }
             if (looksLikeEcho(text)) return noteThenListen('That sounded like the reply being read out, so it was ignored.');
             await handleText(text);
         } catch (err) {
