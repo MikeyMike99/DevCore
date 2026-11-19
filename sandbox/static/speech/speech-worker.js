@@ -5,9 +5,10 @@
 // then discarded. Nothing is uploaded. The library, its WebAssembly runtime and
 // the model files are all served by Siraugga itself (scripts/fetch_speech_assets.py),
 // so the browser never contacts Hugging Face, jsDelivr or any other third party.
-import { env, pipeline } from '/static/speech/vendor/transformers.min.js';
+import { env, pipeline, AutoProcessor, AutoModel } from '/static/speech/vendor/transformers.min.js';
 
 const MODEL_ID = 'Xenova/whisper-tiny.en';
+const SV_MODEL_ID = 'Xenova/wavlm-base-plus-sv';   // voice matching (voice.js)
 
 var _isStaticPages = (self.location && (self.location.hostname === 'mikeytech.dev' || self.location.hostname === 'www.mikeytech.dev'));
 env.allowRemoteModels = false;               // never fall back to huggingface.co
@@ -63,10 +64,48 @@ function getTranscriber() {
     return transcriberPromise;
 }
 
+// Voice matching: turns a clip into a 512-number "voice print". voice.js compares prints.
+// CPU only on purpose; the GPU path gave unreliable numbers for this model.
+let speakerPromise = null;
+function getSpeakerModel() {
+    if (!speakerPromise) {
+        speakerPromise = (async () => {
+            const processor = await AutoProcessor.from_pretrained(SV_MODEL_ID);
+            const model = await AutoModel.from_pretrained(SV_MODEL_ID, {
+                device: 'wasm', dtype: 'q8', progress_callback: progress,
+            });
+            return { processor, model };
+        })().catch((err) => {
+            speakerPromise = null;
+            throw err;
+        });
+    }
+    return speakerPromise;
+}
+
+async function embedVoice(audio) {
+    const { processor, model } = await getSpeakerModel();
+    const MAX = 8 * 16000;                           // 8 s from the middle is plenty and keeps it quick
+    if (audio.length > MAX) {
+        const start = Math.floor((audio.length - MAX) / 2);
+        audio = audio.slice(start, start + MAX);
+    }
+    const inputs = await processor(audio);
+    const out = await model(inputs);
+    const vec = Array.from(out.embeddings.data);
+    let norm = 0;
+    for (const v of vec) norm += v * v;
+    norm = Math.sqrt(norm) || 1;
+    return vec.map((v) => v / norm);
+}
+
 self.onmessage = async (e) => {
     const msg = e.data || {};
     try {
-        if (msg.type === 'load') {
+        if (msg.type === 'embed') {
+            const embedding = await embedVoice(msg.audio);
+            self.postMessage({ type: 'embedding', id: msg.id, embedding });
+        } else if (msg.type === 'load') {
             await getTranscriber();
             self.postMessage({ type: 'ready' });
         } else if (msg.type === 'transcribe') {

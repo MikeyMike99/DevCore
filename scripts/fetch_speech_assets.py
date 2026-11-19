@@ -4,7 +4,7 @@ Siraugga serves these itself, so a user's browser never contacts Hugging Face,
 jsDelivr or any other third party when they use the microphone button. The
 audio itself never leaves the user's device at all (see speech-worker.js).
 
-Run once per machine/deployment (the files are git-ignored, ~210 MB):
+Run once per machine/deployment (the files are git-ignored, ~310 MB):
 
     python scripts/fetch_speech_assets.py
 """
@@ -19,6 +19,15 @@ SPEECH_DIR = os.path.join(ROOT, "sandbox", "static", "speech")
 VENDOR_DIR = os.path.join(SPEECH_DIR, "vendor")
 MODEL_ID = "Xenova/whisper-tiny.en"
 MODEL_DIR = os.path.join(SPEECH_DIR, "models", *MODEL_ID.split("/"))
+
+# Voice matching ("only answer to my voice"): WavLM speaker model, quantized CPU build only.
+SV_MODEL_ID = "Xenova/wavlm-base-plus-sv"
+SV_MODEL_DIR = os.path.join(SPEECH_DIR, "models", *SV_MODEL_ID.split("/"))
+SV_MODEL_FILES = [
+    "config.json",
+    "preprocessor_config.json",
+    "onnx/model_quantized.onnx",                  # ~102 MB
+]
 
 TRANSFORMERS_VERSION = "3.7.5"
 TRANSFORMERS_TGZ = (
@@ -72,6 +81,11 @@ def main():
     for rel in MODEL_FILES:
         url = f"https://huggingface.co/{MODEL_ID}/resolve/main/{rel}"
         _write(os.path.join(MODEL_DIR, *rel.split("/")), _get(url))
+
+    print(f"Voice-matching model {SV_MODEL_ID} ...")
+    for rel in SV_MODEL_FILES:
+        url = f"https://huggingface.co/{SV_MODEL_ID}/resolve/main/{rel}"
+        _write(os.path.join(SV_MODEL_DIR, *rel.split("/")), _get(url))
     print("Done.")
 
 

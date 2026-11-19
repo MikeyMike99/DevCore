@@ -132,6 +132,26 @@ async def _ensure_guest_session_cookie(response):
         pass
     return response
 
+
+@app.after_request
+async def _inject_a11y_hover(response):
+    """Inject shared mouse-hover screen-reader script into HTML responses without duplicating across templates."""
+    try:
+        if (
+            response.status_code == 200
+            and "text/html" in (response.content_type or "").lower()
+            and not getattr(response, "direct_passthrough", False)
+        ):
+            raw = await response.get_data(as_text=False)
+            if raw and b"/static/a11y-hover.js" not in raw:
+                tag = b'<script src="/static/a11y-hover.js" defer></script>\n'
+                idx = raw.lower().rfind(b"</body>")
+                if idx != -1:
+                    response.set_data(raw[:idx] + tag + raw[idx:])
+    except Exception:
+        pass
+    return response
+
 project_mgr = pm.ProjectManager()
 session_mgr = sm.SessionManager()
 agent_mgr = am.AgentTaskManager(project_manager=project_mgr)
@@ -303,7 +323,7 @@ async def custom_static(filename):
         headers = {'Content-Type': mime_type or 'application/octet-stream'}
         if filename.startswith('speech/vendor/') or filename.startswith('speech/models/'):
             headers['Cache-Control'] = 'public, max-age=604800'  # large, rarely-changing files
-        elif filename in ('speech/speech-worker.js', 'speech/dictation.js', 'device-keys.js', 'device-keys-ui.js'):
+        elif filename in ('a11y-hover.js', 'speech/speech-worker.js', 'speech/dictation.js', 'speech/voice.js', 'device-keys.js', 'device-keys-ui.js'):
             # A worker runs under the CSP of its own response; if Cloudflare caches it,
             # header changes (e.g. 'wasm-unsafe-eval') never reach the browser.
             headers['Cache-Control'] = 'no-cache'
@@ -520,7 +540,6 @@ _ARTIFACT_SECRET_NAMES = {
     ".devcore_master.key", "subscriptions.json", "subscriptions.json.tmp", "sessions.json",
     "antigravity-oauth-token", "gemini_api_key.txt", ".devcore_client_key.txt",
     "webauthn_credentials.json", ".env", "key.pem", "cert.pem", "id_rsa", "id_ed25519",
-    "demo_gemini.key", "demo_gemini.key.tmp",
 }
 
 
@@ -1594,61 +1613,6 @@ async def admin_tier_limits():
     })
 
 
-@app.route('/api/admin/demo-key', methods=['GET', 'POST', 'DELETE'])
-async def admin_demo_key():
-    """Owner-only: set, check or remove the shared demo Gemini key from the Settings panel."""
-    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
-    if not _artifact_admin_user(token):
-        return jsonify({"error": "Admin authorization required"}), 403
-    key_file = browser_key_relay.DEMO_KEY_FILE
-
-    if request.method == "GET":
-        usage = browser_key_relay._DEMO_USAGE
-        today = time.strftime("%Y-%m-%d")
-        return jsonify({
-            "configured": bool(browser_key_relay.demo_server_key()),
-            "used_today": usage["count"] if usage["day"] == today else 0,
-            "daily_limit": browser_key_relay.demo_daily_limit(),
-        })
-
-    if request.method == "DELETE":
-        try:
-            if os.path.exists(key_file):
-                os.remove(key_file)
-        except Exception as e:
-            return jsonify({"success": False, "error": f"Could not remove the key: {e}"}), 500
-        return jsonify({"success": True})
-
-    data = await request.get_json(silent=True) or {}
-    key = str(data.get("key") or "").strip()
-    if not key or len(key) > 200 or any(c.isspace() for c in key):
-        return jsonify({"success": False, "error": "Paste a Gemini API key (it usually starts with AIza)."}), 400
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            check = await client.get("https://generativelanguage.googleapis.com/v1beta/models",
-                                     params={"pageSize": 1}, headers={"x-goog-api-key": key})
-        if check.status_code != 200:
-            msg = "Google rejected this key."
-            try:
-                msg = check.json().get("error", {}).get("message") or msg
-            except Exception:
-                pass
-            return jsonify({"success": False, "error": msg}), 400
-    except Exception as e:
-        return jsonify({"success": False, "error": f"Could not reach Google to check the key: {type(e).__name__}"}), 502
-    try:
-        os.makedirs(os.path.dirname(key_file), mode=0o700, exist_ok=True)
-        tmp = key_file + ".tmp"
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            f.write(key)
-        os.replace(tmp, key_file)
-    except Exception as e:
-        return jsonify({"success": False, "error": f"Could not save the key: {e}"}), 500
-    print(f"[DemoKey] Shared demo key updated at {time.strftime('%Y-%m-%dT%H:%M:%S')}")
-    return jsonify({"success": True})
-
-
 @app.route('/internal/llm-relay/<token>/v1beta/models/<path:model_method>', methods=['POST'])
 async def browser_key_llm_relay(token, model_method):
     """Loopback-only endpoint that `agy` calls instead of Google when a guest's key lives in their browser."""
@@ -1669,37 +1633,6 @@ async def browser_key_llm_relay(token, model_method):
     model_name, method_name = parsed
 
     body_text = (await request.get_data()).decode("utf-8", "replace")
-
-    server_key = browser_key_relay.session_server_key(token)
-    if server_key:
-        # Shared demo key: the server attaches it and calls Google itself, so the agent never holds it.
-        if not browser_key_relay.take_demo_request():
-            return _gerr(429, "RESOURCE_EXHAUSTED", "The shared demo has reached its daily limit. Add your own Gemini key in Settings & Sessions to keep going.")
-        upstream_url = f"{browser_key_relay.GOOGLE_API_BASE}/{model_name}:{method_name}"
-        q = browser_key_relay.safe_query(request.args)
-        client = httpx.AsyncClient(timeout=httpx.Timeout(connect=15.0, read=browser_key_relay.IDLE_TIMEOUT, write=60.0, pool=15.0))
-        try:
-            upstream_req = client.build_request(
-                "POST", upstream_url, params=q, content=body_text.encode("utf-8"),
-                headers={"Content-Type": "application/json", "x-goog-api-key": server_key},
-            )
-            upstream = await client.send(upstream_req, stream=True)
-        except Exception as e:
-            await client.aclose()
-            return _gerr(502, "UNAVAILABLE", f"Could not reach Google: {type(e).__name__}")
-
-        async def _upstream_stream():
-            try:
-                async for chunk in upstream.aiter_raw():
-                    yield chunk
-            finally:
-                await upstream.aclose()
-                await client.aclose()
-
-        resp = Response(_upstream_stream(), status=upstream.status_code,
-                        content_type=upstream.headers.get("content-type", "application/json"))
-        resp.timeout = None
-        return resp
 
     try:
         rid, queue = await browser_key_relay.open_request(
