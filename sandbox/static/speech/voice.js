@@ -160,7 +160,7 @@
     // ---- worker --------------------------------------------------------------
     async function diagnoseEngine() {
         var files = [
-            ['worker', '/static/speech/speech-worker.js?v=7'],
+            ['worker', '/static/speech/speech-worker.js?v=8'],
             ['engine', '/static/speech/vendor/transformers.min.js?v=2'],
             ['runtime', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.mjs'],
             ['wasm', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.wasm'],
@@ -177,14 +177,21 @@
         }
         var script = document.querySelector('script[src*="speech/voice.js"]');
         var ver = script && (script.getAttribute('src').match(/v=(\d+)/) || [])[1];
-        return 'Checked on ' + location.host + ' (page version ' + (ver || '?') + '): ' + parts.join(', ') + '.';
+        return 'Checked on ' + location.host + ' (page version ' + (ver || '?') + ', ' + (cpuMode() ? 'processor mode' : 'graphics-card mode') +
+            ', last step: ' + (lastStage || 'none') + '): ' + parts.join(', ') + '.';
     }
+
+    // If the worker dies while it is running (some graphics drivers do that), run it on the processor from then on.
+    var CPU_KEY = 'siraugga.speech.cpu';
+    var lastStage = '';
+    function cpuMode() { return store(CPU_KEY) === '1'; }
 
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=7', { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=8' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
+            if (m.type === 'stage') { lastStage = m.stage || ''; return; }
             if (m.type === 'progress') {
                 if (state === 'thinking' || state === 'enrolling') say('Loading voice models');
                 return;
@@ -201,18 +208,31 @@
             // A worker that fails to start gives the browser nothing to report, so check each file it needs and say which one is wrong.
             diagnoseEngine().then(function (report) {
                 Object.keys(pending).forEach(function (k) {
-                    pending[k].reject(new Error('The voice worker stopped' + detail + '. ' + report));
+                    var err = new Error('The voice worker stopped' + detail + '. ' + report);
+                    err.crashed = true;
+                    pending[k].reject(err);
                     delete pending[k];
                 });
             });
         };
         return worker;
     }
-    function ask(type, audio) {
+    function askOnce(type, audio) {
         return new Promise(function (resolve, reject) {
             var id = nextId++;
             pending[id] = { resolve: resolve, reject: reject };
             getWorker().postMessage({ type: type, id: id, audio: audio });
+        });
+    }
+    function ask(type, audio) {
+        return askOnce(type, audio).catch(function (err) {
+            if (err && err.crashed && !cpuMode()) {         // first crash: switch to the safe mode and try once more
+                store(CPU_KEY, '1');
+                worker = null;
+                live('The speech engine stopped, so I am switching to the slower, safer mode and trying again.');
+                return askOnce(type, audio);
+            }
+            throw err;
         });
     }
 

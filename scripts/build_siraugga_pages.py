@@ -68,7 +68,8 @@ def _build_headers() -> str:
         "https://siraugga.mikeytech.dev "  # the speech engine (static/speech/vendor) is served by the live server, see _redirects
         "https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://unpkg.com "
         "https://www.youtube.com https://s.ytimg.com https://static.cloudflareinsights.com; "
-        "worker-src 'self'; "
+        # Chrome checks worker-src (not only script-src) for what a worker imports across the redirect to the live server.
+        "worker-src 'self' https://siraugga.mikeytech.dev; "
         "media-src 'self' blob: data: https://siraugga.mikeytech.dev; "
         "frame-src 'self' https://siraugga.mikeytech.dev "
         "http://localhost:5055 http://127.0.0.1:5055 http://localhost:5050 http://127.0.0.1:5050 "
