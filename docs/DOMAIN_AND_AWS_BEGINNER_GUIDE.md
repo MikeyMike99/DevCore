@@ -54,25 +54,25 @@ flowchart LR
 
 When your domain registration completes, Cloudflare presents four main options under "Next steps":
 
-#### 1. Manage domain ("Configure DNS, WHOIS privacy and auto-renewal")
+### 1. Manage domain ("Configure DNS, WHOIS privacy and auto-renewal")
 * **What it does**: This is your master settings dashboard for `mikeytech.dev`.
 * **Key areas inside**:
   * **DNS (Domain Name System)**: The address book where you create `A` and `CNAME` records to point your domain to your AWS server's IP address. **This is the only setting required for your website and VMs.**
   * **WHOIS Privacy**: Keeps your personal address, phone number, and identity hidden from public directories (Cloudflare keeps this on by default).
   * **Auto-renewal**: Controls whether Cloudflare automatically renews your domain each year at cost (~$10.18/yr) so your website never unexpectedly goes offline.
 
-#### 2. Deploy a site ("Launch a website or app in seconds using Workers")
+### 2. Deploy a site ("Launch a website or app in seconds using Workers")
 * **What it does**: Cloudflare's serverless hosting platform (Workers & Pages).
 * **How it works**: Instead of running a virtual computer (like Ubuntu on AWS), you upload single web pages or lightweight scripts directly to Cloudflare's global edge network.
 * **When to use it**: Great for instant static portfolios, redirect links, or "Coming Soon" pages with zero server maintenance.
 * **Limitation**: Cannot run a full Linux VM, terminal tools, or heavy background processes like DevCore.
 
-#### 3. Set up custom email ("Create custom addresses and forward messages to any inbox")
+### 3. Set up custom email ("Create custom addresses and forward messages to any inbox")
 * **What it does**: Free email forwarding (Cloudflare Email Routing).
 * **How it works**: Allows you to create professional email addresses (e.g., `michael@mikeytech.dev` or `admin@mikeytech.dev`) that automatically forward incoming mail directly into your personal email (such as `@gmail.com` or `@outlook.com`).
 * **Why it matters**: Gives you a professional branded email address for resumes, clients, or portfolios completely free, without paying $6–$12/month for Google Workspace or Microsoft 365.
 
-#### 4. Register a new domain ("Buy a new domain at cost, with no markup fees")
+### 4. Register a new domain ("Buy a new domain at cost, with no markup fees")
 * **What it does**: The search and purchase tool for registering additional domains.
 * **When to use it**: Only needed if you decide to buy additional domain names in the future (e.g., `devcorelabs.dev`). You can safely skip this right now.
 
@@ -123,7 +123,7 @@ In your domain registrar dashboard (e.g., Cloudflare or Namecheap), open the **D
 
 ### Phase 3.5: Subdomain Architecture & Security Hardening (DNSSEC)
 
-#### 1. Subdomain Capacity & Wildcards
+### 1. Subdomain Capacity & Wildcards
 * **Cost**: **$0 (100% Free)**. Subdomains never cost extra money.
 * **Direct Records (Up to 1,000)**: Cloudflare's free tier permits up to 1,000 individual DNS records per domain. You can create distinct subdomains pointing to different AWS instances, ports, or web apps:
   * `devcore.mikeytech.dev` &rarr; DevCore Web Portal
@@ -132,7 +132,7 @@ In your domain registrar dashboard (e.g., Cloudflare or Namecheap), open the **D
 * **Wildcard Record (`*.mikeytech.dev`)**: Adding an `A` record with name `*` creates an infinite catch-all. Any prefix typed before your domain automatically routes to your server without needing individual DNS entries.
 * **SSL / HTTPS Coverage**: Cloudflare's free Universal SSL automatically generates certificates covering both the apex domain (`mikeytech.dev`) and one level of wildcard subdomains (`*.mikeytech.dev`).
 
-#### 2. DNSSEC (Domain Name System Security Extensions)
+### 2. DNSSEC (Domain Name System Security Extensions)
 * **What it does**: Attaches a tamper-evident cryptographic digital signature to all published DNS records.
 * **The Threat It Prevents**:
   * **DNS Spoofing & Cache Poisoning**: In traditional unauthenticated DNS, an attacker intercepting network traffic (e.g., on public Wi-Fi or compromised router/ISP nodes) can send a forged IP answer to redirect your visitors to a malicious clone server.

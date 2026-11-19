@@ -22,6 +22,9 @@ log = logging.getLogger("siraugga.lab_cloud")
 # course id -> lab image folder in labcloud/image/labs/
 COURSE_LABS = {"linux_essentials_step_by_step": "linux-essentials"}
 
+# Learners reach the terminal through Siraugga's own address (core/lab_proxy.py), so they only need a browser.
+PROXY_PREFIX = "/lab"
+
 _ID_RE = re.compile(r"^[A-Za-z0-9_.@-]{1,64}$")
 
 
@@ -118,13 +121,15 @@ def run_command(learner: str, lab: str, command: str, timeout: float = 75.0):
 
 
 def public_url() -> str:
-    """Where the learner's BROWSER reaches the Lab Cloud (defaults to SIRAUGGA_LAB_URL)."""
-    url = (os.environ.get("SIRAUGGA_LAB_PUBLIC_URL") or os.environ.get("SIRAUGGA_LAB_URL") or "").rstrip("/")
-    return url if _safe_url(url) else ""
+    """Where the learner's BROWSER reaches the terminal. Default: Siraugga's own address (PROXY_PREFIX, passed on to the
+    lab by core/lab_proxy.py). SIRAUGGA_LAB_PUBLIC_URL can point the browser straight at a lab with its own https address."""
+    url = (os.environ.get("SIRAUGGA_LAB_PUBLIC_URL") or "").rstrip("/")
+    return url if _safe_url(url) else PROXY_PREFIX
 
 
 def public_origin() -> str:
-    """scheme://host[:port] of the Lab Cloud, for the page's frame-src allow-list ('' when the Lab Cloud is off)."""
+    """scheme://host[:port] of a separate lab address, for the page's frame-src allow-list ('' when the terminal is served
+    from Siraugga's own address, which the page may always embed)."""
     if not configured():
         return ""
     u = urllib.parse.urlparse(public_url())

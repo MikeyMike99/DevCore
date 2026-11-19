@@ -7,6 +7,7 @@ import fnmatch
 import hashlib
 import functools
 import json
+import logging
 import os
 import re
 import signal
@@ -658,6 +659,11 @@ def _raugus_mcp_config_path(agent_credential: str = None):
     media = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "media_player", "server.py")
     if os.path.isfile(media):
         cfg["mcpServers"]["media-player"] = {"command": sys.executable, "args": [media], "env": {}}
+    # Course studio: standard, blueprint, lint (read-only tools; saving goes through the tier-gated
+    # [SAVE_COURSE] block, so save_course is deliberately not allow-listed for these runs).
+    studio = os.path.join(DEVCORE_ROOT, ".agents", "plugins", "course_studio", "server.py")
+    if os.path.isfile(studio):
+        cfg["mcpServers"]["course-studio"] = {"command": sys.executable, "args": [studio], "env": {}}
     try:
         rt_dir = tempfile.mkdtemp(prefix="devcore-mcp-")
         os.chmod(rt_dir, 0o700)
@@ -705,6 +711,13 @@ _MEDIA_TOOLS = [
 # Web search runs on Anthropic's side (it never touches this machine's network), so
 # it is safe for every tier. Raw curl / WebFetch stay Tier 5 only, because a fetch
 # from this PC could otherwise reach its private services (127.0.0.1, LAN, metadata).
+_COURSE_STUDIO_TOOLS = [
+    "mcp__course-studio__get_course_standard",
+    "mcp__course-studio__plan_course_blueprint",
+    "mcp__course-studio__validate_course",
+    "mcp__course-studio__list_courses",
+    "mcp__course-studio__audit_existing_courses",
+]
 _RESEARCH_TOOLS_ALL_TIERS = ["WebSearch"]
 _RESEARCH_TOOLS_OWNER = ["WebSearch", "WebFetch"]
 
@@ -722,7 +735,7 @@ def _brain_read_scopes(identity: dict) -> list:
         scopes = [DEVCORE_ROOT] if int(identity.get("tier", 0)) >= 5 else []
     tier = int(identity.get("tier", 0))
     if tier < 5:
-        low = ["static", "templates", "demo"] + (["docs", "sandbox", "playground"] if tier >= 3 else [])
+        low = ["static", "templates"] + (["docs", "sandbox", "playground"] if tier >= 3 else [])
         scopes += [os.path.join(DEVCORE_ROOT, d) for d in low if os.path.isdir(os.path.join(DEVCORE_ROOT, d))]
     return sorted(set(scopes))
 
@@ -980,7 +993,7 @@ def run_claude_cli_model(
     elif identity:
         allowed += _RESEARCH_TOOLS_ALL_TIERS
     if _raugus_mcp:
-        allowed += _RESOLVER_TOOLS + _MEDIA_TOOLS
+        allowed += _RESOLVER_TOOLS + _MEDIA_TOOLS + _COURSE_STUDIO_TOOLS
     if allowed:
         cmd += ["--allowedTools", *allowed]
     cmd += ["--disallowedTools", *_BRAIN_SECRET_READ_DENY]
@@ -990,13 +1003,13 @@ def run_claude_cli_model(
     # private folder and can read only the scopes allowed above.
     import tempfile
     _jail = None
-    _is_demo = bool(user and (user.get("token_scope") == "demo" or user.get("role") == "gamedev"))
-    demo_workspace = os.path.join(DEVCORE_ROOT, "demo")
-    os.makedirs(demo_workspace, exist_ok=True)
+    _is_gamedev = bool(user and user.get("role") == "gamedev")
+    gamedev_workspace = os.path.join(DEVCORE_ROOT, "gamedev_workspace")
+    os.makedirs(gamedev_workspace, exist_ok=True)
     if identity and int(identity.get("tier", 0)) >= 5 and os.path.isdir(DEVCORE_ROOT):
         _cwd = DEVCORE_ROOT
-    elif _is_demo:
-        _cwd = demo_workspace
+    elif _is_gamedev:
+        _cwd = gamedev_workspace
     else:
         _jail = tempfile.mkdtemp(prefix="devcore-brain-")
         os.chmod(_jail, 0o700)
@@ -1036,12 +1049,12 @@ def run_claude_cli_model(
         if not _add_dirs:
             _add_dirs = ["/mnt", "/home"]
         cmd += ["--add-dir", *_add_dirs]
-    elif _is_demo:
+    elif _is_gamedev:
         cmd += ["--permission-mode", "acceptEdits"]
-        cmd += ["--add-dir", demo_workspace]
-        allowed += [f"Read(/{demo_workspace.lstrip('/')}/**)", f"Edit(/{demo_workspace.lstrip('/')}/**)",
-                    f"Write(/{demo_workspace.lstrip('/')}/**)", f"Glob(/{demo_workspace.lstrip('/')}/**)",
-                    f"Grep(/{demo_workspace.lstrip('/')}/**)", "Bash(*)"]
+        cmd += ["--add-dir", gamedev_workspace]
+        allowed += [f"Read(/{gamedev_workspace.lstrip('/')}/**)", f"Edit(/{gamedev_workspace.lstrip('/')}/**)",
+                    f"Write(/{gamedev_workspace.lstrip('/')}/**)", f"Glob(/{gamedev_workspace.lstrip('/')}/**)",
+                    f"Grep(/{gamedev_workspace.lstrip('/')}/**)", "Bash(*)"]
 
     # --- Session roll-over ---------------------------------------------------
     # Without a session id, `claude -p` starts a COLD session every message, so
@@ -3300,7 +3313,7 @@ def extract_local_tool_calls(response: str) -> list:
 
     # Bounded exam-save: the brain emits the exam JSON in [SAVE_EXAM]...[/SAVE_EXAM]
     # and Siraugga saves it to the one fixed exam payload file (never any other path).
-    for c in re.findall(r"\[SAVE_EXAM\]([\s\S]*?)\[/SAVE_EXAM\]", response, re.IGNORECASE):
+    for c in re.findall(r"\[SAVE_(?:EXAM|COURSE)\]([\s\S]*?)\[/SAVE_(?:EXAM|COURSE)\]", response, re.IGNORECASE):
         body = c.strip()
         sig = f"save_exam:{body[:80]}"
         if body and sig not in seen:
@@ -3385,7 +3398,7 @@ def clean_local_model_display_text(response: str) -> str:
             break
 
     cleaned = re.sub(r"\[WRITE_FILE:\s*[^\n\]]+\][\s\S]*?(?:\[/WRITE_FILE\]|$)", "", cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\[SAVE_EXAM\][\s\S]*?(?:\[/SAVE_EXAM\]|$)", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\[SAVE_(?:EXAM|COURSE)\][\s\S]*?(?:\[/SAVE_(?:EXAM|COURSE)\]|$)", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[READ_FILE:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[READ_SYMBOL:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\[SEARCH_SYMBOLS:\s*[^\]]*\]", "", cleaned, flags=re.IGNORECASE)
@@ -3907,7 +3920,7 @@ async def execute_local_agent_task(
 
         # Exams from Claude: save each [SAVE_EXAM] block under its own name and show the link + embedded exam
         exam_note = ""
-        if isinstance(response, str) and "[save_exam]" in response.lower():
+        if isinstance(response, str) and ("[save_exam]" in response.lower() or "[save_course]" in response.lower()):
             try:
                 from agents import exam_store
                 _ex = await asyncio.to_thread(exam_store.save_exam_blocks, response, user, is_admin)
@@ -3928,7 +3941,7 @@ async def execute_local_agent_task(
             clean_display_response = sec_mgr.scrub_text(clean_display_response)
         if exam_note:
             # Hide the raw exam JSON in the saved/final text; keep the link and embedded exam
-            clean_display_response = re.sub(r"\[SAVE_EXAM\][\s\S]*?\[/SAVE_EXAM\]", "", clean_display_response, flags=re.IGNORECASE).strip() + exam_note
+            clean_display_response = re.sub(r"\[SAVE_(?:EXAM|COURSE)\][\s\S]*?\[/SAVE_(?:EXAM|COURSE)\]", "", clean_display_response, flags=re.IGNORECASE).strip() + exam_note
 
         in_tok = max(1, (len(clean_prompt) + len(history_str) + len(file_context_str)) // 4)
         out_tok = max(1, len(clean_display_response) // 4)

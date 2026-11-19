@@ -138,7 +138,7 @@
             progressState.step_requirements = {};
         }
         const merged = {
-            venv_name: 'alp-env',
+            venv_name: 'course-env',
             python_version: '3.14.4',
             host_platform: 'WSL2 Ubuntu on Windows',
             extra_packages: 'pip-tools==7.6.2',
@@ -149,21 +149,28 @@
             vm_disk_gb: '32',
             vm_network_mode: 'NAT + Host-Only Private Network',
             vm_cli_tools: 'bicep, az, git, jq, curl',
-            project_title: 'NomvulaAgriFinance',
+            learner_name: 'Learner',
+            learner_handle: 'learner',
+            project_title: 'YourProject',
             mod1_audit_tag: 'phase2-mod1-verified',
-            org_prefix: 'nomvula',
+            org_prefix: 'myorg',
+            domain_label: 'Sensitive Cloud Records',
+            compliance_framework: 'POPIA Section 19 & 72',
             default_env: 'dev',
             mod2_rec_target: 'mod2_task2_parameters',
             azure_location: 'southafricanorth',
-            storage_account_name: 'stnomvulafica001',
+            storage_account_name: 'stmyorgsec001',
+            practice_summary: 'a storage space and a virtual machine in Module 1',
+            scope_summary: 'the scope you write in Module 1.',
+            boilerplate_resources: 'the resources you choose in Module 1',
             storage_sku: 'Standard_GRS',
-            storage_regulation: 'POPIA Section 19 (South Africa)',
+            storage_regulation: 'POPIA Section 19 & 72',
             vnet_cidr: '10.10.0.0/16',
             web_subnet_cidr: '10.10.1.0/24',
             app_subnet_cidr: '10.10.2.0/24',
             data_subnet_cidr: '10.10.3.0/24',
             nsg_posture: 'Zero-Trust Deny-By-Default (Explicit Allow Only)',
-            keyvault_name: 'kv-nomvula-fica-01',
+            keyvault_name: 'kv-myorg-sec-01',
             siem_retention_days: '90',
             landing_zone_bicep: 'architecture/landing-zone.bicep',
             checkov_framework: 'arm',
@@ -173,12 +180,19 @@
             doc_preview_lines: '35',
             compliance_frameworks: 'ISO 27001:2022, NIST CSF 2.0, POPIA Section 19',
             mermaid_file: 'architecture/architecture.mmd',
-            package_release_tag: 'alp-phase2-v1.0-verified'
+            package_release_tag: 'landing-zone-v1.0-verified'
         };
+        if (progressState.learner_profile && typeof progressState.learner_profile === 'object') {
+            Object.entries(progressState.learner_profile).forEach(([k, v]) => {
+                if (v != null && String(v).trim() !== '') {
+                    merged[k] = String(v).trim();
+                }
+            });
+        }
         Object.values(progressState.step_requirements).forEach((stepAns) => {
             if (stepAns && typeof stepAns === 'object') {
                 Object.entries(stepAns).forEach(([k, v]) => {
-                    if (k !== '_confirmed' && v != null && String(v).trim() !== '') {
+                    if (k !== '_confirmed' && !k.startsWith('_') && v != null && String(v).trim() !== '') {
                         merged[k] = String(v).trim();
                     }
                 });
@@ -197,20 +211,93 @@
     function applyStepTailoring(sec) {
         if (!sec) return;
         const vars = getMergedRequirements();
-        if (!sec._orig_code_snippet) sec._orig_code_snippet = sec.code_snippet || '';
-        if (!sec._orig_starter_code) sec._orig_starter_code = sec.starter_code || '';
-        if (!sec._orig_expected_command) sec._orig_expected_command = sec.expected_command || '';
-        if (!sec._orig_task_prompt) sec._orig_task_prompt = sec.task_prompt || '';
+        if (!sec._orig_captured) {
+            sec._orig_captured = true;
+            sec._orig_title = sec.title || '';
+            sec._orig_section_code = sec.section_code || '';
+            sec._orig_concept_summary = sec.concept_summary || '';
+            sec._orig_concept_bullets = Array.isArray(sec.concept_bullets) ? [...sec.concept_bullets] : [];
+            sec._orig_code_title = sec.code_title || '';
+            sec._orig_code_snippet = sec.code_snippet || '';
+            sec._orig_starter_code = sec.starter_code || '';
+            sec._orig_solution_code = sec.solution_code || '';
+            sec._orig_expected_command = sec.expected_command || '';
+            sec._orig_task_prompt = sec.task_prompt || '';
+            sec._orig_takeaway = sec.takeaway || '';
+            sec._orig_wrong_hint = sec.wrong_hint || '';
+            sec._orig_correct_text = sec.correct_text || '';
+            sec._orig_predict_prompt = sec.predict_prompt || '';
+            sec._orig_reflection_prompt = sec.reflection_prompt || '';
+            sec._orig_error_reflection_prompt = sec.error_reflection_prompt || '';
+            sec._orig_bicep_checks = (sec.bicep_checks && typeof sec.bicep_checks === 'object')
+                ? JSON.parse(JSON.stringify(sec.bicep_checks))
+                : null;
+            sec._orig_word_breakdown = Array.isArray(sec.word_breakdown)
+                ? sec.word_breakdown.map(r => ({ term: r.term || '', meaning: r.meaning || '' }))
+                : [];
+            sec._orig_common_errors = Array.isArray(sec.common_errors)
+                ? sec.common_errors.map(ce => ({ error: ce.error || '', cause: ce.cause || '', fix: ce.fix || '' }))
+                : [];
+            sec._orig_options = Array.isArray(sec.options) ? [...sec.options] : [];
+            sec._orig_pairs = Array.isArray(sec.pairs)
+                ? sec.pairs.map(p => ({ left: p.left || '', right: p.right || '' }))
+                : [];
+        }
 
-        const tplSnippet = sec.template_code_snippet || sec._orig_code_snippet;
-        const tplStarter = sec.template_starter_code || sec._orig_starter_code;
-        const tplCmd = sec.template_expected_command || sec._orig_expected_command;
-
-        sec.code_snippet = interpolateTemplate(tplSnippet, vars);
-        if (tplStarter) sec.starter_code = interpolateTemplate(tplStarter, vars);
-        if (tplCmd) sec.expected_command = interpolateTemplate(tplCmd, vars);
+        sec.title = interpolateTemplate(sec._orig_title, vars);
+        sec.section_code = interpolateTemplate(sec._orig_section_code, vars);
+        sec.concept_summary = interpolateTemplate(sec._orig_concept_summary, vars);
+        sec.concept_bullets = sec._orig_concept_bullets.map(b => interpolateTemplate(b, vars));
+        sec.code_title = interpolateTemplate(sec._orig_code_title, vars);
+        sec.code_snippet = interpolateTemplate(sec.template_code_snippet || sec._orig_code_snippet, vars);
+        if (sec.template_starter_code || sec._orig_starter_code) {
+            sec.starter_code = interpolateTemplate(sec.template_starter_code || sec._orig_starter_code, vars);
+        }
+        if (sec._orig_solution_code) {
+            sec.solution_code = interpolateTemplate(sec._orig_solution_code, vars);
+        }
+        if (sec.template_expected_command || sec._orig_expected_command) {
+            sec.expected_command = interpolateTemplate(sec.template_expected_command || sec._orig_expected_command, vars);
+        }
         sec.task_prompt = interpolateTemplate(sec._orig_task_prompt, vars);
+        sec.takeaway = interpolateTemplate(sec._orig_takeaway, vars);
+        if (sec._orig_wrong_hint) sec.wrong_hint = interpolateTemplate(sec._orig_wrong_hint, vars);
+        if (sec._orig_correct_text) sec.correct_text = interpolateTemplate(sec._orig_correct_text, vars);
+        if (sec._orig_predict_prompt) sec.predict_prompt = interpolateTemplate(sec._orig_predict_prompt, vars);
+        if (sec._orig_reflection_prompt) sec.reflection_prompt = interpolateTemplate(sec._orig_reflection_prompt, vars);
+        if (sec._orig_error_reflection_prompt) sec.error_reflection_prompt = interpolateTemplate(sec._orig_error_reflection_prompt, vars);
+        if (sec._orig_bicep_checks) {
+            sec.bicep_checks = {
+                forbid_patterns: (sec._orig_bicep_checks.forbid_patterns || []).map(item => ({
+                    pattern: interpolateTemplate(item.pattern || '', vars),
+                    message: interpolateTemplate(item.message || '', vars)
+                })),
+                require_patterns: (sec._orig_bicep_checks.require_patterns || []).map(item => ({
+                    pattern: interpolateTemplate(item.pattern || '', vars),
+                    message: interpolateTemplate(item.message || '', vars)
+                }))
+            };
+        }
+        sec.word_breakdown = sec._orig_word_breakdown.map(r => ({
+            term: interpolateTemplate(r.term, vars),
+            meaning: interpolateTemplate(r.meaning, vars)
+        }));
+        sec.common_errors = sec._orig_common_errors.map(ce => ({
+            error: interpolateTemplate(ce.error, vars),
+            cause: interpolateTemplate(ce.cause, vars),
+            fix: interpolateTemplate(ce.fix, vars)
+        }));
+        if (sec._orig_options.length) {
+            sec.options = sec._orig_options.map(o => interpolateTemplate(o, vars));
+        }
+        if (sec._orig_pairs.length) {
+            sec.pairs = sec._orig_pairs.map(p => ({
+                left: interpolateTemplate(p.left, vars),
+                right: interpolateTemplate(p.right, vars)
+            }));
+        }
     }
+    window.applyCourseStepTailoring = applyStepTailoring;
 
     async function syncEncryptedWorkspaceSave() {
         if (!zkSession.active || !zkSession.dek) return;
@@ -240,36 +327,46 @@
     }
 
     function injectTopEncryptedWorkspaceCard() {
-        if (document.getElementById('zk-workspace-card')) return;
-        const nav = document.querySelector('nav[aria-label="Course Module and Section Navigation"]');
-        if (!nav) return;
+        const previewActive = typeof window.isCoursePreviewMode === 'function' && window.isCoursePreviewMode();
+        const existingZk = document.getElementById('zk-workspace-card');
+        if (existingZk) {
+            existingZk.classList.remove('hidden');
+            updateZkBanner();
+            return;
+        }
+        const container = document.getElementById('course-curriculum-stage') || document.querySelector('.max-w-5xl');
+        if (!container) return;
+
+        const defaultAlias = (progressState.learner_profile && progressState.learner_profile.learner_handle && progressState.learner_profile.learner_handle !== 'learner')
+            ? progressState.learner_profile.learner_handle
+            : '';
 
         const section = document.createElement('section');
         section.id = 'zk-workspace-card';
         section.setAttribute('aria-labelledby', 'zk-heading');
-        section.className = 'bg-slate-900 border-2 border-indigo-600/80 rounded-xl p-4 md:p-5 shadow-lg space-y-3';
+        section.className = 'bg-slate-900 border border-indigo-700/70 rounded-xl p-4 shadow-lg space-y-3';
         section.innerHTML = `
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <span class="text-xs font-mono uppercase px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Zero-Knowledge Pair &amp; Group Encryption • MRSV ||X_SHI3LD_X|| .vault</span>
-                    <h2 id="zk-heading" class="text-base md:text-lg font-bold text-indigo-300 mt-1">Encrypted Pair/Group Package Workspace (Client-Side Keys Only)</h2>
+                    <span class="text-xs font-mono uppercase px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Optional Collaboration • Client-Side E2EE</span>
+                    <h2 id="zk-heading" class="text-sm md:text-base font-bold text-indigo-300 mt-1">Pair / Group Encrypted Workspace (Optional)</h2>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
-                    <span id="zk-status-badge" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">Mode: Local Unencrypted</span>
+                    <span id="zk-status-badge" class="text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700">Mode: Solo Sandbox</span>
                     <button id="zk-toggle-btn" type="button" class="text-xs bg-indigo-700 hover:bg-indigo-600 text-white font-bold px-3 py-1.5 rounded focus:outline-none focus:ring-2 focus:ring-indigo-300">
                         Open Pair &amp; Encryption Controls
                     </button>
                 </div>
             </div>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                Work solo or in pairs on the same course package. Your password and one-time <strong>Unlock / Recovery Key</strong> derive AES-256-GCM &amp; ECDH P-256 keys strictly inside your browser (<code class="text-indigo-300">PBKDF2-SHA256 600,000 iterations</code>). The server never receives your password, Unlock Key, or plaintext work—even the server administrator cannot read your work or reset a lost key if both your password and Unlock Key are lost.
-            </p>
             <div id="zk-controls-body" class="hidden pt-2 border-t border-slate-800 space-y-4">
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Working with a partner? Your password and one-time <strong>Unlock / Recovery Key</strong> derive AES-256-GCM &amp; ECDH P-256 keys strictly inside your browser (<code class="text-indigo-300">PBKDF2-SHA256 600,000 iterations</code>). The server never sees plaintext work or recovery keys.
+                </p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                     <div class="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-2">
                         <h3 class="font-bold text-cyan-300 text-sm">A. Create Encrypted Pair/Group Package</h3>
                         <label class="block text-slate-300">Your Member Alias (lowercase):
-                            <input id="zk-create-alias" type="text" value="michael" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono" />
+                            <input id="zk-create-alias" type="text" value="${escapeHtml(defaultAlias)}" placeholder="your-alias" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono" />
                         </label>
                         <label class="block text-slate-300">Set Workspace Password (client-only):
                             <input id="zk-create-pass" type="password" placeholder="Minimum 8 characters" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono" />
@@ -285,7 +382,7 @@
                             <input id="zk-unlock-wsid" type="text" placeholder="Paste Workspace ID" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono" />
                         </label>
                         <label class="block text-slate-300">Your Member Alias:
-                            <input id="zk-unlock-alias" type="text" value="michael" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono" />
+                            <input id="zk-unlock-alias" type="text" value="${escapeHtml(defaultAlias)}" placeholder="your-alias" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100 font-mono" />
                         </label>
                         <label class="block text-slate-300">Unlock Method:
                             <select id="zk-unlock-method" class="mt-1 w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-100">
@@ -345,7 +442,7 @@
                 <p id="zk-feedback-status" role="status" class="text-xs font-mono text-indigo-300"></p>
             </div>
         `;
-        nav.insertAdjacentElement('beforebegin', section);
+        container.appendChild(section);
 
         document.getElementById('zk-toggle-btn').addEventListener('click', () => {
             const body = document.getElementById('zk-controls-body');
@@ -382,10 +479,17 @@
     function updateZkBanner() {
         const badge = document.getElementById('zk-status-badge');
         if (!badge) return;
+        const previewActive = typeof window.isCoursePreviewMode === 'function' && window.isCoursePreviewMode();
         if (zkSession.active) {
             const memList = (zkSession.members || []).map(m => m.alias).join(', ') || zkSession.alias;
             badge.textContent = `E2EE Workspace: ${zkSession.workspaceId} • Members: ${memList} (Rev ${zkSession.revision})`;
             badge.className = 'text-xs font-mono px-2.5 py-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-700';
+        } else if (previewActive) {
+            badge.textContent = 'Preview: Pair E2EE Controls (Inspectable)';
+            badge.className = 'text-xs font-mono px-2.5 py-1 rounded bg-indigo-950 text-indigo-200 border border-indigo-600';
+        } else {
+            badge.textContent = 'Mode: Solo Sandbox';
+            badge.className = 'text-xs font-mono px-2.5 py-1 rounded bg-slate-800 text-slate-300 border border-slate-700';
         }
     }
 
@@ -428,7 +532,16 @@
         };
     }
 
+    function guardZkServerMutationInPreview() {
+        if (typeof window.isCoursePreviewMode === 'function' && window.isCoursePreviewMode()) {
+            setZkStatus('Preview Mode: Server workspace storage is disabled so nothing is saved on disk. Exit Preview to create a live server workspace (client-side Export .vault still previews locally).', false);
+            return true;
+        }
+        return false;
+    }
+
     async function handleCreateWorkspace() {
+        if (guardZkServerMutationInPreview()) return;
         try {
             const alias = (document.getElementById('zk-create-alias').value || '').trim().toLowerCase();
             const pass = document.getElementById('zk-create-pass').value || '';
@@ -488,6 +601,7 @@
     }
 
     async function handleUnlockWorkspace() {
+        if (guardZkServerMutationInPreview()) return;
         try {
             const wsId = (document.getElementById('zk-unlock-wsid').value || '').trim();
             const alias = (document.getElementById('zk-unlock-alias').value || '').trim().toLowerCase();
@@ -556,6 +670,7 @@
     }
 
     async function handleResetPasswordWithRecovery() {
+        if (guardZkServerMutationInPreview()) return;
         try {
             const newPass = document.getElementById('zk-new-password-inp').value || '';
             if (newPass.length < 8) {
@@ -599,6 +714,7 @@
     }
 
     async function handleCreateInvite() {
+        if (guardZkServerMutationInPreview()) return;
         if (!zkSession.active || !zkSession.dek) {
             setZkStatus('Create or unlock an encrypted workspace first before inviting a partner.', true);
             return;
@@ -644,6 +760,7 @@
     }
 
     async function handleJoinWorkspace() {
+        if (guardZkServerMutationInPreview()) return;
         try {
             const wsId = (document.getElementById('zk-join-wsid').value || '').trim();
             const fullCode = (document.getElementById('zk-join-code').value || '').trim();
@@ -716,6 +833,7 @@
     }
 
     async function handleSyncWorkspace() {
+        if (guardZkServerMutationInPreview()) return;
         if (!zkSession.active) {
             setZkStatus('Unlock or join a workspace first to sync partner state.', true);
             return;
@@ -854,13 +972,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">${fieldsHtml}</div>
             <div class="flex flex-wrap items-center gap-3 pt-1">
                 <button id="save-step-req-btn" type="button" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs md:text-sm px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-300">
-                    Save &amp; Tailor Step + Generate Lockfile
+                    Save Optional Toolchain Lockfile
                 </button>
                 <span id="req-lock-status" role="status" class="text-xs font-mono text-emerald-300">
                     ${progressState.env_lock_sha256 ? 'Environment Lock SHA-256: ' + progressState.env_lock_sha256.slice(0, 16) + '...' : ''}
                 </span>
             </div>
-            <div id="req-artifacts-preview" class="${zkSession.lastEnvArtifacts && (sec.id === 'm1_s1' || sec.id === 'm1_s2') ? '' : 'hidden'} space-y-2 pt-2 border-t border-slate-800">
+            <div id="req-artifacts-preview" class="${zkSession.lastEnvArtifacts && sec.id === 'm0_s3' ? '' : 'hidden'} space-y-2 pt-2 border-t border-slate-800">
                 <div class="text-xs font-mono text-amber-300">Generated Pair Lockfile &amp; VM Config Preview (Identical Environment Guarantee):</div>
                 <pre id="req-artifacts-pre" class="bg-black text-slate-200 p-3 rounded border border-slate-800 font-mono text-xs max-h-48 overflow-x-auto whitespace-pre-wrap"></pre>
             </div>
@@ -871,7 +989,14 @@
             card1.insertAdjacentElement('afterend', card);
         }
 
-        document.getElementById('save-step-req-btn').addEventListener('click', async () => {
+        const previewActive = typeof window.isCoursePreviewMode === 'function' && window.isCoursePreviewMode();
+        const saveReqBtn = document.getElementById('save-step-req-btn');
+        if (previewActive && saveReqBtn) {
+            saveReqBtn.textContent = 'Preview Tailored Lockfile & VM Spec (No Sandbox Write)';
+        }
+
+        saveReqBtn.addEventListener('click', async () => {
+            const isPreview = typeof window.isCoursePreviewMode === 'function' && window.isCoursePreviewMode();
             const inputs = card.querySelectorAll('[data-req-key]');
             const stepObj = { _confirmed: true, _updated_at: new Date().toISOString() };
             inputs.forEach(inp => {
@@ -880,12 +1005,14 @@
             progressState.step_requirements[sec.id] = stepObj;
             const statusEl = document.getElementById('req-lock-status');
             try {
-                const res = await fetch('/api/course/requirements', {
+                const reqUrl = isPreview ? '/api/course/requirements?preview=1' : '/api/course/requirements';
+                const res = await fetch(reqUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         answers: getMergedRequirements(),
-                        write_to_sandbox: true
+                        write_to_sandbox: !isPreview,
+                        preview_mode: isPreview
                     })
                 });
                 const data = await res.json();
@@ -897,20 +1024,29 @@
                 }
                 zkSession.lastEnvArtifacts = data;
                 progressState.env_lock_sha256 = data.env_lock_sha256;
-                await saveProgress();
-                if (zkSession.active) {
-                    await syncEncryptedWorkspaceSave();
+                if (!isPreview) {
+                    await saveProgress();
+                    if (zkSession.active) {
+                        await syncEncryptedWorkspaceSave();
+                    }
                 }
                 renderCurrentStep(false);
                 const previewWrap = document.getElementById('req-artifacts-preview');
                 const previewPre = document.getElementById('req-artifacts-pre');
                 if (previewWrap && previewPre) {
                     previewWrap.classList.remove('hidden');
-                    previewPre.textContent = sec.id === 'm1_s2'
-                        ? data.vagrantfile + '\n' + JSON.stringify(data.vm_spec, null, 2)
+                    previewPre.textContent = sec.id === 'm0_s3'
+                        ? data.requirements_lock_txt + '\n' + JSON.stringify(data.vm_spec, null, 2)
                         : data.requirements_lock_txt;
                 }
-                announce(`Step requirements saved and tailored! Environment Lock SHA-256: ${data.env_lock_sha256.slice(0, 12)}.`);
+                if (isPreview) {
+                    const lockStatus = document.getElementById('req-lock-status');
+                    if (lockStatus) {
+                        lockStatus.className = 'text-xs font-mono text-indigo-200';
+                        lockStatus.textContent = `Preview Dry-Run Lock SHA-256: ${data.env_lock_sha256.slice(0, 16)}... (Not written to disk)`;
+                    }
+                }
+                announce(`Step requirements ${isPreview ? 'previewed (not saved)' : 'saved and tailored'}! Environment Lock SHA-256: ${data.env_lock_sha256.slice(0, 12)}.`);
             } catch (e) {
                 statusEl.className = 'text-xs font-mono text-rose-300';
                 statusEl.textContent = 'Error validating requirements: ' + e.message;
@@ -922,6 +1058,13 @@
     if (typeof origRenderCurrentStep === 'function') {
         window.renderCurrentStep = function () {
             injectTopEncryptedWorkspaceCard();
+            const profHandle = progressState.learner_profile && progressState.learner_profile.learner_handle;
+            if (profHandle && profHandle !== 'learner') {
+                const ca = document.getElementById('zk-create-alias');
+                const ua = document.getElementById('zk-unlock-alias');
+                if (ca && !ca.value) ca.value = profHandle;
+                if (ua && !ua.value) ua.value = profHandle;
+            }
             const item = flatSteps[currentStepIndex];
             if (item && item.section) {
                 applyStepTailoring(item.section);
@@ -938,6 +1081,9 @@
     if (typeof origSaveProgress === 'function') {
         window.saveProgress = async function () {
             const res = await origSaveProgress.apply(this, arguments);
+            if (typeof window.isCoursePreviewMode === 'function' && window.isCoursePreviewMode()) {
+                return res;
+            }
             if (zkSession.active) {
                 try { await syncEncryptedWorkspaceSave(); } catch (e) {}
             }

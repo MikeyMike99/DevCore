@@ -62,6 +62,24 @@ CARD_TRIGGERS = {
     "can i do the course": "course",
     "can i take the course": "course",
     "where is the course": "course",
+    "preview": "course",
+    "show preview": "course",
+    "show me the preview": "course",
+    "show course preview": "course",
+    "preview course": "course",
+    "preview the course": "course",
+    "course preview": "course",
+    "preview bicep course": "course",
+    "preview the bicep course": "course",
+    "/course preview": "course",
+    "full preview": "course",
+    "full course preview": "course",
+    "full preview course": "course",
+    "full preview of the course": "course",
+    "evaluate course": "course",
+    "evaluate the course": "course",
+    "evaluate course content": "course",
+    "preview course content": "course",
     "help privacy": "privacy",
     "/help privacy": "privacy",
     "help terms": "privacy",
@@ -95,6 +113,19 @@ CARD_TRIGGERS = {
     "/help usage": "usage",
     "limits": "usage",
     "/limits": "usage",
+    "newsletter": "cyberbrief",
+    "/newsletter": "cyberbrief",
+    "the newsletter": "cyberbrief",
+    "cyber brief": "cyberbrief",
+    "the cyber brief": "cyberbrief",
+    "/cyberbrief": "cyberbrief",
+    "cyberbrief": "cyberbrief",
+    "subscribe": "cyberbrief",
+    "/subscribe": "cyberbrief",
+    "subscribe newsletter": "cyberbrief",
+    "subscribe to newsletter": "cyberbrief",
+    "threat feed": "cyberbrief",
+    "intel feed": "cyberbrief",
 }
 
 
@@ -387,24 +418,301 @@ def _build_tiers_card(usage_data: dict) -> dict:
     }
 
 
-def _build_course_card() -> dict:
-    """Same rendering as an exam: the course application embedded in the response card."""
-    from agents import exam_store
-    title = "ALP Phase 2 Interactive Practical Course"
-    url = "/plugin/course?course=alp_phase2_bicep_course&title=ALP%20Phase%202%20Interactive%20Practical%20Course"
-    md = exam_store.render_results([{"ok": True, "kind": "course", "url": url, "title": title, "message": ""}])
+_COURSE_DEFAULT_ID = "alp_phase2_bicep_course"
+_course_cache = {"sig": None, "courses": []}
+
+
+def list_courses() -> list:
+    """Courses that exist on disk: [{id, title, words}]. Cached until a course file changes."""
+    cdir = os.path.join(_repo_root(), "sandbox", "static", "courses")
+    try:
+        files = sorted(f for f in os.listdir(cdir) if f.endswith(".json") and not f.startswith("progress_"))
+    except Exception:
+        files = []
+    sig = tuple((f, os.path.getmtime(os.path.join(cdir, f))) for f in files)
+    if _course_cache["sig"] == sig:
+        return _course_cache["courses"]
+    courses = []
+    for f in files:
+        try:
+            with open(os.path.join(cdir, f), "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        except Exception:
+            continue
+        cid = str(data.get("course_id") or f[:-5]).strip()
+        title = str(data.get("title") or cid).strip()
+        words = set(re.findall(r"[a-z0-9]+", (cid + " " + title).lower())) - {"the", "and", "course", "practical", "interactive"}
+        courses.append({"id": cid, "title": title, "words": words, "category": str(data.get("category") or "")})
+    _course_cache["sig"] = sig
+    _course_cache["courses"] = courses
+    return courses
+
+
+# Catalog categories shown in the help menu and the course list, in display order (with an icon each).
+_CATEGORY_ORDER = ["Linux & Programming", "Cloud & Infrastructure", "Networking", "Security", "Professional Skills",
+                   "Threat briefings", "Other courses"]
+_CATEGORY_ICON = {"Linux & Programming": "🐧", "Cloud & Infrastructure": "☁️", "Networking": "🌐", "Security": "🛡️",
+                  "Professional Skills": "📝", "Threat briefings": "🚨", "Other courses": "📚"}
+# Automatic, nothing to maintain: a course can set its own "category" in its JSON file; otherwise it is placed by keywords
+# in its id and title (first rule that matches wins); anything else lands in "Other courses".
+_CATEGORY_RULES = [
+    ("Threat briefings", ("cyberbrief", "threat defense")),
+    ("Networking", ("network", "packet tracer", "cisco", "tcp", "dns", "routing")),
+    ("Cloud & Infrastructure", ("azure", "bicep", "cloudflare", "opentofu", "terraform", "iac", "infrastructure", "aws",
+                                "mermaid", "diagram", "cloud", "kubernetes", "docker")),
+    ("Security", ("security", "cyber", "threat", "pentest", "cve", "forensic")),
+    ("Linux & Programming", ("linux", "python", "bash", "shell", "programming", "pcep", "javascript", "git")),
+    ("Professional Skills", ("english", "report", "writing", "communication", "interview", "career")),
+]
+
+
+def course_category(course) -> str:
+    """Category of a course from list_courses(): its own 'category' if it has one, else chosen by keywords."""
+    own = str(course.get("category") or "").strip()
+    if own:
+        return own[:40]
+    text = (str(course.get("id", "")) + " " + str(course.get("title", ""))).lower().replace("_", " ").replace("-", " ")
+    for cat, keys in _CATEGORY_RULES:
+        if any(re.search(r"\b" + re.escape(k), text) for k in keys):
+            return cat
+    return "Other courses"
+
+
+def course_catalog() -> list:
+    """[(category, [course, ...])]: the usual categories in a fixed order, then any category a course named itself, then
+    'Other courses'. Only categories that have courses; courses sorted by title."""
+    groups = {}
+    for c in list_courses():
+        groups.setdefault(course_category(c), []).append(c)
+    usual = [c for c in _CATEGORY_ORDER if c in groups and c != "Other courses"]
+    own = sorted(c for c in groups if c not in _CATEGORY_ORDER)
+    order = usual + own + (["Other courses"] if "Other courses" in groups else [])
+    return [(cat, sorted(groups[cat], key=lambda c: c["title"].lower())) for cat in order]
+
+
+def _course_button(c: dict) -> dict:
+    title = c["title"]
+    return _card_btn(title if len(title) <= 60 else title[:57] + "...", "course:" + c["id"], "teal")
+
+
+def _find_course(course_id: str = "") -> dict:
+    courses = list_courses()
+    cid = (course_id or "").strip().lower()
+    for c in courses:
+        if c["id"].lower() == cid:
+            return c
+    for c in courses:
+        if c["id"] == _COURSE_DEFAULT_ID:
+            return c
+    return courses[0] if courses else {"id": _COURSE_DEFAULT_ID, "title": "Interactive Practical Course", "words": set()}
+
+
+def _build_course_card(preview: bool = False, course_id: str = "") -> dict:
+    """The course application embedded in a response card (exam-style). Only the card is shown, and it takes focus."""
+    course = _find_course(course_id)
+    cid, ctitle = course["id"], course["title"]
+    title = ctitle + (" (Preview — No Saving or Recording)" if preview else "")
+    url = "/plugin/course?course=" + quote(cid) + "&title=" + quote(ctitle)
+    if preview:
+        url += "&preview=1"
+    if preview:
+        md = (
+            "👁️ **Course Preview Ready**\n\n"
+            "Everything works interactively in-memory as a learner sees it — nothing is recorded or saved.\n\n"
+            '<div data-card-buttons="1"></div>'
+        )
+        buttons = [
+            _card_btn("🎓 Start Real Course (Save & Record)", "course:" + cid, "teal"),
+            _card_btn("⬅️ Help Menu", "menu", "indigo"),
+        ]
+    else:
+        md = (
+            "🎓 **Interactive Practical Course Ready**\n\n"
+            '<div data-card-buttons="1"></div>'
+        )
+        buttons = [
+            _card_btn("⬅️ Help Menu", "menu", "teal"),
+        ]
     return {
         "topic": "course",
-        "sender_label": "Siraugga",
+        "sender_label": "",
+        "model_badge": "Built-in",
+        "status_label": "Preview" if preview else "Ready",
+        "title": title,
+        "announce": ("Course preview ready (no progress saved, no recording)" if preview else "Interactive course ready") + ": " + ctitle,
+        "replace_existing": True,
+        "plain": True,
+        "markdown": md,
+        "button_groups": [{"title": "Course Actions", "buttons": buttons}],
+        "iframes": [
+            {
+                "heading": "",
+                "src": url,
+                "title": title,
+                "class_name": "w-full min-h-[780px] border-0 rounded-lg shadow-xl",
+                "focus": True,
+            }
+        ],
+    }
+
+
+def _menu_catalog_groups() -> list:
+    """The course catalog for the help menu: one button group per category. Threat briefings (many, auto-made) are one
+    button that opens the full catalog instead of a long list."""
+    groups = []
+    for cat, cs in course_catalog():
+        icon = _CATEGORY_ICON.get(cat, "📚")
+        if cat == "Threat briefings":
+            buttons = [_card_btn("Open all " + str(len(cs)) + " threat briefings", "course_help", "indigo")]
+        else:
+            buttons = [_course_button(c) for c in cs]
+        groups.append({"title": icon + " Courses: " + cat, "buttons": buttons})
+    return groups
+
+
+def _build_course_help_card(note: str = "") -> dict:
+    courses = list_courses()
+    lines = ["📚 **Available Courses**", ""]
+    if note:
+        lines += [note, ""]
+    if not courses:
+        lines.append("There are no courses available yet.")
+    else:
+        lines.append("Pick a course below, or type **/course** followed by its name (spelling does not have to be perfect).")
+    lines += ["", '<div data-card-buttons="1"></div>']
+    groups = [{"title": _CATEGORY_ICON.get(cat, "📚") + " " + cat + " (" + str(len(cs)) + ")",
+               "buttons": [_course_button(c) for c in cs]} for cat, cs in course_catalog()]
+    groups.append({"title": "Navigate", "buttons": [_card_btn("⬅️ Help Menu", "menu", "indigo")]})
+    return {
+        "topic": "course_help",
+        "sender_label": "",
         "model_badge": "Built-in",
         "status_label": "Ready",
-        "title": title,
-        "announce": "Interactive course ready",
+        "title": "Available Courses",
+        "announce": "Available courses. " + (", ".join(c["title"] for c in courses) or "None yet."),
         "replace_existing": True,
-        "markdown": md,
-        "button_groups": [],
+        "plain": True,
+        "markdown": "\n".join(lines),
+        "button_groups": groups,
         "iframes": [],
     }
+
+
+# ---- loose "give me the course" detection (typos allowed) ----
+_COURSE_STOP = {
+    "the", "a", "an", "my", "our", "me", "i", "we", "to", "for", "of", "on", "in", "it", "is", "please", "pls", "plz",
+    "course", "courses", "preview", "full", "show", "give", "open", "start", "take", "do", "load", "launch", "continue",
+    "resume", "want", "need", "get", "see", "view", "play", "render", "begin", "can", "could", "would", "you", "now",
+    "okay", "ok", "okey", "yes", "yeah", "and", "just", "then", "evaluate", "content", "no", "not", "response", "reply",
+    "your", "dont", "do", "n't", "when", "user", "asks", "ask", "that", "this", "up", "out", "there", "here",
+    "run", "lets", "let's", "let", "us", "so", "go", "made", "check", "test", "try", "see", "all", "some", "any",
+    "lab", "labs", "lesson", "lessons", "tutorial", "training", "class", "module", "with", "from", "by", "step",
+}
+_COURSE_ALIASES = {"labs", "lab", "lesson", "lessons", "tutorial", "training", "class", "module"}
+_COURSE_VERBS = {"give", "show", "open", "start", "take", "do", "load", "launch", "continue", "resume", "want", "need",
+                 "get", "see", "view", "play", "render", "begin", "preview", "evaluate", "access", "where", "bring", "let",
+                 "try", "lets", "let's", "run", "check", "test", "go", "pull", "fetch", "display"}
+_COURSE_BLOCK = {"fix", "change", "improve", "add", "bug", "ticket", "update", "edit", "implement", "make", "why", "how",
+                 "error", "broken", "wrong", "remove", "delete", "rewrite", "refactor", "code", "file", "explain", "tell",
+                 "what", "review", "debug", "create", "build", "write", "modify", "redesign", "design",
+                 "issue", "problem", "investigate", "audit", "css", "html", "template", "route", "server"}
+
+
+def _similar(a: str, b: str) -> float:
+    import difflib
+    return difflib.SequenceMatcher(None, a, b).ratio()
+
+
+def _word_similarity(a: str, b: str) -> float:
+    """Spelling similarity that also forgives wrong vowels ('lynex' for 'linux'): same consonants counts as a close match."""
+    s = _similar(a, b)
+    if len(a) >= 4 and len(b) >= 4:
+        ka, kb = re.sub(r"[aeiouy]", "", a), re.sub(r"[aeiouy]", "", b)
+        if len(ka) >= 3 and ka == kb:
+            s = max(s, 0.88)
+    return s
+
+
+def _is_course_word(w: str) -> bool:
+    return w in _COURSE_ALIASES or (len(w) >= 4 and _similar("course", w) >= 0.74)
+
+
+def _is_preview_word(w: str) -> bool:
+    return len(w) >= 5 and (_similar("preview", w) >= 0.78 or _similar("evaluate", w) >= 0.8)
+
+
+def _match_course_name(tokens: list, minimum: float = 0.72):
+    """Best course for the words the user typed (typos allowed), or None. Very short words are too vague to match."""
+    courses = list_courses()
+    spread = {}                                         # how many courses use each word: a rare word says more than a common one
+    for c in courses:
+        for w in c["words"]:
+            spread[w] = spread.get(w, 0) + 1
+    best, best_score = None, 0.0
+    for c in courses:
+        score, top = 0.0, 0.0
+        for t in tokens:
+            if len(t) < 4:
+                continue
+            one, weight = 0.0, 1.0
+            for w in c["words"]:
+                s = _word_similarity(t, w)
+                if s > one:
+                    one, weight = s, 1.0 / spread.get(w, 1)
+            top = max(top, one)
+            if one >= minimum:
+                score += one * weight       # "linux" (one course) beats "fundamentals" (shared); "networking revision" beats "revision"
+        if top >= minimum and score > best_score:
+            best, best_score = c, score
+    return best
+
+
+def detect_course_request(prompt: str):
+    """Returns a card topic for a course request, or None when the message should go to the agent.
+    '/course <name>' (fuzzy) opens that course, or the course list when nothing matches.
+    A short natural request like 'okey give me the course' opens the course. Change requests,
+    questions about how it works and long messages are left to the agent."""
+    text = normalize_prompt(prompt)
+    if not text:
+        return None
+    words = re.findall(r"[a-z0-9']+", text)
+    courses = list_courses()
+    if text.startswith("/course") or text.startswith("/cours") or (words and words[0].startswith("/") and _is_course_word(words[0][1:])):
+        rest = re.findall(r"[a-z0-9']+", text.split(None, 1)[1] if " " in text else "")
+        preview = False
+        name_tokens = [w for w in rest if w not in _COURSE_STOP and not _is_preview_word(w)]
+        if not name_tokens:
+            if len(courses) == 1:
+                return ("course_preview:" if preview else "course:") + courses[0]["id"]
+            return "course_help"
+        hit = _match_course_name(name_tokens)
+        if hit:
+            return ("course_preview:" if preview else "course:") + hit["id"]
+        return "course_help:" + " ".join(name_tokens)
+    if len(words) > 20 or not words:
+        return None
+    idx = [i for i, w in enumerate(words) if _is_course_word(w) and not (i > 0 and words[i - 1] == "of")]
+    if any(w in _COURSE_BLOCK for w in words):
+        return None
+    if not idx:
+        # "open linux essentials" / "give me the networking revision": a short request that starts with a verb and
+        # clearly names one course, without saying "course".
+        if len(words) <= 6 and words[0] in _COURSE_VERBS | {"run"}:
+            named = [w for w in words if w not in _COURSE_STOP and not _is_preview_word(w)]
+            hit = _match_course_name(named, 0.85) if named else None
+            if hit:
+                return "course:" + hit["id"]
+        return None
+    if len(words) > 4 and not any(w in _COURSE_VERBS or _is_preview_word(w) for w in words):
+        return None
+    preview = False
+    name_tokens = [w for w in words if w not in _COURSE_STOP and not _is_preview_word(w) and not _is_course_word(w)]
+    hit = _match_course_name(name_tokens, 0.8) if name_tokens else None
+    if hit:
+        return ("course_preview:" if preview else "course:") + hit["id"]
+    if len(courses) <= 1:
+        return ("course_preview:" if preview else "course:") + (courses[0]["id"] if courses else _COURSE_DEFAULT_ID)
+    return "course_help"
 
 
 def build_card(topic: str, security_mgr=None, headers=None, remote_addr: str = "", client_id: str = "", touch: bool = False) -> dict:
@@ -414,8 +722,17 @@ def build_card(topic: str, security_mgr=None, headers=None, remote_addr: str = "
         usage_data = _collect_usage_snapshot(security_mgr, headers, remote_addr, client_id)
         return _build_usage_card(usage_data) if t == "usage" else _build_tiers_card(usage_data)
 
-    if t == "course":
-        return _build_course_card()
+    if t in ("cyberbrief", "newsletter", "subscribe"):
+        return _build_cyberbrief_card()
+
+    if t in ("course", "course_preview"):
+        return _build_course_card(preview=False)
+    if t.startswith("course:") or t.startswith("course_preview:"):
+        kind, _, cid = t.partition(":")
+        return _build_course_card(preview=False, course_id=cid)
+    if t == "course_help" or t.startswith("course_help:"):
+        said = t.partition(":")[2].strip()
+        return _build_course_help_card(("I could not find a course called **" + html.escape(said) + "**. These are the courses you can open:") if said else "")
 
     viewer, is_admin = _resolve_viewer(security_mgr, headers, remote_addr, client_id)
 
@@ -643,6 +960,7 @@ def build_card(topic: str, security_mgr=None, headers=None, remote_addr: str = "
                     _card_btn("🎓 Practical Course Guide", "course"),
                 ],
             },
+            *_menu_catalog_groups(),
             {
                 "title": "Get support",
                 "buttons": [
@@ -669,6 +987,11 @@ def resolve_card(body: dict, security_mgr=None, headers=None, remote_addr: str =
     prompt = body.get("prompt") or ""
     if not topic and prompt:
         topic = CARD_TRIGGERS.get(normalize_prompt(prompt), "")
+        if not topic:
+            try:
+                topic = detect_course_request(prompt) or ""
+            except Exception:
+                topic = ""
     if not topic:
         return 200, {"ok": True, "matched": False}
     card = build_card(
@@ -682,42 +1005,167 @@ def resolve_card(body: dict, security_mgr=None, headers=None, remote_addr: str =
     return 200, {"ok": True, "matched": True, "card": card}
 
 
+def _build_cyberbrief_card() -> dict:
+    manifest_path = os.path.join(_repo_root(), "services", "cyberbrief", "cache", "current_digest_manifest.json")
+    manifest = {}
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                manifest = json.load(f)
+        except Exception:
+            manifest = {}
+
+    items = manifest.get("items") or []
+    dispatched = manifest.get("dispatched_at") or "Real-Time Feed"
+    latest = items[0] if items else None
+
+    highlight_md = ""
+    if latest:
+        ltitle = str(latest.get("title") or "Emerging Threat Advisory").strip()
+        lscore = latest.get("score", 75)
+        llevel = str(latest.get("threat_level") or "HIGH").upper()
+        lsummary = str(latest.get("summary") or "").strip()
+        if len(lsummary) > 220:
+            lsummary = lsummary[:217].rsplit(" ", 1)[0] + "..."
+        highlight_md = (
+            f"> **⚡ Latest Threat Advisory**: **{ltitle}**  \n"
+            f"> **Severity**: `{llevel}` · **Threat Score**: `{lscore}/100`  \n"
+            f"> *{lsummary}*\n\n"
+        )
+    else:
+        highlight_md = (
+            "> **⚡ Active Threat Wire**: Real-time intelligence feed monitoring zero-days, CISA KEV alerts, and adversary campaigns.\n\n"
+        )
+
+    form_html = (
+        '<div class="cyberbrief-card-widget my-3 p-4 rounded-xl bg-slate-950/80 border border-cyan-500/40 shadow-lg">'
+        '<div class="flex items-center justify-between gap-2 mb-2">'
+        '<div class="flex items-center gap-2">'
+        '<span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>'
+        '<span class="text-xs font-mono font-bold uppercase tracking-wider text-cyan-300">Subscribe to Intelligence Dispatches</span>'
+        '</div>'
+        '<span class="text-[11px] font-mono text-emerald-400 bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded">Free • No Spam</span>'
+        '</div>'
+        '<p class="text-xs text-slate-300 mb-3">'
+        'Get tailored briefings on zero-days, CVEs, and adversary campaigns. Every dispatch includes direct links to the Threat Dossier and Accessible Audio Suite.'
+        '</p>'
+        '<form class="cyberbrief-subscribe-form flex flex-col gap-3" onsubmit="event.preventDefault();">'
+        '<div>'
+        '<label class="block text-xs font-mono text-slate-300 mb-1" for="cb-card-email">WORK / SECURITY EMAIL</label>'
+        '<div class="flex gap-2 flex-wrap sm:flex-nowrap">'
+        '<input type="email" id="cb-card-email" name="email" required placeholder="name@security-team.org" class="flex-1 min-w-[220px] px-3 py-2 text-sm bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 font-mono">'
+        '<button type="submit" class="cyberbrief-sub-btn px-4 py-2 bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-md transition-all shadow-md hover:shadow-cyan-500/20 flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer">'
+        '<span>⚡ Subscribe Free</span>'
+        '</button>'
+        '</div>'
+        '</div>'
+        '<div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-300 pt-1">'
+        '<div class="flex items-center gap-2">'
+        '<span class="font-mono text-slate-400 text-[11px]">CADENCE:</span>'
+        '<label class="inline-flex items-center gap-1 cursor-pointer">'
+        '<input type="radio" name="sub_frequency" value="daily" checked class="accent-cyan-400">'
+        '<span>Daily Updates</span>'
+        '</label>'
+        '<label class="inline-flex items-center gap-1 cursor-pointer">'
+        '<input type="radio" name="sub_frequency" value="weekly" class="accent-cyan-400">'
+        '<span>Weekly Digest</span>'
+        '</label>'
+        '</div>'
+        '<div class="flex items-center gap-2">'
+        '<span class="font-mono text-slate-400 text-[11px]">APPETITE:</span>'
+        '<label class="inline-flex items-center gap-1 cursor-pointer">'
+        '<input type="radio" name="sub_appetite" value="cyber_thriller" checked class="accent-cyan-400">'
+        '<span>Cyber Thriller</span>'
+        '</label>'
+        '<label class="inline-flex items-center gap-1 cursor-pointer">'
+        '<input type="radio" name="sub_appetite" value="defense_playbook" class="accent-cyan-400">'
+        '<span>Defense Playbook</span>'
+        '</label>'
+        '<label class="inline-flex items-center gap-1 cursor-pointer">'
+        '<input type="radio" name="sub_appetite" value="deep_dive" class="accent-cyan-400">'
+        '<span>Deep Dive</span>'
+        '</label>'
+        '</div>'
+        '</div>'
+        '<p class="text-[11px] text-slate-400 m-0">'
+        'By clicking <strong>Subscribe Free</strong>, you agree to our <a href="/terms" target="_blank" class="text-cyan-400 underline">Terms and Conditions</a>.'
+        '</p>'
+        '<div class="cyberbrief-sub-status text-xs font-mono hidden" role="status" aria-live="polite"></div>'
+        '</form>'
+        '</div>'
+    )
+
+    md = (
+        "### 🛡️ The Cyber Brief — Direct Intelligence to Your Inbox\n\n"
+        "Stay ahead of emerging zero-days, critical CVEs, adversary tradecraft, and software supply chain threats. "
+        "Curated intelligence briefings, incident breakdowns, and actionable defense playbooks delivered straight to your inbox.\n\n"
+        + highlight_md
+        + form_html
+        + "\n\n<div data-card-buttons=\"1\"></div>"
+    )
+
+    return {
+        "id": "featured-cyberbrief-card",
+        "topic": "cyberbrief",
+        "sender_label": "The Cyber Brief",
+        "icon": "🛡️",
+        "model_badge": "Live Feed",
+        "status_label": f"Active Dispatch ({dispatched})",
+        "title": "The Cyber Brief — Threat Intelligence & Incident Analysis",
+        "announce": "The Cyber Brief newsletter subscription card",
+        "replace_existing": True,
+        "plain": False,
+        "markdown": md,
+        "button_groups": [
+            {
+                "title": "Explore Intel Feed",
+                "buttons": [
+                    _link_btn("🛡️ Read Live Threat Feed", "/newsletter", "teal"),
+                    _link_btn("⚙️ Manage Preferences", "/newsletter/preferences", "indigo"),
+                    _link_btn("📜 Terms & Privacy", "/terms", "indigo"),
+                ],
+            }
+        ],
+        "iframes": [],
+    }
+
+
 def build_featured_card() -> dict:
     feat_path = os.path.join(_repo_root(), "sandbox", "static", "featured_exam.json")
-    if not os.path.isfile(feat_path):
-        return {"ok": False}
-    try:
-        with open(feat_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except Exception:
-        return {"ok": False}
-    if not isinstance(data, dict) or not data.get("quiz"):
-        return {"ok": False}
-    title = str(data.get("title") or "Exam").strip() or "Exam"
-    q_count = data.get("questions")
-    url = f"/plugin/exam?quiz={quote(str(data['quiz']))}&title={quote(title)}"
-    embed_url = f"{url}&autofocus=0"
-    q_suffix = f" ({q_count} questions)." if q_count else "."
-    md = (
-        f"📝 A new exam has just been generated: **{title}**{q_suffix}\n\n"
-        f"You can start it right here, or [open it in a new tab]({url})."
-    )
-    return {
-        "ok": True,
-        "card": {
-            "id": "featured-exam-card",
-            "topic": "featured_exam",
-            "sender_label": "New exam ready",
-            "status_label": "Just generated",
-            "title": title,
-            "markdown": md,
-            "iframes": [
-                {
-                    "src": embed_url,
-                    "title": title,
-                    "class_name": "w-full min-h-[600px] border-0 rounded-lg",
-                    "dataset": {"featured": "1"},
+    if os.path.isfile(feat_path):
+        try:
+            with open(feat_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and data.get("quiz"):
+                title = str(data.get("title") or "Exam").strip() or "Exam"
+                q_count = data.get("questions")
+                url = f"/plugin/exam?quiz={quote(str(data['quiz']))}&title={quote(title)}"
+                embed_url = f"{url}&autofocus=0"
+                q_suffix = f" ({q_count} questions)." if q_count else "."
+                md = (
+                    f"📝 A new exam has just been generated: **{title}**{q_suffix}\n\n"
+                    f"You can start it right here, or [open it in a new tab]({url})."
+                )
+                return {
+                    "ok": True,
+                    "card": {
+                        "id": "featured-exam-card",
+                        "topic": "featured_exam",
+                        "sender_label": "New exam ready",
+                        "status_label": "Just generated",
+                        "title": title,
+                        "markdown": md,
+                        "iframes": [
+                            {
+                                "src": embed_url,
+                                "title": title,
+                                "class_name": "w-full min-h-[600px] border-0 rounded-lg",
+                                "dataset": {"featured": "1"},
+                            }
+                        ],
+                    },
                 }
-            ],
-        },
-    }
+        except Exception:
+            pass
+
+    return {"ok": True, "card": _build_cyberbrief_card()}

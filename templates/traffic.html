@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Traffic &amp; Reliability | DevCore</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#14b8a6', 600: '#0d9488' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        :focus-visible { outline: 2px solid #14b8a6; outline-offset: 2px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans selection:bg-teal-500/30 selection:text-teal-200 antialiased">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-teal-600 focus:text-white focus:rounded focus:shadow-lg">
+        Skip to main content
+    </a>
+
+    <div id="a11y-announcer" role="status" aria-live="polite" class="sr-only"></div>
+
+    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl" aria-hidden="true">📈</span>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        Live Traffic &amp; Edge Reliability
+                        <span id="traffic-status-badge" class="text-xs px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-800 font-mono">Loading...</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Public Cloudflare edge traffic, visitor reach, and security mitigation metrics</p>
+                </div>
+            </div>
+            <nav aria-label="Traffic Navigation" class="flex flex-wrap items-center gap-2">
+                <a href="/" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded text-xs font-semibold transition-colors">Workspace</a>
+                <label for="traffic-days-select" class="sr-only">Analytics window</label>
+                <select id="traffic-days-select" onchange="loadTraffic()" class="px-2.5 py-1.5 bg-slate-800 text-slate-100 border border-slate-700 rounded text-xs font-semibold">
+                    <option value="7" selected>Last 7 days</option>
+                    <option value="14">Last 14 days</option>
+                    <option value="30">Last 30 days</option>
+                </select>
+                <button type="button" id="traffic-refresh-btn" onclick="loadTraffic()" class="px-3 py-1.5 bg-teal-700 hover:bg-teal-600 text-white rounded text-xs font-bold transition-colors cursor-pointer">
+                    Refresh
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div id="traffic-error-banner" role="alert" class="hidden rounded-lg border border-rose-800 bg-rose-950/60 px-4 py-3 text-sm text-rose-200"></div>
+
+        <!-- KPI Summary -->
+        <section aria-labelledby="kpi-heading">
+            <h2 id="kpi-heading" class="sr-only">Public Traffic Overview Metrics</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                    <div class="text-xs uppercase tracking-wider text-slate-400">Domain</div>
+                    <div id="kpi-zone-name" class="mt-1 text-lg font-bold text-white">—</div>
+                    <div id="kpi-zone-meta" class="mt-1 text-xs text-emerald-300">Loading...</div>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                    <div class="text-xs uppercase tracking-wider text-slate-400">Total Requests</div>
+                    <div id="kpi-requests" class="mt-1 text-2xl font-bold text-amber-300 tabular-nums">—</div>
+                    <div id="kpi-requests-sub" class="mt-1 text-xs text-slate-400">Selected window</div>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                    <div class="text-xs uppercase tracking-wider text-slate-400">Unique Visitors</div>
+                    <div id="kpi-uniques" class="mt-1 text-2xl font-bold text-cyan-300 tabular-nums">—</div>
+                    <div id="kpi-pageviews-sub" class="mt-1 text-xs text-slate-400">Page views: —</div>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                    <div class="text-xs uppercase tracking-wider text-slate-400">Bandwidth Served</div>
+                    <div id="kpi-bandwidth" class="mt-1 text-2xl font-bold text-teal-300 tabular-nums">—</div>
+                    <div id="kpi-cached-sub" class="mt-1 text-xs text-slate-400">Cached: —</div>
+                </div>
+                <div class="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
+                    <div class="text-xs uppercase tracking-wider text-slate-400">Threats Mitigated</div>
+                    <div id="kpi-threats" class="mt-1 text-2xl font-bold text-rose-300 tabular-nums">—</div>
+                    <div class="mt-1 text-xs text-slate-400">Cloudflare Edge WAF</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Traffic & Visitor Analytics -->
+        <section aria-labelledby="analytics-heading" class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+            <div class="px-5 py-3.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                <h2 id="analytics-heading" class="text-sm font-bold text-white uppercase tracking-wider">Daily Traffic &amp; Visitor Analytics</h2>
+                <span id="analytics-window-label" class="text-xs text-slate-400"></span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-950/70 text-slate-400 uppercase tracking-wider">
+                        <tr>
+                            <th scope="col" class="px-4 py-2.5">Date</th>
+                            <th scope="col" class="px-4 py-2.5 text-right">Requests</th>
+                            <th scope="col" class="px-4 py-2.5 text-right">Page Views</th>
+                            <th scope="col" class="px-4 py-2.5 text-right">Unique Visitors</th>
+                            <th scope="col" class="px-4 py-2.5 text-right">Bandwidth</th>
+                            <th scope="col" class="px-4 py-2.5 text-right">Cache Hit %</th>
+                            <th scope="col" class="px-4 py-2.5 text-right">Threats</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analytics-tbody" class="divide-y divide-slate-800/70 tabular-nums">
+                        <tr><td colspan="7" class="px-4 py-4 text-center text-slate-400">Loading traffic metrics...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 pt-2 border-t border-slate-800/60">
+            <span>Verified edge telemetry from Cloudflare Analytics</span>
+            <span id="traffic-updated-at">Updated: —</span>
+        </footer>
+    </main>
+
+    <script>
+        function announce(msg) {
+            const el = document.getElementById('a11y-announcer');
+            if (el) el.textContent = msg;
+        }
+
+        function esc(val) {
+            return String(val ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function fmtNum(n) {
+            return Number(n || 0).toLocaleString();
+        }
+
+        function fmtBytes(b) {
+            const num = Number(b || 0);
+            if (num < 1024) return `${num} B`;
+            if (num < 1024 * 1024) return `${(num / 1024).toFixed(1)} KB`;
+            if (num < 1024 * 1024 * 1024) return `${(num / (1024 * 1024)).toFixed(2)} MB`;
+            return `${(num / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+        }
+
+        async function loadTraffic() {
+            const btn = document.getElementById('traffic-refresh-btn');
+            const days = document.getElementById('traffic-days-select').value || '7';
+            const errBanner = document.getElementById('traffic-error-banner');
+            errBanner.classList.add('hidden');
+            errBanner.textContent = '';
+            btn.disabled = true;
+            btn.textContent = 'Refreshing...';
+            announce('Loading public traffic metrics');
+
+            try {
+                const res = await fetch(`/api/public/traffic?days=${encodeURIComponent(days)}`, { cache: 'no-store' });
+                const data = await res.json();
+                if (!res.ok || !data.ok) {
+                    throw new Error(data.error || `HTTP ${res.status}`);
+                }
+
+                const z = data.zone || {};
+                const zoneName = z.name || 'mikeytech.dev';
+                const zoneStatus = z.status || 'active';
+                document.getElementById('traffic-status-badge').textContent = `${zoneName} · ${zoneStatus}`;
+                document.getElementById('kpi-zone-name').textContent = zoneName;
+                document.getElementById('kpi-zone-meta').textContent = `Status: ${zoneStatus} · Cloudflare Edge`;
+
+                const a = data.analytics || {};
+                const totals = a.totals || {};
+                const totalBytes = Number(totals.bytes || 0);
+                const cachedBytes = Number(totals.cachedBytes || 0);
+                const cachePct = totalBytes > 0 ? ((cachedBytes / totalBytes) * 100).toFixed(1) : '0.0';
+
+                document.getElementById('kpi-requests').textContent = fmtNum(totals.requests);
+                document.getElementById('kpi-requests-sub').textContent = `Last ${a.days || days} days`;
+                document.getElementById('kpi-uniques').textContent = fmtNum(totals.uniques);
+                document.getElementById('kpi-pageviews-sub').textContent = `Page views: ${fmtNum(totals.pageViews)}`;
+                document.getElementById('kpi-bandwidth').textContent = fmtBytes(totalBytes);
+                document.getElementById('kpi-cached-sub').textContent = `Cached: ${cachePct}% (${fmtBytes(cachedBytes)})`;
+                document.getElementById('kpi-threats').textContent = fmtNum(totals.threats);
+                document.getElementById('analytics-window-label').textContent = `${(a.daily || []).length} day(s)`;
+
+                const atbody = document.getElementById('analytics-tbody');
+                const daily = [...(a.daily || [])].reverse();
+                if (!daily.length) {
+                    atbody.innerHTML = '<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400">No traffic rows returned yet.</td></tr>';
+                } else {
+                    atbody.innerHTML = daily.map(row => {
+                        const pct = row.bytes > 0 ? ((row.cachedBytes / row.bytes) * 100).toFixed(1) : '0.0';
+                        return `<tr class="hover:bg-slate-800/40">
+                            <td class="px-4 py-2 font-mono text-white">${esc(row.date)}</td>
+                            <td class="px-4 py-2 text-right text-amber-300">${fmtNum(row.requests)}</td>
+                            <td class="px-4 py-2 text-right text-slate-200">${fmtNum(row.pageViews)}</td>
+                            <td class="px-4 py-2 text-right text-cyan-300">${fmtNum(row.uniques)}</td>
+                            <td class="px-4 py-2 text-right text-teal-300">${fmtBytes(row.bytes)}</td>
+                            <td class="px-4 py-2 text-right text-slate-300">${pct}%</td>
+                            <td class="px-4 py-2 text-right text-rose-300">${fmtNum(row.threats)}</td>
+                        </tr>`;
+                    }).join('');
+                }
+
+                if (data.cached_at) {
+                    document.getElementById('traffic-updated-at').textContent = `Updated: ${data.cached_at}`;
+                }
+                announce('Public traffic metrics updated');
+            } catch (err) {
+                errBanner.textContent = `Unable to load traffic metrics right now: ${err.message}`;
+                errBanner.classList.remove('hidden');
+                announce(`Error loading traffic metrics: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Refresh';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadTraffic);
+    </script>
+</body>
+</html>

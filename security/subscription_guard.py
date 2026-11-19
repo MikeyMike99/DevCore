@@ -523,13 +523,7 @@ def assert_user_execution_quota(
     if not isinstance(user, dict):
         return True, "System default", None
 
-    token_scope = user.get("token_scope")
-    if token_scope == "demo":
-        return True, "Demo scope sandbox allowed", None
-
     user_role = str(user.get("role", "")).lower()
-    if user_role in ("demo", "demo_guest"):
-        return True, "Demo scope sandbox allowed", None
 
     user_id = user.get("username") or user.get("name") or user.get("key_id") or "guest"
     from core.roles import ADMIN_ROLES

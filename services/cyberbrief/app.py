@@ -43,7 +43,8 @@ def create_app() -> Flask:
         static_folder=str(Config.STATIC_DIR),
         static_url_path="/static",
     )
-    app.secret_key = _env("CYBERBRIEF_SECRET_KEY") or _env("SECRET_KEY") or "cyberbrief-dev-only"
+    import secrets as _secrets
+    app.secret_key = _env("CYBERBRIEF_SECRET_KEY") or _env("SECRET_KEY") or _secrets.token_hex(32)
     app.config.update(
         SESSION_COOKIE_NAME="cyberbrief_session",
         SESSION_COOKIE_HTTPONLY=True,

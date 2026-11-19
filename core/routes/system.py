@@ -5,7 +5,7 @@ import inspect
 import sys
 from core.routes.auth import get_current_user
 from quart import Blueprint, request, jsonify, current_app, Response
-import os, json
+import os, json, time
 from core import session_manager as sm
 from core import project_manager as pm
 from agents import agent_manager as am
@@ -53,7 +53,7 @@ def _is_tier5_request() -> bool:
             tier_val = int(user.get("tier", 5))
         except Exception:
             tier_val = 0
-        return bool(sec.is_admin_user(user) and user.get("token_scope") != "demo" and tier_val >= 5)
+        return bool(sec.is_admin_user(user) and tier_val >= 5)
     return bool(sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
 
 def _is_super_admin_request() -> bool:
@@ -87,6 +87,8 @@ def install_server_tier_gates(live_app, main_mod=None):
                 return "Forbidden: Tier 5 Administrator clearance required.", 403
             if norm.startswith("courses/progress_") and not (_is_tier5_request() or _request_user() is not None):
                 return "Forbidden: Authentication required.", 403
+            if norm.startswith("courses/") and not _is_tier5_request():
+                return "Forbidden: course files are only served through the course page.", 403
             return await _call_view(orig_fn, filename)
 
         _gated_custom_static._raugus_unwrapped = orig_fn
@@ -127,6 +129,7 @@ def install_server_tier_gates(live_app, main_mod=None):
         "custom_static": _wrap_static,
         "plugin_security": _wrap_tier5,
         "plugin_audits": _wrap_tier5,
+        "admin_mailbox_page": _wrap_tier5,
         "direct_mode_page": _wrap_super_admin_page,
         "direct_mode_status": _wrap_super_admin_api,
     }
@@ -251,6 +254,17 @@ def _get_devcore_vault_service():
     spec.loader.exec_module(mod)
     mod._loaded_mtime = mtime
     return mod.vault_service
+
+def _mail_no_store_headers() -> dict:
+    return {
+        "Cache-Control": "no-store, no-cache, must-revalidate, private",
+        "Pragma": "no-cache",
+        "X-Content-Type-Options": "nosniff",
+    }
+
+def _get_mail_engine():
+    import services.mail.engine as mail_eng
+    return mail_eng
 
 async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_countdown=False):
     """Safe zero-downtime hot-patching sequence with syntax validation (py_compile), backup, and automated rollback."""
@@ -433,6 +447,12 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
             tt._ENGINE_INSTANCE = None
         except Exception:
             pass
+        for mail_mod_name in ("services.mail.config", "services.mail.engine"):
+            if mail_mod_name in sys.modules:
+                try:
+                    importlib.reload(sys.modules[mail_mod_name])
+                except Exception:
+                    pass
 
         if hasattr(sm, "_sync_live_blueprint_routes"):
             sm._sync_live_blueprint_routes()
@@ -478,8 +498,27 @@ async def execute_hot_patch_sequence(app_obj=None, manual_trigger=False, fast_co
                 ('/api/audits', 'system_bp.api_get_audits', _sys_fn('api_get_audits', api_get_audits), ['GET']),
                 ('/api/audits/run', 'system_bp.api_run_audit', _sys_fn('api_run_audit', api_run_audit), ['POST']),
                 ('/api/audits/refresh', 'system_bp.api_refresh_audits', _sys_fn('api_refresh_audits', api_refresh_audits), ['POST']),
+                ('/api/bootstrap/pull-config', 'system_bp.api_bootstrap_pull_config', _sys_fn('api_bootstrap_pull_config', api_bootstrap_pull_config), ['POST']),
                 ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', _sys_fn('api_audit_result', api_audit_result), ['GET']),
                 ('/api/vault/<path:subpath>', 'system_bp.api_vault_gateway', _sys_fn('api_vault_gateway', api_vault_gateway), ['GET', 'POST', 'DELETE']),
+                ('/admin/mailbox', 'system_bp.admin_mailbox_page', _sys_fn('admin_mailbox_page', admin_mailbox_page), ['GET']),
+                ('/api/mailbox/status', 'system_bp.api_mailbox_status', _sys_fn('api_mailbox_status', api_mailbox_status), ['GET']),
+                ('/api/mailbox/folders', 'system_bp.api_mailbox_folders', _sys_fn('api_mailbox_folders', api_mailbox_folders), ['GET']),
+                ('/api/mailbox/inbox', 'system_bp.api_mailbox_inbox', _sys_fn('api_mailbox_inbox', api_mailbox_inbox), ['GET']),
+                ('/api/mailbox/inbox/<uid>', 'system_bp.api_mailbox_inbox_detail', _sys_fn('api_mailbox_inbox_detail', api_mailbox_inbox_detail), ['GET']),
+                ('/api/mailbox/inbox/<uid>/read', 'system_bp.api_mailbox_inbox_read', _sys_fn('api_mailbox_inbox_read', api_mailbox_inbox_read), ['POST']),
+                ('/api/mailbox/reply', 'system_bp.api_mailbox_reply', _sys_fn('api_mailbox_reply', api_mailbox_reply), ['POST']),
+                ('/api/mailbox/outbound', 'system_bp.api_mailbox_outbound', _sys_fn('api_mailbox_outbound', api_mailbox_outbound), ['GET']),
+                ('/api/mailbox/outbound/<email_id>', 'system_bp.api_mailbox_outbound_detail', _sys_fn('api_mailbox_outbound_detail', api_mailbox_outbound_detail), ['GET']),
+                ('/api/mailbox/send', 'system_bp.api_mailbox_send', _sys_fn('api_mailbox_send', api_mailbox_send), ['POST']),
+                ('/api/mailbox/clear', 'system_bp.api_mailbox_clear', _sys_fn('api_mailbox_clear', api_mailbox_clear), ['POST']),
+                ('/api/mailbox/settings', 'system_bp.api_mailbox_settings', _sys_fn('api_mailbox_settings', api_mailbox_settings), ['POST']),
+                ('/api/mailbox/upload-google-json', 'system_bp.api_mailbox_upload_google_json', _sys_fn('api_mailbox_upload_google_json', api_mailbox_upload_google_json), ['POST']),
+                ('/api/mailbox/test', 'system_bp.api_mailbox_test', _sys_fn('api_mailbox_test', api_mailbox_test), ['POST']),
+                ('/admin/cloudflare', 'system_bp.cloudflare_admin_page', _sys_fn('cloudflare_admin_page', cloudflare_admin_page), ['GET']),
+                ('/api/admin/cloudflare/overview', 'system_bp.api_cloudflare_overview', _sys_fn('api_cloudflare_overview', api_cloudflare_overview), ['GET']),
+                ('/traffic', 'system_bp.public_traffic_page', _sys_fn('public_traffic_page', public_traffic_page), ['GET']),
+                ('/api/public/traffic', 'system_bp.api_public_traffic', _sys_fn('api_public_traffic', api_public_traffic), ['GET']),
             ]
             if auth_mod:
                 reset_auth_fn = getattr(auth_mod, 'reset_auth_session', None)
@@ -608,6 +647,109 @@ async def api_bootstrap_preflight():
         return jsonify(report), status_code
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+@system_bp.route('/api/bootstrap/pull-config', methods=['POST'])
+async def api_bootstrap_pull_config():
+    """Authenticated bootstrap sync for fresh git clones/pulls on trusted hosts or owner sessions."""
+    import hmac
+    no_store = {"Cache-Control": "no-store, no-cache, must-revalidate, private", "X-Content-Type-Options": "nosniff"}
+    sec = getattr(current_app, "security_mgr", None)
+    is_owner = False
+    if sec is not None:
+        user = _request_user()
+        if user is not None:
+            is_owner = bool(sec.is_super_admin(user))
+        else:
+            is_owner = bool(sec.is_host_owner_request(request.remote_addr, dict(request.headers)))
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    ep_root = os.path.join(repo_root, "playground", "e_profile")
+    if not os.path.isdir(ep_root):
+        ep_root = os.path.join(os.path.dirname(repo_root), "e_profile")
+
+    if not is_owner:
+        supplied_secret = (request.headers.get("X-Sync-Secret") or "").strip()
+        expected_secret = os.environ.get("SYNC_SECRET", "").strip()
+        if not expected_secret and os.path.isfile(os.path.join(ep_root, ".env")):
+            try:
+                with open(os.path.join(ep_root, ".env"), encoding="utf-8", errors="ignore") as f:
+                    for ln in f:
+                        if ln.strip().startswith("SYNC_SECRET="):
+                            expected_secret = ln.split("=", 1)[1].strip().strip("\"'")
+                            break
+            except Exception:
+                pass
+        if not (supplied_secret and expected_secret and hmac.compare_digest(supplied_secret, expected_secret)):
+            resp = jsonify({"success": False, "error": "Forbidden: Owner or SYNC_SECRET authorization required."})
+            resp.headers.update(no_store)
+            return resp, 403
+
+    data = await request.get_json(silent=True) or {}
+    target_repo = str(data.get("repo") or "all").strip().lower()
+    placeholders = {
+        "YourSuperSecretAdminPassword",
+        "YourSuperSecretEmployerPassword",
+        "A_Long_Random_String_For_Flask_Sessions",
+        "SECURE_ADMIN_KEY_HERE",
+        "SECURE_KEY_2026_PROTOTYPE",
+        "your_email@gmail.com",
+        "your_app_password",
+    }
+
+    def _safe_env_map(env_path: str) -> dict:
+        out = {}
+        if not os.path.isfile(env_path):
+            return out
+        try:
+            with open(env_path, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    s = line.strip()
+                    if not s or s.startswith("#") or "=" not in s:
+                        continue
+                    k, v = s.split("=", 1)
+                    k_c = k.strip()
+                    v_c = v.strip().strip("\"'")
+                    if v_c and v_c not in placeholders:
+                        out[k_c] = v_c
+        except Exception:
+            pass
+        return out
+
+    bundle = {"success": True, "repo": target_repo, "files": {}, "status": {}}
+    if target_repo in ("e_profile", "all") and os.path.isdir(ep_root):
+        ep_env = _safe_env_map(os.path.join(ep_root, ".env"))
+        if ep_env:
+            bundle["files"]["e_profile/.env"] = "\n".join(f"{k}={v}" for k, v in ep_env.items()) + "\n"
+        prof_path = os.path.join(ep_root, "profiles.json")
+        if os.path.isfile(prof_path):
+            try:
+                with open(prof_path, "r", encoding="utf-8") as f:
+                    bundle["files"]["e_profile/profiles.json"] = f.read()
+            except Exception:
+                pass
+    if target_repo in ("devcore", "all"):
+        wa_cfg = os.path.join(repo_root, "security", "webauthn_config.json")
+        if os.path.isfile(wa_cfg):
+            try:
+                with open(wa_cfg, "r", encoding="utf-8") as f:
+                    bundle["files"]["security/webauthn_config.json"] = f.read()
+            except Exception:
+                pass
+        for rel_env in ("services/eprofile_bridge/.env", "services/cyberbrief/.env", "services/mail/.env"):
+            env_map = _safe_env_map(os.path.join(repo_root, rel_env))
+            if env_map:
+                bundle["files"][rel_env] = "\n".join(f"{k}={v}" for k, v in env_map.items()) + "\n"
+        dk_path = os.path.expanduser("~/.config/devcore/device_keys.json")
+        bundle["status"]["device_keys_enrolled"] = os.path.isfile(dk_path)
+        bundle["status"]["ai_credentials_present"] = bool(
+            os.environ.get("ANTHROPIC_API_KEY")
+            or os.environ.get("GEMINI_API_KEY")
+            or os.path.isfile(os.path.join(repo_root, "security", "ai_credentials.json"))
+        )
+
+    resp = jsonify(bundle)
+    resp.headers.update(no_store)
+    return resp, 200
 
 @system_bp.route('/api/security/csp-report', methods=['POST'])
 async def csp_report():
@@ -854,6 +996,323 @@ async def api_refresh_audits():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@system_bp.route('/admin/mailbox', methods=['GET'])
+async def admin_mailbox_page():
+    """Serve the unified Tier-5 Admin Mail Hub UI (inbound IMAP + outbound SMTP)."""
+    if not _is_tier5_request():
+        return "Forbidden: Tier 5 Administrator clearance required.", 403
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    template_path = os.path.join(repo_root, "services", "mail", "templates", "admin_mailbox.html")
+    if not os.path.isfile(template_path):
+        return "Unified mailbox template not found.", 404
+    with open(template_path, "r", encoding="utf-8") as handle:
+        content = handle.read()
+    headers = {"Content-Type": "text/html; charset=utf-8", **_mail_no_store_headers()}
+    return Response(content, status=200, headers=headers)
+
+
+def _mailbox_json_response(payload: dict, status_code: int = 200):
+    resp = jsonify(payload)
+    resp.headers.update(_mail_no_store_headers())
+    return resp, status_code
+
+
+def _require_mailbox_tier5():
+    if not _is_tier5_request():
+        return _mailbox_json_response(
+            {"success": False, "error": "Forbidden: Tier 5 Administrator clearance required."},
+            403,
+        )
+    return None
+
+
+@system_bp.route('/api/mailbox/status', methods=['GET'])
+async def api_mailbox_status():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        st = await asyncio.to_thread(eng.get_mailbox_status)
+        return _mailbox_json_response({"success": True, "status": st})
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "error": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/folders', methods=['GET'])
+async def api_mailbox_folders():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        ok, msg, folders = await asyncio.to_thread(eng.list_imap_folders)
+        return _mailbox_json_response({"success": ok, "message": msg, "folders": folders})
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e), "folders": []}, 500)
+
+
+@system_bp.route('/api/mailbox/inbox', methods=['GET'])
+async def api_mailbox_inbox():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        folder = request.args.get("folder", "INBOX")
+        q = request.args.get("q", "")
+        unread = str(request.args.get("unread", "0")).lower() in ("1", "true", "yes")
+        limit = int(request.args.get("limit", 30) or 30)
+        ok, msg, items = await asyncio.to_thread(
+            eng.fetch_inbox,
+            folder=folder,
+            limit=limit,
+            search_query=q,
+            unread_only=unread,
+        )
+        return _mailbox_json_response({"success": ok, "message": msg, "messages": items})
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e), "messages": []}, 500)
+
+
+@system_bp.route('/api/mailbox/inbox/<uid>', methods=['GET'])
+async def api_mailbox_inbox_detail(uid: str):
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        folder = request.args.get("folder", "INBOX")
+        mark_read = str(request.args.get("mark_read", "0")).lower() in ("1", "true", "yes")
+        ok, msg, item = await asyncio.to_thread(
+            eng.fetch_incoming_email,
+            uid=uid,
+            folder=folder,
+            mark_read=mark_read,
+        )
+        return _mailbox_json_response(
+            {"success": ok, "message": msg, "email": item},
+            200 if ok and item else 404,
+        )
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e), "email": None}, 500)
+
+
+@system_bp.route('/api/mailbox/inbox/<uid>/read', methods=['POST'])
+async def api_mailbox_inbox_read(uid: str):
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        data = await request.get_json(silent=True) or {}
+        folder = data.get("folder", "INBOX")
+        is_read = bool(data.get("read", True))
+        ok, msg = await asyncio.to_thread(
+            eng.set_incoming_read_status,
+            uid=uid,
+            folder=folder,
+            is_read=is_read,
+        )
+        return _mailbox_json_response({"success": ok, "message": msg}, 200 if ok else 400)
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/reply', methods=['POST'])
+async def api_mailbox_reply():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        data = await request.get_json(silent=True) or {}
+        ok, msg, record = await asyncio.to_thread(
+            eng.reply_to_email,
+            to_address=data.get("to_address", ""),
+            subject=data.get("subject", ""),
+            body_text=data.get("body", ""),
+            in_reply_to=data.get("in_reply_to", ""),
+            references=data.get("references", ""),
+            original_from=data.get("original_from", ""),
+            original_date=data.get("original_date", ""),
+            original_quote=data.get("original_quote", ""),
+        )
+        return _mailbox_json_response({"success": ok, "message": msg, "record": record}, 200 if ok else 400)
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/outbound', methods=['GET'])
+async def api_mailbox_outbound():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        limit = int(request.args.get("limit", 100) or 100)
+        emails = await asyncio.to_thread(eng.load_local_mailbox, limit=limit)
+        return _mailbox_json_response({"success": True, "emails": emails})
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e), "emails": []}, 500)
+
+
+@system_bp.route('/api/mailbox/outbound/<email_id>', methods=['GET'])
+async def api_mailbox_outbound_detail(email_id: str):
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        item = await asyncio.to_thread(eng.get_email_by_id, email_id)
+        if not item:
+            return _mailbox_json_response({"success": False, "message": "Email record not found."}, 404)
+        return _mailbox_json_response({"success": True, "email": item})
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/send', methods=['POST'])
+async def api_mailbox_send():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        import html as html_lib
+        eng = _get_mail_engine()
+        data = await request.get_json(silent=True) or {}
+        to_address = str(data.get("to_address", "")).strip()
+        subject = str(data.get("subject", "Siraugga Mail Test")).strip() or "Siraugga Mail Test"
+        message = str(data.get("message", "")).strip() or "Outbound dispatch from Siraugga Unified Mail Hub."
+        action_url = str(data.get("action_url", "")).strip()
+        if not to_address:
+            return _mailbox_json_response({"success": False, "message": "Recipient email address is required."}, 400)
+        body_html = f"<p>{html_lib.escape(message).replace(chr(10), '<br>')}</p>"
+        html_content = eng.build_email_template(
+            title=subject,
+            body_html=body_html,
+            action_url=action_url or None,
+            action_label="Open Portal" if action_url else None,
+        )
+        ok, msg, record = await asyncio.to_thread(
+            eng.send_email,
+            to_address,
+            subject,
+            html_content,
+            message,
+        )
+        return _mailbox_json_response({"success": ok, "message": msg, "record": record}, 200 if ok else 400)
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/clear', methods=['POST'])
+async def api_mailbox_clear():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        ok = await asyncio.to_thread(eng.clear_local_mailbox)
+        return _mailbox_json_response({
+            "success": bool(ok),
+            "message": "Outbound mailbox cleared." if ok else "Failed to clear outbound mailbox.",
+        })
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/settings', methods=['POST'])
+async def api_mailbox_settings():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        data = await request.get_json(silent=True) or {}
+        backend = str(data.get("backend", "smtp")).strip().lower() or "smtp"
+        server_host = str(data.get("server", "smtp.gmail.com")).strip()
+        server_port = int(data.get("port", 587) or 587)
+        use_tls = bool(data.get("use_tls", True))
+        username = str(data.get("username", "")).strip()
+        password = str(data.get("password", ""))
+        default_sender = str(data.get("default_sender", "")).strip()
+        imap_server = str(data.get("imap_server", "")).strip()
+        imap_port = int(data.get("imap_port", 993) or 993)
+        imap_use_ssl = bool(data.get("imap_use_ssl", True))
+        imap_username = str(data.get("imap_username", "")).strip()
+        imap_password = str(data.get("imap_password", ""))
+
+        ok, msg = await asyncio.to_thread(
+            eng.apply_gateway_settings,
+            backend,
+            server_host,
+            server_port,
+            use_tls,
+            username,
+            password,
+            default_sender,
+            imap_server,
+            imap_port,
+            imap_use_ssl,
+            imap_username,
+            imap_password,
+        )
+        conn_ok = True
+        full_msg = msg
+        if ok and backend == "smtp":
+            smtp_ok, smtp_msg = await asyncio.to_thread(eng.test_smtp_connection)
+            imap_ok, imap_msg = await asyncio.to_thread(eng.test_imap_connection)
+            conn_ok = bool(smtp_ok and imap_ok)
+            full_msg = f"{msg} SMTP: {smtp_msg} | IMAP: {imap_msg}"
+        return _mailbox_json_response({"success": ok, "conn_ok": conn_ok, "message": full_msg}, 200 if ok else 400)
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "conn_ok": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/upload-google-json', methods=['POST'])
+async def api_mailbox_upload_google_json():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        data = await request.get_json(silent=True) or {}
+        raw_json = str(data.get("google_json", "")).strip()
+        if not raw_json:
+            return _mailbox_json_response({"success": False, "message": "No Google credentials JSON supplied."}, 400)
+        ok, msg, meta = await asyncio.to_thread(eng.apply_google_service_json, raw_json)
+        return _mailbox_json_response({"success": ok, "message": msg, "meta": meta}, 200 if ok else 400)
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
+@system_bp.route('/api/mailbox/test', methods=['POST'])
+async def api_mailbox_test():
+    denied = _require_mailbox_tier5()
+    if denied:
+        return denied
+    try:
+        eng = _get_mail_engine()
+        data = await request.get_json(silent=True) or {}
+        protocol = str(data.get("protocol", "smtp")).strip().lower()
+        if protocol == "imap":
+            ok, msg = await asyncio.to_thread(eng.test_imap_connection)
+            return _mailbox_json_response({"success": ok, "protocol": "imap", "message": msg})
+        if protocol == "all":
+            smtp_ok, smtp_msg = await asyncio.to_thread(eng.test_smtp_connection)
+            imap_ok, imap_msg = await asyncio.to_thread(eng.test_imap_connection)
+            return _mailbox_json_response({
+                "success": bool(smtp_ok and imap_ok),
+                "protocol": "all",
+                "message": f"SMTP: {smtp_msg} | IMAP: {imap_msg}",
+            })
+        ok, msg = await asyncio.to_thread(eng.test_smtp_connection)
+        return _mailbox_json_response({"success": ok, "protocol": "smtp", "message": msg})
+    except Exception as e:
+        return _mailbox_json_response({"success": False, "message": str(e)}, 500)
+
+
 @system_bp.route('/api/vault/<path:subpath>', methods=['GET', 'POST', 'DELETE'])
 async def api_vault_gateway(subpath: str):
     """Super Admin Tier 5 Unified Vault & Bitwarden CLI Gateway with AES-256-GCM transit and X_SHI3LD_X .vault fallback."""
@@ -1027,3 +1486,252 @@ async def api_vault_gateway(subpath: str):
         resp = jsonify({"ok": False, "success": False, "error": str(e)})
         resp.headers.update(no_store_headers)
         return resp, 400
+
+
+@system_bp.route('/admin/cloudflare', methods=['GET'])
+async def cloudflare_admin_page():
+    """Serve the Tier-5 Cloudflare Control Plane UI."""
+    if not _is_tier5_request():
+        return "Forbidden: Tier 5 Administrator clearance required.", 403
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    candidates = [
+        os.path.join(repo_root, "sandbox", "templates", "cloudflare.html"),
+        os.path.join(repo_root, "templates", "cloudflare.html"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+            return Response(content, status=200, headers={"Content-Type": "text/html; charset=utf-8", **_mail_no_store_headers()})
+    return "Cloudflare template not found", 404
+
+
+@system_bp.route('/api/admin/cloudflare/overview', methods=['GET'])
+async def api_cloudflare_overview():
+    """Return Zone, Traffic Analytics, DNS, Pages, and Tunnel status for Tier-5 admins."""
+    if not _is_tier5_request():
+        return _mailbox_json_response({"ok": False, "error": "Forbidden: Tier 5 Administrator clearance required."}, 403)
+    try:
+        days_raw = request.args.get("days", "7")
+        try:
+            days = max(1, min(30, int(days_raw)))
+        except ValueError:
+            days = 7
+
+        def _fetch_overview():
+            import datetime
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            scripts_dir = os.path.join(repo_root, "scripts")
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from cloudflare_auth import CloudflareClient
+
+            cf = CloudflareClient()
+            auth_mode = cf.creds.auth_mode()
+            zone_id = cf.creds.zone_id
+            account_id = cf.creds.account_id
+            errors = {}
+
+            zone_info = {}
+            if zone_id:
+                try:
+                    zr = (cf.api("GET", f"/zones/{zone_id}") or {}).get("result") or {}
+                    zone_info = {
+                        "id": zr.get("id", zone_id),
+                        "name": zr.get("name", cf.creds.zone or ""),
+                        "status": zr.get("status", "unknown"),
+                        "paused": bool(zr.get("paused", False)),
+                        "plan": (zr.get("plan") or {}).get("name", "Free"),
+                        "name_servers": zr.get("name_servers") or [],
+                    }
+                except Exception as exc:
+                    errors["zone"] = str(exc)
+
+            dns_records = []
+            if zone_id:
+                try:
+                    dr = (cf.api("GET", f"/zones/{zone_id}/dns_records?per_page=100") or {}).get("result") or []
+                    dns_records = [
+                        {
+                            "id": r.get("id", ""),
+                            "type": r.get("type", ""),
+                            "name": r.get("name", ""),
+                            "content": r.get("content", ""),
+                            "proxied": bool(r.get("proxied", False)),
+                            "ttl": r.get("ttl", 1),
+                        }
+                        for r in dr
+                    ]
+                except Exception as exc:
+                    errors["dns"] = str(exc)
+
+            pages_projects = []
+            if account_id:
+                try:
+                    pr = (cf.api("GET", f"/accounts/{account_id}/pages/projects") or {}).get("result") or []
+                    for p in pr:
+                        latest = p.get("latest_deployment") or {}
+                        stage = latest.get("latest_stage") or {}
+                        pages_projects.append({
+                            "name": p.get("name", ""),
+                            "subdomain": p.get("subdomain", ""),
+                            "domains": p.get("domains") or [],
+                            "latest_status": stage.get("status", "unknown"),
+                            "latest_created_on": latest.get("created_on", ""),
+                        })
+                except Exception as exc:
+                    errors["pages"] = str(exc)
+
+            tunnels = []
+            if account_id:
+                try:
+                    tr = (cf.api("GET", f"/accounts/{account_id}/cfd_tunnel?is_deleted=false") or {}).get("result") or []
+                    tunnels = [
+                        {
+                            "id": t.get("id", ""),
+                            "name": t.get("name", ""),
+                            "status": t.get("status", "unknown"),
+                            "connections": len(t.get("connections") or []),
+                        }
+                        for t in tr
+                    ]
+                except Exception as exc:
+                    errors["tunnels"] = str(exc)
+
+            analytics, analytics_err = _fetch_cloudflare_traffic_analytics(cf, zone_id, days)
+            if analytics_err:
+                errors["analytics"] = analytics_err
+
+            return {
+                "ok": True,
+                "auth_mode": auth_mode,
+                "zone": zone_info,
+                "dns": dns_records,
+                "pages": pages_projects,
+                "tunnels": tunnels,
+                "analytics": analytics,
+                "errors": errors,
+            }
+
+        payload = await asyncio.to_thread(_fetch_overview)
+        return _mailbox_json_response(payload, 200)
+    except Exception as exc:
+        return _mailbox_json_response({"ok": False, "error": str(exc)}, 500)
+
+
+_PUBLIC_TRAFFIC_CACHE = {}
+_PUBLIC_TRAFFIC_CACHE_TTL = 300
+
+
+def _fetch_cloudflare_traffic_analytics(cf, zone_id, days):
+    """Query Cloudflare GraphQL httpRequests1dGroups and aggregate daily totals."""
+    import datetime
+    daily = []
+    totals = {"requests": 0, "pageViews": 0, "bytes": 0, "cachedBytes": 0, "threats": 0, "uniques": 0}
+    if not zone_id:
+        return {"days": days, "totals": totals, "daily": daily}, None
+    try:
+        today = datetime.date.today()
+        since = today - datetime.timedelta(days=days - 1)
+        gql = """
+        query($zoneTag: string!, $since: Date!, $until: Date!) {
+          viewer {
+            zones(filter: {zoneTag: $zoneTag}) {
+              httpRequests1dGroups(limit: 40, orderBy: [date_ASC], filter: {date_geq: $since, date_leq: $until}) {
+                dimensions { date }
+                sum { requests pageViews bytes cachedBytes threats }
+                uniq { uniques }
+              }
+            }
+          }
+        }
+        """
+        gql_res = cf.graphql(gql, {"zoneTag": zone_id, "since": since.isoformat(), "until": today.isoformat()})
+        err = str(gql_res["errors"]) if gql_res.get("errors") else None
+        zones_data = ((gql_res.get("data") or {}).get("viewer") or {}).get("zones") or []
+        groups = zones_data[0].get("httpRequests1dGroups", []) if zones_data else []
+        for g in groups:
+            s = g.get("sum") or {}
+            u = g.get("uniq") or {}
+            row = {
+                "date": (g.get("dimensions") or {}).get("date", ""),
+                "requests": int(s.get("requests") or 0),
+                "pageViews": int(s.get("pageViews") or 0),
+                "bytes": int(s.get("bytes") or 0),
+                "cachedBytes": int(s.get("cachedBytes") or 0),
+                "threats": int(s.get("threats") or 0),
+                "uniques": int(u.get("uniques") or 0),
+            }
+            daily.append(row)
+            for k in totals:
+                totals[k] += row[k]
+        return {"days": days, "totals": totals, "daily": daily}, err
+    except Exception as exc:
+        return {"days": days, "totals": totals, "daily": daily}, str(exc)
+
+
+@system_bp.route('/traffic', methods=['GET'])
+async def public_traffic_page():
+    """Serve the public-facing Cloudflare traffic & credibility dashboard."""
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    candidates = [
+        os.path.join(repo_root, "sandbox", "templates", "traffic.html"),
+        os.path.join(repo_root, "templates", "traffic.html"),
+    ]
+    for path in candidates:
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+            return Response(content, status=200, headers={"Content-Type": "text/html; charset=utf-8", **_mail_no_store_headers()})
+    return "Public traffic template not found", 404
+
+
+@system_bp.route('/api/public/traffic', methods=['GET'])
+async def api_public_traffic():
+    """Return public-safe Cloudflare traffic analytics with 5-minute in-memory caching."""
+    try:
+        days_raw = request.args.get("days", "7")
+        try:
+            days = max(1, min(30, int(days_raw)))
+        except ValueError:
+            days = 7
+
+        now_ts = time.time()
+        cached = _PUBLIC_TRAFFIC_CACHE.get(days)
+        if cached and (now_ts - cached[0]) < _PUBLIC_TRAFFIC_CACHE_TTL:
+            return _mailbox_json_response(cached[1], 200)
+
+        def _fetch_public():
+            import datetime
+            repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            scripts_dir = os.path.join(repo_root, "scripts")
+            if scripts_dir not in sys.path:
+                sys.path.insert(0, scripts_dir)
+            from cloudflare_auth import CloudflareClient
+
+            cf = CloudflareClient()
+            zone_id = cf.creds.zone_id
+            zone_info = {"name": cf.creds.zone or "mikeytech.dev", "status": "active"}
+            if zone_id:
+                try:
+                    zr = (cf.api("GET", f"/zones/{zone_id}") or {}).get("result") or {}
+                    zone_info = {
+                        "name": zr.get("name", zone_info["name"]),
+                        "status": zr.get("status", "active"),
+                    }
+                except Exception:
+                    pass
+
+            analytics, _ = _fetch_cloudflare_traffic_analytics(cf, zone_id, days)
+            return {
+                "ok": True,
+                "zone": zone_info,
+                "analytics": analytics,
+                "cached_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
+            }
+
+        payload = await asyncio.to_thread(_fetch_public)
+        _PUBLIC_TRAFFIC_CACHE[days] = (now_ts, payload)
+        return _mailbox_json_response(payload, 200)
+    except Exception:
+        return _mailbox_json_response({"ok": False, "error": "Traffic metrics temporarily unavailable."}, 500)

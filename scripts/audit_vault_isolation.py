@@ -305,7 +305,10 @@ def _identity_and_unlock_checks(record_check):
                      + (f"alerts={[f['code'] + ': ' + f['detail'] for f in alerts]}" if alerts else "no tampering signals"))
         if config:
             record_check(cat, "Passkey verification configuration", False,
-                         "; ".join(f"{f['code']}: {f['detail']}" for f in config), warn=True)
+                         "; ".join(f"{f['code']}: {f['detail']}" for f in config), warn=False)
+        else:
+            record_check(cat, "Passkey verification configuration", True,
+                         "webauthn_config.json and passkey_setup_wizard.py enforce user verification and origin allow-list.")
     except Exception as e:
         record_check(cat, "DevCore passkey accounts match the owner-approved baseline", None, f"identity monitor error: {e}")
 

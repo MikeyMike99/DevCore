@@ -82,6 +82,12 @@ def stay_the_test_learner(live_test_server):
 def lab_env(monkeypatch):
     monkeypatch.setenv("SIRAUGGA_LAB_URL", LAB_URL)
     monkeypatch.setenv("SIRAUGGA_LAB_SECRET", LAB_SECRET)
+    # These tests are about the terminal, not about this machine's free memory: when Windows is short on RAM the real
+    # capacity rules (core/lab_capacity.py, tested in test_lab_capacity.py) would flip to "full" part-way through.
+    from core import lab_capacity
+    monkeypatch.setattr(lab_capacity, "available_mb", lambda: None)
+    monkeypatch.setattr(lab_capacity, "host_free_mb", lambda: None)
+    monkeypatch.setattr(lab_capacity, "load_per_cpu", lambda: None)
 
 
 def _post(base, body):
@@ -110,6 +116,7 @@ def _prepare_learner(target_step, accept=True):
         prog["terms_accepted"] = {"accepted": True, "version": proj_mod.COURSE_TERMS_VERSION}
         prog["registration"] = {"registered": True, "verified": True, "full_name": "Test Learner", "email": "t@example.com"}
     prog["completed_steps"] = before
+    prog["current_step_index"] = len(before)           # the page reopens where the learner left off
     prog["reflections"] = {i: {"reflection_done": True, "explain": "Done in the test, with a reflection long enough."} for i in before}
     proj_mod._save_progress_sync(COURSE, prog)
     return next(s for s in sections if s["id"] == target_step)
@@ -120,12 +127,27 @@ def test_course_step_runs_in_the_learners_container(live_test_server, lab_env):
     base = live_test_server["url"]
     status, res = _post(base, {
         "course_id": COURSE, "step_id": "lx1_6", "command": sec["expected_command"], "recording_name": sec["recording_name"],
-        "prediction": "I expect the first lines to describe the Linux distribution name and version."})
+        "prediction": "I expect the first lines to describe the Linux distribution name and version.",
+        "terminal_mode": "container"})
     assert status == 200 and res["ok"], res
+    assert res["mode_used"] == "container"
     assert res["progress"]["learner_name"] == "learner", "served as the OWNER, not the isolated test learner"
     # The old sandbox is the host's; a container shows Debian 12 from the lab image.
     assert "Debian" in res["output"], res["output"]
     assert "lx1_6" in res["progress"]["completed_steps"]
+
+
+def test_simulation_is_the_default_and_a_container_only_when_chosen(live_test_server, lab_env):
+    """If the learner does not specify, the simulation runs (efficient); a container only when 'container' is chosen."""
+    sec = _prepare_learner("lx1_6")
+    base = live_test_server["url"]
+    body = {"course_id": COURSE, "step_id": "lx1_6", "command": sec["expected_command"], "recording_name": sec["recording_name"],
+            "prediction": "I expect the first lines to describe the Linux distribution name and version."}
+    status, res = _post(base, body)
+    assert status == 200 and res["mode_used"] == "simulated", res
+    _prepare_learner("lx1_6")
+    status, res = _post(base, {**body, "terminal_mode": "container"})
+    assert status == 200 and res["mode_used"] == "container", res
 
 
 def test_live_terminal_endpoints(live_test_server, lab_env):
@@ -137,9 +159,9 @@ def test_live_terminal_endpoints(live_test_server, lab_env):
     assert res["available"] is False                              # only mapped courses get a terminal
     st, res = _post(base, {"action": "lab_terminal", "course_id": COURSE})
     assert st == 200 and res["ok"], res
-    assert res["terminal_url"].startswith(LAB_URL + "/t/") and res["terminal_url"].endswith("/")
+    assert res["terminal_url"].startswith("/lab/t/") and res["terminal_url"].endswith("/")   # served from Siraugga's own address
     assert "secret" not in json.dumps(res).lower()
-    with urllib.request.urlopen(res["terminal_url"], timeout=60) as page:
+    with urllib.request.urlopen(base + res["terminal_url"], timeout=100) as page:                # through the site, not the lab
         assert page.status == 200 and b"ttyd" in page.read().lower()
     st, res = _post(base, {"action": "lab_terminal", "course_id": "alp_phase2_bicep_course"})
     assert st == 404                                              # not offered for other courses
@@ -172,13 +194,19 @@ def test_browser_opens_the_live_terminal_and_types_into_it(rendering_browser, li
             csp_problems = []
             page.on("console", lambda m: csp_problems.append(m.text) if "Content Security Policy" in m.text else None)
             page.goto(f"{base}/course?course={COURSE}", wait_until="domcontentloaded")
+            # The simulated terminal is the recommended default; a real Linux container is the learner's choice.
+            simulated = page.locator("input[name=term-mode][value=simulated]")
+            simulated.wait_for(state="attached", timeout=30000)
+            assert simulated.is_checked()
+            assert not page.locator("#live-term-btn").is_visible()
+            page.locator("input[name=term-mode][value=container]").check()
             btn = page.locator("#live-term-btn")
             btn.wait_for(state="visible", timeout=30000)
             assert btn.get_attribute("aria-expanded") == "false"
             btn.click()
             frame_el = page.locator("#live-term-frame")
             frame_el.wait_for(state="visible", timeout=90000)
-            assert frame_el.get_attribute("src").startswith(LAB_URL + "/t/")
+            assert frame_el.get_attribute("src").startswith("/lab/t/")   # served from Siraugga's own address
             term = page.frame_locator("#live-term-frame")
             term.locator(".xterm-helper-textarea").wait_for(state="attached", timeout=60000)
             term.locator(".xterm").click()

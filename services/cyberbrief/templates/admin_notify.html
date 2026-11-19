@@ -62,7 +62,8 @@
 <main>
     <h1>CyberBrief admin</h1>
     <p class="dim">Newsletter backend running inside DevCore. Sender: <strong>{{ sender }}</strong> (replies are dropped).
-        Public site: <a href="{{ public_url }}/newsletter" rel="noopener">{{ public_url }}</a>.
+        Public site: <a href="{{ public_url }}/newsletter" rel="noopener">{{ public_url }}</a>
+        &bull; <a href="/admin/mailbox">Open Unified Mail Hub (Inbox &amp; Outbound)</a>.
         {% if mail_backend != 'smtp' %}<br><span class="warn">Mail backend is "{{ mail_backend }}": emails are stored locally, not sent.</span>{% endif %}</p>
     <p id="status" role="status" aria-live="polite"></p>
 

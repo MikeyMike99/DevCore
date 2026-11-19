@@ -104,7 +104,7 @@ def generate_dynamic_intent_suite() -> Dict[str, List[Any]]:
         "list files in {sub}",
         "what files are in folder {sub}",
     ]
-    subpaths = ["subfolder", "game_demo", "data", "src/components"]
+    subpaths = ["subfolder", "game_sandbox", "data", "src/components"]
 
     dir_cases: List[Tuple[str, bool, Optional[str]]] = [(p, True, "") for p in dir_roots]
     for tmpl in dir_sub_templates:
@@ -136,7 +136,7 @@ DIRECTORY_INTENT_CASES: List[Tuple[str, bool, Optional[str]]] = [
     ("ls", True, ""),
     ("ls subfolder/test", True, "subfolder/test"),
     ("browse the directory subfolder", True, "subfolder"),
-    ("show contents of game_demo", True, "game_demo"),
+    ("show contents of game_sandbox", True, "game_sandbox"),
     ("what is inside the folder data", True, "data"),
     ("list files in src/components", True, "src/components"),
     ("what files are in folder src/components", True, "src/components"),

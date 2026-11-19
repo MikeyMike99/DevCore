@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Siraugga | Unified Mail Hub (Inbox &amp; Outbound)</title>
+    <style>
+        :root {
+            --bg-base: #070a0f;
+            --panel-glass: rgba(10, 14, 20, 0.94);
+            --cyan: #00e5ff;
+            --magenta: #ff2d8d;
+            --amber: #ffb020;
+            --green: #00ff88;
+            --text-main: #ffffff;
+            --text-dim: #94a3b8;
+            --border-glow: rgba(0, 229, 255, 0.3);
+            --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 10px;
+            background: var(--cyan);
+            color: #000;
+            padding: 8px 16px;
+            font-weight: bold;
+            z-index: 9999;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .skip-link:focus { top: 10px; }
+        *:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+        .container { max-width: 1150px; margin: 0 auto; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--cyan);
+            padding-bottom: 16px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.45rem;
+            color: var(--cyan);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .nav-links { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 6px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        .nav-links a:hover, .nav-links a:focus-visible {
+            color: var(--cyan);
+            border-color: var(--cyan);
+            background: rgba(0, 229, 255, 0.1);
+        }
+        .status-card, .panel {
+            background: var(--panel-glass);
+            border: 1px solid var(--border-glow);
+            border-radius: 6px;
+            padding: 18px 20px;
+            margin-bottom: 20px;
+        }
+        .status-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .status-info { display: flex; gap: 22px; flex-wrap: wrap; }
+        .info-pill { display: flex; flex-direction: column; gap: 4px; }
+        .info-label { font-size: 0.72rem; color: var(--text-dim); text-transform: uppercase; }
+        .info-value { font-size: 0.92rem; font-weight: bold; color: var(--text-main); }
+        .badge {
+            display: inline-block;
+            padding: 3px 9px;
+            border-radius: 3px;
+            font-size: 0.76rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .badge-local { background: rgba(0, 229, 255, 0.2); color: var(--cyan); border: 1px solid var(--cyan); }
+        .badge-smtp { background: rgba(0, 255, 136, 0.2); color: var(--green); border: 1px solid var(--green); }
+        .badge-unread { background: rgba(255, 176, 32, 0.2); color: var(--amber); border: 1px solid var(--amber); }
+        .badge-failed { background: rgba(255, 45, 141, 0.2); color: var(--magenta); border: 1px solid var(--magenta); }
+        .btn {
+            background: transparent;
+            color: var(--cyan);
+            border: 1px solid var(--cyan);
+            padding: 8px 14px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn:hover, .btn:focus-visible { background: var(--cyan); color: #000; }
+        .btn:disabled { opacity: 0.5; cursor: wait; }
+        .btn-active { background: rgba(0, 229, 255, 0.2); }
+        .btn-green { color: var(--green); border-color: var(--green); }
+        .btn-green:hover, .btn-green:focus-visible { background: var(--green); color: #000; }
+        .btn-danger { color: var(--magenta); border-color: var(--magenta); }
+        .btn-danger:hover, .btn-danger:focus-visible { background: var(--magenta); color: #fff; }
+        .panel h2 {
+            margin-top: 0;
+            font-size: 1.08rem;
+            color: var(--cyan);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tabs-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+        .toolbar > div { display: flex; flex-direction: column; gap: 4px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group label, .toolbar label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+        }
+        .form-control {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        textarea.form-control { resize: vertical; min-height: 90px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .grid-3 { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; }
+        @media (max-width: 760px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+        .mail-list { list-style: none; padding: 0; margin: 0; max-height: 620px; overflow-y: auto; }
+        .mail-item {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            background: rgba(15, 20, 28, 0.75);
+            cursor: pointer;
+        }
+        .mail-item.unread { border-left: 4px solid var(--amber); background: rgba(255, 176, 32, 0.06); }
+        .mail-item:hover, .mail-item:focus-visible { border-color: var(--cyan); background: rgba(0, 229, 255, 0.08); }
+        .mail-item-header { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; font-size: 0.82rem; }
+        .mail-peer { color: var(--cyan); font-weight: bold; }
+        .mail-time { color: var(--text-dim); }
+        .mail-subject { font-size: 0.96rem; font-weight: bold; margin-bottom: 4px; color: #fff; }
+        .mail-snippet { font-size: 0.82rem; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .empty-state { text-align: center; padding: 36px 20px; color: var(--text-dim); }
+        .flash { padding: 12px 16px; border-radius: 4px; margin-bottom: 18px; font-size: 0.9rem; }
+        .flash-success { background: rgba(0, 255, 136, 0.15); border: 1px solid var(--green); color: var(--green); }
+        .flash-error { background: rgba(255, 45, 141, 0.15); border: 1px solid var(--magenta); color: var(--magenta); }
+        .flash-info { background: rgba(0, 229, 255, 0.15); border: 1px solid var(--cyan); color: var(--cyan); }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        .modal-card {
+            background: #0f141c;
+            border: 2px solid var(--cyan);
+            border-radius: 8px;
+            max-width: 860px;
+            width: 100%;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .modal-header h3 { margin: 0; color: var(--cyan); font-size: 1.05rem; }
+        .modal-body { padding: 18px 20px; overflow-y: auto; flex-grow: 1; }
+        .preview-iframe {
+            width: 100%;
+            height: 340px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 4px;
+            background: #fff;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <a href="#mainMailboxContent" class="skip-link">Skip to mailbox content</a>
+    <div id="srLiveFeedback" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="container">
+        <header class="header" role="banner">
+            <div>
+                <h1>Siraugga // Unified Mail Hub</h1>
+                <span style="font-size: 0.8rem; color: var(--text-dim);">INCOMING IMAP &bull; OUTBOUND SMTP &bull; SINGLE SOURCE OF TRUTH</span>
+            </div>
+            <nav class="nav-links" aria-label="Mailbox Navigation">
+                <a href="/" aria-label="Return to Siraugga Workspace">&larr; Back to Siraugga</a>
+                <a href="/admin/notify" aria-label="Open CyberBrief Newsletter Admin">CyberBrief Admin</a>
+                <a href="/chat/admin" aria-label="Open Private Chat Admin Inbox">Private Chat Inbox</a>
+            </nav>
+        </header>
+
+        <div id="dynamicAlertBanner" class="flash hidden" role="alert" aria-atomic="true"></div>
+
+        <main id="mainMailboxContent" role="main">
+            <section class="status-card" aria-label="Mail Configuration Overview">
+                <div class="status-info">
+                    <div class="info-pill">
+                        <span class="info-label">Active Mode</span>
+                        <span class="info-value" id="statusBackendDisplay"><span class="badge badge-local">Loading...</span></span>
+                    </div>
+                    <div class="info-pill">
+                        <span class="info-label">Outbound SMTP</span>
+                        <span class="info-value" id="statusSmtpDisplay">-</span>
+                    </div>
+                    <div class="info-pill">
+                        <span class="info-label">Incoming IMAP</span>
+                        <span class="info-value" id="statusImapDisplay">-</span>
+                    </div>
+                    <div class="info-pill">
+                        <span class="info-label">Account / Sender</span>
+                        <span class="info-value" id="statusUserDisplay">-</span>
+                    </div>
+                    <div class="info-pill">
+                        <span class="info-label">Outbound Log</span>
+                        <span class="info-value" id="statusOutboundCount">0 Items</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn" id="toggleConfigBtn" aria-expanded="false" aria-controls="configPanelSection">Configure Gateway &amp; Secrets</button>
+                    <button type="button" class="btn" id="btnTestSmtp">Test SMTP</button>
+                    <button type="button" class="btn btn-green" id="btnTestImap">Test IMAP</button>
+                </div>
+            </section>
+
+            <section class="panel hidden" id="configPanelSection" aria-label="SMTP and IMAP Gateway Configuration">
+                <h2>
+                    <span>Gateway &amp; Secrets Configuration (SMTP + IMAP)</span>
+                    <button type="button" class="btn" id="btnCloseConfigPanel" aria-label="Close configuration panel">[ Close ]</button>
+                </h2>
+
+                <div role="tablist" aria-label="Configuration Tabs" class="tabs-bar">
+                    <button type="button" class="btn btn-active" id="tabBtnSmtp" role="tab" aria-selected="true" aria-controls="tabContentSmtp">SMTP / IMAP / App Password</button>
+                    <button type="button" class="btn" id="tabBtnJson" role="tab" aria-selected="false" aria-controls="tabContentJson">Google Credentials JSON</button>
+                </div>
+
+                <div id="tabContentSmtp" role="tabpanel" aria-labelledby="tabBtnSmtp">
+                    <form id="smtpConfigForm">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="provider_preset">Provider Preset</label>
+                                <select id="provider_preset" class="form-control">
+                                    <option value="gmail">Google Gmail (SMTP + IMAP)</option>
+                                    <option value="sendgrid">SendGrid SMTP</option>
+                                    <option value="resend">Resend SMTP</option>
+                                    <option value="local">Local Mock Mode (No Internet)</option>
+                                    <option value="custom">Custom Server</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg_backend">Active Mode</label>
+                                <select id="cfg_backend" name="backend" class="form-control">
+                                    <option value="smtp">Live SMTP &amp; IMAP</option>
+                                    <option value="local">Local Mock Mailbox</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid-3">
+                            <div class="form-group">
+                                <label for="cfg_server">SMTP Server Host</label>
+                                <input type="text" id="cfg_server" name="server" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg_port">SMTP Port</label>
+                                <input type="number" id="cfg_port" name="port" class="form-control" value="587" required>
+                            </div>
+                            <div class="form-group" style="display:flex;align-items:center;padding-top:20px;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                                    <input type="checkbox" id="cfg_use_tls" name="use_tls" value="1" checked>
+                                    <span>SMTP STARTTLS</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid-3">
+                            <div class="form-group">
+                                <label for="cfg_imap_server">IMAP Server Host (blank = auto from SMTP)</label>
+                                <input type="text" id="cfg_imap_server" name="imap_server" class="form-control" placeholder="imap.gmail.com">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg_imap_port">IMAP Port</label>
+                                <input type="number" id="cfg_imap_port" name="imap_port" class="form-control" value="993">
+                            </div>
+                            <div class="form-group" style="display:flex;align-items:center;padding-top:20px;">
+                                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0;">
+                                    <input type="checkbox" id="cfg_imap_use_tls" name="imap_use_ssl" value="1" checked>
+                                    <span>IMAP SSL (993)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="cfg_username">Email Address / Username</label>
+                                <input type="text" id="cfg_username" name="username" class="form-control" placeholder="account@gmail.com" autocomplete="username">
+                            </div>
+                            <div class="form-group">
+                                <label for="cfg_password">App Password / Secret</label>
+                                <input type="password" id="cfg_password" name="password" class="form-control" placeholder="Leave blank to keep existing password" autocomplete="new-password">
+                                <span id="passHelpText" style="font-size: 0.72rem; color: var(--text-dim); display: block; margin-top: 4px;">
+                                    Stored securely in isolated server configuration (never exposed to AI agents).
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="cfg_default_sender">Default Sender Address / Label</label>
+                            <input type="text" id="cfg_default_sender" name="default_sender" class="form-control">
+                        </div>
+
+                        <button type="submit" class="btn btn-green" id="btnSaveSettings" style="width: 100%;">
+                            Save &amp; Verify SMTP + IMAP Settings
+                        </button>
+                    </form>
+                </div>
+
+                <div id="tabContentJson" role="tabpanel" aria-labelledby="tabBtnJson" class="hidden">
+                    <form id="googleJsonForm">
+                        <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0;">
+                            Paste Google Service Account or OAuth Client Secret JSON, or upload a <code>.json</code> file.
+                            <span id="googleJsonBadge" class="badge badge-smtp hidden">Active JSON Saved</span>
+                        </p>
+                        <div class="form-group">
+                            <label for="google_json">Paste JSON Content</label>
+                            <textarea id="google_json" name="google_json" class="form-control" rows="5" placeholder='{"type": "service_account", "project_id": "..."}'></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="google_json_file">Or Select JSON File</label>
+                            <input type="file" id="google_json_file" accept=".json" class="form-control">
+                        </div>
+                        <button type="submit" class="btn" id="btnSaveGoogleJson" style="width: 100%;">Save Google Credentials JSON</button>
+                    </form>
+                </div>
+            </section>
+
+            <div class="tabs-bar" role="tablist" aria-label="Mailbox Views">
+                <button type="button" class="btn btn-active" id="viewTabInbox" role="tab" aria-selected="true" aria-controls="panelInbox">Inbox (Incoming Mail)</button>
+                <button type="button" class="btn" id="viewTabOutbound" role="tab" aria-selected="false" aria-controls="panelOutbound">Outbound / Sent Log</button>
+                <button type="button" class="btn" id="viewTabCompose" role="tab" aria-selected="false" aria-controls="panelCompose">Compose / Send Email</button>
+            </div>
+
+            <!-- Panel 1: Incoming Mail -->
+            <section class="panel" id="panelInbox" role="tabpanel" aria-labelledby="viewTabInbox">
+                <h2>
+                    <span>Incoming Mail (IMAP / Local Inbox)</span>
+                    <span id="inboxMetaText" style="font-size: 0.8rem; color: var(--text-dim);">Ready</span>
+                </h2>
+                <div class="toolbar">
+                    <div style="min-width: 160px;">
+                        <label for="inboxFolder">Folder</label>
+                        <select id="inboxFolder" class="form-control">
+                            <option value="INBOX">INBOX</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1; min-width: 220px;">
+                        <label for="inboxSearch">Search Sender, Subject, or Text</label>
+                        <input type="search" id="inboxSearch" class="form-control" placeholder="e.g. verification, github, invoice...">
+                    </div>
+                    <div style="padding-bottom: 6px;">
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;color:var(--text-main);font-size:0.85rem;">
+                            <input type="checkbox" id="inboxUnreadOnly">
+                            <span>Unread only</span>
+                        </label>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-green" id="btnRefreshInbox">Refresh Inbox</button>
+                    </div>
+                </div>
+                <div id="inboxEmptyState" class="empty-state hidden">
+                    <p style="color:#fff;">No incoming emails matched.</p>
+                    <p>Configure live IMAP credentials or click Refresh Inbox to fetch messages.</p>
+                </div>
+                <ul class="mail-list" id="inboxListElement" role="list"></ul>
+            </section>
+
+            <!-- Panel 2: Outbound Log -->
+            <section class="panel hidden" id="panelOutbound" role="tabpanel" aria-labelledby="viewTabOutbound">
+                <h2>
+                    <span>Outbound &amp; Mock Dispatch Log</span>
+                    <div style="display:flex;gap:8px;">
+                        <button type="button" class="btn" id="btnRefreshOutbound">Refresh Log</button>
+                        <button type="button" class="btn btn-danger" id="btnClearMailbox">Clear Outbound Log</button>
+                    </div>
+                </h2>
+                <div id="outboundEmptyState" class="empty-state hidden">
+                    <p style="color:#fff;">No outbound emails recorded yet.</p>
+                </div>
+                <ul class="mail-list" id="outboundListElement" role="list"></ul>
+            </section>
+
+            <!-- Panel 3: Compose -->
+            <section class="panel hidden" id="panelCompose" role="tabpanel" aria-labelledby="viewTabCompose">
+                <h2><span>Compose &amp; Send Email</span></h2>
+                <form id="composeForm">
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="compose_to">Recipient Email</label>
+                            <input type="email" id="compose_to" class="form-control" required placeholder="recipient@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="compose_action_url">Optional Action Button URL</label>
+                            <input type="url" id="compose_action_url" class="form-control" placeholder="https://mikeytech.dev">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="compose_subject">Subject</label>
+                        <input type="text" id="compose_subject" class="form-control" required placeholder="Subject line">
+                    </div>
+                    <div class="form-group">
+                        <label for="compose_message">Message</label>
+                        <textarea id="compose_message" class="form-control" rows="6" required placeholder="Write your message..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-green" id="btnSendCompose" style="width: 100%;">Send Email</button>
+                </form>
+            </section>
+        </main>
+    </div>
+
+    <!-- Email Inspection & Reply Modal -->
+    <div id="previewModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalSubject">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalSubject">Email Inspection</h3>
+                <button type="button" class="btn" id="modalCloseBtn" aria-label="Close email inspection dialog">[ &times; Close ]</button>
+            </div>
+            <div class="modal-body">
+                <div style="font-size: 0.84rem; color: var(--text-dim); margin-bottom: 12px; display: grid; gap: 4px;">
+                    <div><strong style="color: #fff;">From:</strong> <span id="modalFrom"></span></div>
+                    <div><strong style="color: #fff;">To:</strong> <span id="modalTo"></span></div>
+                    <div><strong style="color: #fff;">Timestamp:</strong> <span id="modalTime"></span></div>
+                    <div id="modalAttachmentsRow" class="hidden"><strong style="color: #fff;">Attachments:</strong> <span id="modalAttachments"></span></div>
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;" id="modalActionsBar">
+                    <button type="button" class="btn btn-active" id="btnShowHtmlView">Sanitized HTML</button>
+                    <button type="button" class="btn" id="btnShowTextView">Plaintext</button>
+                    <button type="button" class="btn btn-green hidden" id="btnToggleReadStatus">Mark Unread</button>
+                </div>
+
+                <iframe id="previewFrame" class="preview-iframe" sandbox="" referrerpolicy="no-referrer" title="Sanitized Email Preview"></iframe>
+                <pre id="modalPlaintext" class="hidden" style="background: #000; padding: 12px; border-radius: 4px; overflow: auto; max-height: 340px; color: #e2e8f0; font-size: 0.84rem; white-space: pre-wrap; margin: 0;"></pre>
+
+                <div id="replySection" class="hidden" style="margin-top: 18px; border-top: 1px solid rgba(255,255,255,0.12); padding-top: 14px;">
+                    <h4 style="margin: 0 0 10px 0; color: var(--cyan);">Reply</h4>
+                    <form id="replyForm">
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label for="reply_to">To</label>
+                                <input type="text" id="reply_to" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="reply_subject">Subject</label>
+                                <input type="text" id="reply_subject" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="reply_body">Reply Message</label>
+                            <textarea id="reply_body" class="form-control" rows="4" required placeholder="Type your reply..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-green" id="btnSendReply">Send Reply</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let inboxData = [];
+        let outboundData = [];
+        let currentModalItem = null;
+        let currentModalKind = 'inbound';
+        let lastFocusedElement = null;
+
+        function announceAria(message) {
+            const sr = document.getElementById('srLiveFeedback');
+            if (sr) {
+                sr.textContent = '';
+                setTimeout(() => { sr.textContent = message; }, 40);
+            }
+        }
+
+        function showNotification(message, category = 'success') {
+            const banner = document.getElementById('dynamicAlertBanner');
+            if (!banner) return;
+            banner.className = 'flash flash-' + category;
+            banner.textContent = message;
+            banner.classList.remove('hidden');
+            announceAria(message);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        async function apiJson(url, options = {}) {
+            const res = await fetch(url, {
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', ...(options.headers || {}) },
+                ...options,
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok && data.error && !data.message) data.message = data.error;
+            return { ok: res.ok, status: res.status, data };
+        }
+
+        async function loadStatus() {
+            const { ok, data } = await apiJson('/api/mailbox/status');
+            if (!ok || !data.success) return;
+            const st = data.status || {};
+            const isSmtp = String(st.backend || '').toLowerCase() === 'smtp';
+            document.getElementById('statusBackendDisplay').innerHTML = isSmtp
+                ? '<span class="badge badge-smtp">Live SMTP + IMAP</span>'
+                : '<span class="badge badge-local">Local Mock</span>';
+            document.getElementById('statusSmtpDisplay').textContent = `${st.smtp_server || '-'}:${st.smtp_port || '-'}`;
+            const imapText = st.imap_server
+                ? `${st.imap_server}:${st.imap_port}${st.imap_auto_derived ? ' (auto)' : ''}`
+                : 'Not set';
+            document.getElementById('statusImapDisplay').textContent = imapText;
+            document.getElementById('statusUserDisplay').textContent = st.username || st.default_sender || '(none)';
+            document.getElementById('statusOutboundCount').textContent = `${st.outbound_count || 0} Items`;
+
+            document.getElementById('cfg_backend').value = st.backend || 'smtp';
+            document.getElementById('cfg_server').value = st.smtp_server || 'smtp.gmail.com';
+            document.getElementById('cfg_port').value = st.smtp_port || 587;
+            document.getElementById('cfg_use_tls').checked = Boolean(st.use_tls);
+            document.getElementById('cfg_imap_server').value = st.imap_auto_derived ? '' : (st.imap_server || '');
+            document.getElementById('cfg_imap_port').value = st.imap_port || 993;
+            document.getElementById('cfg_imap_use_tls').checked = Boolean(st.imap_use_ssl);
+            document.getElementById('cfg_username').value = st.username || '';
+            document.getElementById('cfg_default_sender').value = st.default_sender || '';
+            document.getElementById('cfg_password').placeholder = st.has_password
+                ? 'Password saved (leave blank to keep)'
+                : 'Paste 16-character App Password';
+            document.getElementById('googleJsonBadge').classList.toggle('hidden', !st.has_google_json);
+            if (st.username && !document.getElementById('compose_to').value) {
+                document.getElementById('compose_to').value = st.username;
+            }
+        }
+
+        async function loadFolders() {
+            const sel = document.getElementById('inboxFolder');
+            const keep = sel.value || 'INBOX';
+            const { ok, data } = await apiJson('/api/mailbox/folders');
+            if (!ok || !Array.isArray(data.folders)) return;
+            sel.innerHTML = '';
+            data.folders.forEach((f) => {
+                const opt = document.createElement('option');
+                opt.value = f.name;
+                opt.textContent = f.label || f.name;
+                sel.appendChild(opt);
+            });
+            if (Array.from(sel.options).some((o) => o.value === keep)) sel.value = keep;
+        }
+
+        function renderInboxList() {
+            const listEl = document.getElementById('inboxListElement');
+            const emptyEl = document.getElementById('inboxEmptyState');
+            listEl.innerHTML = '';
+            if (!inboxData.length) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            emptyEl.classList.add('hidden');
+            inboxData.forEach((item) => {
+                const li = document.createElement('li');
+                li.className = 'mail-item' + (item.is_read ? '' : ' unread');
+                li.tabIndex = 0;
+                li.setAttribute('role', 'button');
+                li.setAttribute('aria-label', `${item.is_read ? '' : 'Unread '}email from ${item.from}: ${item.subject}`);
+                const openFn = () => openIncomingEmail(item.uid, item.folder || 'INBOX');
+                li.addEventListener('click', openFn);
+                li.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openFn();
+                    }
+                });
+                const unreadBadge = item.is_read
+                    ? '<span class="badge badge-local">Read</span>'
+                    : '<span class="badge badge-unread">Unread</span>';
+                const attBadge = (item.attachments && item.attachments.length)
+                    ? `<span class="badge badge-smtp">${item.attachments.length} attachment(s)</span>`
+                    : '';
+                li.innerHTML = `
+                    <div class="mail-item-header">
+                        <span class="mail-peer">FROM: ${escapeHtml(item.from)}</span>
+                        <span class="mail-time">${escapeHtml(item.timestamp || item.date || '')}</span>
+                    </div>
+                    <div class="mail-subject">${escapeHtml(item.subject || '(No Subject)')}</div>
+                    <div class="mail-snippet">${escapeHtml(item.snippet || '')}</div>
+                    <div style="margin-top: 8px; display:flex; gap:6px; flex-wrap:wrap;">${unreadBadge}${attBadge}</div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        async function loadInbox() {
+            const folder = document.getElementById('inboxFolder').value || 'INBOX';
+            const q = document.getElementById('inboxSearch').value.trim();
+            const unread = document.getElementById('inboxUnreadOnly').checked ? '1' : '0';
+            const meta = document.getElementById('inboxMetaText');
+            meta.textContent = 'Loading...';
+            const qs = new URLSearchParams({ folder, q, unread, limit: '30' });
+            const { ok, data } = await apiJson(`/api/mailbox/inbox?${qs.toString()}`);
+            if (ok && data.success) {
+                inboxData = data.messages || [];
+                meta.textContent = data.message || `${inboxData.length} item(s)`;
+                renderInboxList();
+                announceAria(meta.textContent);
+            } else {
+                inboxData = [];
+                renderInboxList();
+                meta.textContent = data.message || 'Could not load inbox';
+                showNotification(meta.textContent, 'error');
+            }
+        }
+
+        function renderOutboundList() {
+            const listEl = document.getElementById('outboundListElement');
+            const emptyEl = document.getElementById('outboundEmptyState');
+            listEl.innerHTML = '';
+            if (!outboundData.length) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            emptyEl.classList.add('hidden');
+            outboundData.forEach((item) => {
+                const li = document.createElement('li');
+                li.className = 'mail-item';
+                li.tabIndex = 0;
+                li.setAttribute('role', 'button');
+                li.setAttribute('aria-label', `Sent email to ${item.to}: ${item.subject}`);
+                const openFn = () => openModalItem(item, 'outbound');
+                li.addEventListener('click', openFn);
+                li.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openFn();
+                    }
+                });
+                const status = String(item.status || '');
+                const badge = status.includes('SENT_SMTP')
+                    ? '<span class="badge badge-smtp">Sent via SMTP</span>'
+                    : status.includes('DELIVERED_LOCAL')
+                        ? '<span class="badge badge-local">Local Mailbox</span>'
+                        : `<span class="badge badge-failed">${escapeHtml(status)}</span>`;
+                li.innerHTML = `
+                    <div class="mail-item-header">
+                        <span class="mail-peer">TO: ${escapeHtml(item.to)}</span>
+                        <span class="mail-time">${escapeHtml(item.timestamp)}</span>
+                    </div>
+                    <div class="mail-subject">${escapeHtml(item.subject)}</div>
+                    <div class="mail-snippet">${escapeHtml(item.text || '')}</div>
+                    <div style="margin-top: 8px;">${badge}</div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        async function loadOutbound() {
+            const { ok, data } = await apiJson('/api/mailbox/outbound?limit=100');
+            if (ok && data.success) {
+                outboundData = data.emails || [];
+                document.getElementById('statusOutboundCount').textContent = `${outboundData.length} Items`;
+                renderOutboundList();
+            }
+        }
+
+        async function openIncomingEmail(uid, folder) {
+            announceAria('Fetching email content...');
+            const qs = new URLSearchParams({ folder, mark_read: '0' });
+            const { ok, data } = await apiJson(`/api/mailbox/inbox/${encodeURIComponent(uid)}?${qs.toString()}`);
+            if (!ok || !data.success || !data.email) {
+                showNotification(data.message || 'Could not load email details.', 'error');
+                return;
+            }
+            openModalItem(data.email, 'inbound');
+        }
+
+        function setModalBodyMode(mode) {
+            const frame = document.getElementById('previewFrame');
+            const pre = document.getElementById('modalPlaintext');
+            const btnHtml = document.getElementById('btnShowHtmlView');
+            const btnText = document.getElementById('btnShowTextView');
+            if (mode === 'text') {
+                frame.classList.add('hidden');
+                pre.classList.remove('hidden');
+                btnHtml.classList.remove('btn-active');
+                btnText.classList.add('btn-active');
+            } else {
+                frame.classList.remove('hidden');
+                pre.classList.add('hidden');
+                btnHtml.classList.add('btn-active');
+                btnText.classList.remove('btn-active');
+            }
+        }
+
+        function openModalItem(item, kind) {
+            currentModalItem = item;
+            currentModalKind = kind;
+            lastFocusedElement = document.activeElement;
+
+            document.getElementById('modalSubject').textContent = item.subject || 'Email Inspection';
+            document.getElementById('modalFrom').textContent = item.from || '(Unknown)';
+            document.getElementById('modalTo').textContent = item.to || '(Unknown)';
+            document.getElementById('modalTime').textContent = item.timestamp || item.date || '';
+            document.getElementById('modalPlaintext').textContent = item.text || '(No plaintext content)';
+
+            const attRow = document.getElementById('modalAttachmentsRow');
+            const attSpan = document.getElementById('modalAttachments');
+            if (item.attachments && item.attachments.length) {
+                attSpan.textContent = item.attachments.map((a) => `${a.filename} (${a.size || 0} B)`).join(', ');
+                attRow.classList.remove('hidden');
+            } else {
+                attRow.classList.add('hidden');
+            }
+
+            const frame = document.getElementById('previewFrame');
+            frame.srcdoc = item.html || `<pre style="font-family:monospace;white-space:pre-wrap;">${escapeHtml(item.text || '')}</pre>`;
+            setModalBodyMode(item.html ? 'html' : 'text');
+
+            const readBtn = document.getElementById('btnToggleReadStatus');
+            const replySection = document.getElementById('replySection');
+            if (kind === 'inbound') {
+                readBtn.classList.remove('hidden');
+                readBtn.textContent = item.is_read ? 'Mark Unread' : 'Mark Read';
+                replySection.classList.remove('hidden');
+                document.getElementById('reply_to').value = item.reply_to || item.from || '';
+                const subj = item.subject || '';
+                document.getElementById('reply_subject').value = subj.toLowerCase().startsWith('re:') ? subj : `Re: ${subj}`;
+                document.getElementById('reply_body').value = '';
+            } else {
+                readBtn.classList.add('hidden');
+                replySection.classList.add('hidden');
+            }
+
+            const modal = document.getElementById('previewModal');
+            modal.style.display = 'flex';
+            document.getElementById('modalCloseBtn').focus();
+            announceAria(`Opened email: ${item.subject}. Press Escape to close.`);
+        }
+
+        function closePreview() {
+            document.getElementById('previewModal').style.display = 'none';
+            if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+                lastFocusedElement.focus();
+            }
+        }
+
+        function switchMainView(tab) {
+            const views = {
+                inbox: ['viewTabInbox', 'panelInbox'],
+                outbound: ['viewTabOutbound', 'panelOutbound'],
+                compose: ['viewTabCompose', 'panelCompose'],
+            };
+            Object.entries(views).forEach(([k, [btnId, panelId]]) => {
+                const active = k === tab;
+                const btn = document.getElementById(btnId);
+                const panel = document.getElementById(panelId);
+                btn.classList.toggle('btn-active', active);
+                btn.setAttribute('aria-selected', active ? 'true' : 'false');
+                panel.classList.toggle('hidden', !active);
+            });
+            if (tab === 'outbound') loadOutbound();
+        }
+
+        function switchConfigTab(tab) {
+            const isSmtp = tab === 'smtp';
+            document.getElementById('tabContentSmtp').classList.toggle('hidden', !isSmtp);
+            document.getElementById('tabContentJson').classList.toggle('hidden', isSmtp);
+            document.getElementById('tabBtnSmtp').classList.toggle('btn-active', isSmtp);
+            document.getElementById('tabBtnJson').classList.toggle('btn-active', !isSmtp);
+            document.getElementById('tabBtnSmtp').setAttribute('aria-selected', isSmtp ? 'true' : 'false');
+            document.getElementById('tabBtnJson').setAttribute('aria-selected', isSmtp ? 'false' : 'true');
+        }
+
+        function toggleConfigPanel(forceClose = false) {
+            const panel = document.getElementById('configPanelSection');
+            const btn = document.getElementById('toggleConfigBtn');
+            const shouldOpen = !forceClose && panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !shouldOpen);
+            btn.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+            btn.textContent = shouldOpen ? 'Hide Configuration' : 'Configure Gateway & Secrets';
+        }
+
+        function applyPreset(preset) {
+            const backend = document.getElementById('cfg_backend');
+            const server = document.getElementById('cfg_server');
+            const port = document.getElementById('cfg_port');
+            const tls = document.getElementById('cfg_use_tls');
+            const imapServer = document.getElementById('cfg_imap_server');
+            const imapPort = document.getElementById('cfg_imap_port');
+            const imapSsl = document.getElementById('cfg_imap_use_tls');
+            if (preset === 'gmail') {
+                backend.value = 'smtp';
+                server.value = 'smtp.gmail.com';
+                port.value = '587';
+                tls.checked = true;
+                imapServer.value = 'imap.gmail.com';
+                imapPort.value = '993';
+                imapSsl.checked = true;
+            } else if (preset === 'sendgrid') {
+                backend.value = 'smtp';
+                server.value = 'smtp.sendgrid.net';
+                port.value = '587';
+                tls.checked = true;
+                document.getElementById('cfg_username').value = 'apikey';
+            } else if (preset === 'resend') {
+                backend.value = 'smtp';
+                server.value = 'smtp.resend.com';
+                port.value = '587';
+                tls.checked = true;
+                document.getElementById('cfg_username').value = 'resend';
+            } else if (preset === 'local') {
+                backend.value = 'local';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('toggleConfigBtn').addEventListener('click', () => toggleConfigPanel(false));
+            document.getElementById('btnCloseConfigPanel').addEventListener('click', () => toggleConfigPanel(true));
+            document.getElementById('tabBtnSmtp').addEventListener('click', () => switchConfigTab('smtp'));
+            document.getElementById('tabBtnJson').addEventListener('click', () => switchConfigTab('json'));
+            document.getElementById('provider_preset').addEventListener('change', (e) => applyPreset(e.target.value));
+
+            document.getElementById('viewTabInbox').addEventListener('click', () => switchMainView('inbox'));
+            document.getElementById('viewTabOutbound').addEventListener('click', () => switchMainView('outbound'));
+            document.getElementById('viewTabCompose').addEventListener('click', () => switchMainView('compose'));
+
+            document.getElementById('btnRefreshInbox').addEventListener('click', loadInbox);
+            document.getElementById('inboxFolder').addEventListener('change', loadInbox);
+            document.getElementById('inboxUnreadOnly').addEventListener('change', loadInbox);
+            document.getElementById('inboxSearch').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); loadInbox(); }
+            });
+            document.getElementById('btnRefreshOutbound').addEventListener('click', loadOutbound);
+
+            document.getElementById('btnShowHtmlView').addEventListener('click', () => setModalBodyMode('html'));
+            document.getElementById('btnShowTextView').addEventListener('click', () => setModalBodyMode('text'));
+            document.getElementById('modalCloseBtn').addEventListener('click', closePreview);
+            document.getElementById('previewModal').addEventListener('click', (e) => {
+                if (e.target.id === 'previewModal') closePreview();
+            });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && document.getElementById('previewModal').style.display === 'flex') {
+                    closePreview();
+                }
+            });
+
+            document.getElementById('btnTestSmtp').addEventListener('click', async () => {
+                const { data } = await apiJson('/api/mailbox/test', { method: 'POST', body: JSON.stringify({ protocol: 'smtp' }) });
+                showNotification(data.message || 'SMTP test finished.', data.success ? 'success' : 'error');
+            });
+
+            document.getElementById('btnTestImap').addEventListener('click', async () => {
+                const { data } = await apiJson('/api/mailbox/test', { method: 'POST', body: JSON.stringify({ protocol: 'imap' }) });
+                showNotification(data.message || 'IMAP test finished.', data.success ? 'success' : 'error');
+            });
+
+            document.getElementById('smtpConfigForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('btnSaveSettings');
+                btn.disabled = true;
+                try {
+                    const payload = {
+                        backend: document.getElementById('cfg_backend').value,
+                        server: document.getElementById('cfg_server').value,
+                        port: document.getElementById('cfg_port').value,
+                        use_tls: document.getElementById('cfg_use_tls').checked,
+                        imap_server: document.getElementById('cfg_imap_server').value,
+                        imap_port: document.getElementById('cfg_imap_port').value,
+                        imap_use_ssl: document.getElementById('cfg_imap_use_tls').checked,
+                        username: document.getElementById('cfg_username').value,
+                        password: document.getElementById('cfg_password').value,
+                        default_sender: document.getElementById('cfg_default_sender').value,
+                    };
+                    const { ok, data } = await apiJson('/api/mailbox/settings', { method: 'POST', body: JSON.stringify(payload) });
+                    showNotification(data.message || 'Settings saved.', ok && data.success && data.conn_ok !== false ? 'success' : 'error');
+                    if (ok && data.success) {
+                        document.getElementById('cfg_password').value = '';
+                        await loadStatus();
+                        await loadFolders();
+                        await loadInbox();
+                    }
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            document.getElementById('googleJsonForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                let rawJson = document.getElementById('google_json').value.trim();
+                const fileInput = document.getElementById('google_json_file');
+                if (!rawJson && fileInput.files && fileInput.files[0]) {
+                    rawJson = await fileInput.files[0].text();
+                }
+                const { ok, data } = await apiJson('/api/mailbox/upload-google-json', {
+                    method: 'POST',
+                    body: JSON.stringify({ google_json: rawJson }),
+                });
+                showNotification(data.message || 'Google JSON processed.', ok && data.success ? 'success' : 'error');
+                if (ok && data.success) await loadStatus();
+            });
+
+            document.getElementById('btnClearMailbox').addEventListener('click', async () => {
+                if (!confirm('Clear all outbound records from the local mailbox cache?')) return;
+                const { ok, data } = await apiJson('/api/mailbox/clear', { method: 'POST', body: JSON.stringify({}) });
+                showNotification(data.message || 'Cleared.', ok && data.success ? 'success' : 'error');
+                if (ok && data.success) await loadOutbound();
+            });
+
+            document.getElementById('composeForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = document.getElementById('btnSendCompose');
+                btn.disabled = true;
+                try {
+                    const payload = {
+                        to_address: document.getElementById('compose_to').value,
+                        subject: document.getElementById('compose_subject').value,
+                        message: document.getElementById('compose_message').value,
+                        action_url: document.getElementById('compose_action_url').value,
+                    };
+                    const { ok, data } = await apiJson('/api/mailbox/send', { method: 'POST', body: JSON.stringify(payload) });
+                    showNotification(data.message || 'Dispatched.', ok && data.success ? 'success' : 'error');
+                    if (ok && data.success) {
+                        document.getElementById('compose_message').value = '';
+                        await loadOutbound();
+                    }
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            document.getElementById('btnToggleReadStatus').addEventListener('click', async () => {
+                if (!currentModalItem || currentModalKind !== 'inbound') return;
+                const nextRead = !currentModalItem.is_read;
+                const { ok, data } = await apiJson(`/api/mailbox/inbox/${encodeURIComponent(currentModalItem.uid)}/read`, {
+                    method: 'POST',
+                    body: JSON.stringify({ folder: currentModalItem.folder || 'INBOX', read: nextRead }),
+                });
+                if (ok && data.success) {
+                    currentModalItem.is_read = nextRead;
+                    document.getElementById('btnToggleReadStatus').textContent = nextRead ? 'Mark Unread' : 'Mark Read';
+                    const idx = inboxData.findIndex((x) => String(x.uid) === String(currentModalItem.uid));
+                    if (idx !== -1) {
+                        inboxData[idx].is_read = nextRead;
+                        renderInboxList();
+                    }
+                    showNotification(data.message, 'success');
+                } else {
+                    showNotification(data.message || 'Failed to update read status.', 'error');
+                }
+            });
+
+            document.getElementById('replyForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!currentModalItem) return;
+                const btn = document.getElementById('btnSendReply');
+                btn.disabled = true;
+                try {
+                    const payload = {
+                        to_address: document.getElementById('reply_to').value,
+                        subject: document.getElementById('reply_subject').value,
+                        body: document.getElementById('reply_body').value,
+                        in_reply_to: currentModalItem.message_id || '',
+                        references: currentModalItem.references || currentModalItem.message_id || '',
+                        original_from: currentModalItem.from || '',
+                        original_date: currentModalItem.timestamp || currentModalItem.date || '',
+                        original_quote: currentModalItem.text || '',
+                    };
+                    const { ok, data } = await apiJson('/api/mailbox/reply', { method: 'POST', body: JSON.stringify(payload) });
+                    showNotification(data.message || 'Reply sent.', ok && data.success ? 'success' : 'error');
+                    if (ok && data.success) {
+                        document.getElementById('reply_body').value = '';
+                        await loadOutbound();
+                    }
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+
+            loadStatus().then(() => Promise.all([loadFolders(), loadInbox(), loadOutbound()]));
+        });
+    </script>
+</body>
+</html>

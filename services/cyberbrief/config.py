@@ -13,6 +13,18 @@ _FILE_ENV = {k: v for k, v in dotenv_values(ROOT_DIR / ".env").items() if v is n
 def _env(key, default=None):
     return _FILE_ENV.get(key, os.environ.get(key, default))
 
+_WEAK_PREFIXES = ("SECURE_ADMIN_", "SECURE_EMPLOYER_", "YourSuperSecret", "A_Long_Random_")
+
+
+def _clean_env_key(name: str, reject_user: bool = False) -> str:
+    val = (_env(name) or "").strip()
+    if not val or any(val.startswith(p) for p in _WEAK_PREFIXES):
+        return ""
+    if reject_user and val.lower() == "user":
+        return ""
+    return val
+
+
 class Config:
     # 1. Base Paths
     ROOT_DIR = ROOT_DIR
@@ -23,10 +35,10 @@ class Config:
     # 2. Centralized Documentation Sources (Zero-Touch Discovery)
     CENTRAL_DOCS_DIR = Path(_env("CENTRAL_DOCS_DIR", "/mnt/c/Users/michael/Documents/Central_Docs"))
     
-    # 2. Handshake Security Keys (Loaded from ENV for security)
-    ADMIN_KEY = _env("ADMIN_KEY", "SECURE_ADMIN_KEY_HERE")
-    USER_KEY = _env("USER_KEY", "USER")
-    EMPLOYER_KEY = _env("EMPLOYER_KEY", "SECURE_EMPLOYER_KEY_HERE")
+    # 2. Handshake Security Keys (Loaded from ENV for security; reject placeholders)
+    ADMIN_KEY = _clean_env_key("ADMIN_KEY")
+    USER_KEY = _clean_env_key("USER_KEY", reject_user=True)
+    EMPLOYER_KEY = _clean_env_key("EMPLOYER_KEY")
 
     # --- AI Brain Credentials (Claude) ---
     # Single named surface for the host; env is the one source of truth.

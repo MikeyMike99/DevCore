@@ -179,6 +179,11 @@ def tick(now: datetime | None = None, *, refresh=None, send=None, manifest=None)
                 state["last_refresh_ts"] = time.time()
                 state["last_refresh_result"] = (result or {}).get("status") or (result or {}).get("note") or "ok"
                 did["refreshed"] = True
+                try:
+                    from core.course_automation import run_full_course_automation_pipeline
+                    did["course_pipeline"] = run_full_course_automation_pipeline()
+                except Exception as exc:
+                    log.warning("CyberBrief course automation hook error: %s", exc)
             except Exception as exc:  # network down etc.: try again next pass
                 log.warning("CyberBrief feed refresh failed: %s", exc)
                 state["last_refresh_result"] = f"error: {exc}"

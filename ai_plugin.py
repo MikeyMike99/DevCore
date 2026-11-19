@@ -275,29 +275,6 @@ def _get_or_create_ai_loop():
         time.sleep(0.05)
     return ai_loop
 
-DEMO_TOKEN_TTL_SECONDS = 7 * 24 * 3600
-
-
-def _get_demo_dirs() -> list:
-    candidates = [
-        PLUGIN_DIR / "demo",
-        Path.cwd() / "content" / "projects" / "demo",
-        PLUGIN_DIR.parent.parent / "demo",
-        Path.cwd() / "demo",
-    ]
-    out = []
-    seen = set()
-    for c in candidates:
-        try:
-            r = str(c.resolve())
-        except Exception:
-            r = str(c)
-        if r not in seen:
-            seen.add(r)
-            out.append(str(c))
-    return out
-
-
 def _get_eprofile_root() -> Path:
     for root in _iter_relative_roots():
         if (root / "server.py").is_file() and (root / "projects_mod.py").is_file():
@@ -305,27 +282,9 @@ def _get_eprofile_root() -> Path:
     return PLUGIN_DIR.parent
 
 
-def _cleanup_expired_demo_tokens():
-    now = time.time()
-    for d_dir in _get_demo_dirs():
-        if not os.path.exists(d_dir):
-            continue
-        try:
-            for root, _, files in os.walk(d_dir):
-                for fname in files:
-                    fpath = os.path.join(root, fname)
-                    try:
-                        if now - os.path.getmtime(fpath) > DEMO_TOKEN_TTL_SECONDS:
-                            os.unlink(fpath)
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-
-
 def _resolve_token_scope() -> str:
-    demo_arg = request.args.get("demo")
-    mode_arg = request.args.get("mode")
+    """Only a signed-in admin (or the host owner) works with the root credentials; everyone else is a plain user
+    and has no host credentials of their own here."""
     auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
     bearer_user = security_mgr.get_user_from_token(auth_header) if auth_header else None
     is_master = security_mgr.check_master_signature()
@@ -335,47 +294,23 @@ def _resolve_token_scope() -> str:
         session["is_admin"] = True
         return "root"
 
-    if demo_arg == "1" or mode_arg == "demo" or session.get("agent_token_scope") == "demo":
-        session["agent_token_scope"] = "demo"
-        return "demo"
-    elif demo_arg == "0" or mode_arg in ("root", "admin"):
-        session["agent_token_scope"] = "root"
-        return "root"
-
     is_admin = bool(
         session.get("is_admin")
         or session.get("admin")
         or (bearer_user and is_admin_role(bearer_user.get("role")))
         or is_master
     )
-
-    if is_admin and not demo_arg:
+    if is_admin:
         session["agent_token_scope"] = "root"
         return "root"
 
-    return session.get("agent_token_scope", "demo")
-
-
-def _sync_demo_oauth_token():
-    for d_dir in _get_demo_dirs():
-        visible_token = os.path.join(d_dir, "antigravity-oauth-token")
-        cli_token = os.path.join(d_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token")
-        try:
-            if os.path.exists(visible_token) and not os.path.exists(cli_token):
-                os.makedirs(os.path.dirname(cli_token), exist_ok=True)
-                shutil.copy2(visible_token, cli_token)
-            elif os.path.exists(cli_token) and not os.path.exists(visible_token):
-                os.makedirs(d_dir, exist_ok=True)
-                shutil.copy2(cli_token, visible_token)
-        except Exception:
-            pass
+    session["agent_token_scope"] = "user"
+    return "user"
 
 
 def _get_cli_credential_details(scope: str = None) -> dict:
     import datetime
-    active_scope = scope or _resolve_token_scope()
-    active_scope = "demo" if str(active_scope).lower() == "demo" else "root"
-    _cleanup_expired_demo_tokens()
+    active_scope = "root" if (scope or _resolve_token_scope()) == "root" else "user"
 
     details = {
         "authorized": False,
@@ -389,57 +324,7 @@ def _get_cli_credential_details(scope: str = None) -> dict:
         "cli_installed": bool(_find_agy_binary()),
     }
 
-    if active_scope == "demo":
-        for d in _get_demo_dirs():
-            for rel in [
-                os.path.join(".gemini", "antigravity-cli", "antigravity-oauth-token"),
-                "antigravity-oauth-token"
-            ]:
-                cand = os.path.join(d, rel)
-                if os.path.isfile(cand) and os.path.getsize(cand) > 8:
-                    try:
-                        with open(cand, "r", encoding="utf-8") as f:
-                            tok_data = json.load(f)
-                        token_obj = tok_data.get("token", {})
-                        exp_str = token_obj.get("expiry")
-                        is_exp = False
-                        if exp_str:
-                            try:
-                                exp_dt = datetime.datetime.fromisoformat(exp_str.replace("Z", "+00:00"))
-                                is_exp = datetime.datetime.now(datetime.timezone.utc) > exp_dt
-                            except Exception:
-                                pass
-                        email = tok_data.get("id_token_email") or "Demo Google Account"
-                        has_ref = bool(token_obj.get("refresh_token"))
-                        details.update({
-                            "authorized": (not is_exp) or has_ref,
-                            "auth_method": "oauth",
-                            "account": email,
-                            "expiry": exp_str,
-                            "is_expired": is_exp,
-                            "has_refresh_token": has_ref,
-                            "key_source": cand,
-                        })
-                        return details
-                    except Exception:
-                        pass
-            for kname in [".devcore_client_key.txt", "gemini_api_key.txt"]:
-                cand = os.path.join(d, kname)
-                if os.path.isfile(cand) and os.path.getsize(cand) > 5:
-                    try:
-                        with open(cand, "r", encoding="utf-8") as f:
-                            val = f.read().strip()
-                        if val:
-                            masked = val[:6] + "..." + val[-4:] if len(val) > 10 else "API Key"
-                            details.update({
-                                "authorized": True,
-                                "auth_method": "api_key",
-                                "account": f"Demo API Key ({masked})",
-                                "key_source": cand,
-                            })
-                            return details
-                    except Exception:
-                        pass
+    if active_scope != "root":
         return details
 
     env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
@@ -509,9 +394,6 @@ def _has_local_cli_credentials(scope: str = None) -> bool:
     return _get_cli_credential_details(scope)["authorized"]
 
 def _legacy_has_local_cli_credentials(scope: str = None) -> bool:
-    _cleanup_expired_demo_tokens()
-    active_scope = scope or _resolve_token_scope()
-
     root_has_creds = False
     if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"):
         root_has_creds = True
@@ -537,48 +419,23 @@ def _legacy_has_local_cli_credentials(scope: str = None) -> bool:
             if root_has_creds:
                 break
 
-    if active_scope == "demo":
-        if root_has_creds:
-            return True
-        for d_dir in _get_demo_dirs():
-            demo_candidates = [
-                os.path.join(d_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token"),
-                os.path.join(d_dir, "antigravity-oauth-token"),
-                os.path.join(d_dir, ".devcore_client_key.txt"),
-                os.path.join(d_dir, "gemini_api_key.txt"),
-            ]
-            for p in demo_candidates:
-                try:
-                    if os.path.exists(p) and os.path.getsize(p) > 8:
-                        return True
-                except Exception:
-                    pass
-        return False
-
     return root_has_creds
 
 
 def _save_api_key_for_scope(api_key: str, scope: str):
-    if scope == "demo":
-        for d_dir in _get_demo_dirs()[:1]:
-            os.makedirs(d_dir, exist_ok=True)
-            for fname in (".devcore_client_key.txt", "gemini_api_key.txt"):
-                with open(os.path.join(d_dir, fname), "w", encoding="utf-8") as f:
-                    f.write(api_key)
-    else:
-        os.environ["GEMINI_API_KEY"] = api_key
-        eprofile_root = _get_eprofile_root()
-        root_paths = [
-            PLUGIN_DIR / ".devcore_client_key.txt",
-            eprofile_root / ".devcore_client_key.txt",
-            Path.home() / ".devcore_client_key.txt",
-        ]
-        for p in root_paths:
-            try:
-                p.parent.mkdir(parents=True, exist_ok=True)
-                p.write_text(api_key, encoding="utf-8")
-            except Exception:
-                pass
+    os.environ["GEMINI_API_KEY"] = api_key
+    eprofile_root = _get_eprofile_root()
+    root_paths = [
+        PLUGIN_DIR / ".devcore_client_key.txt",
+        eprofile_root / ".devcore_client_key.txt",
+        Path.home() / ".devcore_client_key.txt",
+    ]
+    for p in root_paths:
+        try:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(api_key, encoding="utf-8")
+        except Exception:
+            pass
 
 
 def _resolve_active_user() -> dict:
@@ -590,7 +447,7 @@ def _resolve_active_user() -> dict:
             return user
     is_admin = bool(session.get("is_admin") or session.get("admin"))
     scope = _resolve_token_scope()
-    if is_admin and scope != "demo":
+    if is_admin:
         return {"username": session.get("username", "admin"), "role": "admin", "name": "System Administrator", "allowed_projects": ["*"]}
     return {"username": session.get("username", "dev"), "role": "gamedev", "name": "Developer", "allowed_projects": ["*"]}
 
@@ -612,7 +469,7 @@ def ai_home():
         session["admin"] = True
         session["agent_authenticated"] = True
 
-    if is_admin and request.args.get("demo") != "1" and request.args.get("mode") != "demo":
+    if is_admin:
         session["agent_token_scope"] = "root"
         session["agent_authenticated"] = True
 
@@ -627,12 +484,9 @@ def ai_home():
         except Exception:
             pass
 
-    if scope == "demo":
-        if not session.get("agent_authenticated"):
-            return redirect(_get_login_url(demo="1"))
-    else:
-        if not session.get("agent_authenticated") and not is_admin:
-            return redirect(_get_login_url())
+    if not session.get("agent_authenticated") and not is_admin:
+        return redirect(_get_login_url())
+    if scope == "root":
         session["agent_token_scope"] = "root"
         session["agent_authenticated"] = True
 
@@ -661,34 +515,16 @@ def _get_login_url(**kwargs) -> str:
     return f"{base}/login{query}"
 
 
-@ai_bp.route("/demo")
-def ai_demo_entry():
-    session["agent_token_scope"] = "demo"
-    session["agent_authenticated"] = True
-    return redirect(_get_home_url(demo="1"))
-
-
 @ai_bp.route("/login")
 def login_page():
-    demo_param = request.args.get("demo") in ("1", "true")
     reauth = (
         request.args.get("reauth") in ("1", "true")
         or request.args.get("reset") in ("1", "true")
         or request.args.get("force") in ("1", "true")
-        or demo_param
     )
-    target_scope = request.args.get("scope")
-    if target_scope in ("root", "demo"):
-        session["agent_token_scope"] = target_scope
-    if demo_param:
-        session["agent_token_scope"] = "demo"
-        session["agent_authenticated"] = False
 
     if reauth:
         session.pop("agent_authenticated", None)
-        if demo_param:
-            session["agent_token_scope"] = "demo"
-            session["agent_authenticated"] = False
         return _render_ai_template("login.html")
 
     auth_header = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
@@ -700,11 +536,16 @@ def login_page():
         or (bearer_user and is_admin_role(bearer_user.get("role")))
         or is_master
     )
-    if is_admin or _has_local_cli_credentials("root"):
+    if is_admin:
         session["agent_token_scope"] = "root"
         session["agent_authenticated"] = True
         session["is_admin"] = True
         session["admin"] = True
+        return redirect(_get_home_url())
+    if _has_local_cli_credentials("root"):
+        # The host has credentials, so visitors may use the agent, but they never become admin.
+        session["agent_token_scope"] = "user"
+        session["agent_authenticated"] = True
         return redirect(_get_home_url())
 
     return _render_ai_template("login.html")
@@ -1026,7 +867,7 @@ def auth_check():
             "url": "#",
         })
 
-    is_authenticated = bool(bearer_user) or (bool(session.get("agent_authenticated")) if scope == "demo" else has_creds)
+    is_authenticated = bool(bearer_user) or has_creds
 
     agy_bin = _find_agy_binary()
 
@@ -1071,35 +912,6 @@ def auth_check():
     })
 
 
-@ai_bp.route("/api/auth_demo", methods=["GET", "POST"])
-def auth_demo():
-    _cleanup_expired_demo_tokens()
-    session["agent_token_scope"] = "demo"
-    session["agent_authenticated"] = True
-    try:
-        res = security_mgr.authenticate("dev:dev")
-    except Exception:
-        res = security_mgr.authenticate("dev", "dev") if hasattr(security_mgr, "authenticate") else None
-    if not res:
-        res = {
-            "token": "sec-demo-" + os.urandom(8).hex(),
-            "user": {
-                "username": session.get("username", "demo_visitor"),
-                "role": "gamedev",
-                "name": "Demo Visitor",
-                "allowed_projects": ["demo", "playground"],
-            },
-        }
-    return jsonify({
-        "success": True,
-        "authenticated": _has_local_cli_credentials("demo"),
-        "scope": "demo",
-        "token": res.get("token"),
-        "user": res.get("user"),
-        "message": "Demo mode active (tokens stored in projects/demo and deleted after 7 days)",
-    })
-
-
 @ai_bp.route("/api/sounds/<sound_name>", methods=["GET"])
 def get_sound(sound_name):
     from flask import send_file
@@ -1125,24 +937,9 @@ def get_sound(sound_name):
 def set_api_key():
     data = request.get_json(silent=True) or {}
     is_admin = bool(session.get("is_admin") or session.get("admin"))
-    scope = data.get("scope") or _resolve_token_scope()
     if not is_admin:
-        scope = "demo"
-
-    if data.get("demo") is True or data.get("api_key") == "demo":
-        session["agent_token_scope"] = "demo"
-        session["agent_authenticated"] = True
-        try:
-            res = security_mgr.authenticate("dev:dev")
-        except Exception:
-            res = security_mgr.authenticate("dev", "dev") if hasattr(security_mgr, "authenticate") else None
-        return jsonify({
-            "success": True,
-            "demo": True,
-            "scope": "demo",
-            "token": res.get("token") if res else None,
-            "user": res.get("user") if res else None,
-        })
+        return jsonify({"success": False, "error": "Admin access required"}), 403
+    scope = "root"
 
     api_key = data.get("api_key", "").strip()
     if not api_key:
@@ -1163,9 +960,9 @@ def auth_submit():
     token = data.get("token", "").strip()
     api_key = data.get("api_key", "").strip()
     is_admin = bool(session.get("is_admin") or session.get("admin"))
-    scope = data.get("scope") or _resolve_token_scope()
     if not is_admin:
-        scope = "demo"
+        return jsonify({"success": False, "error": "Admin access required"}), 403
+    scope = "root"
 
     if api_key:
         try:
@@ -1209,7 +1006,7 @@ def start_chat():
 
     is_admin = bool(session.get("is_admin", False) or session.get("admin", False))
     scope = _resolve_token_scope()
-    is_admin_exec = False if scope == "demo" else is_admin
+    is_admin_exec = is_admin
 
     user = {
         "role": "admin" if is_admin_exec else "modder",
@@ -1217,7 +1014,7 @@ def start_chat():
         "token_scope": scope,
     }
 
-    if token and not is_admin_exec and scope != "demo":
+    if token and not is_admin_exec:
         user_from_token = security_mgr.get_user_from_token(token)
         if user_from_token and user_from_token.get("role") == "admin":
             is_admin_exec = True
@@ -1309,15 +1106,6 @@ def ai_heartbeat():
 @ai_bp.route("/api/auth/login", methods=["POST"])
 def auth_login():
     data = request.get_json(silent=True) or {}
-    if data.get("demo") is True or data.get("username") == "demo" or data.get("access_key") == "demo":
-        session["agent_token_scope"] = "demo"
-        session["agent_authenticated"] = True
-        try:
-            res = security_mgr.authenticate("dev:dev")
-        except Exception:
-            res = security_mgr.authenticate("dev", "dev") if hasattr(security_mgr, "authenticate") else None
-        return jsonify(res)
-
     access_key = data.get("access_key")
     if access_key in ("SUPER_ADMIN_AUTO", "sec-root-owner-permanent") or (access_key and str(access_key).startswith("sec-root")):
         session["is_admin"] = True
@@ -1383,8 +1171,7 @@ def auth_system_status():
     scope = _resolve_token_scope()
     is_super = security_mgr.check_master_signature() or bool(session.get("is_admin") or session.get("admin"))
     root_status = _get_cli_credential_details("root")
-    demo_status = _get_cli_credential_details("demo")
-    active_status = demo_status if scope == "demo" else root_status
+    active_status = root_status if scope == "root" else _get_cli_credential_details("user")
     return jsonify({
         "cli_installed": bool(_find_agy_binary()),
         "has_api_key": active_status["authorized"],
@@ -1397,7 +1184,6 @@ def auth_system_status():
         "scope": scope,
         "super_admin": is_super,
         "root_status": root_status,
-        "demo_status": demo_status,
     })
 
 

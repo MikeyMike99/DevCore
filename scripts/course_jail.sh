@@ -28,7 +28,7 @@ WORK="$ENV_ROOT/temp_phase2_sandbox"
 ARGS=(--ro-bind /usr /usr --ro-bind /etc /etc
       --symlink usr/bin /bin --symlink usr/sbin /sbin --symlink usr/lib /lib)
 [ -d /usr/lib64 ] && ARGS+=(--symlink usr/lib64 /lib64)
-ARGS+=(--proc /proc --dev /dev --tmpfs /tmp --tmpfs /home)
+ARGS+=(--proc /proc --dev /dev --tmpfs /tmp --tmpfs /home --dir /home/michael)
 for part in bin lib include share pyvenv.cfg; do
   [ -e "$ENV_ROOT/$part" ] && ARGS+=(--ro-bind "$ENV_ROOT/$part" "$ENV_ROOT/$part")
 done
@@ -36,6 +36,8 @@ done
 ARGS+=(--bind "$BOX" "$WORK" --chdir "$WORK"
        --unshare-all --die-with-parent --new-session
        --clearenv --setenv HOME /home/michael --setenv VIRTUAL_ENV "$ENV_ROOT"
+       --setenv DOTNET_BUNDLE_EXTRACT_BASE_DIR /tmp/dotnet
+       --setenv BC_SKIP_MAPPING TRUE --setenv LOG_LEVEL ERROR
        --setenv PATH "$ENV_ROOT/bin:/usr/local/bin:/usr/bin:/bin"
        --setenv LANG C.UTF-8 --setenv PYTHONDONTWRITEBYTECODE 1)
 exec timeout --kill-after=5 "${COURSE_JAIL_TIMEOUT:-60}" bwrap "${ARGS[@]}" -- "$@"

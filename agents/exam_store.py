@@ -7,6 +7,7 @@ that owner or the super admin may overwrite it: a clashing course_id from anyone
 """
 import hashlib
 import json
+import logging
 import os
 import re
 import secrets
@@ -14,6 +15,8 @@ import subprocess
 import sys
 import time
 from urllib.parse import quote
+
+logger = logging.getLogger(__name__)
 
 DEVCORE_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXAMS_DIR = os.path.join(DEVCORE_ROOT, "sandbox", "static", "exams")
@@ -114,7 +117,19 @@ def save_exam_blocks(text: str, creator: dict = None, is_admin: bool = False) ->
 
         if isinstance(exam, dict) and (exam.get("mode") == "course" or isinstance(exam.get("modules"), list)):
             if tier < COURSE_CREATOR_MIN_TIER:
+                logger.info("course save refused: tier %s is below the required tier %s", tier, COURSE_CREATOR_MIN_TIER)
                 results.append({"ok": False, "kind": "course", "message": COURSE_TIER_MESSAGE})
+                continue
+            try:
+                from core.course_standards import lint_course
+                report = lint_course(exam, strict=False)
+            except Exception:
+                report = {"passed": True, "errors": [], "warnings": []}
+            if not report["passed"]:
+                logger.info("course save refused: %d standard errors (score %s)", len(report["errors"]), report.get("score"))
+                fixes = "; ".join(report["errors"][:6])
+                results.append({"ok": False, "kind": "course",
+                                "message": f"This course does not meet the Siraugga Course Standard yet. Fix: {fixes}"})
                 continue
             title = str(exam.get("title") or "Interactive Course").strip()[:120] or "Interactive Course"
             owner = _owner_ref(creator, tier)
@@ -132,6 +147,7 @@ def save_exam_blocks(text: str, creator: dict = None, is_admin: bool = False) ->
                 except Exception:
                     pass
             url = f"/plugin/course?course={quote(course_id)}&title={quote(title)}"
+            logger.info("course saved: id=%s score=%s warnings=%d tier=%s", course_id, report.get("score"), len(report["warnings"]), tier)
             results.append({"ok": True, "url": url, "title": title, "message": "", "kind": "course"})
             continue
 
@@ -167,13 +183,13 @@ def save_exam_blocks(text: str, creator: dict = None, is_admin: bool = False) ->
 
 
 def render_results(results: list) -> str:
-    """Markdown the chat shows after the agent's answer: a link and an embedded exam or course per saved block."""
+    """Markdown the chat shows after the agent's answer: an embedded course or exam per saved block."""
     parts = []
     for r in results:
         if r.get("ok"):
             if r.get("kind") == "course":
                 parts.append(
-                    f"🎓 **Interactive Course ready:** [{r['title']}]({r['url']})"
+                    f"🎓 **{r['title']}**"
                     + (f" ({r['message']})" if r.get("message") else "")
                     + f'\n\n<iframe src="{r["url"]}" class="w-full min-h-[780px] border-0 rounded-lg shadow-xl" allowfullscreen title="{r["title"]}"></iframe>'
                 )

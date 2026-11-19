@@ -547,6 +547,26 @@ def auto_fix_document(file_path: Path) -> bool:
     return False
 
 
+def _only_repo_files(target_path: Path, files: List[Path]) -> List[Path]:
+    """Keep only files that belong to this repository: tracked, or untracked but not git-ignored.
+    Git-ignored folders (for example a separate project under playground/) are not audited here.
+    Falls back to the full list when git is unavailable."""
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(target_path), "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", "*.md"],
+            capture_output=True, timeout=60,
+        )
+        if out.returncode != 0:
+            return files
+        top = subprocess.run(["git", "-C", str(target_path), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=30).stdout.strip()
+        keep = {(Path(top) / rel.decode("utf-8", "replace")).resolve() for rel in out.stdout.split(b"\0") if rel}
+        return [f for f in files if f.resolve() in keep]
+    except Exception:
+        return files
+
+
 def run_audit(target_path: Path, forced_category: Optional[str] = None, strict: bool = False, json_mode: bool = False, fix_mode: bool = False) -> bool:
     auditor = DocStructureAuditor(strict=strict)
     files_to_audit = []
@@ -555,9 +575,10 @@ def run_audit(target_path: Path, forced_category: Optional[str] = None, strict: 
         files_to_audit.append(target_path)
     else:
         for p in target_path.rglob("*.md"):
-            if any(ignored in str(p) for ignored in [".git", "node_modules", "venv", ".archive", ".backup", "scratch"]):
+            if any(ignored in str(p) for ignored in [".git", "node_modules", "venv", ".archive", ".backup", "scratch", "/tmp/", "\tmp\\"]):
                 continue
             files_to_audit.append(p)
+        files_to_audit = _only_repo_files(target_path, files_to_audit)
 
     files_to_audit.sort()
     total_files = len(files_to_audit)

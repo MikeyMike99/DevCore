@@ -73,7 +73,7 @@ When a user or Siraugga violates a security boundary, the backend intercepts the
 To ensure that users restricted to a single working directory cannot map out the underlying host operating system or escape their designated boundaries.
 
 **Action**: 
-- **Obfuscation**: The application presents paths to unprivileged users and Siraugga in a logical, relative format. The true absolute directory path (e.g., `C:\Users\...\` or `/mnt/c/...`) of the host's underlying operating system is kept completely obfuscated.
+- **Obfuscation**: The application presents paths to unprivileged users and Siraugga in a logical, relative format. The true absolute directory path (e.g., `%USERPROFILE%\` or `/mnt/c/...`) of the host's underlying operating system is kept completely obfuscated.
 - **Escape Prevention**: If a malicious user attempts to "guess" their way out by instructing Siraugga to use deep path traversal techniques (such as `../../../../../etc/passwd` or `..\..\Windows`), the backend's path canonicalization algorithm calculates the true physical destination. If that destination falls anywhere outside the pre-approved anchor directory, the request is instantly destroyed. It is mathematically impossible to traverse upwards beyond the anchor root.
 
 ---
@@ -311,7 +311,7 @@ To guarantee continuous uptime and prevent a "Brain-Dead Lockout" if an autonomo
 To eliminate physical filesystem path exposure to the AI agent entirely. Instead of reading or writing operating-system file paths, the agent accesses files, functions, classes, and module-level variables exclusively through **Opaque Raugus VFS Keys** (e.g., `vfs.engine.router` or `vfs.engine.router::reload_handler`).
 
 **Action (The 6-Gate Key Resolution Flow)**:
-1. **Zero Physical Path Exposure**: The Raugus Resolver MCP Server (`search_keys`, `list_module_keys`, `read_by_key`, `write_by_key`, `refresh_key_map`) resolves VFS keys to physical storage paths strictly inside private server memory and scrubs any host path literals from all responses.
+1. **Zero Physical Path Exposure**: The Raugus Resolver MCP Server (`search_keys`, `list_module_keys`, `read_by_key`, `write_by_key`; the key map updates itself automatically) resolves VFS keys to physical storage paths strictly inside private server memory and scrubs any host path literals from all responses.
 2. **Gate 1–2 (Phonebook Existence & RBAC Tier Clearance)**: Rejects unknown keys (blocking path traversal at the protocol layer) and enforces caller `user_tier >= required_tier`.
 3. **Gate 3 (Sensitive Vault, Cloud-Sync & 64-Bit Inode Gate)**: Blocks writes to sensitive keys and routes read requests to the air-gapped Local CPU Inference Broker, returning only a sanitized, de-identified topic digest (`GRANTED_SANITIZED_DIGEST_ONLY`).
 4. **Gate 4 (Self-Protection & Read-Only Blueprint Lock)**: Blocks any modification to locked security guardrails or immutable UI blueprints.

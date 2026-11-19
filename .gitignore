@@ -9,7 +9,7 @@ archives/
 archive_scripts/
 .agents/
 .playwright-mcp/
-demo/
+gamedev_workspace/
 sessions.json
 install_done.txt
 __pycache__/
@@ -86,3 +86,12 @@ services/eprofile_bridge/.env
 .dev.vars*
 !.dev.vars.example
 !.env.example
+.env.*
+key.pem
+cert.pem
+*.pem
+*.p12
+*.pfx
+*.vault
+.flask_secret
+services/mail/cache/

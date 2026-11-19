@@ -38,6 +38,7 @@ PUBLIC_STATIC_FILES = {
     "device-keys.js",
     "device-keys-ui.js",
     "course-tailor-crypto.js",
+    "card-recorder.js",
 }
 PUBLIC_STATIC_DIRS = {"sounds", "speech", "help"}
 SKIP_STATIC_DIRS = {"scratch", "__pycache__", ".git", "exams", "courses"}

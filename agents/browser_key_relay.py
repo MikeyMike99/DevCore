@@ -34,54 +34,11 @@ def internal_base_url() -> str:
     return (os.environ.get("DEVCORE_INTERNAL_URL") or "http://127.0.0.1:5000").rstrip("/")
 
 
-def create_session(slot_key: str, server_key: str = None) -> str:
-    """server_key set = the server itself attaches that key and calls Google (shared demo key);
-    unset = the request goes to the guest's browser, which attaches the guest's own key."""
+def create_session(slot_key: str) -> str:
+    """Each model request goes to the user's own browser, which attaches the user's own key."""
     token = secrets.token_urlsafe(32)
-    _SESSIONS[token] = {"slot": slot_key, "created": time.time(), "server_key": server_key}
+    _SESSIONS[token] = {"slot": slot_key, "created": time.time()}
     return token
-
-
-def session_server_key(token: str):
-    sess = _SESSIONS.get(token or "")
-    return sess.get("server_key") if sess else None
-
-
-# ---- Shared demo key (owner's budget-capped key, used server-side only) -------------------
-DEMO_KEY_FILE = os.path.expanduser("~/.config/devcore/demo_gemini.key")
-GOOGLE_API_BASE = (os.environ.get("DEVCORE_GEMINI_UPSTREAM") or "https://generativelanguage.googleapis.com").rstrip("/") + "/v1beta/models"
-_DEMO_USAGE = {"day": "", "count": 0}
-
-
-def demo_server_key():
-    """The owner's shared demo key: env DEVCORE_DEMO_GEMINI_KEY, else ~/.config/devcore/demo_gemini.key.
-    Kept outside every workspace and never put in the agent's environment."""
-    key = (os.environ.get("DEVCORE_DEMO_GEMINI_KEY") or "").strip()
-    if not key:
-        try:
-            with open(DEMO_KEY_FILE, "r", encoding="utf-8") as f:
-                key = f.read().strip()
-        except Exception:
-            key = ""
-    return key or None
-
-
-def demo_daily_limit() -> int:
-    try:
-        return max(0, int(os.environ.get("DEVCORE_DEMO_DAILY_REQUESTS", "500")))
-    except Exception:
-        return 500
-
-
-def take_demo_request() -> bool:
-    """Counts one model request against the shared demo key's daily cap. False = cap reached."""
-    today = time.strftime("%Y-%m-%d")
-    if _DEMO_USAGE["day"] != today:
-        _DEMO_USAGE["day"], _DEMO_USAGE["count"] = today, 0
-    if _DEMO_USAGE["count"] >= demo_daily_limit():
-        return False
-    _DEMO_USAGE["count"] += 1
-    return True
 
 
 def end_session(token: str) -> None:

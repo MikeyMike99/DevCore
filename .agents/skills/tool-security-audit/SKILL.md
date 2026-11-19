@@ -17,7 +17,7 @@ Use this skill whenever the user asks you to run a security audit against worksp
 ### 1. Execute the Automated 5-Stage Auditor
 Run the standalone auditor script via `run_command`:
 ```bash
-python3 /mnt/c/Users/michael/Documents/DevCore/security/tool_security_auditor.py --target all
+python3 <project_root>/security/tool_security_auditor.py --target all
 ```
 *(If the user specifies a particular script or plugin path, pass `--target <path>`).*
 

@@ -18,8 +18,6 @@ _USAGE = {"day": "", "by_user": {}}
 
 
 def get_tier_for_user(user: dict) -> int:
-    if (user or {}).get("token_scope") == "demo":
-        return 1
     role = (user or {}).get("role")
     return tier_for_role(role)
 

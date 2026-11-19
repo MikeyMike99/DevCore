@@ -93,7 +93,7 @@ def _save_available_models_cache(base_dir: str, models: list):
 def _install_security_hooks(home: Path) -> bool:
     """The agent CLI loads its PreToolUse security hook (.agents/raugus_hook.py) from
     $HOME/.gemini/config/hooks.json. Tasks that run with their own HOME (BYOS, the browser key
-    relay, demo) had no hooks.json there, so the hook (vault isolation, self-protection, developer
+    relay) had no hooks.json there, so the hook (vault isolation, self-protection, developer
     sandbox) never ran for them. Copy the owner's hook settings in, fresh for every task."""
     try:
         src = Path.home() / ".gemini" / "config" / "hooks.json"
@@ -210,17 +210,82 @@ def is_media_request(prompt: str) -> bool:
 
 # The Interactive Practical Course is finished and running: the agent answers from this note and shows it by
 # link, instead of digging through its code. Code is only opened when a change is wanted.
-COURSE_INSTRUCTIONS = (
-    "COURSE: The Interactive Practical Course (Azure Bicep) is already built and running. To show it, put the relative link "
-    "[Interactive Practical Course](/course) in your reply; Siraugga embeds it in the chat like an exam. For a preview where "
-    "nothing is saved or recorded and every answer key is visible, use [Course Preview](/course?preview=1). The user can also "
-    "type 'course' or 'preview' to get it as a card. How it works: the learner accepts the terms and registers, works through "
+def course_instructions() -> str:
+    """The note the agent gets when a message mentions a course. Built from the courses that exist on disk (nothing to keep
+    up to date), so the agent links the course the user named and not always the same one."""
+    try:
+        from core import response_cards
+        lines = []
+        for cat, cs in response_cards.course_catalog():
+            for c in cs:
+                if cat != "Threat briefings":
+                    lines.append(f"- {c['title']} [{cat}] -> /course?course={c['id']}")
+        listing = "\n".join(lines)
+    except Exception:
+        listing = ""
+    return (
+        "COURSE: The courses are already built and running. Show the course the user asked for by putting its link in your "
+        "reply (Siraugga embeds it in the chat as a card). The user may misspell the name (for example 'lynex' means Linux): "
+        "pick the closest course. If they did not name one, or you are not sure, link only [All courses](/course) instead of "
+        "guessing. Reply with that ONE link and no other words (no tips, no notes, no lists, no preview link, no repeated course names) unless the user asked a question. The courses:\n"
+        + listing + "\n"
+        "For a preview where nothing is saved or recorded and every answer key is visible, add &preview=1 to the link. "
+        + _COURSE_HOW_IT_WORKS
+    )
+
+
+_COURSE_HOW_IT_WORKS = (
+    "How it works: the learner accepts the terms and registers, works through "
     "the stages (lessons, interactive quizzes, code editors, reflections), progress is saved per learner and can be resumed, "
     "and a survey and certificate come at the end. Answer questions about the course from this note and your own knowledge. "
     "Do NOT read, search or investigate source code, templates, routes, logs or tests to answer a question about the course "
     "or to show it. Only open code when the user explicitly asks you to make a change, or when a support ticket asks for "
     "a change that improves the course or makes it easier for learners.\n"
 )
+
+def _course_named_by(prompt: str) -> str:
+    """The id of the single course a message asks for ('' when it is not a plain request to open one)."""
+    try:
+        from core import response_cards
+        topic = response_cards.detect_course_request(prompt) or ""
+    except Exception:
+        return ""
+    return topic[7:] if topic.startswith("course:") else ""
+
+
+def course_direct_prompt(prompt: str) -> str:
+    """When the user just wants a course opened, the agent gets one short job instead of the open-ended request, so it
+    has nothing to investigate. '' when the message is something else (a question, a change request)."""
+    cid = _course_named_by(prompt)
+    if not cid:
+        return ""
+    from core import response_cards
+    title = next((c["title"] for c in response_cards.list_courses() if c["id"] == cid), cid)
+    return (f"Reply with exactly this one line and nothing else. Do not use any tools and do not read any files: "
+            f"[{title}](/course?course={cid})")
+
+
+def course_embed_for(prompt: str, agent_text: str) -> str:
+    """Markdown with the embedded course for a course request, or '' when no single course is meant. The course comes from
+    the link the agent wrote (/course?course=<id>) or, failing that, from the words the user typed."""
+    from urllib.parse import quote
+    from core import response_cards
+    courses = {c["id"]: c for c in response_cards.list_courses()}
+    cid = ""
+    m = _re_media.search(r"/(?:plugin/)?course\?[^\s)\"'>]*?\bcourse=([A-Za-z0-9_.-]+)", agent_text or "")
+    if m and m.group(1) in courses:
+        cid = m.group(1)
+    if not cid:
+        topic = response_cards.detect_course_request(prompt) or ""
+        if topic.startswith("course:") and topic[7:] in courses:
+            cid = topic[7:]
+    if not cid:
+        return ""
+    title = courses[cid]["title"]
+    url = f"/plugin/course?course={quote(cid)}&title={quote(title)}"
+    return (f"🎓 **{title}**\n\n"
+            f'<iframe src="{url}" class="w-full min-h-[780px] border-0 rounded-lg shadow-xl" allowfullscreen title="{title}"></iframe>')
+
 
 _COURSE_REQUEST_RE = _re_media.compile(r"(?<!of )(?<!of  )\bcourse\b(?!-correct)(?!\s+correct)", _re_media.I)
 
@@ -605,6 +670,22 @@ class ExecutionMixin:
             self.set_dev_task(is_dev_task)     # scrub code/paths from everything this task broadcasts
         hb_task = asyncio.create_task(self._heartbeat_worker(task_time, slot_key))
         raw_user_prompt = prompt
+        if not _model_retry and not _from_steer_or_queue:
+            # "Open the Linux course" needs no model at all: answer with the embedded course straight away (like an exam
+            # card), so nothing is investigated, nothing waits, and no usage is spent.
+            try:
+                _embed = course_embed_for(raw_user_prompt, "") if _course_named_by(raw_user_prompt) else ""
+            except Exception:
+                _embed = ""
+            if _embed:
+                self.output_buffer.append(_embed)
+                await self.broadcast({"type": "agent_chunk", "chunk": _embed})
+                await self.broadcast({"type": "agent_done", "exit_code": 0, "elapsed": 0.1, "status": "SUCCESS",
+                                      "output": _embed, "cancelled": False})
+                hb_task.cancel()
+                self.active_task = None
+                self.start_time = None
+                return
         model_aliases = {
             "gemini-2.5-pro": "Gemini 4 Argon (High)",
             "gemini-2.5-flash": "Gemini 3.8 Flash (High)",
@@ -706,7 +787,7 @@ class ExecutionMixin:
         except Exception:
             is_exam = False
         is_media = (not is_exam) and is_media_request(prompt)
-        is_course = (not is_exam) and (not is_media) and is_course_request(prompt)
+        is_course = (not is_exam) and (not is_media) and (is_course_request(prompt) or bool(_course_named_by(prompt)))
 
         has_own_sub = bool(browser_relay or (byos_data and byos_data.get("credential")))
         if not is_effective_admin and not has_own_sub and not is_exam and not _model_retry:  # a hand-off is the same prompt: count once
@@ -783,7 +864,7 @@ class ExecutionMixin:
                 from agents import model_router
                 run_model = model_router.cli_model_name(model) if is_claude else model  # exact id from the Claude CLI catalog
                 res = await execute_local_agent_task(self, prompt, run_model, task_time, conversation_id, user=user, is_admin=admin_override,
-                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else (COURSE_INSTRUCTIONS if is_course else ""))),
+                                                     extra_system=(EXAM_SAVE_INSTRUCTIONS if claude_exam else (MEDIA_PLAY_INSTRUCTIONS if is_media else (course_instructions() if is_course else ""))),
                                                      allow_fallback=is_claude)
                 if isinstance(res, dict) and res.get("quota"):
                     # Claude ran out: remember it, then the next best model finishes the task with what was done so far
@@ -815,7 +896,6 @@ class ExecutionMixin:
         retry_with_fallback_model = None
         quota_handoff_partial = None  # set when a model ran out of quota (then the retry is a hand-off)
         try:
-            token_scope = (user.get("token_scope") if isinstance(user, dict) else None) or "root"
             workspace_dir = None
             if self.project_manager:
                 workspace_dir = self.project_manager.get_active_workspace_path()
@@ -968,58 +1048,25 @@ class ExecutionMixin:
 
             real_agy = _find_agy_executable(base_dir)
             env_override = os.environ.get("ADMIN_OVERRIDE", "false").lower() == "true"
-            is_admin = (bool(user and is_admin_role(user.get("role"))) or env_override) and (token_scope != "demo")
+            is_admin = bool(user and is_admin_role(user.get("role"))) or env_override
 
             user_id = (user.get("username") if isinstance(user, dict) else None) or (user.get("name") if isinstance(user, dict) else None) or "guest"
             byos_data = None
             browser_relay = bool(isinstance(user, dict) and user.get("_browser_key"))
-            demo_server_key = None
-            if token_scope == "demo" and not browser_relay:
-                try:
-                    from agents import browser_key_relay as _bkr
-                    demo_server_key = _bkr.demo_server_key()
-                except Exception:
-                    demo_server_key = None
-            if token_scope == "demo" and not browser_relay and not demo_server_key:
-                # Demo has no sign-in of its own: run on the owner's root token with the tier limits.
-                _demo_own = False
-                for _dd in (Path(base_dir) / "demo", Path.cwd() / "content" / "projects" / "demo",
-                            Path(base_dir).parent.parent / "demo", Path.cwd() / "demo"):
-                    for _rel in ("antigravity-oauth-token", ".gemini/antigravity-cli/antigravity-oauth-token",
-                                 ".devcore_client_key.txt", "gemini_api_key.txt"):
-                        _fp = _dd / _rel
-                        if _fp.is_file() and _fp.stat().st_size > 8:
-                            _demo_own = True
-                if not _demo_own:
-                    token_scope = "user"
             relay_token = None
-            if byos_data is None and token_scope != "demo" and not browser_relay:
+            if byos_data is None and not browser_relay:
                 try:
                     from security.subscription_guard import assert_user_execution_quota
                     _, _, byos_data = assert_user_execution_quota(user, base_dir=base_dir)
                 except Exception:
                     pass
 
-            if browser_relay or demo_server_key:
+            if browser_relay:
                 from security.subscription_guard import get_user_runtime_chamber
                 from agents import browser_key_relay
                 relay_token = browser_key_relay.create_session(
                     (user.get("_slot_key") if isinstance(user, dict) else None) or user_id,
-                    server_key=None if browser_relay else demo_server_key,
                 )
-                if token_scope == "demo":
-                    for cand_d in (
-                        Path(base_dir) / "demo",
-                        Path.cwd() / "content" / "projects" / "demo",
-                        Path(base_dir).parent.parent / "demo",
-                        Path.cwd() / "demo",
-                    ):
-                        if cand_d.exists():
-                            workspace_dir = str(cand_d)
-                            break
-                    else:
-                        workspace_dir = str(Path(base_dir) / "demo")
-                        os.makedirs(workspace_dir, exist_ok=True)
                 user_chamber = get_user_runtime_chamber(user_id)
                 user_chamber.mkdir(parents=True, exist_ok=True)
                 user_cli_dir = user_chamber / ".gemini" / "antigravity-cli"
@@ -1099,75 +1146,6 @@ class ExecutionMixin:
                         pass
                 elif sub_prov in ("claude", "anthropic", "claude_api", "anthropic_api"):
                     safe_env["ANTHROPIC_API_KEY"] = sub_cred
-            elif token_scope == "demo":
-                demo_candidates = [
-                    Path(base_dir) / "demo",
-                    Path.cwd() / "content" / "projects" / "demo",
-                    Path(base_dir).parent.parent / "demo",
-                    Path.cwd() / "demo",
-                ]
-                demo_dir = str(demo_candidates[0])
-                for cand_d in demo_candidates:
-                    if cand_d.exists():
-                        demo_dir = str(cand_d)
-                        break
-                os.makedirs(demo_dir, exist_ok=True)
-                workspace_dir = demo_dir
-                safe_env["HOME"] = demo_dir
-                safe_env["GEMINI_CLI_HOME"] = demo_dir
-                _install_security_hooks(Path(demo_dir))
-
-                demo_cli_dir = Path(demo_dir) / ".gemini" / "antigravity-cli"
-                demo_cli_dir.mkdir(parents=True, exist_ok=True)
-                for root in _iter_relative_roots(base_dir):
-                    src_cli_dir = root / ".gemini" / "antigravity-cli"
-                    if src_cli_dir.is_dir() and src_cli_dir.resolve() != demo_cli_dir.resolve():
-                        for cfg_rel in ("installation_id", "jetski_state.pbtxt", "cache/onboarding.json", "cache/default_project_id.txt"):
-                            s_file = src_cli_dir / cfg_rel
-                            d_file = demo_cli_dir / cfg_rel
-                            if s_file.is_file() and not d_file.exists():
-                                try:
-                                    d_file.parent.mkdir(parents=True, exist_ok=True)
-                                    shutil.copy2(s_file, d_file)
-                                except Exception:
-                                    pass
-                        break
-
-                vis_tok = os.path.join(demo_dir, "antigravity-oauth-token")
-                cli_tok = os.path.join(demo_dir, ".gemini", "antigravity-cli", "antigravity-oauth-token")
-                if not os.path.exists(cli_tok) or os.path.getsize(cli_tok) <= 8:
-                    root_oauth = Path.home() / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
-                    if root_oauth.is_file() and root_oauth.stat().st_size > 8:
-                        try:
-                            os.makedirs(os.path.dirname(cli_tok), exist_ok=True)
-                            shutil.copy2(root_oauth, cli_tok)
-                            shutil.copy2(root_oauth, vis_tok)
-                        except Exception:
-                            pass
-                else:
-                    try:
-                        if os.path.exists(vis_tok) and not os.path.exists(cli_tok):
-                            os.makedirs(os.path.dirname(cli_tok), exist_ok=True)
-                            shutil.copy2(vis_tok, cli_tok)
-                        elif os.path.exists(cli_tok) and not os.path.exists(vis_tok):
-                            shutil.copy2(cli_tok, vis_tok)
-                    except Exception:
-                        pass
-                if os.path.exists(cli_tok) and os.path.getsize(cli_tok) > 8:
-                    safe_env.pop("GEMINI_API_KEY", None)
-                    safe_env.pop("GOOGLE_API_KEY", None)
-                else:
-                    for kname in (".devcore_client_key.txt", "gemini_api_key.txt"):
-                        kp = os.path.join(demo_dir, kname)
-                        if os.path.exists(kp):
-                            try:
-                                with open(kp, "r", encoding="utf-8") as kf:
-                                    kval = kf.read().strip()
-                                    if kval:
-                                        safe_env["GEMINI_API_KEY"] = kval
-                                        break
-                            except Exception:
-                                pass
             else:
                 existing_key = safe_env.get("GEMINI_API_KEY") or os.environ.get("GEMINI_API_KEY")
                 if not existing_key:
@@ -1317,9 +1295,10 @@ class ExecutionMixin:
                 elif is_media:
                     sys_msg += MEDIA_PLAY_INSTRUCTIONS  # the video player steps are given up front, no skill-file reading
                 elif is_course:
-                    sys_msg += COURSE_INSTRUCTIONS
+                    sys_msg += course_instructions()
                 sys_msg += "</SYSTEM_MESSAGE>\n\n"
-                prompt = sys_msg + prompt
+                direct = course_direct_prompt(raw_user_prompt) if is_course else ""
+                prompt = sys_msg + (direct or prompt)
 
             is_wsl = False
             if not real_agy and sys.platform == "win32":
@@ -1908,6 +1887,15 @@ class ExecutionMixin:
                             await self.broadcast({"type": "agent_chunk", "chunk": exam_note})
                 except Exception as e:
                     logging.warning(f"[ExecutionMixin] Exam save warning: {e}")
+                try:
+                    # Same as an exam: the server itself puts the course in the chat (the agent's wording does not matter).
+                    if is_course and "<iframe" not in "".join(self.output_buffer):
+                        course_note = course_embed_for(raw_user_prompt, "".join(self.output_buffer))
+                        if course_note:
+                            self.output_buffer.append(course_note)
+                            await self.broadcast({"type": "agent_chunk", "chunk": course_note})
+                except Exception as e:
+                    logging.warning(f"[ExecutionMixin] Course embed warning: {e}")
 
             is_quota_handoff = quota_handoff_partial is not None
             if retry_with_fallback_model and (not _model_retry or is_quota_handoff):

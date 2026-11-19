@@ -89,25 +89,25 @@ class SecurityManager:
             "password": "dev",
             "role": ROLE_GAMEDEV,
             "name": "Game Developer",
-            "allowed_projects": ["game_demo", "npc_quest"]
+            "allowed_projects": ["game_sandbox", "npc_quest"]
         },
         "dev_tester": {
             "password": "dev",
             "role": ROLE_GAMEDEV,
             "name": "Game Developer",
-            "allowed_projects": ["game_demo", "npc_quest"]
+            "allowed_projects": ["game_sandbox", "npc_quest"]
         },
         "mod": {
             "password": "mod",
             "role": ROLE_MODDER,
             "name": "Community Modder",
-            "allowed_projects": ["game_demo"]
+            "allowed_projects": ["game_sandbox"]
         },
         "modder": {
             "password": "mod",
             "role": ROLE_MODDER,
             "name": "Community Modder",
-            "allowed_projects": ["game_demo"]
+            "allowed_projects": ["game_sandbox"]
         }
     }
 
@@ -120,7 +120,7 @@ class SecurityManager:
         "token_scope": "root",
         "key_id": "owner",
     }
-    SESSION_TTL_SECONDS = {"admin": 7 * 86400, "user": 7 * 86400, "demo": 86400}
+    SESSION_TTL_SECONDS = {"admin": 7 * 86400, "user": 7 * 86400}
 
     _LOOPBACK_PREFIXES = ("127.", "::1", "::ffff:127.")
     _FORWARD_HEADERS = ("X-Forwarded-For", "Forwarded", "X-Real-IP", "CF-Connecting-IP", "True-Client-IP")
@@ -249,7 +249,7 @@ class SecurityManager:
             "key_id": user.get("key_id") or ("test-" + str(user.get("name", "user"))),
             "created_at": now,
             "expires_at": now + ttl,
-            "token_scope": "demo" if kind == "demo" else ("root" if is_admin else "user"),
+            "token_scope": "root" if is_admin else "user",
         }
         # In-game/app developers: the project and parts they were handed (security/dev_workspaces.py)
         if user.get("dev_project"):
@@ -313,6 +313,7 @@ class SecurityManager:
                 k: v for k, v in (loaded or {}).items()
                 if self._is_hashed_session_key(k) and isinstance(v, dict)
                 and float(v.get("expires_at") or 0) > now
+                and v.get("token_scope") in (None, "root", "user")
             }
             if len(self.sessions) != len(loaded or {}):
                 self._save_sessions()

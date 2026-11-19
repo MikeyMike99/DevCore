@@ -1,4 +1,4 @@
-"""Ticket emails, sent through the e_profile email engine (see scripts/eprofile_send_mail.py)."""
+"""Ticket emails, sent through the unified mail service (see services/mail/cli.py)."""
 import html
 import json
 import os
@@ -8,7 +8,7 @@ import sys
 from agents import tickets
 
 DEVCORE_ROOT = tickets.DEVCORE_ROOT
-SENDER_SCRIPT = os.path.join(DEVCORE_ROOT, "scripts", "eprofile_send_mail.py")
+SENDER_SCRIPT = os.path.join(DEVCORE_ROOT, "services", "mail", "cli.py")
 
 
 def _send(to: str, subject: str, html_body: str, text_body: str) -> dict:
@@ -37,7 +37,7 @@ def _wrap(title: str, inner: str) -> str:
 <tr><td style="border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:14px;"><span style="font-size:18px;font-weight:bold;color:#2dd4bf;letter-spacing:1px;">SIRAUGGA TICKETS</span>
 <span style="float:right;font-size:12px;color:#888;">mikeytech.dev</span></td></tr>
 <tr><td style="padding-top:20px;font-size:15px;line-height:1.6;color:#d0d8e8;">{inner}</td></tr>
-<tr><td style="border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;font-size:11px;color:#667;text-align:center;">Automated message from Siraugga, sent through the E-Profile email engine.</td></tr>
+<tr><td style="border-top:1px solid rgba(255,255,255,0.1);padding-top:14px;font-size:11px;color:#667;text-align:center;">Automated message from Siraugga, sent through the unified mail service.</td></tr>
 </table></td></tr></table></body></html>"""
 
 

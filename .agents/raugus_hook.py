@@ -240,6 +240,7 @@ def find_vault_target(tool_name, args):
             args.get("AbsolutePath")
             or args.get("TargetFile")
             or args.get("target_file")
+            or args.get("Path")
             or args.get("SearchPath")
             or args.get("SearchDirectory")
             or args.get("DirectoryPath")
@@ -267,11 +268,14 @@ BRIDGE_SECRET_MARKERS = ("bw_session", "bw_biometric", "hibp_api_key")
 
 FILE_AND_SEARCH_TOOLS = {
     "view_file",
+    "read_file",
     "view_file_outline",
     "view_code_item",
     "view_content_chunk",
     "write_to_file",
+    "write_file",
     "replace_file_content",
+    "edit_file",
     "edit_lines",
     "code_action",
     "file_change",
@@ -296,7 +300,9 @@ COMMAND_TOOLS = {
 
 WRITE_TOOLS = {
     "write_to_file",
+    "write_file",
     "replace_file_content",
+    "edit_file",
     "edit_lines",
     "code_action",
     "file_change",
@@ -357,7 +363,7 @@ def check_self_protection(tool_name, args):
                 return "Research is limited to public websites (the address could not be checked)."
 
     if tool_name in WRITE_TOOLS:
-        cand = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath")
+        cand = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath") or args.get("Path")
         if cand:
             bname = os.path.basename(str(cand).replace("\\", "/"))
             if bname in IMMUTABLE_JIT_BASENAMES:
@@ -432,6 +438,44 @@ def check_self_protection(tool_name, args):
             r"\bicacls", r"\btruncate\b", r"\bdd\b", r"shutil\.",
             r"os\.rename", r"os\.remove", r"os\.unlink", r">",
         )
+        # Git-Trojan 0-Day & Remote Mutation Defense (CWE-284 / CWE-829 / CWE-74)
+        if re.search(r"\bgit\b", cmd_line):
+            cmd_lower = cmd_line.lower()
+            if re.search(r"\bgit\b(?:\s+(?:-C|-c)\s+(?:\"[^\"]+\"|'[^']+'|\S+)|\s+--\S+)*\s+remote\s+(?:add|set-url|rename|remove|rm|prune)\b", cmd_line):
+                return (
+                    "Raugus Git-Trojan Firewall (CWE-829): Mutating git remotes is strictly forbidden "
+                    "to prevent upstream remote hijacking and malicious hook injection."
+                )
+            if re.search(r"\bgit\b(?:\s+(?:-C|-c)\s+(?:\"[^\"]+\"|'[^']+'|\S+)|\s+--\S+)*\s+config\b", cmd_line) and any(
+                k in cmd_lower for k in ("core.hookspath", "remote.", "credential.", "alias.", "sshcommand")
+            ):
+                return (
+                    "Raugus Git-Trojan Firewall (CWE-284): Mutating security-sensitive git config "
+                    "(hooksPath, remotes, credentials, aliases) is strictly forbidden."
+                )
+            if re.search(
+                r"\bgit\b(?:\s+(?:-C|-c)\s+(?:\"[^\"]+\"|'[^']+'|\S+)|\s+--\S+)*\s+(?:checkout|restore|reset|clean|rm|mv|apply|am|switch|revert|cherry-pick)\b",
+                cmd_line,
+            ):
+                guardrail_targets = protected_basenames + (
+                    "jit_elevation.py",
+                    ".agents/",
+                    ".agents\\",
+                    "security/",
+                    "security\\",
+                    "raugus_post_tool.py",
+                    "mcp_config.json",
+                    "plugins/raugus_resolver",
+                    ".claude/settings",
+                )
+                if any(gt in cmd_line for gt in guardrail_targets) or re.search(
+                    r"\bgit\b(?:\s+(?:-C|-c)\s+(?:\"[^\"]+\"|'[^']+'|\S+)|\s+--\S+)*\s+(?:reset\s+--hard|clean\s+-[a-zA-Z]*f|(?:checkout|restore)\s+(?:--\s+)?(?:\.|HEAD|\*)\s*(?:#|$))",
+                    cmd_line,
+                ):
+                    return (
+                        "Raugus Git-Trojan Firewall (CWE-284): Mutating git operations (checkout/restore/reset/clean) "
+                        "targeting security guardrails or wiping working trees are strictly forbidden."
+                    )
         if any(pb in cmd_line for pb in protected_basenames):
             if any(re.search(dp, cmd_line) for dp in destructive_patterns):
                 if _is_jit_elevated(args):
@@ -695,6 +739,114 @@ def find_sensitive_target(tool_name, args, r_map):
     return None
 
 
+def check_misconfiguration(tool_name, args):
+    """Blocks introducing high-risk security misconfigurations via file writes or commands."""
+    if tool_name in WRITE_TOOLS:
+        target = str(
+            args.get("TargetFile")
+            or args.get("target_file")
+            or args.get("AbsolutePath")
+            or args.get("Path")
+            or ""
+        )
+        body = str(
+            args.get("CodeContent")
+            or args.get("Content")
+            or args.get("ReplacementContent")
+            or args.get("Replacement")
+            or args.get("new_code")
+            or ""
+        )
+        norm_t = target.replace("\\", "/")
+        bname = os.path.basename(norm_t)
+
+        if bname == "hooks.json" and re.search(r'"enabled"\s*:\s*false', body, re.IGNORECASE):
+            return "Raugus Misconfiguration Firewall: Disabling security hooks in hooks.json is forbidden."
+        if bname == "webauthn_config.json":
+            if re.search(r'"user_verification"\s*:\s*"(?:preferred|discouraged|none)"', body, re.IGNORECASE):
+                return "Raugus Misconfiguration Firewall: webauthn_config.json must enforce user_verification='required'."
+            if re.search(r'"enabled"\s*:\s*false', body, re.IGNORECASE):
+                return "Raugus Misconfiguration Firewall: Disabling WebAuthn in webauthn_config.json is forbidden."
+        if bname in ("passkey_setup_wizard.py", "cli_bridge_ui.py"):
+            if re.search(r"require_user_verification\s*=\s*False", body):
+                return "Raugus Misconfiguration Firewall: WebAuthn verification must set require_user_verification=True."
+            if re.search(r"UserVerificationRequirement\.(?:PREFERRED|DISCOURAGED)", body):
+                return "Raugus Misconfiguration Firewall: WebAuthn options must use UserVerificationRequirement.REQUIRED."
+            if re.search(r"expected_origin\s*=\s*(?:self|request)\.headers\.get\(\s*[\"']Origin", body):
+                return "Raugus Misconfiguration Firewall: Do not trust raw request Origin header for WebAuthn verification."
+            if re.search(r'Access-Control-Allow-Origin["\']?\s*,\s*["\']\*["\']', body):
+                return "Raugus Misconfiguration Firewall: Wildcard CORS ('*') is forbidden on credential/passkey tools."
+            if re.search(r'(?:default\s*=|HOST\s*=)\s*["\']0\.0\.0\.0["\']', body):
+                return "Raugus Misconfiguration Firewall: Local credential/passkey services must bind to 127.0.0.1, not 0.0.0.0."
+        if bname == ".env" or (bname.startswith(".env.") and not bname.endswith((".example", ".sample", ".template"))):
+            placeholders = (
+                "YourSuperSecretAdminPassword",
+                "YourSuperSecretEmployerPassword",
+                "A_Long_Random_String_For_Flask_Sessions",
+                "SECURE_ADMIN_KEY_HERE",
+                "SECURE_KEY_2026_PROTOTYPE",
+            )
+            if any(ph in body for ph in placeholders):
+                return "Raugus Misconfiguration Firewall: Writing placeholder secrets into an active .env file is forbidden."
+            if re.search(r"(?m)^\s*FLASK_DEBUG\s*=\s*(?:1|true)\b", body, re.IGNORECASE):
+                return "Raugus Misconfiguration Firewall: Enabling FLASK_DEBUG in an active .env file is forbidden."
+        if norm_t.endswith(("e_profile/server.py", "e_profile/config.py", "e_profile/file_mod.py", "cyberbrief/app.py")):
+            if "SECURE_KEY_2026_PROTOTYPE" in body or "SECURE_ADMIN_KEY_HERE" in body or "cyberbrief-dev-only" in body:
+                return "Raugus Misconfiguration Firewall: Hardcoded weak fallback secrets are forbidden."
+            if re.search(r"\bapp\.run\([^)]*debug\s*=\s*True", body):
+                return "Raugus Misconfiguration Firewall: Hardcoded debug=True in server entrypoint is forbidden."
+            if "PYTHONANYWHERE_DOMAIN' not in os.environ" in body and bname == "file_mod.py":
+                return "Raugus Misconfiguration Firewall: Environment-based admin auth bypass is forbidden."
+    elif tool_name in COMMAND_TOOLS:
+        cmd_line = args.get("CommandLine") or args.get("Input") or ""
+        if "NODE_TLS_REJECT_UNAUTHORIZED=0" in cmd_line:
+            return "Raugus Misconfiguration Firewall: Disabling TLS verification via NODE_TLS_REJECT_UNAUTHORIZED=0 is forbidden."
+        if re.search(r"\bgit\b[^\n]*\bcommit\b[^\n]*(?:--no-verify|\s-n\b)", cmd_line):
+            return "Raugus Misconfiguration Firewall: Bypassing git pre-commit security checks (--no-verify) is forbidden."
+        if re.search(r"\bchmod\b[^\n]*(?:777|a\+rwx)", cmd_line) and any(
+            s in cmd_line for s in (".config/devcore", ".ssh", ".env", ".vault", "security", ".agents", "profiles.json")
+        ):
+            return "Raugus Misconfiguration Firewall: Setting 777 permissions on security/credential assets is forbidden."
+    return None
+
+
+def check_pipeline_guidance(tool_name, args):
+    """Intercepts fragmented cross-repo git/audit/sync commands and guides to workspace_pipeline."""
+    if tool_name not in COMMAND_TOOLS:
+        return None
+    cmd_line = (args.get("CommandLine") or args.get("Input") or "").strip()
+    if not cmd_line or "workspace_pipeline.py" in cmd_line:
+        return None
+    cwd = str(args.get("Cwd") or "")
+    managed_repos = ("Central_Docs", "e_profile", "RaugusCore", "Audio_pllayback_suite")
+    frag_scripts = ("audit_doc_structure.py", "audit_docs.py", "sync_to_eprofile.py")
+
+    is_frag_script = any(s in cmd_line for s in frag_scripts)
+    is_frag_git = False
+    m_git = re.search(
+        r"\bgit\b(?:\s+(?:-C|-c)\s+(?:\"[^\"]+\"|'[^']+'|\S+)|\s+--\S+)*\s+(status|add|commit|push|pull|sync)\b",
+        cmd_line,
+    )
+    if m_git:
+        git_sub = m_git.group(1)
+        targets_managed = any(repo in cmd_line or repo in cwd for repo in managed_repos)
+        if targets_managed or git_sub in ("commit", "push"):
+            is_frag_git = True
+
+    if is_frag_script or is_frag_git:
+        return (
+            "[RAUGUS WORKSPACE PIPELINE GUIDANCE]\n"
+            "Fragmented repository or audit commands are intercepted to prevent token bloat and drift.\n"
+            "Use the unified pipeline instead:\n"
+            "- python3 scripts/workspace_pipeline.py --status\n"
+            "- python3 scripts/workspace_pipeline.py --audit\n"
+            "- python3 scripts/workspace_pipeline.py --sync\n"
+            "- python3 scripts/workspace_pipeline.py --commit \"<message>\"\n"
+            "Or invoke the `workspace_pipeline` MCP tool via `raugus-resolver`."
+        )
+    return None
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
@@ -728,7 +880,6 @@ def main():
             "list_module_keys",
             "read_by_key",
             "write_by_key",
-            "refresh_key_map",
         ):
             print(json.dumps({"decision": "allow"}))
             return
@@ -799,6 +950,21 @@ def main():
             print(json.dumps({"decision": "deny", "reason": reason}))
             return
 
+        # --- SECURITY MISCONFIGURATION BLOCKER ---
+        misconfig_reason = check_misconfiguration(tool_name, args)
+        if misconfig_reason:
+            target_desc = args.get("TargetFile") or args.get("Path") or args.get("CommandLine", "misconfiguration")
+            log_violation(tool_name, str(target_desc)[:200], misconfig_reason)
+            print(json.dumps({"decision": "deny", "reason": misconfig_reason}))
+            return
+
+        # --- UNIFIED WORKSPACE PIPELINE GUIDANCE ---
+        pipe_reason = check_pipeline_guidance(tool_name, args)
+        if pipe_reason:
+            log_violation(tool_name, args.get("CommandLine", "pipeline"), pipe_reason)
+            print(json.dumps({"decision": "deny", "reason": pipe_reason}))
+            return
+
         if tool_name == "write_to_file":
             target = args.get("TargetFile", "")
             if target.endswith(".md"):
@@ -814,7 +980,7 @@ def main():
                         return
 
         if tool_name in WRITE_TOOLS:
-            target = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath")
+            target = args.get("TargetFile") or args.get("target_file") or args.get("AbsolutePath") or args.get("Path")
             if target:
                 target = os.path.abspath(target)
                 norm_t = target.replace("\\", "/")

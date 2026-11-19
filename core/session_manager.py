@@ -671,130 +671,77 @@ def _sync_live_blueprint_routes():
     global _SYNCING_ROUTES
     if _SYNCING_ROUTES:
         return
+    import sys
+    import importlib
     _SYNCING_ROUTES = True
     try:
-        import sys
-        import importlib
-        import ast
         main_mod = sys.modules.get("__main__") or sys.modules.get("core.server")
-        live_app = getattr(main_mod, "app", None) if main_mod else None
-        if live_app is None or not hasattr(live_app, "view_functions"):
+        live_app = getattr(main_mod, "app", None)
+        if not live_app or not hasattr(live_app, "view_functions"):
             return
 
-        _ensure_ipv6_loopback_bridge(main_mod)
-
-        if "core.local_model_service" in sys.modules:
-            try:
-                importlib.reload(sys.modules["core.local_model_service"])
-            except Exception:
-                pass
+        if main_mod:
+            _ensure_ipv6_loopback_bridge(main_mod)
 
         try:
-            from core.local_model_service import discover_local_models
-            local_opts = discover_local_models()
-        except Exception:
-            local_opts = [{"value": "Local Qwen 2.5 (Offline)", "text": "Local Qwen 2.5 (Offline)"}]
-
-        try:
-            ui_cfg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui_config.json")
-            if os.path.exists(ui_cfg_path):
-                with open(ui_cfg_path, "r", encoding="utf-8") as f:
-                    cfg = json.load(f)
-                models = cfg.get("header", {}).get("models")
-                local_vals = {o["value"] for o in local_opts}
-                if isinstance(models, list) and models:
-                    filtered = [m for m in models if m.get("value") not in local_vals]
-                    models = ([filtered[0]] + local_opts + filtered[1:]) if filtered else list(local_opts)
-                    main_mod.CACHED_MODELS = models
-
-            async def _fast_fetch_dynamic_models(force_cli: bool = False):
-                cached = getattr(main_mod, "CACHED_MODELS", None)
-                if cached is not None and not force_cli:
-                    return cached
-                try:
-                    from core.local_model_service import discover_local_models as _disc_local
-                    dyn_local = _disc_local()
-                except Exception:
-                    dyn_local = list(local_opts)
-                local_set = {o["value"] for o in dyn_local}
-                try:
-                    if os.path.exists(ui_cfg_path):
-                        with open(ui_cfg_path, "r", encoding="utf-8") as f:
-                            c = json.load(f)
-                        m = c.get("header", {}).get("models")
-                        if isinstance(m, list) and m:
-                            flt = [x for x in m if x.get("value") not in local_set]
-                            m = ([flt[0]] + dyn_local + flt[1:]) if flt else list(dyn_local)
-                            main_mod.CACHED_MODELS = m
-                            return m
-                except Exception:
-                    pass
-                return cached
-
-            main_mod.fetch_dynamic_models = _fast_fetch_dynamic_models
-        except Exception:
-            pass
-
-        for sec_sub in ("security.raugus_resolver", "security.security_headers", "security.vfs"):
-            if sec_sub in sys.modules:
-                try:
-                    reloaded_mod = importlib.reload(sys.modules[sec_sub])
-                    if sec_sub == "security.security_headers" and hasattr(reloaded_mod, "apply_security_headers"):
-                        after_funcs = getattr(live_app, "after_request_funcs", {}).get(None, [])
+            if "core.server" in sys.modules:
+                srv_mod = sys.modules["core.server"]
+                if srv_mod is main_mod and getattr(srv_mod, "__file__", None):
+                    ns = {"__name__": "__main__", "__file__": srv_mod.__file__}
+                    with open(srv_mod.__file__, "r", encoding="utf-8") as _sf:
+                        code_obj = compile(_sf.read(), srv_mod.__file__, "exec")
+                    try:
+                        import quart
+                        orig_run = quart.Quart.run
+                        quart.Quart.run = lambda *a, **kw: None
+                        try:
+                            exec(code_obj, ns)
+                        finally:
+                            quart.Quart.run = orig_run
+                    except Exception:
+                        pass
+                    if callable(ns.get("ws_endpoint")):
+                        for ep_k in list(live_app.view_functions.keys()):
+                            if ep_k == "ws_endpoint" or ep_k.endswith(".ws_endpoint"):
+                                live_app.view_functions[ep_k] = ns["ws_endpoint"]
+                    for view_name in ("unlock_link", "unlock_api"):
+                        if callable(ns.get(view_name)):
+                            for ep_k in list(live_app.view_functions.keys()):
+                                if ep_k == view_name or ep_k.endswith("." + view_name):
+                                    live_app.view_functions[ep_k] = ns[view_name]
+            elif main_mod and getattr(main_mod, "__file__", None) and os.path.basename(main_mod.__file__) == "server.py":
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("_core_server_hot", main_mod.__file__)
+                if spec and spec.loader:
+                    hot_srv = importlib.util.module_from_spec(spec)
+                    import quart
+                    orig_run = quart.Quart.run
+                    quart.Quart.run = lambda *a, **kw: None
+                    try:
+                        spec.loader.exec_module(hot_srv)
+                    finally:
+                        quart.Quart.run = orig_run
+                    if callable(getattr(hot_srv, "ws_endpoint", None)):
+                        for ep_k in list(live_app.view_functions.keys()):
+                            if ep_k == "ws_endpoint" or ep_k.endswith(".ws_endpoint"):
+                                live_app.view_functions[ep_k] = hot_srv.ws_endpoint
+                    for view_name in ("unlock_link", "unlock_api", "custom_static"):
+                        fn_ref = getattr(hot_srv, view_name, None)
+                        if callable(fn_ref):
+                            for ep_k in list(live_app.view_functions.keys()):
+                                if ep_k == view_name or ep_k.endswith("." + view_name):
+                                    live_app.view_functions[ep_k] = fn_ref
+                    hover_fn = getattr(hot_srv, "_inject_a11y_hover", None)
+                    if callable(hover_fn):
+                        after_funcs = live_app.after_request_funcs.setdefault(None, [])
+                        replaced = False
                         for idx, fn in enumerate(after_funcs):
-                            if getattr(fn, "__name__", "") == "apply_security_headers":
-                                after_funcs[idx] = reloaded_mod.apply_security_headers
-                    elif sec_sub == "security.vfs" and hasattr(reloaded_mod, "vfs"):
-                        reloaded_mod.vfs.load()
-                except Exception:
-                    pass
-
-        try:
-            live_agent_mgr = getattr(live_app, "agent_mgr", None) or live_app.config.get("AGENT_MANAGER") or getattr(main_mod, "agent_mgr", None)
-            if "agents.mixins.comms_mixin" in sys.modules:
-                comms_mod = importlib.reload(sys.modules["agents.mixins.comms_mixin"])
-                if hasattr(comms_mod, "CommsMixin") and live_agent_mgr is not None:
-                    for attr_n in ("set_task_context", "get_task_context", "broadcast", "handle_ack", "sync_client", "register_client", "authenticate_client", "unregister_client"):
-                        if hasattr(comms_mod.CommsMixin, attr_n):
-                            setattr(live_agent_mgr.__class__, attr_n, getattr(comms_mod.CommsMixin, attr_n))
-            if "agents.mixins.execution_mixin" in sys.modules:
-                exec_mod = importlib.reload(sys.modules["agents.mixins.execution_mixin"])
-                if hasattr(exec_mod, "ExecutionMixin") and live_agent_mgr is not None:
-                    for attr_n in ("start_task", "_execute_agent", "_heartbeat_worker", "queue_prompt", "clear_queue", "promote_queued_to_steer", "_drain_queued_prompts", "steer_task", "cancel_task"):
-                        if hasattr(exec_mod.ExecutionMixin, attr_n):
-                            setattr(live_agent_mgr.__class__, attr_n, getattr(exec_mod.ExecutionMixin, attr_n))
-            if "agents.agent_manager" in sys.modules:
-                am_mod = importlib.reload(sys.modules["agents.agent_manager"])
-                if hasattr(am_mod, "AgentTaskManager") and live_agent_mgr is not None:
-                    if hasattr(am_mod, "_migrate_legacy_dict"):
-                        am_mod._migrate_legacy_dict(live_agent_mgr)
-                    live_agent_mgr.__class__ = am_mod.AgentTaskManager
-            else:
-                import agents.agent_manager as am_mod
-                if hasattr(am_mod, "AgentTaskManager") and live_agent_mgr is not None:
-                    if hasattr(am_mod, "_migrate_legacy_dict"):
-                        am_mod._migrate_legacy_dict(live_agent_mgr)
-                    live_agent_mgr.__class__ = am_mod.AgentTaskManager
-        except Exception as e:
-            print(f"[SessionManager] AgentManager sync warning: {e}")
-
-        try:
-            srv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "server.py")
-            if os.path.isfile(srv_path) and main_mod is not None:
-                with open(srv_path, "r", encoding="utf-8") as sf:
-                    srv_src = sf.read()
-                srv_tree = ast.parse(srv_src, filename=srv_path)
-                hot_fns = {"ws_endpoint", "_is_cors_path", "_portal_cors_preflight", "_portal_cors", "unlock_link", "unlock_api"}
-                for node in srv_tree.body:
-                    if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "PORTAL_ORIGINS" for t in node.targets):
-                        assign_mod = ast.Module(body=[node], type_ignores=[])
-                        ast.fix_missing_locations(assign_mod)
-                        exec(compile(assign_mod, filename=srv_path, mode="exec"), main_mod.__dict__)
-                    elif isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)) and node.name in hot_fns:
-                        node.decorator_list = []
-                        fn_mod = ast.Module(body=[node], type_ignores=[])
-                        ast.fix_missing_locations(fn_mod)
-                        exec(compile(fn_mod, filename=srv_path, mode="exec"), main_mod.__dict__)
+                            if getattr(fn, "__name__", "") == "_inject_a11y_hover":
+                                after_funcs[idx] = hover_fn
+                                replaced = True
+                        if not replaced:
+                            after_funcs.append(hover_fn)
+            if main_mod:
                 new_ws_fn = main_mod.__dict__.get("ws_endpoint")
                 if callable(new_ws_fn):
                     for ep_k in list(live_app.view_functions.keys()):
@@ -822,6 +769,21 @@ def _sync_live_blueprint_routes():
                     for idx, fn in enumerate(after_funcs):
                         if getattr(fn, "__name__", "") == "_portal_cors":
                             after_funcs[idx] = cors_fn
+                hover_fn = main_mod.__dict__.get("_inject_a11y_hover")
+                if callable(hover_fn):
+                    after_funcs = live_app.after_request_funcs.setdefault(None, [])
+                    replaced = False
+                    for idx, fn in enumerate(after_funcs):
+                        if getattr(fn, "__name__", "") == "_inject_a11y_hover":
+                            after_funcs[idx] = hover_fn
+                            replaced = True
+                    if not replaced:
+                        after_funcs.append(hover_fn)
+                static_fn = main_mod.__dict__.get("custom_static")
+                if callable(static_fn):
+                    for ep_k in list(live_app.view_functions.keys()):
+                        if ep_k == "custom_static" or ep_k.endswith(".custom_static"):
+                            live_app.view_functions[ep_k] = static_fn
         except Exception as e:
             print(f"[SessionManager] server.py hot-bind warning: {e}")
 
@@ -853,6 +815,20 @@ def _sync_live_blueprint_routes():
                 "api_run_audit",
                 "api_refresh_audits",
                 "api_vault_gateway",
+                "admin_mailbox_page",
+                "api_mailbox_status",
+                "api_mailbox_folders",
+                "api_mailbox_inbox",
+                "api_mailbox_inbox_detail",
+                "api_mailbox_inbox_read",
+                "api_mailbox_reply",
+                "api_mailbox_outbound",
+                "api_mailbox_outbound_detail",
+                "api_mailbox_send",
+                "api_mailbox_clear",
+                "api_mailbox_settings",
+                "api_mailbox_upload_google_json",
+                "api_mailbox_test",
             ):
                 if hasattr(sys_mod, fn_name):
                     live_app.view_functions[f"system_bp.{fn_name}"] = getattr(sys_mod, fn_name)
@@ -876,6 +852,20 @@ def _sync_live_blueprint_routes():
                 ('/api/audits/refresh', 'system_bp.api_refresh_audits', 'api_refresh_audits', ['POST']),
                 ('/api/audits/results/<audit_id>', 'system_bp.api_audit_result', 'api_audit_result', ['GET']),
                 ('/api/vault/<path:subpath>', 'system_bp.api_vault_gateway', 'api_vault_gateway', ['GET', 'POST', 'DELETE']),
+                ('/admin/mailbox', 'system_bp.admin_mailbox_page', 'admin_mailbox_page', ['GET']),
+                ('/api/mailbox/status', 'system_bp.api_mailbox_status', 'api_mailbox_status', ['GET']),
+                ('/api/mailbox/folders', 'system_bp.api_mailbox_folders', 'api_mailbox_folders', ['GET']),
+                ('/api/mailbox/inbox', 'system_bp.api_mailbox_inbox', 'api_mailbox_inbox', ['GET']),
+                ('/api/mailbox/inbox/<uid>', 'system_bp.api_mailbox_inbox_detail', 'api_mailbox_inbox_detail', ['GET']),
+                ('/api/mailbox/inbox/<uid>/read', 'system_bp.api_mailbox_inbox_read', 'api_mailbox_inbox_read', ['POST']),
+                ('/api/mailbox/reply', 'system_bp.api_mailbox_reply', 'api_mailbox_reply', ['POST']),
+                ('/api/mailbox/outbound', 'system_bp.api_mailbox_outbound', 'api_mailbox_outbound', ['GET']),
+                ('/api/mailbox/outbound/<email_id>', 'system_bp.api_mailbox_outbound_detail', 'api_mailbox_outbound_detail', ['GET']),
+                ('/api/mailbox/send', 'system_bp.api_mailbox_send', 'api_mailbox_send', ['POST']),
+                ('/api/mailbox/clear', 'system_bp.api_mailbox_clear', 'api_mailbox_clear', ['POST']),
+                ('/api/mailbox/settings', 'system_bp.api_mailbox_settings', 'api_mailbox_settings', ['POST']),
+                ('/api/mailbox/upload-google-json', 'system_bp.api_mailbox_upload_google_json', 'api_mailbox_upload_google_json', ['POST']),
+                ('/api/mailbox/test', 'system_bp.api_mailbox_test', 'api_mailbox_test', ['POST']),
             ]
             from werkzeug.routing import Rule
             for rule_path, ep_name, attr_name, methods in dynamic_sys_routes:
@@ -916,6 +906,12 @@ def _sync_live_blueprint_routes():
             except Exception:
                 pass
 
+        if "core.course_certificate" in sys.modules:
+            try:
+                importlib.reload(sys.modules["core.course_certificate"])
+            except Exception:
+                pass
+
         if "core.routes.projects" in sys.modules:
             proj_mod = importlib.reload(sys.modules["core.routes.projects"])
             for fn_name in (
@@ -928,6 +924,7 @@ def _sync_live_blueprint_routes():
                 "clear_project_sessions",
                 "rename_conversation",
                 "course_page",
+                "courses_catalog",
                 "api_course_data",
                 "api_course_progress",
                 "api_course_execute",
@@ -935,6 +932,18 @@ def _sync_live_blueprint_routes():
                 "api_course_export",
                 "api_course_requirements",
                 "api_course_workspace",
+                "api_course_connection_status",
+                "api_course_terms",
+                "api_course_register",
+                "api_course_recorder_log",
+                "api_course_recorder_chunk",
+                "api_course_recorder_finalize",
+                "api_course_recorder_recover",
+                "api_course_recorder_download",
+                "api_course_recorder_discard",
+                "api_course_survey",
+                "api_course_certificate_download",
+                "api_course_certificate_verify",
                 "api_cards_triggers",
                 "api_cards_resolve",
                 "api_cards_featured",
@@ -947,6 +956,7 @@ def _sync_live_blueprint_routes():
                 ('/api/conversations/<conv_id>/rename', 'projects_bp.rename_conversation', 'rename_conversation', ['POST']),
                 ('/plugin/course', 'projects_bp.course_page_plugin', 'course_page', ['GET']),
                 ('/course', 'projects_bp.course_page', 'course_page', ['GET']),
+                ('/courses', 'projects_bp.courses_catalog', 'courses_catalog', ['GET']),
                 ('/api/course/data', 'projects_bp.api_course_data', 'api_course_data', ['GET']),
                 ('/api/course/progress', 'projects_bp.api_course_progress', 'api_course_progress', ['GET', 'POST']),
                 ('/api/course/execute', 'projects_bp.api_course_execute', 'api_course_execute', ['POST']),
@@ -954,6 +964,19 @@ def _sync_live_blueprint_routes():
                 ('/api/course/export', 'projects_bp.api_course_export', 'api_course_export', ['GET', 'POST']),
                 ('/api/course/requirements', 'projects_bp.api_course_requirements', 'api_course_requirements', ['POST']),
                 ('/api/course/workspace/<op>', 'projects_bp.api_course_workspace', 'api_course_workspace', ['POST']),
+                ('/api/course/connection-status', 'projects_bp.api_course_connection_status', 'api_course_connection_status', ['GET']),
+                ('/api/course/terms', 'projects_bp.api_course_terms', 'api_course_terms', ['POST']),
+                ('/api/course/register', 'projects_bp.api_course_register', 'api_course_register', ['POST']),
+                ('/api/course/recorder-log', 'projects_bp.api_course_recorder_log', 'api_course_recorder_log', ['POST']),
+                ('/api/recorder/log', 'projects_bp.api_recorder_log', 'api_course_recorder_log', ['POST']),
+                ('/api/course/recorder-chunk', 'projects_bp.api_course_recorder_chunk', 'api_course_recorder_chunk', ['POST']),
+                ('/api/course/recorder-finalize', 'projects_bp.api_course_recorder_finalize', 'api_course_recorder_finalize', ['POST']),
+                ('/api/course/recorder-recover', 'projects_bp.api_course_recorder_recover', 'api_course_recorder_recover', ['GET']),
+                ('/api/course/recorder-download', 'projects_bp.api_course_recorder_download', 'api_course_recorder_download', ['GET']),
+                ('/api/course/recorder-discard', 'projects_bp.api_course_recorder_discard', 'api_course_recorder_discard', ['POST']),
+                ('/api/course/survey', 'projects_bp.api_course_survey', 'api_course_survey', ['POST']),
+                ('/api/course/certificate/download', 'projects_bp.api_course_certificate_download', 'api_course_certificate_download', ['GET']),
+                ('/api/course/certificate/verify', 'projects_bp.api_course_certificate_verify', 'api_course_certificate_verify', ['GET']),
                 ('/api/cards/triggers', 'projects_bp.api_cards_triggers', 'api_cards_triggers', ['GET']),
                 ('/api/cards/resolve', 'projects_bp.api_cards_resolve', 'api_cards_resolve', ['POST']),
                 ('/api/cards/featured', 'projects_bp.api_cards_featured', 'api_cards_featured', ['GET']),
@@ -981,16 +1004,6 @@ def _sync_live_blueprint_routes():
                     fn_name = ep.split(".", 1)[1]
                     if hasattr(auth_mod, fn_name):
                         live_app.view_functions[ep] = getattr(auth_mod, fn_name)
-            if hasattr(auth_mod, "auth_demo") and "auth_bp.auth_demo" not in [r.endpoint for r in live_app.url_map.iter_rules()]:
-                try:
-                    live_app.add_url_rule(
-                        '/api/auth_demo',
-                        endpoint='auth_bp.auth_demo',
-                        view_func=auth_mod.auth_demo,
-                        methods=['GET', 'POST']
-                    )
-                except Exception:
-                    pass
 
         if "core.routes.device_keys" in sys.modules:
             dk_mod = importlib.reload(sys.modules["core.routes.device_keys"])

@@ -81,7 +81,7 @@ def run_audit():
     run_test(test_write_file, mod_token, "playground/test_write.txt", "Hello World", 403)
     # Dev SHOULD be able to write safe workspace files inside assigned project
     try:
-        requests.post(f"{BASE_URL}/api/projects/active", json={"name": "game_demo"}, headers={"Authorization": f"Bearer {dev_token}"})
+        requests.post(f"{BASE_URL}/api/projects/active", json={"name": "game_sandbox"}, headers={"Authorization": f"Bearer {dev_token}"})
         run_test(test_write_file, dev_token, "test_dev_write.txt", "Hello Dev", 200)
     finally:
         requests.post(f"{BASE_URL}/api/projects/active", json={"name": None}, headers={"Authorization": f"Bearer {admin_token}"})

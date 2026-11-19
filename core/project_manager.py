@@ -10,7 +10,7 @@ class ProjectManager:
         'node_modules', 'site-packages', 'Cryptodome', 'pyzipper',
         'Zip-Files', 'Offline_Crack_Lab', 'Online_Brute_Lab'
     }
-    DEFAULT_PROJECTS = ('game_demo', 'npc_quest')
+    DEFAULT_PROJECTS = ('game_sandbox', 'npc_quest')
 
     def __init__(self, base_dir=None):
         if not base_dir:

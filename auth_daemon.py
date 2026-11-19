@@ -208,26 +208,13 @@ def save_token_to_targets(token_payload: dict, scope: str = "root"):
         "id_token_email": email or "authenticated_user@gmail.com",
     }
 
-    if scope == "demo":
-        demo_dirs = [
-            BASE_DIR / "demo",
-            Path.cwd() / "content" / "projects" / "demo",
-            BASE_DIR.parent.parent / "demo",
-            Path.cwd() / "demo",
-            Path.home() / "demo",
-        ]
-        target_paths = []
-        for d_dir in demo_dirs:
-            target_paths.append(str(d_dir / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"))
-            target_paths.append(str(d_dir / "antigravity-oauth-token"))
-    else:
-        target_paths = [
-            str(Path.home() / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"),
-            str(BASE_DIR / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"),
-        ]
-        for root in _iter_relative_roots():
-            if (root / "server.py").is_file() and (root / "projects_mod.py").is_file():
-                target_paths.append(str(root / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"))
+    target_paths = [
+        str(Path.home() / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"),
+        str(BASE_DIR / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"),
+    ]
+    for root in _iter_relative_roots():
+        if (root / "server.py").is_file() and (root / "projects_mod.py").is_file():
+            target_paths.append(str(root / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"))
 
     for dest in dict.fromkeys(target_paths):
         try:

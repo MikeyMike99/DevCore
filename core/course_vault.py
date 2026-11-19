@@ -595,7 +595,7 @@ def build_tailored_environment(body: dict) -> dict:
     """Validates learner/pair step requirements and generates deterministic lockfiles and VM specs."""
     _assert_zero_knowledge_payload(body)
     answers = body.get('answers') if isinstance(body.get('answers'), dict) else {}
-    venv_name = re.sub(r'[^A-Za-z0-9_.-]', '', str(answers.get('venv_name') or 'alp-env')) or 'alp-env'
+    venv_name = re.sub(r'[^A-Za-z0-9_.-]', '', str(answers.get('venv_name') or 'course-env')) or 'course-env'
     python_version = re.sub(r'[^0-9.]', '', str(answers.get('python_version') or '3.14.4')) or '3.14.4'
     host_platform = str(answers.get('host_platform') or 'WSL2 Ubuntu on Windows')[:80]
     pinned_packages = normalize_package_list(answers.get('extra_packages', 'pip-tools==7.6.2'))

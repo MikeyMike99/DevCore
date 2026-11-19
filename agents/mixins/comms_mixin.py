@@ -135,12 +135,22 @@ class CommsMixin:
                 "and I'll suggest the closest thing I can help with, or type `/help` to see everything Siraugga can do."
             )
         elif _COURSE_LINK.search(text) and 'src="/plugin/course' not in text:
+            from urllib.parse import quote
             from agents import exam_store
+            from core import response_cards
+            m_cid = re.search(r"/(?:plugin/)?course\?[^\s)\"']*?\bcourse=([A-Za-z0-9_-]+)", text, re.I)
+            course = response_cards._find_course(m_cid.group(1) if m_cid else "")
+            cid, ctitle = course["id"], course["title"]
+            is_preview = bool(re.search(r"/(?:plugin/)?course\?[^\s)\"']*preview=(?:1|true|yes)\b", text, re.I))
+            course_url = "/plugin/course?course=" + quote(cid) + "&title=" + quote(ctitle)
+            if is_preview:
+                course_url += "&preview=1"
+            course_title = ctitle + (" (Full Preview — No Recording)" if is_preview else "")
             addition = "\n\n" + exam_store.render_results([{
                 "ok": True,
                 "kind": "course",
-                "url": "/plugin/course?course=alp_phase2_bicep_course&title=ALP%20Phase%202%20Interactive%20Practical%20Course",
-                "title": "ALP Phase 2 Interactive Practical Course",
+                "url": course_url,
+                "title": course_title,
                 "message": "",
             }])
         else:

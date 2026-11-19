@@ -28,7 +28,7 @@ ssh-keygen -t rsa -b 4096 -N "" -f ~/.ssh/id_rsa > /dev/null 2>&1
 cat ~/.ssh/id_rsa.pub | ssh $TARGET 'powershell -NoProfile -Command "if (!(Test-Path .ssh)) { New-Item -ItemType Directory -Path .ssh }; $input | Out-File -Append -Encoding ascii .ssh\authorized_keys; icacls .ssh\authorized_keys /inheritance:r /grant ${env:USERNAME}:F"'
 
 # 3. Packaging codebase...
-tar -cf /tmp/devcore_build.tar --exclude='venv' --exclude='.git' --exclude='__pycache__' --exclude='*.exe' -C /mnt/c/Users/michael/Documents/DevCore .
+tar -cf /tmp/devcore_build.tar --exclude='venv' --exclude='.git' --exclude='__pycache__' --exclude='*.exe' -C <project_root> .
 
 # 4. Transferring to Build Server...
 scp -q /tmp/devcore_build.tar $TARGET:~/devcore_build.tar
@@ -40,7 +40,7 @@ ssh -q $TARGET 'powershell -NoProfile -Command "Set-Location \"$env:USERPROFILE\
 ssh -q -o ServerAliveInterval=60 -o ServerAliveCountMax=30 $TARGET 'cmd.exe /c "cd /d %USERPROFILE%\DevCore_Build && python remote_compiler.py"'
 
 # 7. Retrieving Compiled Binary...
-scp -q $TARGET:~/DevCore_Build/Siraugga.exe /mnt/c/Users/michael/Documents/DevCore/
+scp -q $TARGET:~/DevCore_Build/Siraugga.exe <project_root>/
 ```
 
 ## 2. Remote Compiler Payload (`remote_compiler.py`)

@@ -16,12 +16,9 @@ def _iter_transcript_roots():
     seen = set()
     for candidate in (
         base_dir,
-        base_dir / "demo",
         Path.cwd(),
-        Path.cwd() / "demo",
         base_dir.parent,
         base_dir.parent.parent,
-        base_dir.parent.parent / "demo",
         base_dir.parent.parent.parent,
         Path.home(),
     ):

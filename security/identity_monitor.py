@@ -12,7 +12,7 @@ Compares security/webauthn_credentials.json against an owner-accepted baseline
   COUNTER_ROLLBACK  sign counter went backwards since last check (file restored or a
                     cloned authenticator was used to overwrite state)
   ODD_HOUR_USE      a passkey was used between 00:00 and 05:00 local time
-  CONFIG_*          static weaknesses in the passkey verification code
+  CONFIG_*          static weaknesses or misconfigurations in security/passkey config
 
 Usage:
   python3 security/identity_monitor.py            # check, print report
@@ -34,6 +34,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 CREDS_FILE = REPO_ROOT / "security" / "webauthn_credentials.json"
 CONFIG_FILE = REPO_ROOT / "security" / "webauthn_config.json"
 WIZARD_FILE = REPO_ROOT / "scripts" / "setup" / "passkey_setup_wizard.py"
+WS_HOOKS_FILE = REPO_ROOT / ".agents" / "hooks.json"
 ALERT_LOG = REPO_ROOT / "logs" / "identity_alerts.jsonl"
 CFG_DIR = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "devcore"
 BASELINE_FILE = CFG_DIR / "identity_baseline.json"
@@ -81,21 +82,36 @@ def load_current(creds_file=CREDS_FILE):
     return out
 
 
-def static_config_findings(wizard_file=WIZARD_FILE, config_file=CONFIG_FILE):
+def static_config_findings(wizard_file=WIZARD_FILE, config_file=CONFIG_FILE, hooks_file=WS_HOOKS_FILE):
     findings = []
     try:
         src = Path(wizard_file).read_text(encoding="utf-8")
-        if re.search(r"expected_origin\s*=\s*self\.headers\.get\(\s*[\"']Origin", src):
+        if re.search(r"expected_origin\s*=\s*(?:self|request)\.headers\.get\(\s*[\"']Origin", src):
             findings.append({
-                "code": "CONFIG_ORIGIN_FROM_REQUEST", "severity": "medium",
+                "code": "CONFIG_ORIGIN_FROM_REQUEST", "severity": "high",
                 "detail": "passkey_setup_wizard.py checks WebAuthn responses against the request's own Origin header "
                           "instead of the allow-list in webauthn_config.json, which weakens phishing protection.",
             })
         if re.search(r"require_user_verification\s*=\s*False", src):
             findings.append({
-                "code": "CONFIG_UV_NOT_REQUIRED", "severity": "medium",
+                "code": "CONFIG_UV_NOT_REQUIRED", "severity": "high",
                 "detail": "Passkey sign-in does not require user verification (fingerprint/face/PIN), so a "
                           "passkey can be used with just a tap/presence check.",
+            })
+        if re.search(r"UserVerificationRequirement\.PREFERRED|\"user_verification\"\s*:\s*\"preferred\"", src):
+            findings.append({
+                "code": "CONFIG_UV_PREFERRED", "severity": "high",
+                "detail": "passkey_setup_wizard.py requests or exports 'preferred' instead of 'required' user verification.",
+            })
+        if re.search(r'Access-Control-Allow-Origin["\']?\s*,\s*["\']\*["\']', src):
+            findings.append({
+                "code": "CONFIG_WILDCARD_CORS", "severity": "high",
+                "detail": "passkey_setup_wizard.py sets wildcard Access-Control-Allow-Origin: * on WebAuthn endpoints.",
+            })
+        if re.search(r'default\s*=\s*["\']0\.0\.0\.0["\']', src):
+            findings.append({
+                "code": "CONFIG_BIND_ALL_INTERFACES", "severity": "high",
+                "detail": "passkey_setup_wizard.py binds to 0.0.0.0 by default instead of 127.0.0.1.",
             })
     except OSError:
         pass
@@ -103,8 +119,17 @@ def static_config_findings(wizard_file=WIZARD_FILE, config_file=CONFIG_FILE):
         cfg = json.loads(Path(config_file).read_text())
         if cfg.get("user_verification") != "required":
             findings.append({
-                "code": "CONFIG_UV_PREFERRED", "severity": "low",
+                "code": "CONFIG_UV_PREFERRED", "severity": "high",
                 "detail": f"webauthn_config.json sets user_verification to '{cfg.get('user_verification')}' rather than 'required'.",
+            })
+    except (OSError, ValueError):
+        pass
+    try:
+        hcfg = json.loads(Path(hooks_file).read_text())
+        if hcfg.get("raugus-firewall", {}).get("enabled") is not True:
+            findings.append({
+                "code": "CONFIG_HOOK_DISABLED", "severity": "critical",
+                "detail": "Workspace .agents/hooks.json does not have raugus-firewall enabled.",
             })
     except (OSError, ValueError):
         pass
@@ -243,7 +268,7 @@ def main():
         return 0
     r = check()
     print(json.dumps(r, indent=2) if args.json else format_report(r))
-    return 1 if any(f["severity"] in ("critical", "high") for f in r["findings"]) else 0
+    return 1 if any(f["severity"] in ("critical", "high") or f["code"].startswith("CONFIG_") for f in r["findings"]) else 0
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "raugus-resolver": {
-      "command": "python3",
+      "command": "/home/michael/.venvs/devcore/bin/python3",
       "args": [
         "/mnt/c/Users/michael/Documents/DevCore/.agents/plugins/raugus_resolver/server.py"
       ]
