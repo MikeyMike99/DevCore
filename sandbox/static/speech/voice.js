@@ -417,7 +417,10 @@
                     if (!speaking) {
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
                         recentLoud.push(level > threshold ? 1 : 0); if (recentLoud.length > 4) recentLoud.shift();
-                        if (level <= threshold) roomNoise = 0.97 * roomNoise + 0.03 * level;
+                        // The room-noise estimate falls quickly but rises only very slowly, and has a ceiling. Otherwise the quiet
+                        // moments of faint speech teach it that "speech is noise" and the level creeps up until nothing is heard.
+                        if (level < roomNoise) roomNoise = 0.85 * roomNoise + 0.15 * level;
+                        else if (level <= threshold) roomNoise = Math.min(0.006, 0.998 * roomNoise + 0.002 * level);
                         // Speech starts when at least 2 of the last 4 moments were above the level (not necessarily in a row:
                         // quiet or distant speech rises and falls around the level).
                         if (recentLoud.reduce(function (a, b) { return a + b; }, 0) >= 2) {
