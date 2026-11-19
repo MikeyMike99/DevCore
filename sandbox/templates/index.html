@@ -503,6 +503,8 @@
                 <select id="voice-mic-select" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 min-h-[44px] focus:ring-2 focus:ring-teal-500 focus:outline-none">
                     <option value="">System default</option>
                 </select>
+                <label for="voice-sens" class="text-xs text-slate-300">Microphone sensitivity: 1 needs a close, clear voice, 5 picks up faint or distant voices (and more background noise)</label>
+                <input id="voice-sens" type="range" min="1" max="5" step="1" value="3" class="w-full accent-teal-500">
                 <label for="voice-use-tts" class="flex items-center justify-between gap-3 text-sm text-slate-200 cursor-pointer min-h-[44px]">
                     <span>Read replies with a voice on this device (instead of my screen reader)</span>
                     <input type="checkbox" role="switch" id="voice-use-tts" class="w-5 h-5 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
@@ -7974,7 +7976,7 @@
 <!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
 <script src="/static/speech/dictation.js?v=16" defer></script>
-<script src="/static/speech/voice.js?v=20" defer></script>
+<script src="/static/speech/voice.js?v=21" defer></script>
 <script src="/static/device-keys.js?v=3" defer></script>
 <script src="/static/device-keys-ui.js?v=2" defer></script>
 <script src="/static/card-recorder.js?v=2" defer></script>

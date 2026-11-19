@@ -351,6 +351,11 @@
         return { audio: out, peak: peak };
     }
 
+    // Microphone sensitivity (Settings): 1 = needs a clear, close voice ... 5 = picks up faint, distant voices (and more noise).
+    var SENS_KEY = 'siraugga.voice.sensitivity';
+    function getSens() { var s = parseInt(store(SENS_KEY), 10); return s >= 1 && s <= 5 ? s : 3; }
+    function sensitivityScale() { return [1.6, 1.25, 1.0, 0.75, 0.55][getSens() - 1]; }
+
     var lastMicName = '';
     var heardSomething = false;                       // anything at all picked up during this voice session
     // Nothing heard for 12 s at the start of a session: say so, because from the outside "nothing happens" looks like "broken".
@@ -412,7 +417,7 @@
                     // began right after the beep lost its start, or was taken for background noise and never heard at all.)
                     // The "you are speaking" level follows the room noise (at least 3.5x louder), with a low floor so quiet or
                     // distant speech still counts. It used to have to be at least 0.01 (about -40 dB), too loud for many voices.
-                    var threshold = Math.min(0.03, Math.max(0.0025, roomNoise * 3));
+                    var threshold = Math.max(0.0012, Math.min(0.03, Math.max(0.0025, roomNoise * 3)) * sensitivityScale());
                     showLevel(level);
                     if (!speaking) {
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
@@ -808,6 +813,11 @@
         show('Your saved voice was removed. It will answer to any voice again.');
     });
     if (thresholdEl) thresholdEl.addEventListener('input', function () { store(THRESH_KEY, thresholdEl.value); });
+    var sensEl = document.getElementById('voice-sens');
+    if (sensEl) {
+        sensEl.value = String(getSens());
+        sensEl.addEventListener('input', function () { store(SENS_KEY, sensEl.value); });
+    }
     if (micSelect) {
         micSelect.addEventListener('change', function () { store(MIC_KEY, micSelect.value); });
         if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', refreshMics);
