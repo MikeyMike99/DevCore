@@ -5,7 +5,9 @@
 // then discarded. Nothing is uploaded. The library, its WebAssembly runtime and
 // the model files are all served by Siraugga itself (scripts/fetch_speech_assets.py),
 // so the browser never contacts Hugging Face, jsDelivr or any other third party.
-import { env, pipeline, AutoProcessor, AutoModel } from '/static/speech/vendor/transformers.min.js';
+// The ?v=2 is on purpose: while the engine files were missing from mikeytech.dev, browsers cached the 404 for this
+// exact address (static files are cached for an hour), so the worker could not start even after the files were fixed.
+import { env, pipeline, AutoProcessor, AutoModel } from '/static/speech/vendor/transformers.min.js?v=2';
 
 const MODEL_ID = 'Xenova/whisper-tiny.en';
 const SV_MODEL_ID = 'Xenova/wavlm-base-plus-sv';   // voice matching (voice.js)

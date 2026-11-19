@@ -160,7 +160,7 @@
     // ---- worker --------------------------------------------------------------
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=6', { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=7', { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
             if (m.type === 'progress') {
@@ -521,7 +521,7 @@
     // static copy of the site built without them) say so plainly, instead of a worker that dies with no explanation.
     async function enginePresent() {
         try {
-            var r = await fetch('/static/speech/vendor/transformers.min.js', { method: 'HEAD', cache: 'no-store' });
+            var r = await fetch('/static/speech/vendor/transformers.min.js?v=2', { method: 'HEAD', cache: 'no-store' });
             return r.ok;
         } catch (_) { return false; }
     }
