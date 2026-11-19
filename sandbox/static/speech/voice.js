@@ -299,7 +299,7 @@
                 src.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
 
                 var frameMs = 4096 / ctx.sampleRate * 1000;
-                var preRoll = [], frames = [], speaking = false, loud = 0, silentMs = 0, heardMs = 0;
+                var preRoll = [], frames = [], speaking = false, loud = 0, silentMs = 0, heardMs = 0, voicedMs = 0;
                 var finished = false, started = Date.now();
                 var session = { cancel: function () { finish(null); } };
                 currentSession = session;
@@ -334,14 +334,15 @@
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
                         if (level > threshold) loud++;
                         else { loud = 0; roomNoise = 0.97 * roomNoise + 0.03 * level; }
-                        if (loud >= 2) { speaking = true; frames = preRoll.slice(); silentMs = 0; heardMs = 0; }
+                        if (loud >= 2) { speaking = true; frames = preRoll.slice(); silentMs = 0; heardMs = 0; voicedMs = 0; }
                         else if (Date.now() - started > IDLE_TIMEOUT_MS) finish(null);
                     } else {
                         frames.push(data);
                         heardMs += frameMs;
-                        silentMs = level > threshold ? 0 : silentMs + frameMs;
-                        // People pause to think, most of all near the start of a sentence, so wait longer then.
-                        var allowedSilence = heardMs < 3000 ? END_SILENCE_EARLY_MS : END_SILENCE_MS;
+                        if (level > threshold) { silentMs = 0; voicedMs += frameMs; } else { silentMs += frameMs; }
+                        // People pause to think, most of all near the start of a sentence, so wait longer until you have
+                        // actually spoken for a few seconds (time spent in silence does not count towards that).
+                        var allowedSilence = voicedMs < 3000 ? END_SILENCE_EARLY_MS : END_SILENCE_MS;
                         if (silentMs >= allowedSilence || heardMs >= MAX_CLIP_SECONDS * 1000) finish(concat(frames));
                     }
                 };
