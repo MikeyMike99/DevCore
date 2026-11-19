@@ -86,9 +86,23 @@
     }
     var TTS_KEY = 'siraugga.voice.deviceVoice';       // '1' = read replies with a device voice instead of ARIA
     function getUseTts() { return store(TTS_KEY) === '1'; }
-    function liveQuiet(text) {                         // visible only; not announced
+    function paint(text, kind) {
         panel.textContent = text;
-        panel.className = 'text-sm rounded-lg px-3 py-2 mb-2 border text-emerald-200 bg-emerald-950/50 border-emerald-700/60';
+        panel.className = 'text-sm rounded-lg px-3 py-2 mb-2 border ' + (kind === 'error'
+            ? 'text-red-200 bg-red-950/60 border-red-700/60'
+            : kind === 'ok' ? 'text-emerald-200 bg-emerald-950/50 border-emerald-700/60'
+            : 'text-teal-200 bg-slate-900 border-teal-700/60');
+    }
+    function liveQuiet(text, kind) {                   // visible only; NOT announced. Used while the microphone is open, so a
+        paint(text, kind || 'ok');                     // screen reader does not speak into it (it would be heard as your voice)
+    }
+    function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+    function readTimeMs(text) { return Math.max(1500, Math.round((String(text).match(/\S+/g) || []).length / 3.2 * 1000) + 1500); }
+    // Say something (screen reader), wait long enough for it to be read, and only then open the microphone again.
+    async function noteThenListen(text, kind) {
+        live(text, kind);
+        await sleep(readTimeMs(text));
+        if (state !== 'off') return listen();
     }
     function say(text) { if (status) status.textContent = text; }
     function live(text, kind) {                       // kind: 'info' (default) | 'error' | 'ok'
@@ -399,7 +413,11 @@
     async function listen() {
         if (state === 'off') return;
         setState('listening', 'Listening… (tap to stop)');
-        live('Listening… speak now, then pause when you are done.');
+        // A beep (not speech) says "the microphone is open, talk now": speech from a screen reader would be picked up by it.
+        liveQuiet('Listening… speak now, then pause when you are done.', 'info');
+        cue([660, 990]);
+        await sleep(350);                              // let the beep end before the microphone starts measuring the room
+        if (state === 'off') return;
         var turn;
         try {
             turn = await recordTurn();
@@ -427,15 +445,14 @@
                 if (state === 'off') return;
                 var score = cosine(print, emb);
                 if (score < getThreshold()) {
-                    live('That did not sound like you, so it was ignored (match ' + score.toFixed(2) + ', needs ' + getThreshold().toFixed(2) + '). Lower the strictness in Settings if this is wrong.', 'error');
-                    return listen();
+                    return noteThenListen('That did not sound like you, so it was ignored. Match ' + score.toFixed(2) + ', needs ' + getThreshold().toFixed(2) + '. Lower the strictness in Settings if this is wrong.', 'error');
                 }
             }
             live('Turning your speech into text… (the first time loads the speech model)');
             var text = cleanup((await ask('transcribe', turn.audio)).text);
             if (state === 'off') return;
-            if (!text) { live('I did not catch any words. Listening again…'); return listen(); }
-            if (looksLikeEcho(text)) { live('That sounded like the reply being read out, so it was ignored. Listening again…'); return listen(); }
+            if (!text) return noteThenListen('I did not catch any words.');
+            if (looksLikeEcho(text)) return noteThenListen('That sounded like the reply being read out, so it was ignored.');
             await handleText(text);
         } catch (err) {
             console.error('[voice]', err);
@@ -477,8 +494,7 @@
             watchdog = null;
             if (waitingForReply && state === 'thinking' && agentCount() === before && !window.isTaskRunning) {
                 waitingForReply = false;
-                live('The message did not start a reply (is the connection open?). Listening again…', 'error');
-                listen();
+                noteThenListen('The message did not start a reply. Is the connection open?', 'error');
             }
         }, 10000);
     }
@@ -506,7 +522,6 @@
         useHaiku(true);
         try { getWorker().postMessage({ type: 'load' }); } catch (_) {}   // warm Whisper while you start talking
         setState('listening', 'Starting…');                // listen() does nothing while the state is 'off'
-        live('Starting voice conversation…');
         listen();
     }
     function stopVoice() {
