@@ -38,7 +38,8 @@
     var MAX_CLIP_SECONDS = 40;
     var END_SILENCE_MS = 1400;                        // pause that ends your turn (you can also tap the button when you are done)
     var END_SILENCE_EARLY_MS = 2200;                  // ...while you have spoken for less than 2 s (people pause early to think)
-    var roomNoise = 0.003;                            // remembered between turns (see recordTurn)
+    var roomNoise = 0.002;                            // remembered between turns (see recordTurn)
+    var MIC_KEY = 'siraugga.voice.micId';             // chosen microphone ('' = the system default)
     var IDLE_TIMEOUT_MS = 3 * 60 * 1000;              // mic switches itself off after 3 quiet minutes
     var MAX_SPOKEN_CHARS = 700;
 
@@ -73,6 +74,38 @@
     panel.setAttribute('aria-hidden', 'true');        // for people who can see it; screen readers get #mic-status instead (no double reading)
     panel.className = 'hidden text-sm rounded-lg px-3 py-2 mb-2 border';
     form.parentNode.insertBefore(panel, form);
+
+    // A level bar for people who can see it: shows how loud the microphone hears you while it is listening.
+    var meter = document.createElement('div');
+    meter.id = 'voice-meter';
+    meter.setAttribute('aria-hidden', 'true');
+    meter.className = 'hidden h-2 rounded bg-slate-800 border border-slate-700 mb-2 overflow-hidden';
+    var meterBar = document.createElement('div');
+    meterBar.className = 'h-full bg-teal-500';
+    meterBar.style.width = '0%';
+    meter.appendChild(meterBar);
+    form.parentNode.insertBefore(meter, form);
+    function showLevel(level) {
+        var db = 20 * Math.log10(Math.max(level, 1e-5));              // -60 dB (silence) ... -10 dB (loud)
+        meterBar.style.width = Math.max(0, Math.min(100, (db + 60) / 50 * 100)) + '%';
+    }
+
+    // Which microphone to use. Names only appear once the browser has given permission.
+    var micSelect = document.getElementById('voice-mic-select');
+    async function refreshMics() {
+        if (!micSelect || !navigator.mediaDevices.enumerateDevices) return;
+        try {
+            var devs = await navigator.mediaDevices.enumerateDevices();
+            var ins = devs.filter(function (d) { return d.kind === 'audioinput' && d.deviceId !== 'default' && d.deviceId !== 'communications'; });
+            var cur = store(MIC_KEY) || '';
+            micSelect.innerHTML = '';
+            var first = document.createElement('option'); first.value = ''; first.textContent = 'System default'; micSelect.appendChild(first);
+            ins.forEach(function (d, i) {
+                var o = document.createElement('option'); o.value = d.deviceId; o.textContent = d.label || ('Microphone ' + (i + 1)); micSelect.appendChild(o);
+            });
+            micSelect.value = ins.some(function (d) { return d.deviceId === cur; }) ? cur : '';
+        } catch (_) {}
+    }
 
     // Replies are announced through this region so the user's own screen reader reads them (ARIA),
     // instead of a second computer voice talking over it.
@@ -126,6 +159,7 @@
         var on = s !== 'off';
         btn.setAttribute('aria-pressed', on ? 'true' : 'false');
         btn.classList.toggle('mic-recording', s === 'listening');
+        meter.classList.toggle('hidden', s !== 'listening');
         if (label) label.textContent = text || (on ? 'Stop talking' : 'Talk');
     }
     function refreshEnrollUi() {
@@ -285,13 +319,46 @@
 
     // Records one spoken turn. Resolves with {audio} (16 kHz mono), or {audio:null} on timeout / stop.
     // opts.fixedSeconds records exactly that long (used for enrolment) instead of waiting for silence.
+    // Noise suppression and echo cancellation are OFF on purpose: they are meant for calls, and they remove quiet or distant
+    // voices (you had to be right next to the microphone). Automatic gain is ON, so quiet speech is boosted instead.
+    function openMic() {
+        var base = { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: true };
+        var id = store(MIC_KEY);
+        if (id) {
+            var withId = Object.assign({ deviceId: { exact: id } }, base);
+            return navigator.mediaDevices.getUserMedia({ audio: withId }).catch(function (err) {
+                if (err && err.name === 'NotAllowedError') throw err;
+                return navigator.mediaDevices.getUserMedia({ audio: base });      // the chosen microphone is gone: use the default
+            });
+        }
+        return navigator.mediaDevices.getUserMedia({ audio: base });
+    }
+
+    // Quiet speech is made louder before the speech model hears it (a small model does much worse on quiet audio).
+    // Returns the audio and how loud it originally was (its 99.5th-percentile level).
+    function boost(a) {
+        var n = a.length;
+        if (!n) return { audio: a, peak: 0 };
+        var step = Math.max(1, Math.floor(n / 4000)), vals = [];
+        for (var i = 0; i < n; i += step) vals.push(Math.abs(a[i]));
+        vals.sort(function (x, y) { return x - y; });
+        var peak = vals[Math.floor(vals.length * 0.995)] || 0;
+        if (peak < 1e-4) return { audio: a, peak: peak };
+        var gain = Math.min(30, 0.5 / peak);
+        if (gain <= 1.05) return { audio: a, peak: peak };
+        var out = new Float32Array(n);
+        for (var j = 0; j < n; j++) { var v = a[j] * gain; out[j] = v > 1 ? 1 : v < -1 ? -1 : v; }
+        return { audio: out, peak: peak };
+    }
+
+    var lastMicName = '';
     function recordTurn(opts) {
         opts = opts || {};
         return new Promise(function (resolve, reject) {
             var Ctx = window.AudioContext || window.webkitAudioContext;
-            navigator.mediaDevices.getUserMedia({
-                audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
-            }).then(function (stream) {
+            openMic().then(function (stream) {
+                try { lastMicName = (stream.getAudioTracks()[0] || {}).label || ''; } catch (_) {}
+                refreshMics();                                  // labels of the microphones are only available once permission is given
                 var ctx = new Ctx();
                 var src = ctx.createMediaStreamSource(stream);
                 var proc = ctx.createScriptProcessor(4096, 1, 1);
@@ -316,7 +383,8 @@
                     stream.getTracks().forEach(function (t) { t.stop(); });
                     var rate = ctx.sampleRate;
                     try { ctx.close(); } catch (_) {}
-                    resolve({ audio: audio ? to16k(audio, rate) : null });
+                    var boosted = audio ? boost(to16k(audio, rate)) : null;
+                    resolve({ audio: boosted ? boosted.audio : null, peak: boosted ? boosted.peak : 0, voicedMs: voicedMs });
                 }
 
                 proc.onaudioprocess = function (ev) {
@@ -333,7 +401,10 @@
                     // No "measuring" delay: the room noise level is remembered from earlier turns and adapts slowly from quiet
                     // moments. (It used to spend the first half second measuring and throw that audio away, so a sentence that
                     // began right after the beep lost its start, or was taken for background noise and never heard at all.)
-                    var threshold = Math.min(0.03, Math.max(0.01, roomNoise * 3.5));
+                    // The "you are speaking" level follows the room noise (at least 3.5x louder), with a low floor so quiet or
+                    // distant speech still counts. It used to have to be at least 0.01 (about -40 dB), too loud for many voices.
+                    var threshold = Math.min(0.03, Math.max(0.004, roomNoise * 3.5));
+                    showLevel(level);
                     if (!speaking) {
                         preRoll.push(data); if (preRoll.length > 6) preRoll.shift();     // keep ~0.5 s from before the first loud moment
                         if (level > threshold) loud++;
@@ -504,7 +575,7 @@
         if (state === 'off') return;
         setState('listening', 'Listening… (tap to stop)');
         // A beep (not speech) says "the microphone is open, talk now": speech from a screen reader would be picked up by it.
-        liveQuiet('Listening… speak now, then pause when you are done.', 'info');
+        liveQuiet('Listening… speak now, then pause when you are done.' + (lastMicName ? ' Microphone: ' + lastMicName : ''), 'info');
         cue([660, 990]);
         await sleep(350);                              // let the beep end before the microphone starts measuring the room
         if (state === 'off') return;
@@ -521,6 +592,12 @@
         if (state === 'off') return;
         var injected = injectedText; injectedText = null;
         if (!turn.audio && !injected) { stopVoice(); return show('Stopped listening after a quiet while.'); }
+        if (!injected) {
+            if (turn.voicedMs < 350) return listen();                       // a click or a cough, not speech: just keep listening
+            if (turn.peak < 0.006) {                                        // even the loudest part was very faint
+                return noteThenListen('I could hardly hear you. Move closer to the microphone, or raise its volume in Windows sound settings.', 'error');
+            }
+        }
 
         setState('thinking', 'Working…');
         try {
@@ -714,6 +791,11 @@
         show('Your saved voice was removed. It will answer to any voice again.');
     });
     if (thresholdEl) thresholdEl.addEventListener('input', function () { store(THRESH_KEY, thresholdEl.value); });
+    if (micSelect) {
+        micSelect.addEventListener('change', function () { store(MIC_KEY, micSelect.value); });
+        if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', refreshMics);
+        refreshMics();
+    }
     var useTtsEl = document.getElementById('voice-use-tts');
     if (useTtsEl) {
         useTtsEl.checked = getUseTts();
