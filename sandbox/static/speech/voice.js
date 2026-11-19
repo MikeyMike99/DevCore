@@ -189,8 +189,11 @@
         var L = 0, T = 0;
         Object.keys(loadFiles).forEach(function (k) { L += loadFiles[k][0]; T += loadFiles[k][1]; });
         if (!T) return;
-        var pct = Math.min(99, Math.round(L / T * 100));
-        var text = 'Loading the speech model: ' + pct + '% of ' + Math.round(T / 1e6) + ' MB. First time only; it is saved on this device afterwards.';
+        // Files are discovered one at a time, so count against the whole expected download (not just what is known so
+        // far); otherwise the percentage jumps backwards when the next, bigger file starts.
+        var expected = Math.max(T, cpuMode() ? 41e6 : 147e6);
+        var pct = Math.min(99, Math.round(L / expected * 100));
+        var text = 'Loading the speech model: ' + pct + '% (' + Math.round(L / 1e6) + ' of about ' + Math.round(expected / 1e6) + ' MB). First time only; it is saved on this device afterwards.';
         var step = Math.floor(pct / 25) * 25;
         if (step > loadAnnounced) { loadAnnounced = step; live(text); } else { liveQuiet(text, 'info'); }
     }
