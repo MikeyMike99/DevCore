@@ -567,11 +567,37 @@ def _only_repo_files(target_path: Path, files: List[Path]) -> List[Path]:
         return files
 
 
-def run_audit(target_path: Path, forced_category: Optional[str] = None, strict: bool = False, json_mode: bool = False, fix_mode: bool = False) -> bool:
+_SKIP_PARTS = [".git", "node_modules", "venv", ".archive", ".backup", "scratch", "/tmp/", "\tmp\\"]
+
+
+def _staged_md_files(target_path: Path) -> Optional[List[Path]]:
+    """The .md files in the commit being made (added/copied/modified/renamed), or None if git can't say.
+    Used by the pre-commit hook so a commit checks only what it changes: scanning the whole drive through
+    WSL took about a minute, long enough for a timeout to kill git and leave lock files behind."""
+    import subprocess
+    try:
+        top = subprocess.run(["git", "-C", str(target_path), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=30).stdout.strip()
+        out = subprocess.run(
+            ["git", "-C", top, "diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z", "--", "*.md"],
+            capture_output=True, timeout=30,
+        )
+        if not top or out.returncode != 0:
+            return None
+        files = [Path(top) / rel.decode("utf-8", "replace") for rel in out.stdout.split(b"\0") if rel]
+        return [f for f in files if f.is_file() and not any(s in str(f) for s in _SKIP_PARTS)]
+    except Exception:
+        return None
+
+
+def run_audit(target_path: Path, forced_category: Optional[str] = None, strict: bool = False, json_mode: bool = False, fix_mode: bool = False, staged_only: bool = False) -> bool:
     auditor = DocStructureAuditor(strict=strict)
     files_to_audit = []
 
-    if target_path.is_file():
+    staged = _staged_md_files(target_path) if staged_only and not target_path.is_file() else None
+    if staged is not None:
+        files_to_audit = staged
+    elif target_path.is_file():
         files_to_audit.append(target_path)
     else:
         for p in target_path.rglob("*.md"):
@@ -670,6 +696,7 @@ def main():
     parser.add_argument("--strict", action="store_true", help="Enforce strict mode (fail on warnings as well as criticals)")
     parser.add_argument("--json", "-j", action="store_true", help="Output audit results in structured JSON format")
     parser.add_argument("--fix", action="store_true", help="Auto-remediate common path leaks and H4+ heading caps")
+    parser.add_argument("--staged", action="store_true", help="Audit only the .md files staged for the current commit (fast; used by the pre-commit hook)")
     args = parser.parse_args()
 
     target = Path(args.path).resolve()
@@ -677,7 +704,7 @@ def main():
         print(f"[ERROR] Target path does not exist: {target}")
         sys.exit(1)
 
-    success = run_audit(target, forced_category=args.category, strict=args.strict, json_mode=args.json, fix_mode=args.fix)
+    success = run_audit(target, forced_category=args.category, strict=args.strict, json_mode=args.json, fix_mode=args.fix, staged_only=args.staged)
     sys.exit(0 if success else 1)
 
 
