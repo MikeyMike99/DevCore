@@ -158,6 +158,28 @@
     function cueHeard() { cue([880]); }               // "got it, working on it"
 
     // ---- worker --------------------------------------------------------------
+    async function diagnoseEngine() {
+        var files = [
+            ['worker', '/static/speech/speech-worker.js?v=7'],
+            ['engine', '/static/speech/vendor/transformers.min.js?v=2'],
+            ['runtime', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.mjs'],
+            ['wasm', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.wasm'],
+            ['speech model', '/static/speech/models/Xenova/whisper-tiny.en/config.json'],
+        ];
+        var parts = [];
+        for (var i = 0; i < files.length; i++) {
+            try {
+                var r = await fetch(files[i][1], { method: 'HEAD', cache: 'no-store' });
+                parts.push(files[i][0] + ' ' + r.status);
+            } catch (err) {
+                parts.push(files[i][0] + ' unreachable');
+            }
+        }
+        var script = document.querySelector('script[src*="speech/voice.js"]');
+        var ver = script && (script.getAttribute('src').match(/v=(\d+)/) || [])[1];
+        return 'Checked on ' + location.host + ' (page version ' + (ver || '?') + '): ' + parts.join(', ') + '.';
+    }
+
     function getWorker() {
         if (worker) return worker;
         worker = new Worker('/static/speech/speech-worker.js?v=7', { type: 'module' });
@@ -176,7 +198,13 @@
         worker.onerror = function (e) {
             worker = null;
             var detail = e && e.message ? ' (' + e.message + ')' : '';
-            Object.keys(pending).forEach(function (k) { pending[k].reject(new Error('The voice worker stopped' + detail + '.')); delete pending[k]; });
+            // A worker that fails to start gives the browser nothing to report, so check each file it needs and say which one is wrong.
+            diagnoseEngine().then(function (report) {
+                Object.keys(pending).forEach(function (k) {
+                    pending[k].reject(new Error('The voice worker stopped' + detail + '. ' + report));
+                    delete pending[k];
+                });
+            });
         };
         return worker;
     }
