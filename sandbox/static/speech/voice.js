@@ -437,8 +437,12 @@
                         recentLoud.push(level > threshold ? 1 : 0); if (recentLoud.length > 4) recentLoud.shift();
                         // The room-noise estimate falls quickly but rises only very slowly, and has a ceiling. Otherwise the quiet
                         // moments of faint speech teach it that "speech is noise" and the level creeps up until nothing is heard.
-                        if (level < roomNoise) roomNoise = Math.max(0.0003, 0.85 * roomNoise + 0.15 * level);   // floor: digital silence must not drag it to zero
-                        else if (level <= threshold) roomNoise = Math.min(0.006, 0.998 * roomNoise + 0.002 * level);
+                        // (Frames of exact silence are not data: the first frames of a turn can be all zeros before the microphone
+                        // starts delivering, and counting them dragged the estimate to nothing.)
+                        if (level > 1e-6) {
+                            if (level < roomNoise) roomNoise = Math.max(0.0003, 0.85 * roomNoise + 0.15 * level);
+                            else if (level <= threshold) roomNoise = Math.min(0.006, 0.998 * roomNoise + 0.002 * level);
+                        }
                         // Speech starts when at least 2 of the last 4 moments were above the level (not necessarily in a row:
                         // quiet or distant speech rises and falls around the level).
                         if (recentLoud.reduce(function (a, b) { return a + b; }, 0) >= 2) {
