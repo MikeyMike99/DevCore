@@ -32,5 +32,8 @@ else
   bash "$DIR/restart_server.sh"
 fi
 
+# Watchdog: restarts the tunnel if it ever dies or fails to connect.
+setsid nohup bash "$DIR/tunnel_watchdog.sh" >/dev/null 2>&1 < /dev/null &
+
 # Keep this WSL session (and so the server and tunnel) running.
 exec sleep infinity
