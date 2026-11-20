@@ -517,6 +517,7 @@
     // The course runs in a frame inside the chat page, often on a different web address, so it cannot read the
     // chat's stored sign-in. It asks the chat page for it and sends it with every course request, so the server
     // knows who you are (super admin, signed-in learner or guest).
+    const reviewPassToken = (new URLSearchParams(window.location.search).get('review') || '').slice(0, 128);
     let courseAuthToken = '';
     const authReady = new Promise((resolve) => {
         if (window.self === window.top) { resolve(); return; }
@@ -539,14 +540,13 @@
                 if (url.indexOf('/api/course') === 0 || url.indexOf('/course/') === 0) {
                     init = Object.assign({}, init || {});
                     if (!init.credentials) init.credentials = 'include';
-                    // Same address as the chat page: its own stored sign-in is the one that works.
-                    // On a different address that store is empty, so use the one the chat page handed over.
                     let token = '';
                     try { token = localStorage.getItem('agy_auth_token') || ''; } catch (e) {}
                     if (!token) token = courseAuthToken;
-                    if (token) {
+                    if (token || reviewPassToken) {
                         const h = new Headers(init.headers || {});
-                        if (!h.has('Authorization')) h.set('Authorization', 'Bearer ' + token);
+                        if (token && !h.has('Authorization')) h.set('Authorization', 'Bearer ' + token);
+                        if (reviewPassToken && !h.has('X-Course-Review-Pass')) h.set('X-Course-Review-Pass', reviewPassToken);
                         init.headers = h;
                     }
                 }
@@ -741,11 +741,12 @@
     }
 
     // ---------- Course Home: shown first after registration and from the "Course Map" button ----------
-    let homeOpen = null; // null = decide the first time the course stage is shown
-    let isSuperAdmin = false; // set from the server: the super admin can open any section
+    let homeOpen = null;
+    let isSuperAdmin = false;
     let serverIsSuperAdmin = false;
-    let contentLocked = false; // the server sent the outline only: the lessons open once an identity exists
-    let lookAround = false; // 'Look around first': the outline of the course, nothing saved, nothing asked
+    let courseSuperAccess = false;
+    let contentLocked = false;
+    let lookAround = false;
 
     function stepIsDone(i) {
         const st = flatSteps[i];
@@ -813,6 +814,7 @@
               courseSummaryBanner +
               '<div class="mt-5 flex flex-wrap items-center justify-end gap-3">' +
                 '<button id="team-toggle-btn" type="button" aria-expanded="false" aria-controls="team-panel" class="bg-slate-800 hover:bg-slate-700 text-cyan-200 border border-cyan-600/80 font-semibold px-4 py-3 rounded-lg focus:outline-none focus:ring-4 focus:ring-cyan-400">Working in a team?</button>' +
+                (isSuperAdmin ? '<button id="home-survey-btn" type="button" class="bg-indigo-700 hover:bg-indigo-600 text-white font-semibold px-4 py-3 rounded-lg focus:outline-none focus:ring-4 focus:ring-indigo-300">Survey &amp; Certificate &rarr;</button>' : '') +
                 '<button id="home-start-btn" type="button" class="bg-teal-600 hover:bg-teal-500 text-white font-bold text-base px-6 py-3 rounded-lg focus:outline-none focus:ring-4 focus:ring-teal-300">' + startLabel + ' &rarr;</button>' +
               '</div>' +
               '<div id="team-panel" class="hidden mt-4 pt-4 border-t border-slate-800">' +
@@ -857,6 +859,16 @@
         wireTeamCard();
         const startBtn = document.getElementById('home-start-btn');
         if (startBtn) startBtn.addEventListener('click', () => go(nextIdx));
+        const homeSurveyBtn = document.getElementById('home-survey-btn');
+        if (homeSurveyBtn) homeSurveyBtn.addEventListener('click', () => {
+            homeOpen = false;
+            if (previewMode) {
+                setPreviewView('survey', true);
+            } else {
+                completionView = true;
+                syncCourseGateUI(true);
+            }
+        });
         panel.querySelectorAll('[data-home-jump]').forEach((btn) => {
             btn.addEventListener('click', () => go(parseInt(btn.getAttribute('data-home-jump'), 10)));
         });
@@ -1054,7 +1066,7 @@
     async function exitPreviewMode() {
         if (!previewMode) return;
         previewMode = false;
-        isSuperAdmin = false;
+        isSuperAdmin = Boolean(courseSuperAccess);
         homeOpen = null;
         previewView = 'curriculum';
         if (!loadedRealFromServer) {
@@ -1098,8 +1110,13 @@
             courseData = payload.course; applyCourseBranding();
             if (payload.terms_version) courseTermsVersion = payload.terms_version;
             serverIsSuperAdmin = Boolean(payload.super_admin);
-            isSuperAdmin = false;
+            courseSuperAccess = Boolean(payload.course_super_access);
+            isSuperAdmin = courseSuperAccess;
             contentLocked = Boolean(payload.limited);
+            const reviewPill = document.getElementById('admin-review-pill');
+            if (reviewPill && courseSuperAccess) {
+                reviewPill.textContent = 'Unrestricted course access: start-to-end flow open (welcome, terms, registration, all sections, survey & certificate) with no restrictions.';
+            }
             applyPreviewUiState();
             if (payload.preview_mode) {
                 previewMode = true;
@@ -1954,7 +1971,7 @@
         }
         else if (tType === 'bicep_editor') {
             const edLabels = getEditorLabels(sec);
-            const loadSolBtnHtml = (previewMode && sec.solution_code)
+            const loadSolBtnHtml = ((previewMode || isSuperAdmin) && sec.solution_code)
                 ? `<button id="load-solution-btn" type="button" class="text-xs bg-indigo-900 hover:bg-indigo-800 text-indigo-100 border border-indigo-500 px-3 py-1 rounded font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-300">Load Solution Code</button>`
                 : '';
             ws.innerHTML = `
@@ -2153,7 +2170,7 @@
                 ? 'Exam already passed and recorded ✓. You may retake it below or continue.'
                 : `Complete the exam below with at least ${passPct}% to pass this section.`;
             wrap.appendChild(statusMsg);
-            if (alreadyDone) {
+            if (alreadyDone || isSuperAdmin) {
                 const proceedBtn = document.createElement('button');
                 proceedBtn.id = 'exam-proceed-btn';
                 proceedBtn.type = 'button';
@@ -3227,6 +3244,7 @@
                 return enough;
             };
             ta.addEventListener('paste', (e) => {
+                if (isSuperAdmin) return;
                 e.preventDefault();
                 const s = getStepReflection(cur().section.id);
                 s.paste_attempts = (s.paste_attempts || 0) + 1;
@@ -3317,14 +3335,14 @@
 
             saveBtn.addEventListener('click', async () => {
                 const s = getStepReflection(sec.id);     // the current record, not the one captured when the panel was built
-                if (!fExplain.isValid()) {
+                if (!isSuperAdmin && !fExplain.isValid()) {
                     status.className = 'text-sm font-mono text-rose-300';
                     status.textContent = 'Please write at least ' + MIN_EXPLAIN + ' characters in your reflection answer.';
                     fExplain.ta.focus();
                     announce(status.textContent);
                     return;
                 }
-                if (fErr && !fErr.isValid()) {
+                if (!isSuperAdmin && fErr && !fErr.isValid()) {
                     status.className = 'text-sm font-mono text-rose-300';
                     status.textContent = 'Please write at least ' + MIN_ERRORNOTE + ' characters explaining the common error and fix.';
                     fErr.ta.focus();
@@ -3682,6 +3700,15 @@
             }
         } catch (e) {}
         try { localStorage.removeItem(`devcore_course_${courseId}`); } catch (e) {}
+        adminSkip.terms = false;
+        adminSkip.reg = false;
+        adminSkip.verify = false;
+        rememberAdminSkip();
+        welcomeStarted = false;
+        welcomeReview = false;
+        completionView = false;
+        verifyHold = false;
+        homeOpen = null;
         currentStepIndex = 0;
         renderStepperOptions();
         renderCurrentStep(false);
@@ -3776,7 +3803,7 @@
     let regReviewMode = false;
     // The super admin sees the same cards as a user, but can go on without ticking or typing anything.
     // (remembered in this browser so the cards do not come back on every reload)
-    const adminSkip = (() => { try { return Object.assign({ terms: false, reg: false }, JSON.parse(localStorage.getItem('devcore_admin_skip_' + courseId) || '{}')); } catch (e) { return { terms: false, reg: false }; } })();
+    const adminSkip = (() => { try { return Object.assign({ terms: false, reg: false, verify: false }, JSON.parse(localStorage.getItem('devcore_admin_skip_' + courseId) || '{}')); } catch (e) { return { terms: false, reg: false, verify: false }; } })();
     function rememberAdminSkip() { try { localStorage.setItem('devcore_admin_skip_' + courseId, JSON.stringify(adminSkip)); } catch (e) {} }
     let welcomeStarted = false;
     let welcomeReview = false;
@@ -3934,7 +3961,7 @@
         setGateHidden(previewBanner, true);
         const termsOk = (isSuperAdmin && adminSkip.terms) || Boolean(termsAcceptedNow());
         const regOk = (isSuperAdmin && adminSkip.reg) || Boolean(progressState.registration && progressState.registration.registered);
-        const verifiedOk = (isSuperAdmin && adminSkip.reg) || Boolean(progressState.registration && progressState.registration.verified === true);
+        const verifiedOk = (isSuperAdmin && (adminSkip.reg || adminSkip.verify)) || Boolean(progressState.registration && progressState.registration.verified === true);
         const needVerify = termsOk && regOk && (!verifiedOk || verifyHold);
         const reviewReg = regReviewMode && needVerify;
         const courseOpen = termsOk && regOk && !needVerify && !contentLocked;
@@ -3974,13 +4001,20 @@
             const recSum = document.getElementById('survey-recipient-summary');
             if (recSum) {
                 const doneCount = flatSteps.filter(f => isStepFinished(f.section.id)).length;
-                const adminNote = (isSuperAdmin && !doneAll) ? ' • Admin Preview (complete all sections to submit real survey)' : '';
-                recSum.textContent = `Registered Recipient: ${reg.full_name || ''} <${reg.email || ''}> • Organization: ${reg.organization || ''} • Sections Verified: ${doneCount} / ${flatSteps.length}${adminNote}`;
+                const adminNote = (isSuperAdmin && !doneAll)
+                    ? (courseSuperAccess
+                        ? ' • Unrestricted Access (full survey, certificate & handbook unlocked)'
+                        : ' • Admin Preview (complete all sections to submit real survey)')
+                    : '';
+                const rName = reg.full_name || (courseSuperAccess ? 'Course Reviewer' : '');
+                const rEmail = reg.email || (courseSuperAccess ? 'reviewer@siraugga.local' : '');
+                const rOrg = reg.organization || (courseSuperAccess ? 'Bicep Course Review' : '');
+                recSum.textContent = `Registered Recipient: ${rName} <${rEmail}> • Organization: ${rOrg} • Sections Verified: ${doneCount} / ${flatSteps.length}${adminNote}`;
             }
             const hbLink = document.getElementById('download-course-handbook-link');
             if (hbLink) {
                 hbLink.onclick = null;
-                hbLink.href = `/api/course/certificate/download?course=${encodeURIComponent(courseId)}&format=docx`;
+                hbLink.href = `/api/course/certificate/download?course=${encodeURIComponent(courseId)}&format=docx` + (reviewPassToken ? `&review=${encodeURIComponent(reviewPassToken)}` : '');
             }
             if (hasCert) {
                 renderIssuedCertificate(progressState.certificate);
@@ -4159,9 +4193,13 @@
     document.getElementById('verify-next-btn')?.addEventListener('click', async () => {
         if ((progressState.registration || {}).verified !== true && !isSuperAdmin) { notify('Please confirm your email first. Open the link in the email or type the 6-digit code.'); return; }
         if (previewMode) { setPreviewView('curriculum', true); return; }
+        if (isSuperAdmin && (progressState.registration || {}).verified !== true) {
+            adminSkip.verify = true;
+            rememberAdminSkip();
+        }
         verifyHold = false;
         homeOpen = null;
-        await loadCourse(); // the lessons are sent now that the identity is confirmed
+        await loadCourse();
         syncCourseGateUI(true);
     });
 
