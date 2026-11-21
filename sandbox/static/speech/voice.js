@@ -736,41 +736,99 @@
         }
     }
 
-    // The speech engine is a set of files this site has to be able to serve. If they are missing (for example on a
-    // static copy of the site built without them) say so plainly, instead of a worker that dies with no explanation.
-    async function enginePresent() {
-        try {
-            var r = await fetch('/static/speech/vendor/transformers.min.js?v=2', { method: 'HEAD', cache: 'no-store' });
-            return r.ok;
-        } catch (_) { return false; }
+    var enginePresentPromise = null;
+    function enginePresent() {
+        if (!enginePresentPromise) {
+            enginePresentPromise = fetch('/static/speech/vendor/transformers.min.js?v=2', { method: 'HEAD' })
+                .then(function (r) { return r.ok; })
+                .catch(function () { return false; });
+        }
+        return enginePresentPromise;
+    }
+
+    var engineReady = false;
+    var engineWarming = false;
+    var loadPromise = null;
+    function ensureEngineLoaded(extra) {
+        if (engineReady) return Promise.resolve({ type: 'ready' });
+        if (loadPromise) return loadPromise;
+        loadPromise = ask('load', null, extra || {}).then(function (res) {
+            engineReady = true;
+            return res;
+        }).catch(function (err) {
+            loadPromise = null;
+            throw err;
+        });
+        return loadPromise;
+    }
+
+    function warmVoiceEngine(immediate) {
+        if (engineReady || engineWarming || !supported) return;
+        engineWarming = true;
+
+        var doWarm = function () {
+            enginePresent().then(function (ok) {
+                if (!ok) { engineWarming = false; return; }
+                ensureEngineLoaded({ warmup_pass: true, warm_speaker: !!getPrint() })
+                    .then(function () {
+                        engineReady = true;
+                        engineWarming = false;
+                    })
+                    .catch(function (err) {
+                        engineWarming = false;
+                        console.warn('[voice] background prewarm failed:', err);
+                    });
+            });
+        };
+
+        if (immediate) {
+            doWarm();
+        } else if (typeof window.requestIdleCallback === 'function') {
+            window.requestIdleCallback(function () { doWarm(); }, { timeout: 3000 });
+        } else {
+            setTimeout(doWarm, 1200);
+        }
     }
 
     async function startVoice() {
         if (state !== 'off') return;
         heardSomething = false;
+
+        // Kick off microphone acquisition immediately inside the direct user-click gesture for zero hardware lag
+        var micEarlyPromise = null;
+        try {
+            micEarlyPromise = openMic();
+        } catch (_) {}
+
         setState('thinking', 'Starting…');
         if (!(await enginePresent())) {
             setState('off');
+            if (micEarlyPromise) micEarlyPromise.then(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); }).catch(function () {});
             return problem('The speech files are not available at ' + location.host + '. Open https://siraugga.mikeytech.dev to use voice.');
         }
         hookFinish();
         useHaiku(true);
-        // Load the speech model BEFORE opening the microphone, and say so: the first time it is a download of about
-        // 150 MB, and talking to something that is not ready yet looks exactly like "nothing happens".
-        loadFiles = {}; loadAnnounced = 0;
-        live('Getting ready. Loading the speech model. The first time takes about a minute; after that it is quick.');
-        try {
-            await ask('load');
-        } catch (err) {
-            console.error('[voice]', err);
-            stopVoice();
-            return problem('The speech model could not be loaded: ' + ((err && err.message) || err));
+
+        if (!engineReady) {
+            loadFiles = {}; loadAnnounced = 0;
+            live('Getting ready. Loading the speech model. The first time takes about a minute; after that it is quick.');
+            try {
+                await ensureEngineLoaded({ warmup_pass: true, warm_speaker: !!getPrint() });
+            } catch (err) {
+                console.error('[voice]', err);
+                if (micEarlyPromise) micEarlyPromise.then(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); }).catch(function () {});
+                stopVoice();
+                return problem('The speech model could not be loaded: ' + ((err && err.message) || err));
+            }
         }
-        if (state === 'off') return;                       // you pressed the button again while it was loading
+        if (state === 'off') {
+            if (micEarlyPromise) micEarlyPromise.then(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); }).catch(function () {});
+            return;
+        }
         cue([660, 990, 1320]);                             // three rising notes: ready
         liveQuiet('Ready (' + (/processor/.test(lastStage) ? 'processor mode, a little slower' : 'graphics card, fastest') + ').', 'ok');
         setState('listening', 'Starting…');                // listen() does nothing while the state is 'off'
-        listen();
+        listen(micEarlyPromise, true);
     }
     function releaseAudioSession() {
         try {
@@ -889,7 +947,17 @@
         stats: function () { return JSON.parse(JSON.stringify(dbg)); },
     };
 
+    btn.addEventListener('pointerenter', function () { warmVoiceEngine(true); }, { once: true });
+    btn.addEventListener('touchstart', function () { warmVoiceEngine(true); }, { passive: true, once: true });
+    btn.addEventListener('focus', function () { warmVoiceEngine(true); }, { once: true });
+
     window.addEventListener('pagehide', function () { if (state !== 'off') stopVoice(); });
     setState('off');
     refreshEnrollUi();
+
+    if (document.readyState === 'complete') {
+        warmVoiceEngine(false);
+    } else {
+        window.addEventListener('load', function () { warmVoiceEngine(false); }, { once: true });
+    }
 })();
