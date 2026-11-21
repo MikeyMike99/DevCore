@@ -4679,21 +4679,66 @@
     });
 
     window.SirauggaCourseBridge = {
+        getStage: function () {
+            const vis = (id) => {
+                const el = document.getElementById(id);
+                return !!(el && !el.classList.contains('hidden'));
+            };
+            if (vis('certificate-issued-panel')) return 'certificate';
+            if (vis('course-survey-section')) return 'survey';
+            if (vis('course-registration-gate')) return 'registration';
+            if (vis('course-terms-gate')) return 'terms';
+            if (vis('course-welcome-gate')) return 'welcome';
+            if (vis('curriculum-single-step-view')) return 'course';
+            return 'unknown';
+        },
         getContext: function () {
             const item = flatSteps[currentStepIndex];
             const sec = item ? item.section : null;
+            const completed = (progressState && Array.isArray(progressState.completed_steps)) ? progressState.completed_steps : [];
             return {
+                stage: this.getStage(),
                 courseId: courseId,
                 previewMode: Boolean(previewMode),
+                stepIndex: currentStepIndex,
+                totalSteps: flatSteps.length,
+                hasNext: currentStepIndex < flatSteps.length - 1,
+                hasPrev: currentStepIndex > 0,
+                isCompleted: sec ? completed.includes(sec.id) : false,
                 stepId: sec ? sec.id : null,
                 title: sec ? (sec.section_code ? sec.section_code + ': ' + sec.title : sec.title) : '',
                 conceptSummary: sec ? (sec.concept_summary || '') : '',
+                conceptBullets: sec && Array.isArray(sec.concept_bullets) ? sec.concept_bullets : [],
+                objectives: sec && Array.isArray(sec.objectives) ? sec.objectives : [],
+                keyTakeaways: sec && Array.isArray(sec.key_takeaways) ? sec.key_takeaways : [],
+                codeTitle: sec ? (sec.code_title || '') : '',
+                codeSnippet: sec ? (sec.code_snippet || '') : '',
+                expectedCommand: sec ? (sec.expected_command || '') : '',
+                wordBreakdown: sec && Array.isArray(sec.word_breakdown) ? sec.word_breakdown : [],
+                commonErrors: sec && Array.isArray(sec.common_errors) ? sec.common_errors : [],
                 taskPrompt: sec ? (sec.task_prompt || '') : '',
-                taskType: sec ? (sec.task_type || 'terminal_command') : ''
+                taskType: sec ? (sec.task_type || 'terminal_command') : '',
+                options: sec && Array.isArray(sec.options) ? sec.options : [],
+                pairs: sec && Array.isArray(sec.pairs) ? sec.pairs : [],
+                orgChoices: sec && Array.isArray(sec.org_choices) ? sec.org_choices : []
             };
         },
-        nextStep: function () { goNextStep(); },
-        prevStep: function () { goPrevStep(); }
+        nextStep: function () {
+            const before = currentStepIndex;
+            const stageBefore = this.getStage();
+            goNextStep();
+            return currentStepIndex !== before || this.getStage() !== stageBefore;
+        },
+        prevStep: function () {
+            const before = currentStepIndex;
+            goPrevStep();
+            return currentStepIndex !== before;
+        },
+        runStep: async function () {
+            if (typeof executePracticalStep === 'function') {
+                return await executePracticalStep();
+            }
+        }
     };
 </script>
 <!-- First-time Voice Reply Mode Choice Dialog -->

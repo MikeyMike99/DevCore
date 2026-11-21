@@ -657,13 +657,20 @@
         ta.insertAdjacentElement('afterend', row);
     }
 
+    var AUTO_READ_KEY = 'siraugga.voice.autoRead';
+    function getAutoRead() {
+        var v = store(AUTO_READ_KEY);
+        return v === null ? true : v === '1';
+    }
+
     // ---- Reply delivery (ARIA or TTS) & Hands-Free loop ----------------------
     var ariaTimer = null;
     async function deliverReplyAndContinue(replyText, opts) {
         opts = opts || {};
         if (state === 'off') return;
         var useVoice = getUseTts();
-        var spoken = spokenVersion(replyText, useVoice ? MAX_SPOKEN_CHARS : 1500);
+        var maxChars = opts.maxChars || (useVoice ? MAX_SPOKEN_CHARS : 1500);
+        var spoken = spokenVersion(replyText, maxChars);
         rememberReply(spoken);
         if (replyBox && replyTextEl && opts.showInBox !== false) {
             replyTextEl.textContent = replyText;
@@ -759,6 +766,93 @@
         }
     }
 
+    function parseSpokenIndex(token) {
+        if (!token) return -1;
+        var t = normalise(token).replace(/\s+/g, '');
+        var num = parseInt(t, 10);
+        if (isFinite(num) && num >= 1) return num - 1;
+        var map = {
+            one: 0, first: 0, a: 0, alpha: 0,
+            two: 1, second: 1, b: 1, bravo: 1,
+            three: 2, third: 2, c: 2, charlie: 2,
+            four: 3, fourth: 3, d: 3, delta: 3,
+            five: 4, fifth: 4, e: 4, echo: 4,
+            six: 5, sixth: 5, f: 5, foxtrot: 5
+        };
+        return (t in map) ? map[t] : -1;
+    }
+
+    function normalizeSpokenEmail(raw) {
+        return String(raw || '')
+            .replace(/\s+at\s+/gi, '@')
+            .replace(/\s+dot\s+/gi, '.')
+            .replace(/\s+underscore\s+/gi, '_')
+            .replace(/\s+dash\s+/gi, '-')
+            .replace(/\s+/g, '')
+            .toLowerCase();
+    }
+
+    function formatOptionsForSpeech(ctx) {
+        if (!ctx) return '';
+        if (ctx.taskType === 'multiple_choice' && ctx.options && ctx.options.length) {
+            return 'Options: ' + ctx.options.map(function (o, i) { return 'Option ' + (i + 1) + ': ' + o; }).join('. ');
+        }
+        if (ctx.taskType === 'dropdown_blank' && ctx.options && ctx.options.length) {
+            return 'Dropdown choices: ' + ctx.options.map(function (o, i) { return 'Option ' + (i + 1) + ': ' + o; }).join('. ');
+        }
+        if (ctx.taskType === 'org_question' && ctx.orgChoices && ctx.orgChoices.length) {
+            return 'Choices: ' + ctx.orgChoices.map(function (c, i) { return 'Option ' + (i + 1) + ': ' + c.label; }).join('. ');
+        }
+        if (ctx.taskType === 'match_columns') {
+            var lefts = Array.prototype.slice.call(document.querySelectorAll('.match-left')).map(function (el, i) {
+                return 'Left ' + (i + 1) + ': ' + el.textContent.trim();
+            });
+            var rights = Array.prototype.slice.call(document.querySelectorAll('.match-right')).map(function (el, i) {
+                return 'Right ' + (i + 1) + ': ' + el.textContent.trim();
+            });
+            return [lefts.join('. '), rights.join('. ')].filter(Boolean).join('. ');
+        }
+        return '';
+    }
+
+    function buildSectionSummary(ctx, includeAll) {
+        if (!ctx) return '';
+        var parts = [];
+        if (ctx.title) parts.push(ctx.title);
+        if (includeAll && ctx.objectives && ctx.objectives.length) {
+            parts.push('Objectives: ' + ctx.objectives.join('. '));
+        }
+        if (ctx.conceptSummary) parts.push(ctx.conceptSummary);
+        if (includeAll && ctx.conceptBullets && ctx.conceptBullets.length) {
+            parts.push(ctx.conceptBullets.join('. '));
+        }
+        if (includeAll && ctx.keyTakeaways && ctx.keyTakeaways.length) {
+            parts.push('Key takeaways: ' + ctx.keyTakeaways.join('. '));
+        }
+        if (ctx.taskPrompt) parts.push('Task: ' + ctx.taskPrompt);
+        var optsText = formatOptionsForSpeech(ctx);
+        if (optsText) parts.push(optsText);
+        return parts.filter(Boolean).join('. ');
+    }
+
+    function readVisibleResultText() {
+        var outSec = document.getElementById('output-section');
+        if (outSec && !outSec.classList.contains('hidden')) {
+            var pill = document.getElementById('output-status-pill');
+            var takeaway = document.getElementById('takeaway-box');
+            var pre = document.getElementById('terminal-output-pre');
+            var outParts = [];
+            if (pill && pill.textContent.trim()) outParts.push(pill.textContent.trim());
+            if (takeaway && takeaway.textContent.trim()) outParts.push(takeaway.textContent.trim());
+            if (pre && pre.textContent.trim()) {
+                var lines = pre.textContent.trim().split('\n').slice(0, 8).join(' ');
+                outParts.push('Output: ' + lines);
+            }
+            if (outParts.length) return outParts.join('. ');
+        }
+        return '';
+    }
+
     async function handleVoiceText(text) {
         var cmd = normalise(text);
         if (/^(stop|stop it|stop listening|stop talking|stop voice|turn off|turn it off|voice off|cancel|goodbye|good bye|bye|that is all|thats all|that s all)$/.test(cmd)) {
@@ -767,6 +861,159 @@
         cueHeard();
         liveQuiet('You said: “' + text + '”', 'ok');
 
+        var bridge = window.SirauggaCourseBridge;
+        var ctx = (bridge && bridge.getContext) ? bridge.getContext() : null;
+        var stage = (bridge && bridge.getStage) ? bridge.getStage() : (ctx && ctx.stage) || 'course';
+
+        // 0. Help & Auto-Read toggle
+        if (/^(help|voice commands|what can i say|commands)$/.test(cmd)) {
+            var helpMsg = stage === 'welcome'
+                ? 'Say start course, look around for preview, or read section.'
+                : stage === 'terms'
+                ? 'Say read section, agree, accept terms, or previous.'
+                : stage === 'registration'
+                ? 'Say my name is, my email is, organization, role, confirm, and submit registration.'
+                : stage === 'survey'
+                ? 'Say rate all 5, overall 1 to 5, clarity 1 to 5, accessibility 1 to 5, confidence 1 to 5, feedback, and submit survey.'
+                : 'Say read section, read code, read breakdown, read errors, read options, read output, predict, reflect, error reflection, save reflection, option 1, match 1 with 2, insert command, type command, run, verify, next section, previous section, auto read on or off, or ask any question.';
+            return deliverReplyAndContinue(helpMsg, { showInBox: false, maxChars: 1200 });
+        }
+        if (/^auto\s+read\s+(on|off)$/.test(cmd)) {
+            var on = /on$/.test(cmd);
+            store(AUTO_READ_KEY, on ? '1' : '0');
+            return deliverReplyAndContinue('Auto read ' + (on ? 'enabled' : 'disabled') + '.', { showInBox: false });
+        }
+
+        // ---- Pre-course & End-of-course stages -------------------------------
+        if (stage === 'welcome') {
+            if (/^(start|start course|start the course|begin|begin course|continue)$/.test(cmd)) {
+                var wStart = document.getElementById('welcome-start-btn');
+                if (wStart) { wStart.click(); return deliverReplyAndContinue('Opened the data and privacy agreement. Say read section, or agree and next.', { showInBox: false }); }
+            }
+            if (/^(preview|look around|look around first)$/.test(cmd)) {
+                var wPrev = document.getElementById('enter-preview-from-welcome-btn');
+                if (wPrev) { wPrev.click(); return deliverReplyAndContinue('Entered preview mode.', { showInBox: false }); }
+            }
+            if (/^(read|read section|read step|what is this)$/.test(cmd)) {
+                var wEl = document.getElementById('course-welcome-gate');
+                return deliverReplyAndContinue((wEl && wEl.textContent.replace(/\s+/g, ' ').trim()) || 'Welcome to the course. Say start course to begin.', { showInBox: false, maxChars: 1600 });
+            }
+        }
+
+        if (stage === 'terms') {
+            if (/^(agree|i agree|check agree)$/.test(cmd)) {
+                var chk = document.getElementById('terms-agree-checkbox');
+                if (chk) {
+                    if (chk.getAttribute('aria-checked') !== 'true') chk.click();
+                    return deliverReplyAndContinue('Agreement checked. Say next to go to registration.', { showInBox: false });
+                }
+            }
+            if (/^(accept terms|next|next section|register|continue)$/.test(cmd)) {
+                var tChk = document.getElementById('terms-agree-checkbox');
+                var tNext = document.getElementById('accept-terms-btn');
+                if (tChk && tChk.getAttribute('aria-checked') !== 'true' && /^accept terms$/.test(cmd)) tChk.click();
+                if (tNext) {
+                    tNext.click();
+                    await sleep(150);
+                    var tErr = document.getElementById('terms-gate-error');
+                    if (tErr && !tErr.classList.contains('hidden')) return deliverReplyAndContinue(tErr.textContent, { showInBox: false });
+                    return deliverReplyAndContinue('Moved to registration. Say my name is, my email is, organization, confirm, and submit registration.', { showInBox: false });
+                }
+            }
+            if (/^(previous|go back|back)$/.test(cmd)) {
+                var tBack = document.getElementById('terms-prev-btn');
+                if (tBack) { tBack.click(); return deliverReplyAndContinue('Moved back to welcome.', { showInBox: false }); }
+            }
+            if (/^(read|read section|read terms)$/.test(cmd)) {
+                var tEl = document.getElementById('course-terms-gate');
+                return deliverReplyAndContinue((tEl && tEl.textContent.replace(/\s+/g, ' ').trim()) || 'Agreement page.', { showInBox: false, maxChars: 1800 });
+            }
+        }
+
+        if (stage === 'registration') {
+            var nameM = text.match(/^(?:my\s+)?(?:full\s+)?name\s+is\s+(.+)$/i);
+            if (nameM) {
+                var nEl = document.getElementById('reg-full-name');
+                if (nEl) { insertIntoField(nEl, nameM[1].trim()); return deliverReplyAndContinue('Full name set to ' + nEl.value + '.', { showInBox: false }); }
+            }
+            var emailM = text.match(/^(?:my\s+)?email(?:\s+address)?\s+is\s+(.+)$/i);
+            if (emailM) {
+                var eEl = document.getElementById('reg-email');
+                if (eEl) {
+                    eEl.value = normalizeSpokenEmail(emailM[1]);
+                    eEl.dispatchEvent(new Event('input', { bubbles: true }));
+                    return deliverReplyAndContinue('Email set to ' + eEl.value + '.', { showInBox: false });
+                }
+            }
+            var orgM = text.match(/^(?:my\s+)?(?:organization|organisation|project)(?:\s+name)?\s+(?:is\s+)?(.+)$/i);
+            if (orgM) {
+                var oEl = document.getElementById('reg-org');
+                if (oEl) { insertIntoField(oEl, orgM[1].trim()); return deliverReplyAndContinue('Organization set to ' + oEl.value + '.', { showInBox: false }); }
+            }
+            var roleM = text.match(/^(?:my\s+)?role\s+(?:is\s+)?(.+)$/i);
+            if (roleM) {
+                var rEl = document.getElementById('reg-role');
+                if (rEl) { insertIntoField(rEl, roleM[1].trim()); return deliverReplyAndContinue('Role set to ' + rEl.value + '.', { showInBox: false }); }
+            }
+            if (/^(confirm|i confirm|check confirm)$/.test(cmd)) {
+                var rChk = document.getElementById('reg-confirm-checkbox');
+                if (rChk) {
+                    if (rChk.getAttribute('aria-checked') !== 'true') rChk.click();
+                    return deliverReplyAndContinue('Details confirmed. Say submit registration.', { showInBox: false });
+                }
+            }
+            if (/^(submit|submit registration|register|finish registration)$/.test(cmd)) {
+                var rSub = document.getElementById('submit-registration-btn');
+                if (rSub) {
+                    rSub.click();
+                    await sleep(400);
+                    var rErr = document.getElementById('reg-gate-error');
+                    if (rErr && !rErr.classList.contains('hidden')) return deliverReplyAndContinue(rErr.textContent, { showInBox: false });
+                    return deliverReplyAndContinue('Registration submitted. Check your email for the confirmation link.', { showInBox: false });
+                }
+            }
+            if (/^(previous|go back|back)$/.test(cmd)) {
+                var rBack = document.getElementById('reg-prev-btn');
+                if (rBack) { rBack.click(); return deliverReplyAndContinue('Moved back to agreement.', { showInBox: false }); }
+            }
+        }
+
+        if (stage === 'survey') {
+            var rateAllM = cmd.match(/^rate\s+all\s+(\d)$/);
+            if (rateAllM && Number(rateAllM[1]) >= 1 && Number(rateAllM[1]) <= 5) {
+                ['overall_rating', 'clarity_rating', 'accessibility_rating', 'confidence_rating'].forEach(function (nm) {
+                    var r = document.querySelector('input[name="' + nm + '"][value="' + rateAllM[1] + '"]');
+                    if (r) { r.checked = true; r.dispatchEvent(new Event('change', { bubbles: true })); }
+                });
+                return deliverReplyAndContinue('All four survey ratings set to ' + rateAllM[1] + ' out of 5.', { showInBox: false });
+            }
+            var rateOneM = cmd.match(/^(?:rate\s+)?(overall|clarity|accessibility|confidence)\s+(\d)$/);
+            if (rateOneM && Number(rateOneM[2]) >= 1 && Number(rateOneM[2]) <= 5) {
+                var rOne = document.querySelector('input[name="' + rateOneM[1] + '_rating"][value="' + rateOneM[2] + '"]');
+                if (rOne) {
+                    rOne.checked = true;
+                    rOne.dispatchEvent(new Event('change', { bubbles: true }));
+                    return deliverReplyAndContinue(rateOneM[1] + ' rating set to ' + rateOneM[2] + '.', { showInBox: false });
+                }
+            }
+            var fbM = text.match(/^feedback\s*[:,-]?\s+(.+)$/i);
+            if (fbM) {
+                var fbEl = document.getElementById('survey-feedback');
+                if (fbEl) { insertIntoField(fbEl, fbM[1].trim()); return deliverReplyAndContinue('Survey feedback updated.', { showInBox: false }); }
+            }
+            if (/^(submit|submit survey|send survey|get certificate)$/.test(cmd)) {
+                var sBtn = document.getElementById('submit-survey-btn');
+                if (sBtn) {
+                    sBtn.click();
+                    await sleep(600);
+                    var sErr = document.getElementById('survey-error');
+                    if (sErr && !sErr.classList.contains('hidden')) return deliverReplyAndContinue(sErr.textContent, { showInBox: false });
+                    return deliverReplyAndContinue('Survey submitted and certificate issued.', { showInBox: false });
+                }
+            }
+        }
+
+        // ---- Curriculum Card Actions -----------------------------------------
         // 1. Predict by voice: "predict ..." or "my prediction is ..."
         var predMatch = text.match(/^(?:my\s+prediction\s+is|prediction|predict(?:\s+that)?)\s*[:,-]?\s+(.+)$/i);
         if (predMatch) {
@@ -814,42 +1061,190 @@
             var saveBtn = document.getElementById('save-reflection-btn');
             if (!saveBtn) return deliverReplyAndContinue('The reflection save button is not visible yet.');
             saveBtn.click();
-            await sleep(250);
+            await sleep(300);
             var st = document.getElementById('reflection-status');
             return deliverReplyAndContinue((st && st.textContent) || 'Reflection saved.', { showInBox: false });
         }
 
-        // 5. Run current step
-        if (/^(run|run command|run step|execute|check and save)$/.test(cmd)) {
+        // 5. Multiple choice / Org question / Dropdown selection by voice
+        var optMatch = cmd.match(/^(?:option|choose|select|pick|answer)\s+(.+)$/) || cmd.match(/^(first|second|third|fourth|fifth|sixth)(?:\s+option)?$/);
+        if (optMatch && ctx) {
+            var arg = optMatch[1].trim();
+            var idx = parseSpokenIndex(arg);
+            if (ctx.taskType === 'multiple_choice' || (ctx.taskType === 'org_question' && ctx.orgChoices && ctx.orgChoices.length)) {
+                var btns = Array.prototype.slice.call(document.querySelectorAll('#interactive-workspace [role="radio"]'));
+                if (!btns.length) return deliverReplyAndContinue('No options are visible on this step.', { showInBox: false });
+                var targetBtn = (idx >= 0 && idx < btns.length) ? btns[idx] : btns.find(function (b) {
+                    return normalise(b.textContent).indexOf(arg) !== -1;
+                });
+                if (!targetBtn) return deliverReplyAndContinue('Could not find option ' + arg + '. Say read options to hear them.', { showInBox: false });
+                targetBtn.click();
+                return deliverReplyAndContinue('Selected ' + targetBtn.textContent.trim() + '. Say verify or run to submit.', { showInBox: false });
+            }
+            if (ctx.taskType === 'dropdown_blank') {
+                var selEl = document.getElementById('dropdown-check');
+                if (!selEl) return deliverReplyAndContinue('No dropdown is visible on this step.', { showInBox: false });
+                var realOpts = Array.prototype.slice.call(selEl.options).filter(function (o) { return o.value !== ''; });
+                var targetOpt = (idx >= 0 && idx < realOpts.length) ? realOpts[idx] : realOpts.find(function (o) {
+                    return normalise(o.textContent).indexOf(arg) !== -1;
+                });
+                if (!targetOpt) return deliverReplyAndContinue('Could not find dropdown choice ' + arg + '.', { showInBox: false });
+                selEl.value = targetOpt.value;
+                selEl.dispatchEvent(new Event('change', { bubbles: true }));
+                return deliverReplyAndContinue('Selected ' + targetOpt.textContent + '. Say verify or run to submit.', { showInBox: false });
+            }
+            if (ctx.taskType === 'org_question') {
+                var orgInp = document.getElementById('org-answer');
+                if (orgInp) {
+                    var rawAns = text.replace(/^(?:option|choose|select|pick|answer)\s+/i, '').trim();
+                    insertIntoField(orgInp, rawAns);
+                    return deliverReplyAndContinue('Answer set to ' + orgInp.value + '. Say run or save to submit.', { showInBox: false });
+                }
+            }
+        }
+
+        // 6. Match columns by voice: "match 1 with 2", "pair 1 and 2", "left 1", "right 2"
+        var pairMatch = cmd.match(/^(?:match|pair)\s+(?:left\s+)?(\w+)\s+(?:with|to|and|right)\s+(?:right\s+)?(\w+)$/);
+        if (pairMatch && ctx && ctx.taskType === 'match_columns') {
+            var lIdx = parseSpokenIndex(pairMatch[1]);
+            var rIdx = parseSpokenIndex(pairMatch[2]);
+            var lefts = document.querySelectorAll('.match-left');
+            var rights = document.querySelectorAll('.match-right');
+            if (lIdx < 0 || lIdx >= lefts.length || rIdx < 0 || rIdx >= rights.length) {
+                return deliverReplyAndContinue('Invalid column numbers. Say read options to hear the numbered items.', { showInBox: false });
+            }
+            lefts[lIdx].click();
+            rights[rIdx].click();
+            return deliverReplyAndContinue('Matched left ' + (lIdx + 1) + ' with right ' + (rIdx + 1) + '.', { showInBox: false });
+        }
+        var sideMatch = cmd.match(/^(left|right)\s+(\w+)$/);
+        if (sideMatch && ctx && ctx.taskType === 'match_columns') {
+            var sIdx = parseSpokenIndex(sideMatch[2]);
+            var sideBtns = document.querySelectorAll(sideMatch[1] === 'left' ? '.match-left' : '.match-right');
+            if (sIdx < 0 || sIdx >= sideBtns.length) return deliverReplyAndContinue('Invalid item number.', { showInBox: false });
+            sideBtns[sIdx].click();
+            return deliverReplyAndContinue('Selected ' + sideMatch[1] + ' ' + (sIdx + 1) + '.', { showInBox: false });
+        }
+
+        // 7. Terminal & Code editor helpers
+        if (/^(insert command|fill command|expected command)$/.test(cmd)) {
+            var fillBtn = document.getElementById('fill-cmd-btn');
+            if (!fillBtn) return deliverReplyAndContinue('There is no Insert Command button on this step.', { showInBox: false });
+            fillBtn.click();
+            return deliverReplyAndContinue('Inserted the expected command. Say run when ready.', { showInBox: false });
+        }
+        if (/^(load solution|solution code)$/.test(cmd)) {
+            var solBtn = document.getElementById('load-solution-btn');
+            if (!solBtn) return deliverReplyAndContinue('Load Solution is only available in preview or admin mode.', { showInBox: false });
+            solBtn.click();
+            return deliverReplyAndContinue('Solution code loaded into the editor.', { showInBox: false });
+        }
+        if (/^(reset code|restore starter code)$/.test(cmd)) {
+            var resBtn = document.getElementById('restore-code-btn');
+            if (!resBtn) return deliverReplyAndContinue('There is no reset code button on this step.', { showInBox: false });
+            resBtn.click();
+            return deliverReplyAndContinue('Starter code restored.', { showInBox: false });
+        }
+        var typeCmdM = text.match(/^(?:type\s+command|set\s+command|command)\s*[:,-]?\s+(.+)$/i);
+        if (typeCmdM) {
+            var termInp = document.getElementById('terminal-input');
+            if (termInp) {
+                insertIntoField(termInp, typeCmdM[1].trim());
+                return deliverReplyAndContinue('Command set to ' + termInp.value + '. Say run to execute.', { showInBox: false });
+            }
+        }
+        var typeCodeM = text.match(/^(?:type\s+code|append\s+code|add\s+code)\s*[:,-]?\s+(.+)$/i);
+        if (typeCodeM) {
+            var codeEd = document.getElementById('bicep-editor-input');
+            if (codeEd) {
+                insertIntoField(codeEd, typeCodeM[1].trim());
+                return deliverReplyAndContinue('Added to the code editor.', { showInBox: false });
+            }
+        }
+
+        // 8. Run / Verify / Save current step & read back result
+        if (/^(run|run command|run step|execute|check and save|verify|verify answer|verify matches|save answer|check)$/.test(cmd)) {
             var runBtn = document.getElementById('run-step-btn');
-            if (!runBtn) return deliverReplyAndContinue('There is no Run button on this step.');
+            if (!runBtn) return deliverReplyAndContinue('There is no Run or Verify button on this step.');
+            if (bridge && bridge.runStep) {
+                liveQuiet('Running step…', 'info');
+                await bridge.runStep();
+                await sleep(250);
+                var resultMsg = readVisibleResultText();
+                if (resultMsg) return deliverReplyAndContinue(resultMsg, { showInBox: false, maxChars: 1400 });
+                var toast = document.getElementById('sr-live-region');
+                return deliverReplyAndContinue((toast && toast.textContent.trim()) || 'Step finished.', { showInBox: false });
+            }
             runBtn.click();
             return deliverReplyAndContinue('Running the step now.', { showInBox: false });
         }
 
-        // 6. Navigate sections
-        var bridge = window.SirauggaCourseBridge;
+        // 9. Skip step
+        if (/^(skip|skip step|skip section)$/.test(cmd)) {
+            var skipBtn = document.getElementById('skip-step-btn');
+            if (!skipBtn || skipBtn.classList.contains('hidden')) return deliverReplyAndContinue('This step cannot be skipped.', { showInBox: false });
+            skipBtn.click();
+            return deliverReplyAndContinue('Section skipped.', { showInBox: false });
+        }
+
+        // 10. Navigate sections
         if (/^(next|next section|continue|next step)$/.test(cmd) && bridge && bridge.nextStep) {
-            bridge.nextStep();
+            var moved = bridge.nextStep();
             await sleep(150);
+            if (!moved) {
+                return deliverReplyAndContinue('Finish this section first, then say next section.', { showInBox: false });
+            }
             var cNext = bridge.getContext();
+            if (getAutoRead()) {
+                return deliverReplyAndContinue(buildSectionSummary(cNext, false) || 'Moved to the next section.', { showInBox: false, maxChars: 1600 });
+            }
             return deliverReplyAndContinue('Moved to ' + ((cNext && cNext.title) || 'the next section') + '.', { showInBox: false });
         }
         if (/^(previous|previous section|go back|last step)$/.test(cmd) && bridge && bridge.prevStep) {
-            bridge.prevStep();
+            var movedBack = bridge.prevStep();
             await sleep(150);
+            if (!movedBack) return deliverReplyAndContinue('You are already at the first section.', { showInBox: false });
             var cPrev = bridge.getContext();
+            if (getAutoRead()) {
+                return deliverReplyAndContinue(buildSectionSummary(cPrev, false) || 'Moved back.', { showInBox: false, maxChars: 1600 });
+            }
             return deliverReplyAndContinue('Moved back to ' + ((cPrev && cPrev.title) || 'the previous section') + '.', { showInBox: false });
         }
 
-        // 7. Read current section
-        if (/^(read section|read step|what is this step|read the task|where am i)$/.test(cmd) && bridge && bridge.getContext) {
-            var cRead = bridge.getContext();
-            var summary = [cRead.title, cRead.conceptSummary, cRead.taskPrompt].filter(Boolean).join('. ');
-            return deliverReplyAndContinue(summary || 'Open a section to read it.', { showInBox: false });
+        // 11. Read current section / code / breakdown / errors / options / output
+        if (/^(read section|read step|read all|what is this step|read the task|where am i)$/.test(cmd) && ctx) {
+            return deliverReplyAndContinue(buildSectionSummary(ctx, true) || 'Open a section to read it.', { showInBox: false, maxChars: 1800 });
+        }
+        if (/^(read code|read command)$/.test(cmd) && ctx) {
+            var codeParts = [];
+            if (ctx.codeTitle) codeParts.push(ctx.codeTitle);
+            if (ctx.codeSnippet) codeParts.push(ctx.codeSnippet);
+            if (ctx.expectedCommand && ctx.expectedCommand !== ctx.codeSnippet) codeParts.push('Expected command: ' + ctx.expectedCommand);
+            if (ctx.wordBreakdown && ctx.wordBreakdown.length) {
+                codeParts.push('Breakdown: ' + ctx.wordBreakdown.map(function (r) { return r.term + ': ' + r.meaning; }).join('. '));
+            }
+            return deliverReplyAndContinue(codeParts.join('. ') || 'There is no code snippet on this step.', { showInBox: false, maxChars: 1800 });
+        }
+        if (/^(read breakdown|word breakdown|explain command)$/.test(cmd) && ctx) {
+            var bd = (ctx.wordBreakdown || []).map(function (r) { return r.term + ': ' + r.meaning; }).join('. ');
+            return deliverReplyAndContinue(bd || 'There is no word breakdown on this step.', { showInBox: false, maxChars: 1800 });
+        }
+        if (/^(read errors|common errors|read common errors)$/.test(cmd) && ctx) {
+            var ce = (ctx.commonErrors || []).map(function (e) {
+                return (e.error || e.symptom || '') + (e.cause ? ' — Cause: ' + e.cause : '') + (e.fix ? ' — Fix: ' + e.fix : '');
+            }).join('. ');
+            return deliverReplyAndContinue(ce || 'No common errors listed on this step.', { showInBox: false, maxChars: 1800 });
+        }
+        if (/^(read options|what are the options|options|choices)$/.test(cmd) && ctx) {
+            var optsOut = formatOptionsForSpeech(ctx);
+            return deliverReplyAndContinue(optsOut || 'There are no selectable options on this step.', { showInBox: false, maxChars: 1600 });
+        }
+        if (/^(read output|read result|what happened)$/.test(cmd)) {
+            var resOut = readVisibleResultText();
+            return deliverReplyAndContinue(resOut || 'No output is shown yet. Say run to execute this step.', { showInBox: false, maxChars: 1600 });
         }
 
-        // 8. Default: communicate with the course agent
+        // 12. Default: communicate with the course agent
         return askCourseAssistant(text);
     }
 
