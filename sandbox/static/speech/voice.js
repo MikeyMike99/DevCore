@@ -527,7 +527,13 @@
             next();
         });
     }
-    function stopSpeaking() { try { window.speechSynthesis.cancel(); } catch (_) {} }
+    function stopSpeaking() {
+        try {
+            if (window.speechSynthesis && (window.speechSynthesis.speaking || window.speechSynthesis.pending)) {
+                window.speechSynthesis.cancel();
+            }
+        } catch (_) {}
+    }
 
     // ---- the conversation loop ----------------------------------------------
     // A result that is the same few words over and over (or mostly one repeated phrase) is the speech model making things up
