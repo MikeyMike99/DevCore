@@ -128,8 +128,25 @@
         ariaEl.textContent = '';                       // clear first so the same words are announced again
         setTimeout(function () { ariaEl.textContent = text; }, 80);
     }
-    var TTS_KEY = 'siraugga.voice.deviceVoice';       // '1' = read replies with a device voice instead of ARIA
+    var TTS_KEY = 'siraugga.voice.deviceVoice';       // '1' = read replies with a voice instead of ARIA, '0' = ARIA, null = not chosen yet
+    var TTS_VOICE_KEY = 'siraugga.voice.ttsVoice';
+    var TTS_RATE_KEY = 'siraugga.voice.ttsRate';
+    var TTS_PITCH_KEY = 'siraugga.voice.ttsPitch';
+    var TTS_SAPI_KEY = 'siraugga.voice.includeSapi';
+    function hasReplyModeChoice() {
+        var v = store(TTS_KEY);
+        return v === '0' || v === '1';
+    }
     function getUseTts() { return store(TTS_KEY) === '1'; }
+    function getIncludeSapi() { return store(TTS_SAPI_KEY) === '1'; }
+    function getTtsRate() {
+        var n = parseFloat(store(TTS_RATE_KEY));
+        return (isFinite(n) && n >= 0.5 && n <= 2.5) ? n : 1.0;
+    }
+    function getTtsPitch() {
+        var n = parseFloat(store(TTS_PITCH_KEY));
+        return (isFinite(n) && n >= 0.5 && n <= 2.0) ? n : 1.0;
+    }
     function paint(text, kind) {
         panel.textContent = text;
         panel.className = 'text-sm rounded-lg px-3 py-2 mb-2 border ' + (kind === 'error'
@@ -477,17 +494,46 @@
 
     // ---- speaking ------------------------------------------------------------
     var voices = [];
-    function loadVoices() { voices = window.speechSynthesis.getVoices() || []; }
+    function isNaturalVoice(v) {
+        if (!v) return false;
+        return !v.localService || /natural|neural|online|google/i.test(v.name || '');
+    }
+    function sortVoices(list) {
+        var lang = (navigator.language || 'en').toLowerCase();
+        var lang2 = lang.slice(0, 2);
+        return list.slice().sort(function (a, b) {
+            var aNat = isNaturalVoice(a) ? 0 : 1;
+            var bNat = isNaturalVoice(b) ? 0 : 1;
+            if (aNat !== bNat) return aNat - bNat;
+            var aLang = (a.lang || '').toLowerCase();
+            var bLang = (b.lang || '').toLowerCase();
+            var aScore = aLang === lang ? 0 : aLang.indexOf(lang2) === 0 ? 1 : 2;
+            var bScore = bLang === lang ? 0 : bLang.indexOf(lang2) === 0 ? 1 : 2;
+            if (aScore !== bScore) return aScore - bScore;
+            return (a.name || '').localeCompare(b.name || '');
+        });
+    }
+    function availableVoices() {
+        var natural = voices.filter(isNaturalVoice);
+        var pool = (getIncludeSapi() || natural.length === 0) ? voices : natural;
+        return sortVoices(pool);
+    }
+    function loadVoices() {
+        voices = window.speechSynthesis.getVoices() || [];
+        if (typeof refreshTtsVoicesUi === 'function') refreshTtsVoicesUi();
+    }
     loadVoices();
     if (window.speechSynthesis.addEventListener) window.speechSynthesis.addEventListener('voiceschanged', loadVoices);
 
-    // Only voices installed on this device: browser "online"/cloud voices would send the reply text away.
     function pickVoice() {
-        var local = voices.filter(function (v) { return v.localService; });
-        var lang = (navigator.language || 'en').toLowerCase();
-        return local.filter(function (v) { return v.lang && v.lang.toLowerCase() === lang; })[0] ||
-            local.filter(function (v) { return v.lang && v.lang.toLowerCase().indexOf(lang.slice(0, 2)) === 0; })[0] ||
-            local[0] || null;
+        var pool = availableVoices();
+        if (!pool.length) return null;
+        var saved = store(TTS_VOICE_KEY);
+        if (saved) {
+            var match = pool.filter(function (v) { return v.voiceURI === saved || v.name === saved; })[0];
+            if (match) return match;
+        }
+        return pool[0] || null;
     }
 
     // Markdown to something that sounds right when read out.
@@ -511,17 +557,22 @@
         return t;
     }
 
-    function speak(text) {
+    function speak(text, opts) {
+        var preview = !!(opts && opts.preview);
         return new Promise(function (resolve) {
             var voice = pickVoice();
-            if (!voice) { show('No voice is installed on this device, so replies are shown but not spoken.'); resolve(); return; }
+            if (!voice) { show('No voice is available on this browser, so replies are shown but not spoken.'); resolve(); return; }
             if (!text) { resolve(); return; }
             var parts = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
+            var rate = getTtsRate();
+            var pitch = getTtsPitch();
             var i = 0;
             function next() {
-                if (state !== 'speaking' || i >= parts.length) { resolve(); return; }
+                if ((!preview && state !== 'speaking') || i >= parts.length) { resolve(); return; }
                 var u = new SpeechSynthesisUtterance(parts[i++]);
                 u.voice = voice; u.lang = voice.lang;
+                u.rate = rate;
+                u.pitch = pitch;
                 u.onend = next; u.onerror = next;
                 window.speechSynthesis.speak(u);
             }
@@ -857,8 +908,68 @@
         live('Voice conversation off.');
     }
 
+    var modeDialog = document.getElementById('voice-mode-dialog');
+    var modeAriaBtn = document.getElementById('voice-mode-aria-btn');
+    var modeTtsBtn = document.getElementById('voice-mode-tts-btn');
+    var modeCancelBtn = document.getElementById('voice-mode-cancel-btn');
+    var modeDialogReturnFocus = null;
+
+    function closeReplyModeDialog(restoreFocus) {
+        if (!modeDialog) return;
+        modeDialog.classList.add('hidden');
+        if (restoreFocus && modeDialogReturnFocus && typeof modeDialogReturnFocus.focus === 'function') {
+            modeDialogReturnFocus.focus();
+        }
+        modeDialogReturnFocus = null;
+    }
+    function openReplyModeDialog() {
+        if (!modeDialog) {
+            store(TTS_KEY, '0');
+            startVoice();
+            return;
+        }
+        warmVoiceEngine(true);
+        modeDialogReturnFocus = document.activeElement || btn;
+        modeDialog.classList.remove('hidden');
+        setTimeout(function () {
+            if (modeAriaBtn) modeAriaBtn.focus();
+        }, 10);
+    }
+    function chooseReplyMode(mode) {
+        store(TTS_KEY, mode === 'tts' ? '1' : '0');
+        syncReplyModeUi();
+        closeReplyModeDialog(true);
+        startVoice();
+    }
+    if (modeAriaBtn) modeAriaBtn.addEventListener('click', function () { chooseReplyMode('aria'); });
+    if (modeTtsBtn) modeTtsBtn.addEventListener('click', function () { chooseReplyMode('tts'); });
+    if (modeCancelBtn) modeCancelBtn.addEventListener('click', function () { closeReplyModeDialog(true); });
+    if (modeDialog) {
+        modeDialog.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                closeReplyModeDialog(true);
+                return;
+            }
+            if (e.key === 'Tab') {
+                var focusables = [modeAriaBtn, modeTtsBtn, modeCancelBtn].filter(Boolean);
+                if (!focusables.length) return;
+                var first = focusables[0], last = focusables[focusables.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault(); last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault(); first.focus();
+                }
+            }
+        });
+    }
+
     btn.addEventListener('click', function () {
-        if (state === 'off') startVoice();
+        if (state === 'off') {
+            if (!hasReplyModeChoice()) openReplyModeDialog();
+            else startVoice();
+        }
         else if (state === 'enrolling') return;
         else if (state === 'listening' && currentSession && currentSession.hasSpeech()) currentSession.finishNow();   // tap when done: send now
         else if (state === 'speaking') skipReading();                                                               // tap while the reply is read: talk now
@@ -927,11 +1038,91 @@
         if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', refreshMics);
         refreshMics();
     }
-    var useTtsEl = document.getElementById('voice-use-tts');
-    if (useTtsEl) {
-        useTtsEl.checked = getUseTts();
-        useTtsEl.addEventListener('change', function () { store(TTS_KEY, useTtsEl.checked ? '1' : '0'); });
+    var replyModeEl = document.getElementById('voice-reply-mode');
+    var ttsOptionsEl = document.getElementById('voice-tts-options');
+    var ttsSelectEl = document.getElementById('voice-tts-select');
+    var ttsSapiEl = document.getElementById('voice-tts-include-sapi');
+    var ttsRateEl = document.getElementById('voice-tts-rate');
+    var ttsRateValEl = document.getElementById('voice-tts-rate-val');
+    var ttsPitchEl = document.getElementById('voice-tts-pitch');
+    var ttsPitchValEl = document.getElementById('voice-tts-pitch-val');
+    var ttsTestEl = document.getElementById('voice-tts-test');
+    var ttsResetEl = document.getElementById('voice-tts-reset');
+
+    function refreshTtsVoicesUi() {
+        if (!ttsSelectEl) return;
+        var list = availableVoices();
+        var cur = store(TTS_VOICE_KEY) || '';
+        ttsSelectEl.innerHTML = '';
+        var autoOpt = document.createElement('option');
+        autoOpt.value = '';
+        autoOpt.textContent = list.length ? 'Automatic (best natural voice)' : 'No voices available';
+        ttsSelectEl.appendChild(autoOpt);
+        list.forEach(function (v) {
+            var opt = document.createElement('option');
+            opt.value = v.voiceURI || v.name;
+            var tag = isNaturalVoice(v) ? 'Natural' : 'Local SAPI';
+            opt.textContent = v.name + ' (' + v.lang + ' — ' + tag + ')';
+            ttsSelectEl.appendChild(opt);
+        });
+        ttsSelectEl.value = list.some(function (v) { return (v.voiceURI || v.name) === cur; }) ? cur : '';
     }
+    function syncReplyModeUi() {
+        var chosen = hasReplyModeChoice();
+        var useTts = getUseTts();
+        if (replyModeEl) replyModeEl.value = chosen ? (useTts ? 'tts' : 'aria') : '';
+        if (ttsOptionsEl) ttsOptionsEl.classList.toggle('hidden', !useTts);
+        if (ttsSapiEl) ttsSapiEl.checked = getIncludeSapi();
+        if (ttsRateEl) ttsRateEl.value = String(getTtsRate());
+        if (ttsRateValEl) ttsRateValEl.textContent = getTtsRate().toFixed(2) + 'x';
+        if (ttsPitchEl) ttsPitchEl.value = String(getTtsPitch());
+        if (ttsPitchValEl) ttsPitchValEl.textContent = getTtsPitch().toFixed(2);
+        refreshTtsVoicesUi();
+    }
+    if (replyModeEl) {
+        replyModeEl.addEventListener('change', function () {
+            if (replyModeEl.value === 'tts' || replyModeEl.value === 'aria') {
+                store(TTS_KEY, replyModeEl.value === 'tts' ? '1' : '0');
+                syncReplyModeUi();
+            }
+        });
+    }
+    if (ttsSelectEl) {
+        ttsSelectEl.addEventListener('change', function () {
+            store(TTS_VOICE_KEY, ttsSelectEl.value || null);
+        });
+    }
+    if (ttsSapiEl) {
+        ttsSapiEl.addEventListener('change', function () {
+            store(TTS_SAPI_KEY, ttsSapiEl.checked ? '1' : '0');
+            refreshTtsVoicesUi();
+        });
+    }
+    if (ttsRateEl) {
+        ttsRateEl.addEventListener('input', function () {
+            store(TTS_RATE_KEY, ttsRateEl.value);
+            if (ttsRateValEl) ttsRateValEl.textContent = parseFloat(ttsRateEl.value).toFixed(2) + 'x';
+        });
+    }
+    if (ttsPitchEl) {
+        ttsPitchEl.addEventListener('input', function () {
+            store(TTS_PITCH_KEY, ttsPitchEl.value);
+            if (ttsPitchValEl) ttsPitchValEl.textContent = parseFloat(ttsPitchEl.value).toFixed(2);
+        });
+    }
+    if (ttsTestEl) {
+        ttsTestEl.addEventListener('click', function () {
+            speak('This is how I will sound when replying to you.', { preview: true });
+        });
+    }
+    if (ttsResetEl) {
+        ttsResetEl.addEventListener('click', function () {
+            store(TTS_RATE_KEY, '1.0');
+            store(TTS_PITCH_KEY, '1.0');
+            syncReplyModeUi();
+        });
+    }
+    syncReplyModeUi();
 
     // Lets you test the whole loop without a microphone: while voice is listening,
     // window.sirauggaVoice.say('hello') behaves as if you had said it.

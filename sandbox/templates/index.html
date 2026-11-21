@@ -7999,10 +7999,33 @@
     };
 })();
 </script>
+<!-- First-time Voice Reply Mode Choice Dialog -->
+<div id="voice-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="voice-mode-title" aria-describedby="voice-mode-desc" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+    <div class="w-full max-w-md rounded-xl bg-slate-900 border border-teal-500/50 shadow-2xl p-5 flex flex-col gap-4">
+        <div>
+            <h2 id="voice-mode-title" class="text-base font-bold text-teal-300 m-0">How should replies be read out?</h2>
+            <p id="voice-mode-desc" class="text-xs text-slate-300 mt-1.5 mb-0">Choose how Talk responds after you speak. You can change this anytime in Settings &rarr; Voice conversation.</p>
+        </div>
+        <div class="flex flex-col gap-2.5">
+            <button type="button" id="voice-mode-aria-btn" class="text-left min-h-[52px] rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3.5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                <span class="block text-sm font-bold text-white">Use screen reader (ARIA)</span>
+                <span class="block text-xs text-slate-300 mt-0.5">Your screen reader announces replies. No extra voice, instant response.</span>
+            </button>
+            <button type="button" id="voice-mode-tts-btn" class="text-left min-h-[52px] rounded-lg bg-teal-900/60 hover:bg-teal-800/70 border border-teal-500/60 px-3.5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                <span class="block text-sm font-bold text-white">Use an actual voice (TTS)</span>
+                <span class="block text-xs text-teal-100 mt-0.5">Speaks replies out loud with a natural voice. Customize voice, speed, and pitch in Settings.</span>
+            </button>
+        </div>
+        <div class="flex justify-end">
+            <button type="button" id="voice-mode-cancel-btn" class="min-h-[44px] px-4 rounded-lg text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 focus:ring-2 focus:ring-teal-400 focus:outline-none">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <!-- Bump ?v= whenever dictation.js or speech-worker.js changes, so Cloudflare and
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
 <script src="/static/speech/dictation.js?v=17" defer></script>
-<script src="/static/speech/voice.js?v=27" defer></script>
+<script src="/static/speech/voice.js?v=28" defer></script>
 <script src="/static/device-keys.js?v=3" defer></script>
 <script src="/static/device-keys-ui.js?v=2" defer></script>
 <script src="/static/card-recorder.js?v=2" defer></script>
