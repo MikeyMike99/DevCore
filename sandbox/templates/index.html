@@ -4713,8 +4713,15 @@
             if (btn) { btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Checking…'; }
             loginSay('Checking…');
             try {
-                loginStepId = await window.SirauggaKeys.loginPassword(u, p);
+                var res = await window.SirauggaKeys.loginPassword(u, p);
                 pwEl.value = '';
+                if (res.sent) {
+                    loginStepId = '';
+                    document.getElementById('login-email-form').classList.add('hidden');
+                    loginDone(res.message);
+                    return;
+                }
+                loginStepId = res.step_id;
                 document.getElementById('login-email-form').classList.remove('hidden');
                 loginSay('Password correct. Now type your email address and press "Email me a sign-in link".');
                 document.getElementById('login-email').focus();
@@ -6325,7 +6332,7 @@
             </div>
             <div class="border-t border-slate-800 pt-3">
                 <h3 class="text-sm font-bold text-amber-200 m-0 mb-1">👑 Owner / account sign-in</h3>
-                <p class="text-[11px] text-slate-400 m-0 mb-2">Type your username and password, then your email address. We'll email you a one-time sign-in link. After that you can turn on fingerprint or Face ID for this device.</p>
+                <p class="text-[11px] text-slate-400 m-0 mb-2">Type your username and password. If they match, we'll email you a one-time sign-in link (to both of your owner email addresses). After that you can turn on fingerprint or Face ID for this device.</p>
                 <form onsubmit="handleCustomLogin(event)" class="space-y-3">
                     <div>
                         <label for="login-username" class="text-xs text-slate-300 font-medium block mb-1">Username</label>
@@ -8030,7 +8037,7 @@
      browsers can't serve an old copy (an old worker copy carries an old CSP). -->
 <script src="/static/speech/dictation.js?v=17" defer></script>
 <script src="/static/speech/voice.js?v=28" defer></script>
-<script src="/static/device-keys.js?v=4" defer></script>
+<script src="/static/device-keys.js?v=5" defer></script>
 <script src="/static/device-keys-ui.js?v=3" defer></script>
 <script src="/static/card-recorder.js?v=3" defer></script>
 <script>

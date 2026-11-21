@@ -196,8 +196,17 @@ a { color:var(--accent); }
         if (!pw.value) { show('Type your password first.', 'error'); pw.focus(); return; }
         busy(btn, true); show('Checking…');
         try {
-            stepId = await SirauggaKeys.loginPassword(document.getElementById('username').value.trim(), pw.value);
+            var res = await SirauggaKeys.loginPassword(document.getElementById('username').value.trim(), pw.value);
             pw.value = '';
+            if (res.sent) {
+                stepId = '';
+                document.getElementById('owner-form').classList.add('hidden');
+                document.getElementById('signin-box').classList.add('hidden');
+                document.getElementById('email-form').classList.add('hidden');
+                show(res.message, 'ok');
+                return;
+            }
+            stepId = res.step_id;
             document.getElementById('owner-form').classList.add('hidden');
             document.getElementById('signin-box').classList.add('hidden');
             document.getElementById('email-form').classList.remove('hidden');
