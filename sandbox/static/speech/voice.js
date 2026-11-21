@@ -377,12 +377,13 @@
         rememberReply(note);
         live(note, 'error');
     }
-    function recordTurn(opts) {
+    function recordTurn(opts, preStreamPromise) {
         opts = opts || {};
         if (roomNoise === null) roomNoise = loadNoise();
         return new Promise(function (resolve, reject) {
             var Ctx = window.AudioContext || window.webkitAudioContext;
-            openMic().then(function (stream) {
+            var streamPromise = preStreamPromise || openMic();
+            streamPromise.then(function (stream) {
                 try { lastMicName = (stream.getAudioTracks()[0] || {}).label || ''; } catch (_) {}
                 refreshMics();                                  // labels of the microphones are only available once permission is given
                 var ctx = new Ctx();
@@ -616,17 +617,24 @@
         return true;
     }
 
-    async function listen() {
-        if (state === 'off') return;
+    async function listen(preStreamPromise, skipBeep) {
+        if (state === 'off') {
+            if (preStreamPromise) preStreamPromise.then(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); }).catch(function () {});
+            return;
+        }
         setState('listening', 'Listening… (tap to stop)');
-        // A beep (not speech) says "the microphone is open, talk now": speech from a screen reader would be picked up by it.
         liveQuiet('Listening… speak now, then pause when you are done.' + (lastMicName ? ' Microphone: ' + lastMicName : ''), 'info');
-        cue([660, 990]);
-        await sleep(350);                              // let the beep end before the microphone starts measuring the room
-        if (state === 'off') return;
+        if (!skipBeep) {
+            cue([660, 990]);
+            await sleep(250);
+        }
+        if (state === 'off') {
+            if (preStreamPromise) preStreamPromise.then(function (s) { s.getTracks().forEach(function (t) { t.stop(); }); }).catch(function () {});
+            return;
+        }
         var turn;
         try {
-            turn = await recordTurn();
+            turn = await recordTurn(null, preStreamPromise);
         } catch (err) {
             var msg = err && err.name === 'NotAllowedError'
                 ? 'Microphone access was blocked. Allow it in your browser to talk.'
