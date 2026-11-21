@@ -505,11 +505,37 @@
                 </select>
                 <label for="voice-sens" class="text-xs text-slate-300">Microphone sensitivity: 1 needs a close, clear voice, 5 picks up faint or distant voices (and more background noise)</label>
                 <input id="voice-sens" type="range" min="1" max="5" step="1" value="3" class="w-full accent-teal-500">
-                <label for="voice-use-tts" class="flex items-center justify-between gap-3 text-sm text-slate-200 cursor-pointer min-h-[44px]">
-                    <span>Read replies with a voice on this device (instead of my screen reader)</span>
-                    <input type="checkbox" role="switch" id="voice-use-tts" class="w-5 h-5 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
-                </label>
-                <p class="text-[11px] text-slate-400 m-0">By default your screen reader announces each reply, and the microphone waits until it has finished. Teaching it your voice is optional: until you do, it answers to any voice. A saved voice print stays on this device only. It is a convenience filter, not a lock: your sign-in is what protects Siraugga.</p>
+                <label for="voice-reply-mode" class="text-xs font-bold text-slate-200">How replies are read out</label>
+                <select id="voice-reply-mode" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 min-h-[44px] focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <option value="" disabled>Choose on first Talk…</option>
+                    <option value="aria">Screen reader only (ARIA)</option>
+                    <option value="tts">Actual voice (TTS — customizable voice, speed &amp; pitch)</option>
+                </select>
+                <div id="voice-tts-options" class="hidden flex flex-col gap-2 pl-2 border-l-2 border-teal-700/60 mt-1">
+                    <label for="voice-tts-select" class="text-xs text-slate-300">Voice (natural browser voices shown first)</label>
+                    <select id="voice-tts-select" class="bg-slate-950 border border-slate-700 rounded px-2 py-2 text-sm text-slate-100 min-h-[44px] focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                        <option value="">Automatic (best available)</option>
+                    </select>
+                    <label for="voice-tts-include-sapi" class="flex items-center justify-between gap-3 text-xs text-slate-300 cursor-pointer min-h-[36px]">
+                        <span>Include local system (SAPI) voices</span>
+                        <input type="checkbox" id="voice-tts-include-sapi" class="w-4 h-4 shrink-0 accent-teal-500 focus:ring-2 focus:ring-teal-500 cursor-pointer">
+                    </label>
+                    <div class="flex items-center justify-between text-xs text-slate-300">
+                        <label for="voice-tts-rate">Speed</label>
+                        <span id="voice-tts-rate-val" class="font-mono text-teal-300">1.00x</span>
+                    </div>
+                    <input id="voice-tts-rate" type="range" min="0.5" max="2.5" step="0.05" value="1.0" class="w-full accent-teal-500">
+                    <div class="flex items-center justify-between text-xs text-slate-300">
+                        <label for="voice-tts-pitch">Pitch</label>
+                        <span id="voice-tts-pitch-val" class="font-mono text-teal-300">1.00</span>
+                    </div>
+                    <input id="voice-tts-pitch" type="range" min="0.5" max="2.0" step="0.05" value="1.0" class="w-full accent-teal-500">
+                    <div class="flex gap-2 pt-1">
+                        <button type="button" id="voice-tts-test" class="flex-1 min-h-[44px] text-xs font-bold text-white bg-teal-700 hover:bg-teal-600 rounded px-2 focus:ring-2 focus:ring-teal-400 focus:outline-none">Test voice</button>
+                        <button type="button" id="voice-tts-reset" class="min-h-[44px] text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded px-3 focus:ring-2 focus:ring-teal-400 focus:outline-none">Reset</button>
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 m-0">You can switch between your screen reader (ARIA) and a spoken voice anytime here. Teaching it your voice is optional: until you do, it answers to any voice. A saved voice print stays on this device only. It is a convenience filter, not a lock: your sign-in is what protects Siraugga.</p>
             </section>
 
             <!-- Access keys: Super Admin only (shown when /api/device-keys answers); sandbox/static/device-keys-ui.js -->
