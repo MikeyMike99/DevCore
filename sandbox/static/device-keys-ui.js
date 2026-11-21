@@ -49,17 +49,77 @@
     // ---- sign in -------------------------------------------------------------------------------
     var fb = $('access-key-feedback');
     function say(t) { if (fb) fb.textContent = t || ''; }
+    var akAttempts = 0;
+    var retryDlg = null;
 
-    async function doSignIn(auto) {
+    function ensureRetryDialog() {
+        if (retryDlg) return retryDlg;
+        var d = document.createElement('dialog');
+        d.id = 'ak-retry-dialog';
+        d.className = 'bg-slate-950 text-slate-100 border border-teal-500/60 rounded-2xl p-6 max-w-md w-[92vw] shadow-2xl backdrop:bg-slate-950/80 m-auto';
+        d.setAttribute('aria-labelledby', 'ak-retry-title');
+        d.setAttribute('aria-describedby', 'ak-retry-status');
+        d.innerHTML =
+            '<div class="flex flex-col gap-4">' +
+            '  <h2 id="ak-retry-title" class="text-lg font-bold text-teal-300 m-0">Sign in with Face ID or access key</h2>' +
+            '  <p id="ak-retry-status" role="status" aria-live="assertive" aria-atomic="true" class="text-sm text-slate-200 m-0 leading-relaxed"></p>' +
+            '  <button type="button" id="ak-retry-btn" class="min-h-[56px] w-full text-base font-bold text-slate-950 bg-teal-400 hover:bg-teal-300 rounded-xl px-4 py-3 focus:ring-4 focus:ring-teal-300 focus:outline-none cursor-pointer">Try Face ID / access key again</button>' +
+            '  <button type="button" id="ak-password-btn" class="min-h-[48px] w-full text-sm font-semibold text-teal-200 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-teal-400 focus:outline-none cursor-pointer">Sign in with username &amp; password instead</button>' +
+            '  <button type="button" id="ak-cancel-btn" class="min-h-[44px] w-full text-sm text-slate-400 hover:text-slate-200 bg-transparent border border-slate-700 rounded-xl px-4 py-2 focus:ring-2 focus:ring-slate-400 focus:outline-none cursor-pointer">Cancel</button>' +
+            '</div>';
+        document.body.appendChild(d);
+        var retryBtn = d.querySelector('#ak-retry-btn');
+        var pwBtn = d.querySelector('#ak-password-btn');
+        var cancelBtn = d.querySelector('#ak-cancel-btn');
+        retryBtn.addEventListener('click', function () { doSignIn(false, true); });
+        pwBtn.addEventListener('click', function () {
+            if (d.open) d.close();
+            if (typeof window.toggleLoginModal === 'function') window.toggleLoginModal();
+            else location.href = '/setup';
+        });
+        cancelBtn.addEventListener('click', function () { if (d.open) d.close(); });
+        retryDlg = d;
+        return d;
+    }
+
+    function showRetryDialog(message) {
+        var d = ensureRetryDialog();
+        var st = d.querySelector('#ak-retry-status');
+        var retryBtn = d.querySelector('#ak-retry-btn');
+        if (st) st.textContent = message;
+        if (!d.open && typeof d.showModal === 'function') d.showModal();
+        if (retryBtn) {
+            retryBtn.disabled = false;
+            retryBtn.removeAttribute('aria-busy');
+            retryBtn.focus();
+        }
+    }
+
+    async function doSignIn(auto, fromRetry) {
         if (!window.SirauggaKeys) return;
-        say(auto ? 'Signing you in with this device\'s access key…' : 'Confirm on your device…');
+        var msg = auto ? 'Signing you in with this device\'s access key…' : 'Confirm on your device…';
+        say(msg);
+        if (fromRetry && retryDlg) {
+            var rb = retryDlg.querySelector('#ak-retry-btn');
+            var st = retryDlg.querySelector('#ak-retry-status');
+            if (rb) { rb.disabled = true; rb.setAttribute('aria-busy', 'true'); }
+            if (st) st.textContent = 'Hold your device in front of your face and confirm…';
+        }
         try {
             await window.SirauggaKeys.signIn();
+            if (retryDlg && retryDlg.open) retryDlg.close();
             say('Signed in. Reloading…');
             location.reload();
         } catch (e) {
+            akAttempts += 1;
             say(auto ? '' : e.message);
             showSignInButton(true);
+            if (e.retryable !== false) {
+                var hint = auto
+                    ? 'Tap "Try Face ID / access key again" when you are holding your device in front of your face. You have unlimited tries.'
+                    : 'Face ID did not match yet (attempt ' + akAttempts + '). Hold your device in front of your face and double-tap to try again — you have unlimited tries.';
+                showRetryDialog(hint);
+            }
         }
     }
 

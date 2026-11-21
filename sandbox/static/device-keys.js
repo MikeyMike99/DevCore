@@ -40,11 +40,19 @@
 
     function friendly(err) {
         var n = err && err.name;
-        if (n === 'NotAllowedError') return 'Cancelled, or the device did not confirm it was you. Try again.';
+        if (n === 'NotAllowedError') return 'Face ID or device confirmation did not complete. Hold your device in front of your face and try again.';
+        if (n === 'AbortError' || n === 'TimeoutError') return 'Confirmation timed out or was interrupted. Try again.';
         if (n === 'InvalidStateError') return 'This device already has an access key for Siraugga. Use "Sign in with access key" instead.';
         if (n === 'SecurityError') return 'Access keys only work on the real Siraugga address (https).';
         if (n === 'NotSupportedError') return 'This browser or device cannot create access keys.';
         return (err && err.message) || String(err);
+    }
+
+    function wrapCredError(err) {
+        var out = new Error(friendly(err));
+        out.code = err && err.name;
+        out.retryable = !err || err.name === 'NotAllowedError' || err.name === 'AbortError' || err.name === 'TimeoutError';
+        return out;
     }
 
     function saveSession(data, withKey) {
@@ -81,7 +89,7 @@
         (o.excludeCredentials || []).forEach(function (c) { c.id = b64uToBuf(c.id); });
         var cred;
         try { cred = await navigator.credentials.create({ publicKey: o }); }
-        catch (e) { throw new Error(friendly(e)); }
+        catch (e) { throw wrapCredError(e); }
         var resp = cred.response;
         var json = {
             id: cred.id, rawId: bufToB64u(cred.rawId), type: cred.type,
@@ -107,7 +115,7 @@
         (o.allowCredentials || []).forEach(function (c) { c.id = b64uToBuf(c.id); });
         var cred;
         try { cred = await navigator.credentials.get({ publicKey: o }); }
-        catch (e) { throw new Error(friendly(e)); }
+        catch (e) { throw wrapCredError(e); }
         var resp = cred.response;
         var json = {
             id: cred.id, rawId: bufToB64u(cred.rawId), type: cred.type,
