@@ -66,7 +66,7 @@
 
     // Sign-in for every account: username + password -> email -> one-time emailed link.
     async function loginPassword(username, password) {
-        return (await post('/api/login/password', { username: username, password: password })).step_id;
+        return await post('/api/login/password', { username: username, password: password });
     }
     async function loginEmail(stepId, email) {
         return (await post('/api/login/email', { step_id: stepId, email: email })).message;

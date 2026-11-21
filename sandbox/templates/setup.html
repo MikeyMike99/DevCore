@@ -39,7 +39,7 @@ a { color:var(--accent); }
 
   <!-- Owner: password, then create an access key on this device -->
   <form id="owner-form" class="stack hidden" novalidate>
-    <p class="muted">Type your username and password, then your email address. We'll email you a one-time sign-in link. After that you can turn on fingerprint or Face ID for this device.</p>
+    <p class="muted">Type your username and password. If they match, we'll email you a one-time sign-in link (to both of your owner email addresses). After that you can turn on fingerprint or Face ID for this device.</p>
     <div>
       <label for="username">Username</label>
       <input id="username" type="text" autocomplete="username" maxlength="64">
@@ -120,7 +120,7 @@ a { color:var(--accent); }
   <p class="muted"><a href="/">Back to Siraugga</a></p>
 </div>
 </main>
-<script src="/static/device-keys.js?v=4"></script>
+<script src="/static/device-keys.js?v=5"></script>
 <script>
 (function () {
     var msg = document.getElementById('msg');
