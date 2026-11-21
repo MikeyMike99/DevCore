@@ -120,9 +120,20 @@ self.onmessage = async (e) => {
         if (msg.type === 'embed') {
             const embedding = await embedVoice(msg.audio);
             self.postMessage({ type: 'embedding', id: msg.id, embedding });
-        } else if (msg.type === 'load') {
-            await getTranscriber();
-            self.postMessage({ type: 'ready', id: msg.id });
+        } else if (msg.type === 'load' || msg.type === 'warm') {
+            const transcriber = await getTranscriber();
+            if (msg.warmup_pass) {
+                try {
+                    const dummy = new Float32Array(4000);
+                    await transcriber(dummy, { max_new_tokens: 1 });
+                } catch (_) {}
+            }
+            if (msg.warm_speaker) {
+                try {
+                    await getSpeakerModel();
+                } catch (_) {}
+            }
+            self.postMessage({ type: 'ready', id: msg.id, warmed: true });
         } else if (msg.type === 'transcribe') {
             const transcriber = await getTranscriber();
             self.postMessage({ type: 'ready' });
