@@ -205,7 +205,7 @@
     // ---- worker --------------------------------------------------------------
     async function diagnoseEngine() {
         var files = [
-            ['worker', '/static/speech/speech-worker.js?v=10'],
+            ['worker', '/static/speech/speech-worker.js?v=11'],
             ['engine', '/static/speech/vendor/transformers.min.js?v=2'],
             ['runtime', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.mjs'],
             ['wasm', '/static/speech/vendor/ort-wasm-simd-threaded.jsep.wasm'],
@@ -214,7 +214,7 @@
         var parts = [];
         for (var i = 0; i < files.length; i++) {
             try {
-                var r = await fetch(files[i][1], { method: 'HEAD', cache: 'no-store' });
+                var r = await fetch(files[i][1], { method: 'HEAD' });
                 parts.push(files[i][0] + ' ' + r.status);
             } catch (err) {
                 parts.push(files[i][0] + ' unreachable');
@@ -250,7 +250,7 @@
 
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=10' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=11' + (cpuMode() ? '&cpu=1' : ''), { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
             if (m.type === 'stage') { lastStage = m.stage || ''; return; }
@@ -276,20 +276,21 @@
         };
         return worker;
     }
-    function askOnce(type, audio) {
+    function askOnce(type, audio, extra) {
         return new Promise(function (resolve, reject) {
             var id = nextId++;
             pending[id] = { resolve: resolve, reject: reject };
-            getWorker().postMessage({ type: type, id: id, audio: audio });
+            var msg = Object.assign({ type: type, id: id, audio: audio }, extra || {});
+            getWorker().postMessage(msg);
         });
     }
-    function ask(type, audio) {
-        return askOnce(type, audio).catch(function (err) {
+    function ask(type, audio, extra) {
+        return askOnce(type, audio, extra).catch(function (err) {
             if (err && err.crashed && !cpuMode()) {         // first crash: switch to the safe mode and try once more
                 store(CPU_KEY, '1');
                 worker = null;
                 live('The speech engine stopped, so I am switching to the slower, safer mode and trying again.');
-                return askOnce(type, audio);
+                return askOnce(type, audio, extra);
             }
             throw err;
         });

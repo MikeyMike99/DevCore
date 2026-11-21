@@ -124,7 +124,7 @@
     // ---- transcription -------------------------------------------------------
     function getWorker() {
         if (worker) return worker;
-        worker = new Worker('/static/speech/speech-worker.js?v=10', { type: 'module' });
+        worker = new Worker('/static/speech/speech-worker.js?v=11', { type: 'module' });
         worker.onmessage = function (e) {
             var m = e.data || {};
             if (m.type === 'progress') {
