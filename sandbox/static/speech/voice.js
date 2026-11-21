@@ -676,7 +676,6 @@
     async function handleText(text) {
         var cmd = normalise(text);
         if (/^(stop|stop it|stop listening|stop talking|stop voice|turn off|turn it off|voice off|cancel|goodbye|good bye|bye|that is all|thats all|that s all)$/.test(cmd)) {
-            show('Stopped listening.');
             return stopVoice();
         }
         if (/^(new conversation|new chat|start a new conversation|start over)$/.test(cmd) && typeof window.newConversation === 'function') {
@@ -764,15 +763,30 @@
         setState('listening', 'Starting…');                // listen() does nothing while the state is 'off'
         listen();
     }
+    function releaseAudioSession() {
+        try {
+            if (cueCtx && cueCtx.state !== 'closed') cueCtx.close();
+        } catch (_) {}
+        cueCtx = null;
+        // On iOS Safari, getUserMedia + AudioContext puts the hardware audio session into play-and-record,
+        // which can leave VoiceOver muted or stuck after stopping unless we release it back to 'auto'.
+        try {
+            if (navigator.audioSession && 'type' in navigator.audioSession) {
+                navigator.audioSession.type = 'auto';
+            }
+        } catch (_) {}
+    }
+
     function stopVoice() {
         waitingForReply = false;
         if (watchdog) { clearTimeout(watchdog); watchdog = null; }
         if (ariaTimer) { clearTimeout(ariaTimer); ariaTimer = null; }
         stopSpeaking();
         if (currentSession) currentSession.cancel();
+        releaseAudioSession();
+        ariaEl.textContent = '';
         useHaiku(false);
         setState('off');
-        say('Voice conversation off');
         live('Voice conversation off.');
     }
 
