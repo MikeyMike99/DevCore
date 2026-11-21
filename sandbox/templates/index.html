@@ -3209,7 +3209,11 @@
                         // does not have to find and press the button.
                         var courseBtns = doneArticle.querySelectorAll('button[data-course-topic]');
                         var lastCourseBtn = courseBtns[courseBtns.length - 1];
-                        if (lastCourseBtn && !lastCourseBtn.dataset.autoOpened && typeof openBackendCard === 'function') {
+                        var answerEl = doneArticle.querySelector('.agent-text');
+                        var answerRest = answerEl ? answerEl.cloneNode(true) : null;
+                        if (answerRest) answerRest.querySelectorAll('button[data-course-topic], a[href*="/course"]').forEach(function(n) { n.remove(); });
+                        var courseOnlyAnswer = !answerRest || (answerRest.textContent || '').replace(/\s+/g, ' ').trim().length <= 160;
+                        if (lastCourseBtn && courseOnlyAnswer && !lastCourseBtn.dataset.autoOpened && typeof openBackendCard === 'function') {
                             lastCourseBtn.dataset.autoOpened = '1';
                             openBackendCard({ topic: lastCourseBtn.getAttribute('data-course-topic'), soft: true }).then(function(opened) {
                                 if (!opened) return;
@@ -4038,7 +4042,7 @@
                 return;
             }
 
-            if (!fromVoice && /^\/?cour|cou?rse|co?urs|corse|coruse|cource|\/c[a-z]*urs/i.test(prompt) && prompt.split(/\s+/).length <= 24) {
+            if (!fromVoice && /^\/(?:cour|cou?rse|co?urs|corse|coruse|cource|c[a-z]*urs)/i.test(prompt) && prompt.split(/\s+/).length <= 24) {
                 var asked = prompt;
                 var shown = await openBackendCard({ prompt: asked, soft: true });
                 if (shown) { inputEl.value = ''; return; }
@@ -8028,7 +8032,7 @@
 <script src="/static/speech/voice.js?v=28" defer></script>
 <script src="/static/device-keys.js?v=3" defer></script>
 <script src="/static/device-keys-ui.js?v=2" defer></script>
-<script src="/static/card-recorder.js?v=2" defer></script>
+<script src="/static/card-recorder.js?v=3" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (window.SirauggaCardRecorder) {

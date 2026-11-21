@@ -868,7 +868,7 @@
         // 0. Help & Auto-Read toggle
         if (/^(help|voice commands|what can i say|commands)$/.test(cmd)) {
             var helpMsg = stage === 'welcome'
-                ? 'Say start course, look around for preview, or read section.'
+                ? 'Say start course, look around for the outline, or read section.'
                 : stage === 'terms'
                 ? 'Say read section, agree, accept terms, or previous.'
                 : stage === 'registration'
@@ -892,7 +892,7 @@
             }
             if (/^(preview|look around|look around first)$/.test(cmd)) {
                 var wPrev = document.getElementById('enter-preview-from-welcome-btn');
-                if (wPrev) { wPrev.click(); return deliverReplyAndContinue('Entered preview mode.', { showInBox: false }); }
+                if (wPrev) { wPrev.click(); return deliverReplyAndContinue('Showing the course outline.', { showInBox: false }); }
             }
             if (/^(read|read section|read step|what is this)$/.test(cmd)) {
                 var wEl = document.getElementById('course-welcome-gate');

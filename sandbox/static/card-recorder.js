@@ -1434,16 +1434,28 @@
         }
     }
 
+    const RECORDABLE_FRAMES = 'iframe[src*="/plugin/course"], iframe[src*="/course?"], iframe[src*="/plugin/exam"]';
+
+    function isRecordableCard(art) {
+        return art.getAttribute('data-backend-card') === 'course' || Boolean(art.querySelector(RECORDABLE_FRAMES));
+    }
+
     function attachToFeed(feedEl) {
         if (!feedEl) return;
+        let pending = false;
         const attachExisting = function () {
+            pending = false;
             feedEl.querySelectorAll('article.message-card.agent-message').forEach(function (art) {
-                attachRecorderToolbar(art);
+                if (isRecordableCard(art)) attachRecorderToolbar(art);
             });
         };
         attachExisting();
-        const obs = new MutationObserver(function () { attachExisting(); });
-        obs.observe(feedEl, { childList: true });
+        const obs = new MutationObserver(function () {
+            if (pending) return;
+            pending = true;
+            (window.requestAnimationFrame || window.setTimeout)(attachExisting);
+        });
+        obs.observe(feedEl, { childList: true, subtree: true });
     }
 
     window.addEventListener('message', function (ev) {
