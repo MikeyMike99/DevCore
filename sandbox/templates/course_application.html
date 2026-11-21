@@ -56,6 +56,76 @@
             </div>
         </div>
         <div id="course-recorder-bar-slot"></div>
+        <!-- Hands-Free Course Voice & Settings Bar -->
+        <div id="course-voice-bar" class="mt-3 pt-3 border-t border-slate-800 space-y-2">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="course-talk-btn" type="button" aria-pressed="false" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-600 text-white text-xs font-bold px-3.5 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-300" title="Hands-free voice conversation with the course agent, plus voice predict and reflect (Alt+V)">
+                        <span id="course-talk-label">Hands-Free Talk (Alt+V)</span>
+                    </button>
+                    <span class="text-xs text-slate-400">Say &ldquo;predict &hellip;&rdquo;, &ldquo;reflect &hellip;&rdquo;, or ask the agent anything hands-free.</span>
+                </div>
+                <details id="course-voice-settings" class="text-xs">
+                    <summary class="cursor-pointer select-none px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-teal-400">Voice Settings</summary>
+                    <div class="mt-2 p-3 rounded-lg bg-slate-950 border border-slate-700 space-y-2.5 max-w-sm">
+                        <div>
+                            <label for="course-voice-reply-mode" class="block text-xs font-bold text-slate-200 mb-1">How replies are read out</label>
+                            <select id="course-voice-reply-mode" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                <option value="" disabled>Choose on first Talk&hellip;</option>
+                                <option value="aria">Screen reader only (ARIA)</option>
+                                <option value="tts">Actual voice (TTS &mdash; customizable voice, speed &amp; pitch)</option>
+                            </select>
+                        </div>
+                        <div id="course-voice-tts-options" class="hidden space-y-2 pl-2 border-l-2 border-teal-700/60">
+                            <div>
+                                <label for="course-voice-tts-select" class="block text-xs text-slate-300 mb-1">Voice (natural browser voices shown first)</label>
+                                <select id="course-voice-tts-select" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                    <option value="">Automatic (best available)</option>
+                                </select>
+                            </div>
+                            <label for="course-voice-tts-sapi" class="flex items-center justify-between gap-2 text-xs text-slate-300 cursor-pointer">
+                                <span>Include local system (SAPI) voices</span>
+                                <input type="checkbox" id="course-voice-tts-sapi" class="w-4 h-4 accent-teal-500 cursor-pointer">
+                            </label>
+                            <div>
+                                <div class="flex items-center justify-between text-xs text-slate-300">
+                                    <label for="course-voice-tts-rate">Speed</label>
+                                    <span id="course-voice-tts-rate-val" class="font-mono text-teal-300">1.00x</span>
+                                </div>
+                                <input id="course-voice-tts-rate" type="range" min="0.5" max="2.5" step="0.05" value="1.0" class="w-full accent-teal-500">
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between text-xs text-slate-300">
+                                    <label for="course-voice-tts-pitch">Pitch</label>
+                                    <span id="course-voice-tts-pitch-val" class="font-mono text-teal-300">1.00</span>
+                                </div>
+                                <input id="course-voice-tts-pitch" type="range" min="0.5" max="2.0" step="0.05" value="1.0" class="w-full accent-teal-500">
+                            </div>
+                            <div class="flex gap-2">
+                                <button type="button" id="course-voice-tts-test" class="flex-1 text-xs font-bold text-white bg-teal-700 hover:bg-teal-600 rounded px-2 py-1.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">Test voice</button>
+                                <button type="button" id="course-voice-tts-reset" class="text-xs font-bold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded px-2.5 py-1.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">Reset</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="course-voice-mic-select" class="block text-xs text-slate-300 mb-1">Microphone</label>
+                            <select id="course-voice-mic-select" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                                <option value="">System default</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="course-voice-sens" class="block text-xs text-slate-300 mb-1">Microphone sensitivity (1 close &ndash; 5 distant)</label>
+                            <input id="course-voice-sens" type="range" min="1" max="5" step="1" value="3" class="w-full accent-teal-500">
+                        </div>
+                    </div>
+                </details>
+            </div>
+            <div id="course-voice-live" aria-hidden="true" class="hidden"></div>
+            <div id="course-voice-meter" aria-hidden="true" class="hidden h-1.5 rounded bg-slate-800 border border-slate-700 overflow-hidden"><div id="course-voice-meter-bar" class="h-full bg-teal-500" style="width: 0%"></div></div>
+            <div id="course-voice-reply-box" class="hidden rounded-lg bg-teal-950/40 border border-teal-700/70 px-3.5 py-2.5 text-sm text-slate-100">
+                <p class="text-xs font-bold text-teal-300 mb-1">Course Assistant</p>
+                <p id="course-voice-reply-text" class="whitespace-pre-wrap leading-relaxed"></p>
+            </div>
+        </div>
     </header>
 
     <section id="course-preview-banner" role="region" aria-labelledby="preview-banner-heading" aria-hidden="true" class="hidden bg-indigo-950/70 border border-indigo-500/80 rounded-xl px-4 py-3 shadow-lg flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
@@ -2377,6 +2447,7 @@
         const undoBtn = document.getElementById('agent-undo-btn');
         const statusEl = document.getElementById('agent-status');
         codeEl.value = lastCode || (isScope ? (progressState.agent_scope || '') : '');
+        if (window.SirauggaCourseVoice) window.SirauggaCourseVoice.attachDictation(msgEl, { label: 'Speak message', fieldName: 'agent message' });
         renderAgentLog(sec);
         let undoValue = null;
 
@@ -3258,6 +3329,12 @@
             ta.addEventListener('input', () => { refresh(); onChange(ta.value); if (!previewMode) saveSoon(); });
             refresh();
             wrap.append(label, help, ta, count);
+            if (window.SirauggaCourseVoice) {
+                window.SirauggaCourseVoice.attachDictation(ta, {
+                    label: id === 'predict-field' ? 'Speak prediction' : 'Speak reflection',
+                    fieldName: id === 'predict-field' ? 'prediction' : 'reflection'
+                });
+            }
             return { wrap, ta, isValid: refresh };
         }
 
@@ -4600,7 +4677,48 @@
             downloadCourseExport('zip');
         }
     });
+
+    window.SirauggaCourseBridge = {
+        getContext: function () {
+            const item = flatSteps[currentStepIndex];
+            const sec = item ? item.section : null;
+            return {
+                courseId: courseId,
+                previewMode: Boolean(previewMode),
+                stepId: sec ? sec.id : null,
+                title: sec ? (sec.section_code ? sec.section_code + ': ' + sec.title : sec.title) : '',
+                conceptSummary: sec ? (sec.concept_summary || '') : '',
+                taskPrompt: sec ? (sec.task_prompt || '') : '',
+                taskType: sec ? (sec.task_type || 'terminal_command') : ''
+            };
+        },
+        nextStep: function () { goNextStep(); },
+        prevStep: function () { goPrevStep(); }
+    };
 </script>
+<!-- First-time Voice Reply Mode Choice Dialog -->
+<div id="voice-mode-dialog" role="dialog" aria-modal="true" aria-labelledby="voice-mode-title" aria-describedby="voice-mode-desc" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+    <div class="w-full max-w-md rounded-xl bg-slate-900 border border-teal-500/50 shadow-2xl p-5 flex flex-col gap-4">
+        <div>
+            <h2 id="voice-mode-title" class="text-base font-bold text-teal-300 m-0">How should replies be read out?</h2>
+            <p id="voice-mode-desc" class="text-xs text-slate-300 mt-1.5 mb-0">Choose how Hands-Free Talk responds after you speak. You can change this anytime in Voice Settings.</p>
+        </div>
+        <div class="flex flex-col gap-2.5">
+            <button type="button" id="voice-mode-aria-btn" class="text-left min-h-[52px] rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3.5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                <span class="block text-sm font-bold text-white">Use screen reader (ARIA)</span>
+                <span class="block text-xs text-slate-300 mt-0.5">Your screen reader announces replies. No extra voice, instant response.</span>
+            </button>
+            <button type="button" id="voice-mode-tts-btn" class="text-left min-h-[52px] rounded-lg bg-teal-900/60 hover:bg-teal-800/70 border border-teal-500/60 px-3.5 py-2.5 focus:ring-2 focus:ring-teal-400 focus:outline-none">
+                <span class="block text-sm font-bold text-white">Use an actual voice (TTS)</span>
+                <span class="block text-xs text-teal-100 mt-0.5">Speaks replies out loud with a natural voice. Customize voice, speed, and pitch in Voice Settings.</span>
+            </button>
+        </div>
+        <div class="flex justify-end">
+            <button type="button" id="voice-mode-cancel-btn" class="min-h-[44px] px-4 rounded-lg text-xs font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 focus:ring-2 focus:ring-teal-400 focus:outline-none">Cancel</button>
+        </div>
+    </div>
+</div>
+<script src="/static/speech/course-voice.js?v=1" defer></script>
 <script src="/static/card-recorder.js?v=2"></script>
 <script src="/static/course-tailor-crypto.js"></script>
 <script>
