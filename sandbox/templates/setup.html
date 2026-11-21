@@ -120,7 +120,7 @@ a { color:var(--accent); }
   <p class="muted"><a href="/">Back to Siraugga</a></p>
 </div>
 </main>
-<script src="/static/device-keys.js?v=3"></script>
+<script src="/static/device-keys.js?v=4"></script>
 <script>
 (function () {
     var msg = document.getElementById('msg');
@@ -129,6 +129,9 @@ a { color:var(--accent); }
     var isRecovery = false;
     var signinCode = params.get('signin');
     var stepId = '';
+    var bioAttempts = 0;
+    var signInAttempts = 0;
+    var inviteAttempts = 0;
 
     function show(text, kind) { msg.textContent = text; msg.className = kind || ''; }
     function busy(btn, on) { btn.disabled = on; btn.setAttribute('aria-busy', on ? 'true' : 'false'); }
@@ -229,10 +232,14 @@ a { color:var(--accent); }
         show('Confirm with your fingerprint, Face ID or PIN…');
         try { done(await SirauggaKeys.register({})); }
         catch (err) {
+            bioAttempts += 1;
             document.getElementById('owner-form').classList.add('hidden');
             document.getElementById('signin-box').classList.add('hidden');
             document.getElementById('bio-box').classList.remove('hidden');
-            show(err.message, 'error');
+            var text = err.retryable !== false
+                ? 'Face ID did not match yet (attempt ' + bioAttempts + '). Hold your device in front of your face and double-tap "Turn on fingerprint / face" to try again — you have unlimited tries.'
+                : err.message;
+            show(text, 'error');
             document.getElementById('bio-btn').focus();
         }
     }
@@ -304,15 +311,33 @@ a { color:var(--accent); }
                 document.getElementById('newpw').focus();
             } else { done(res); }
         }
-        catch (err) { show(err.message, 'error'); }
+        catch (err) {
+            inviteAttempts += 1;
+            var text = err.retryable !== false
+                ? 'Face ID did not match yet (attempt ' + inviteAttempts + '). Hold your device in front of your face and double-tap "Create access key on this device" to try again — you have unlimited tries.'
+                : err.message;
+            show(text, 'error');
+            busy(btn, false);
+            btn.focus();
+            return;
+        }
         finally { busy(btn, false); }
     });
 
     document.getElementById('signin-btn').addEventListener('click', async function () {
         var btn = this;
-        busy(btn, true); show('Confirm on your device…');
+        busy(btn, true); show('Hold your device in front of your face and confirm…');
         try { done(await SirauggaKeys.signIn()); }
-        catch (err) { show(err.message, 'error'); }
+        catch (err) {
+            signInAttempts += 1;
+            var text = err.retryable !== false
+                ? 'Face ID did not match yet (attempt ' + signInAttempts + '). Hold your device in front of your face and double-tap "Sign in with access key" to try again — you have unlimited tries.'
+                : err.message;
+            show(text, 'error');
+            busy(btn, false);
+            btn.focus();
+            return;
+        }
         finally { busy(btn, false); }
     });
 })();
